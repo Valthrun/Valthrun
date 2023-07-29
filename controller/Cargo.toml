@@ -13,3 +13,16 @@ log = "0.4.19"
 env_logger = "0.10.0" 
 serde = { version = "1.0.178", features = ["derive"] }
 serde_json = "1.0.104"
+imgui = "0.11"
+imgui-winit-support = "0.11.0" 
+copypasta = "0.8.2"
+imgui-dx11-renderer = { path = "./third_party/imgui-dx11-renderer"}
+winit = "0.28.6"
+
+windows = { version = "0.48", features = [
+    "Win32_Graphics_Direct3D11",
+    "Win32_Graphics_Direct3D",
+    "Win32_Graphics_Dxgi",
+    "Win32_Graphics_Dxgi_Common",
+    "Win32_Foundation",
+] }

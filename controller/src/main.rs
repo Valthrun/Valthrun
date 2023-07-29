@@ -4,6 +4,8 @@
 use std::fmt::Debug;
 use anyhow::Context;
 use cs2_schema::offsets;
+use imgui::Condition;
+use imgui_winit_support::{WinitPlatform, HiDpiMode, winit::{event_loop::{EventLoop, ControlFlow}, window::WindowBuilder, event::{Event, WindowEvent}}};
 use schema::dump_schema;
 use valthrun_kinterface::ByteSequencePattern;
 
@@ -11,6 +13,7 @@ use crate::handle::{CS2Handle, Module};
 
 mod handle;
 mod schema;
+mod overlay;
 
 #[repr(C)]
 #[derive(Default)]
@@ -170,19 +173,39 @@ fn dump_entities(cs2: &CS2Handle) -> anyhow::Result<()> {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let cs2 = CS2Handle::create()?;
-    // dump_schema(&cs2)?;
-    // dump_entities(&cs2)?;
+    {
+        // let cs2 = CS2Handle::create()?;
+        // // dump_schema(&cs2)?;
+        // // dump_entities(&cs2)?;
 
-    let controller_ptr = find_local_player_controller_ptr(&cs2)?;
-    let entity_identity = cs2.read::<u64>(Module::Client, &[
-        controller_ptr,
-        offsets::client::CEntityInstance::m_pEntity
-    ])?;
+        // let controller_ptr = find_local_player_controller_ptr(&cs2)?;
+        // let entity_identity = cs2.read::<u64>(Module::Client, &[
+        //     controller_ptr,
+        //     offsets::client::CEntityInstance::m_pEntity
+        // ])?;
 
-    log::info!("Identity name: {}",
-        cs2.read_string(Module::Absolute, &[ entity_identity + offsets::client::CEntityIdentity::m_designerName, 0 ], Some(32))?
-    );
+        // log::info!("Identity name: {}",
+        //     cs2.read_string(Module::Absolute, &[ entity_identity + offsets::client::CEntityIdentity::m_designerName, 0 ], Some(32))?
+        // );
+    }
+
+    
+    overlay::init("Test")
+        .main_loop(|_run, ui| {
+            ui.window("Hello world")
+                .size([300.0, 100.0], Condition::FirstUseEver)
+                .build(|| {
+                    ui.text("Hello world!");
+                    ui.text("こんにちは世界！");
+                    ui.text("This...is...imgui-rs!");
+                    ui.separator();
+                    let mouse_pos = ui.io().mouse_pos;
+                    ui.text(format!(
+                        "Mouse Position: ({:.1},{:.1})",
+                        mouse_pos[0], mouse_pos[1]
+                    ));
+                });
+        });
 
     Ok(())
 }
