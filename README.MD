@@ -13,11 +13,11 @@ This project has been inspired by [GarHal_CSGO](https://github.com/dretax/GarHal
 As GarHal this is a project for exploring the Windows Kernel with [Rust](https://www.rust-lang.org).
 
 # Overlay Features
-A basis for an overlay has been build but there are currently not much features.  
-The overlay supports drawing player skeletons and their collision box.  
-To access the overlay settings press `NUM 0` (the zero on the numpad).  
-Attention: Ensure you have `NUMLOCK` enabled!  
+The basis for the overlay has been build but it's currently pretty limited in terms of functionality.  
+Currently supported features are such as drawing player skeletons and their collision box.  
   
+To access Valthruns settings overlay press `NUM 0` (the zero on the numpad).  
+Attention: Ensure you have `NUMLOCK` enabled!  
 
 ## Planned Features
 - Improved PlayerESP
@@ -49,7 +49,7 @@ cd kernel/driver
 cargo make --profile production sign
 ```
 
-## 1. Overlay
+## 2. Overlay
 ```ps1
 # Create a release overlay build
 # The result will be located at "target/release/controller"
@@ -89,5 +89,24 @@ $env:RUST_LOG="trace"
 .\controller.exe
 ```
 
+# Updating offsets for Counter-Strike 2
+TODO: Create documentation on this one, as well where and what offsets are used!  
+May put this into a seperate file.
+
+# VAC
+The same considerations as mentioned in [this link](https://github.com/dretax/GarHal_CSGO#starting-driver) have been taken into account.  
+With these precautions and some minor improvements, such as omitting the varhal identifier and using xor-ing for strings, the driver/overlay should avoid VAC detection. However, I must clarify that I haven't extensively studied VAC, so my conclusion is speculative. Personally, I have been using a C based driver/overlay like this with CSGO for several years without ever getting VAC banned. But be aware of overwatch!  
+Unfortunately, since I'm not part of the closed CS2 beta,  
+I haven't had the opportunity to test the overlay with VAC live,  
+but I assume it should work similarly well.
+
+# Supported Windows Versions
+Curently only a few windows versions are supported due to the required offsets within `_EPROCESS`.  
+- Windows 11 22H2 22621
+
+Click [here](https://www.vergiliusproject.com/kernels/x64/Windows%2010%20%7C%202016/1909%2019H2%20(November%202019%20Update)/_EPROCESS) to view the EPROCESS offsets. Click [here](https://docs.microsoft.com/en-us/windows/release-health/release-information) to view the release information site.  
+It is planned to dynamically resolved these offsets and eliminate the need for manually updating these.  
+
 # Screenshots
 ![](https://img.did.science/2023_07_30_17_28_23.png)
+![](https://img.did.science/2023_07_31_01_38_46.png)
