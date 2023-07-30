@@ -10,33 +10,57 @@ That's a lot of descriptive words, but what does each of them mean?
   
 Note:  
 This project has been inspired by [GarHal_CSGO](https://github.com/dretax/GarHal_CSGO).  
-As GarHal this is a lerning project!
+As GarHal this is a project for exploring the Windows Kernel with [Rust](https://www.rust-lang.org).
+
+# Overlay Features
+A basis for an overlay has been build but there are currently not much features.  
+The overlay supports drawing player skeletons and their collision box.  
+To access the overlay settings press `NUM 0` (the zero on the numpad).  
+Attention: Ensure you have `NUMLOCK` enabled!  
   
-# Overlay
-The overlay is currently in development and not fully ready.
+
+## Planned Features
+- Improved PlayerESP
+  - Different teammate / opponent colors
+  - Weapon name
+  - Player health
+- Bomb Info
+  - Time 'till detonation
+  - Time 'till defusal
+  - Bomb location
+- Spectator info
+  - List of player currently watching you / the observer target
+- Player competitive ranks / wins
 
 # Build
-## Kernel Module
+## 0. Prerequiresits
+The following prerequisites must be fullfilled to build this project
+- Visual Studio 2022 (located at `%ProgramFiles%\Microsoft Visual Studio\2022\Community`)
+- Rust
+- Windows Kernel Development Kit
+
+## 1. Kernel Driver
 ```ps1
 # Switch to the kernel driver directory
 cd kernel/driver
 
-# Create a release overlay build
+# Create a release build.
 # The result will be located at "../target/x86_64-pc-windows-msvc/release/valthrun-driver.sys"
 cargo make --profile production sign
 ```
 
-## Overlay
+## 1. Overlay
 ```ps1
 # Create a release overlay build
 # The result will be located at "target/release/controller"
 cargo build --release
 ```
     
-### Attention  
+#### Attention  
 As long as https://github.com/rust-lang/rust/issues/111540 has not been finalized,  
 the controller build file will contain `valthrun` as well as the workspace path in the final executable.  
-To omit any traces of valthrun and your build path you need to set the RUSTFLAGS remap path prefix flags accordingly.
+As far as I'm conserned VAC does not actively checks for certain strings so this should not be an issue.
+But if you want to these traces anyways you need to set the RUSTFLAGS remap path prefix flags accordingly.
 ```ps1
 $WorkspaceCargo=$(cargo locate-project --workspace --message-format=plain)
 $env:RUSTFLAGS="-Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
@@ -44,10 +68,20 @@ $env:RUSTFLAGS="-Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-pre
 Build the overlay afterwards and `valthrun` not the build path (which might include the word `valthrun`) should be contained within the binary.  
 
 
-# Using
-1. Load Driver
-2. Start CS2
+# Starting Overlay
+The following steps need to be done for starting/activating the overlay.
+1. Load the kernel driver
+The overlay requires the kernel driver for all memory reads and writes.
+Therefore we need to load the driver before we can continue.
+TODO!  
+Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
+  
+2. Start Counter-Strike 2
+After loading the driver you can start Counter-Strike 2.
+
 3. Start Overlay
+With an open instance of Counter-Strike 2 you can start the overlay.  
+  
 When you want extra/verbose output, start the overlay from the terminal and previously set the `RUST_LOG` environment variable.  
 Example for executing the overlay with trace output:  
 ```ps1
