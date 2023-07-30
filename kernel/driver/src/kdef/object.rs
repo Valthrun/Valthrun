@@ -4,9 +4,26 @@ use crate::kapi::NTSTATUS;
 
 use super::{PVOID, KPROCESSOR_MODE, PDEVICE_OBJECT, IRP, _LIST_ENTRY, KSPIN_LOCK};
 
-extern "system"
-{
+extern "system" {
 	pub fn KeWaitForSingleObject(Object: PVOID, WaitReason: u32, WaitMode: KPROCESSOR_MODE, Alertable: bool, Timeout: Option<&i64>) -> NTSTATUS;
+}
+
+pub type _OBJECT_TYPE = ();
+pub type POBJECT_TYPE = *const _OBJECT_TYPE;
+
+extern "system" {
+	pub static CmKeyObjectType: *const POBJECT_TYPE;
+	pub static IoFileObjectType: *const POBJECT_TYPE;
+	pub static ExEventObjectType: *const POBJECT_TYPE;
+	pub static ExSemaphoreObjectType: *const POBJECT_TYPE;
+	pub static TmTransactionManagerObjectType: *const POBJECT_TYPE;
+	pub static TmResourceManagerObjectType: *const POBJECT_TYPE;
+	pub static TmEnlistmentObjectType: *const POBJECT_TYPE;
+	pub static TmTransactionObjectType: *const POBJECT_TYPE;
+	pub static PsProcessType: *const POBJECT_TYPE;
+	pub static PsThreadType: *const POBJECT_TYPE;
+	pub static PsJobType: *const POBJECT_TYPE;
+	pub static SeTokenObjectType: *const POBJECT_TYPE;
 }
 
 #[repr(C)]

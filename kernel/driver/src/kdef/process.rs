@@ -5,6 +5,8 @@ use super::{_LIST_ENTRY, PVOID, UNICODE_STRING};
 #[link(name = "ntoskrnl")]
 extern "system" {
     pub fn PsGetProcessId(process: *const _KPROCESS) -> i32;
+    pub fn IoGetCurrentProcess() -> *const _EPROCESS;
+
     pub fn PsGetProcessPeb(process: *const _KPROCESS) -> *const _PEB;
     pub fn PsLookupProcessByProcessId(process_id: i32, process: *mut *const _KPROCESS) -> NTSTATUS;
     

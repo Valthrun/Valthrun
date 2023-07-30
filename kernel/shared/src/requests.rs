@@ -1,8 +1,7 @@
 use crate::{IO_MAX_DEREF_COUNT, CSModuleInfo};
 
 
-pub trait DriverRequest {
-    type Payload: Sized;
+pub trait DriverRequest : Sized {
     type Result: Sized + Default;
 
     fn control_code() -> u32 {
@@ -18,22 +17,18 @@ pub trait DriverRequest {
 }
 
 
-pub struct DriverRequestHealthCheck;
 pub struct RequestHealthCheck;
 #[derive(Debug, Default)]
 pub struct ResponseHealthCheck {
     pub success: bool,
 }
 
-impl DriverRequest for DriverRequestHealthCheck {
-    type Payload = RequestHealthCheck;
+impl DriverRequest for RequestHealthCheck {
     type Result = ResponseHealthCheck;
 
     fn function_code() -> u16 { 0x01 }
 }
 
-
-pub struct DriverRequestCSModule;
 pub struct RequestCSModule;
 #[derive(Debug)]
 pub enum ResponseCsModule {
@@ -46,14 +41,12 @@ impl Default for ResponseCsModule {
         Self::NoProcess
     }
 }
-impl DriverRequest for DriverRequestCSModule {
-    type Payload = RequestCSModule;
+impl DriverRequest for RequestCSModule {
     type Result = ResponseCsModule;
 
     fn function_code() -> u16 { 0x02 }
 }
 
-pub struct DriverRequestRead;
 pub struct RequestRead {
     pub process_id: i32,
     
@@ -80,9 +73,21 @@ impl Default for ResponseRead {
         }
     }
 }
-impl DriverRequest for DriverRequestRead {
-    type Payload = RequestRead;
+impl DriverRequest for RequestRead {
     type Result = ResponseRead;
 
     fn function_code() -> u16 { 0x03 }
+}
+
+
+pub struct RequestProtectionToggle {
+    pub enabled: bool
+}
+#[derive(Default)]
+pub struct ResponseProtectionToggle;
+
+impl DriverRequest for RequestProtectionToggle {
+    type Result = ResponseProtectionToggle;
+
+    fn function_code() -> u16 { 0x04 }
 }

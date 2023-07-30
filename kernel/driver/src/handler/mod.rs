@@ -3,8 +3,11 @@ use valthrun_driver_shared::requests::DriverRequest;
 mod cs_module;
 pub use cs_module::*;
 
-mod read;
-pub use read::*;
+mod memory_read;
+pub use memory_read::*;
+
+mod protect;
+pub use protect::*;
 
 pub const FUNCTION_CODE_MAX: usize = 0x20;
 
@@ -32,11 +35,11 @@ impl HandlerRegistry {
     /// Attention: 
     /// The input and output function parameters are all located in the callers user space!
     /// The struct itself has been probed for read & write and is therefore ensured to be valid.
-    pub fn register<R: DriverRequest>(&mut self, handler: &'static dyn Fn(&R::Payload, &mut R::Result) -> anyhow::Result<()>) {
+    pub fn register<R: DriverRequest>(&mut self, handler: &'static dyn Fn(&R, &mut R::Result) -> anyhow::Result<()>) {
         assert!((R::function_code() as usize) < FUNCTION_CODE_MAX);
         self.handlers[R::function_code() as usize] = Some(HandlerInfo{
             handler: unsafe { core::mem::transmute(handler) },
-            input_buffer_size: core::mem::size_of::<R::Payload>(),
+            input_buffer_size: core::mem::size_of::<R>(),
             output_buffer_size: core::mem::size_of::<R::Result>()
         });
     }
