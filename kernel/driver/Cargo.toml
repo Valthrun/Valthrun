@@ -1,5 +1,5 @@
 [package]
-name = "valthrun-driver"
+name = "driver"
 version = "0.1.0"
 edition = "2021"
 
@@ -15,11 +15,10 @@ cc = "1.0.79"
 winreg = "0.50.0" 
 
 [dependencies]
-anyhow = { version = "1.0", default-features = false }
 log = "0.4.19"
+anyhow = { version = "1.0", default-features = false }
 modular-bitfield = "0.11.2"
 obfstr = "0.4.3"
-# static_init = { version = "1.0.3", features = ["spin_loop"] }
 valthrun-driver-shared = { path = "../shared" }
 
 [dependencies.winapi]

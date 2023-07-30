@@ -25,7 +25,6 @@ pub fn get_eprocess_signature_level_offset() -> isize {
 
     let slice = &function_bytes[15..17];
     let signature_level_offset = u16::from_le_bytes(slice.try_into().unwrap());
-    log::info!("EPROCESS.SignatureLevel: {:#x}", signature_level_offset);
 
     return signature_level_offset as isize;
 }

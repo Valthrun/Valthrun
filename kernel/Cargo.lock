@@ -21,6 +21,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "baf1de4339761588bc0619e3cbc0120ee582ebb74b53b4efbf79117bd2da40fd"
 
 [[package]]
+name = "driver"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cc",
+ "log",
+ "modular-bitfield",
+ "obfstr",
+ "valthrun-driver-shared",
+ "winapi",
+ "winreg",
+]
+
+[[package]]
 name = "log"
 version = "0.4.19"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -93,20 +107,6 @@ name = "unicode-ident"
 version = "1.0.11"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "301abaae475aa91687eb82514b328ab47a211a533026cb25fc3e519b86adfc3c"
-
-[[package]]
-name = "valthrun-driver"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "cc",
- "log",
- "modular-bitfield",
- "obfstr",
- "valthrun-driver-shared",
- "winapi",
- "winreg",
-]
 
 [[package]]
 name = "valthrun-driver-shared"

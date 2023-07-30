@@ -16,5 +16,6 @@ rustflags = [
     "-C", "link-arg=/ENTRY:driver_entry",
     "-C", "link-arg=/MERGE:.edata=.rdata",
     "-C", "link-arg=/MERGE:.rustc=.data",
-    "-C", "link-arg=/INTEGRITYCHECK"
+    "-C", "link-arg=/INTEGRITYCHECK",
+    "-C", "link-arg=/PDBALTPATH:driver.pdb"
 ]

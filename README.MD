@@ -22,8 +22,8 @@ The overlay is currently in development and not fully ready.
 cd kernel/driver
 
 # Create a release overlay build
-# The result will be located at "../target/x86_64-pc-windows-msvc/debug/valthrun-driver.sys"
-cargo make sign
+# The result will be located at "../target/x86_64-pc-windows-msvc/release/valthrun-driver.sys"
+cargo make --profile production sign
 ```
 
 ## Overlay
@@ -39,7 +39,7 @@ the controller build file will contain `valthrun` as well as the workspace path 
 To omit any traces of valthrun and your build path you need to set the RUSTFLAGS remap path prefix flags accordingly.
 ```ps1
 $WorkspaceCargo=$(cargo locate-project --workspace --message-format=plain)
-$env:RUSTFLAGS="--remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
+$env:RUSTFLAGS="-Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
 ```
 Build the overlay afterwards and `valthrun` not the build path (which might include the word `valthrun`) should be contained within the binary.  
 
