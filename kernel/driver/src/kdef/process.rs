@@ -1,6 +1,26 @@
+#![allow(unused, dead_code)]
 use core::ffi::c_void;
 
+use modular_bitfield::{bitfield, specifiers::{B3, B1, B4}};
 use winapi::{shared::ntdef::{LIST_ENTRY, NTSTATUS, PVOID, UNICODE_STRING}, km::wdm::PEPROCESS};
+
+#[repr(C)]
+#[bitfield]
+#[derive(Debug, Clone, Copy)]
+pub struct PSProtection {
+    pub protection_type: B3,
+    pub protection_audit: B1,
+    pub protection_signer: B4,
+}
+
+
+#[repr(C)]
+#[derive(Debug, Clone, Copy)]
+pub struct ProcessProtectionInformation {
+    pub signature_level: u8,
+    pub section_signature_level: u8,
+    pub protection: PSProtection,
+}
 
 #[link(name = "ntoskrnl")]
 extern "system" {
@@ -14,6 +34,8 @@ extern "system" {
     pub fn KeUnstackDetachProcess(apc_state: &mut _KAPC_STATE);
     
     pub static PsInitialSystemProcess: PEPROCESS;
+    
+    pub fn MmGetSystemRoutineAddress(system_routine_name: *const UNICODE_STRING) -> PVOID;
 }
 
 #[repr(C)]

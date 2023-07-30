@@ -7,8 +7,8 @@ pub use process::*;
 mod debug;
 pub use debug::*;
 
-mod alloc;
-pub use alloc::*;
+mod pool;
+pub use pool::*;
 
 mod object;
 pub use object::*;
