@@ -1,6 +1,5 @@
 use alloc::string::String;
-
-use crate::kdef::UNICODE_STRING;
+use winapi::shared::ntdef::UNICODE_STRING;
 
 pub trait UnicodeStringEx {
     fn from_bytes(s: &'static [u16]) -> UNICODE_STRING;
@@ -25,17 +24,5 @@ impl UnicodeStringEx for UNICODE_STRING {
                 core::slice::from_raw_parts(self.Buffer, (self.Length / 2) as usize)
             }
         )
-    }
-}
-
-impl From<&'static [u16]> for UNICODE_STRING {
-    fn from(value: &'static [u16]) -> Self {
-        UNICODE_STRING::from_bytes(value)
-    }
-}
-
-impl<const N: usize> From<&'static [u16; N]> for UNICODE_STRING {
-    fn from(value: &'static [u16; N]) -> Self {
-        UNICODE_STRING::from_bytes(value.as_slice())
     }
 }

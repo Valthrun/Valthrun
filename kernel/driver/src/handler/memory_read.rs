@@ -1,10 +1,11 @@
 use alloc::vec::Vec;
 use valthrun_driver_shared::{requests::{RequestRead, ResponseRead}, IO_MAX_DEREF_COUNT};
+use winapi::km::wdm::PEPROCESS;
 
-use crate::{kdef::{_KPROCESS, PsLookupProcessByProcessId, ProbeForRead}, kapi::{attach_process_stack, self}};
+use crate::{kdef::{PsLookupProcessByProcessId, ProbeForRead}, kapi::{attach_process_stack, self, NTStatusEx}};
 
 pub fn handler_read(req: &RequestRead, res: &mut ResponseRead) -> anyhow::Result<()> {
-    let mut process: *const _KPROCESS = core::ptr::null();
+    let mut process: PEPROCESS = core::ptr::null_mut();
     if let Err(_status) = unsafe { PsLookupProcessByProcessId(req.process_id, &mut process) }.ok() {
         *res = ResponseRead::UnknownProcess;
         return Ok(());

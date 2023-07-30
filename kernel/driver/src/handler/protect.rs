@@ -8,7 +8,7 @@ pub fn handler_protection_toggle(req: &RequestProtectionToggle, _res: &mut Respo
     let process_protection = unsafe { &*PROCESS_PROTECTION.get() }
         .as_ref()
         .context("missing protection manager")?;
-    
+
     let current_thread_id = unsafe { PsGetProcessId(IoGetCurrentProcess()) };
     process_protection.toggle_protection(current_thread_id, req.enabled);
 

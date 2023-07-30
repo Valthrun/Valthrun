@@ -8,12 +8,13 @@ use core::{cell::SyncUnsafeCell, mem::size_of_val, ffi::CStr};
 use alloc::{sync::Arc, string::{String, ToString}, vec::Vec};
 use anyhow::anyhow;
 use handler::HandlerRegistry;
-use kapi::{DeviceHandle, NTSTATUS, FastMutex};
-use kdef::{UNICODE_STRING, DRIVER_OBJECT, IoCreateSymbolicLink, DEVICE_FLAGS, IoDeleteSymbolicLink, DEVICE_OBJECT, IRP, ProbeForWrite, ProbeForRead, PVOID, _OB_CALLBACK_REGISTRATION, _OB_OPERATION_REGISTRATION, PsProcessType, OB_OPERATION_HANDLE_CREATE, OB_OPERATION_HANDLE_DUPLICATE, OB_FLT_REGISTRATION_VERSION, ObRegisterCallbacks, ObUnRegisterCallbacks, _OB_PRE_CREATE_HANDLE_INFORMATION, _OB_PRE_OPERATION_INFORMATION, _EPROCESS};
+use kapi::{DeviceHandle, FastMutex, UnicodeStringEx, NTStatusEx};
+use kdef::{ProbeForRead, ProbeForWrite, _OB_OPERATION_REGISTRATION, OB_OPERATION_HANDLE_CREATE, OB_OPERATION_HANDLE_DUPLICATE, _OB_CALLBACK_REGISTRATION, OB_FLT_REGISTRATION_VERSION, ObRegisterCallbacks, _OB_PRE_OPERATION_INFORMATION, ObUnRegisterCallbacks, PsProcessType};
 use log::Level;
 use valthrun_driver_shared::requests::{RequestHealthCheck, RequestCSModule, RequestRead, RequestProtectionToggle};
+use winapi::{shared::{ntdef::{UNICODE_STRING, NTSTATUS, PVOID}, ntstatus::{STATUS_SUCCESS, STATUS_INVALID_PARAMETER, STATUS_FAILED_DRIVER_ENTRY}}, km::wdm::{DRIVER_OBJECT, DEVICE_TYPE, DEVICE_FLAGS, IoCreateSymbolicLink, IoDeleteSymbolicLink, DEVICE_OBJECT, IRP, IoGetCurrentIrpStackLocation, PEPROCESS, DbgPrintEx}};
 
-use crate::{logger::APP_LOGGER, handler::{handler_get_modules, handler_read, handler_protection_toggle}, kdef::{DbgPrintEx, DPFLTR_LEVEL, PsGetProcessId, IoGetCurrentProcess, _OB_PRE_DUPLICATE_HANDLE_INFORMATION}};
+use crate::{logger::APP_LOGGER, handler::{handler_get_modules, handler_read, handler_protection_toggle}, kdef::{DPFLTR_LEVEL, PsGetProcessId, IoGetCurrentProcess, _OB_PRE_DUPLICATE_HANDLE_INFORMATION, _OB_PRE_CREATE_HANDLE_INFORMATION}, kapi::IrpEx};
 
 mod panic_hook;
 mod logger;
@@ -35,13 +36,13 @@ struct VarhalDevice {
 unsafe impl Sync for VarhalDevice {}
 impl VarhalDevice {
     pub fn create(driver: &mut DRIVER_OBJECT) -> anyhow::Result<Self> {
-        let dos_name = obfstr::wide!("\\DosDevices\\valthrun").into();
-        let device_name = obfstr::wide!("\\Device\\valthrun").into();
+        let dos_name = UNICODE_STRING::from_bytes(obfstr::wide!("\\DosDevices\\valthrun"));
+        let device_name = UNICODE_STRING::from_bytes(obfstr::wide!("\\Device\\valthrun"));
 
         let mut device = DeviceHandle::create(
             driver,  
             &device_name, 
-            0x00000022, // FILE_DEVICE_UNKNOWN
+            DEVICE_TYPE::FILE_DEVICE_UNKNOWN, // FILE_DEVICE_UNKNOWN
             0x00000100, // FILE_DEVICE_SECURE_OPEN
             false, 
         )?;
@@ -91,25 +92,26 @@ extern "system" fn driver_unload(_driver: &mut DRIVER_OBJECT) {
 
 extern "system" fn irp_create(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NTSTATUS {
     log::debug!("IRP create callback");
-    irp.complete_request(NTSTATUS::Success)
+
+    irp.complete_request(STATUS_SUCCESS)
 }
 
 extern "system" fn irp_close(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NTSTATUS {
     log::debug!("IRP close callback");
-    irp.complete_request(NTSTATUS::Success)
+    irp.complete_request(STATUS_SUCCESS)
 }
 
 extern "system" fn irp_control(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NTSTATUS {
     let outbuffer = irp.UserBuffer;
-    let stack = irp.get_current_stack_location();
-    let param = stack.ParametersDeviceIoControl();
+    let stack = unsafe { &mut *IoGetCurrentIrpStackLocation(irp) };
+    let param = unsafe { stack.Parameters.DeviceIoControl() };
     let request_code = param.IoControlCode;
 
     let handler = match unsafe { REQUEST_HANDLER.get().as_ref() }.map(Option::as_ref).flatten() {
         Some(handler) => handler,
         None => {
             log::warn!("Missing request handlers");
-            return irp.complete_request(NTSTATUS::InvalidParameter);
+            return irp.complete_request(STATUS_INVALID_PARAMETER);
         }
     };
 
@@ -122,7 +124,7 @@ extern "system" fn irp_control(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NT
     });
     if let Err(err) = inbuffer_probe {
         log::warn!("IRP request inbuffer invalid: {}", err);
-        return irp.complete_request(NTSTATUS::InvalidParameter);
+        return irp.complete_request(STATUS_INVALID_PARAMETER);
     }
 
     let outbuffer = unsafe {
@@ -133,14 +135,14 @@ extern "system" fn irp_control(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NT
     });
     if let Err(err) = outbuffer_probe {
         log::warn!("IRP request outbuffer invalid: {}", err);
-        return irp.complete_request(NTSTATUS::InvalidParameter);
+        return irp.complete_request(STATUS_INVALID_PARAMETER);
     }
 
     match handler.handle(request_code, inbuffer, outbuffer) {
-        Ok(_) => irp.complete_request(NTSTATUS::Success),
+        Ok(_) => irp.complete_request(STATUS_SUCCESS),
         Err(error) => {
             log::error!("IRP handle error: {}", error);
-            irp.complete_request(NTSTATUS::InvalidParameter)
+            irp.complete_request(STATUS_INVALID_PARAMETER)
         }
     }
 }
@@ -186,7 +188,7 @@ impl Drop for ProtectionContext {
     }
 }
 
-fn get_process_name<'a>(handle: *const _EPROCESS) -> Option<String> {
+fn get_process_name<'a>(handle: PEPROCESS) -> Option<String> {
     let image_file_name = unsafe {
         (handle as *const ()).byte_offset(0x5a8) // FIXME: Hardcoded offset ImageFileName
             .cast::<[u8; 15]>()
@@ -216,7 +218,7 @@ extern "system" fn process_protection_callback(ctx: PVOID, info: *const _OB_PRE_
             let current_process_id = unsafe { PsGetProcessId(current_process) };
             log::trace!("process_protection_callback. Caller: {:X} ({:?}), Target: {:X} ({:?}) Flags: {:X}, Operation: {:X}", 
                 current_process_id, current_process_name, 
-                target_process_id, get_process_name(info.Object as *const _EPROCESS), 
+                target_process_id, get_process_name(info.Object as PEPROCESS), 
                 info.Flags, info.Operation);
         }
     }
@@ -236,7 +238,7 @@ extern "system" fn process_protection_callback(ctx: PVOID, info: *const _OB_PRE_
     let current_process_id = unsafe { PsGetProcessId(current_process) };
     log::debug!("Process {:X} ({:?}) tries to open a handle to the protected process {:X} ({:?}) (Operation: {:X})", 
         current_process_id, current_process_name, 
-        target_process_id, get_process_name(info.Object as *const _EPROCESS), 
+        target_process_id, get_process_name(info.Object as PEPROCESS), 
         info.Operation);
 
     match info.Operation {
@@ -324,8 +326,8 @@ impl ProcessProtection {
 
             let mut callback_reg = core::mem::zeroed::<_OB_CALLBACK_REGISTRATION>();
             callback_reg.Version = OB_FLT_REGISTRATION_VERSION;
-            callback_reg.Altitude = obfstr::wide!("666").into(); /* Yes we wan't to be one of the first */
-            callback_reg.RegistrationContext = Arc::as_ptr(&self.context) as *const ();
+            callback_reg.Altitude = UNICODE_STRING::from_bytes(obfstr::wide!("666")); /* Yes we wan't to be one of the first */
+            callback_reg.RegistrationContext = Arc::as_ptr(&self.context) as PVOID;
             callback_reg.OperationRegistration = &operation_reg;
             callback_reg.OperationRegistrationCount = 1;
 
@@ -354,7 +356,7 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
         unsafe { 
             DbgPrintEx(0, DPFLTR_LEVEL::ERROR as u32, "[VT] Failed to initialize app logger!\n\0".as_ptr());
         }
-        return NTSTATUS::Failure;
+        return STATUS_FAILED_DRIVER_ENTRY;
     }
 
     log::info!("Initialize driver");
@@ -369,7 +371,7 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
         Ok(process_protection) => process_protection,
         Err(error) => {
             log::error!("Failed to initialized process protection: {}", error);
-            return NTSTATUS::Failure;
+            return STATUS_FAILED_DRIVER_ENTRY;
         }
     };
     unsafe { *PROCESS_PROTECTION.get() = Some(process_protection) };
@@ -378,7 +380,7 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
         Ok(device) => device,
         Err(error) => {
             log::error!("Failed to initialize device: {}", error);
-            return NTSTATUS::Failure;
+            return STATUS_FAILED_DRIVER_ENTRY;
         }
     };
     log::debug!("Driver Object at 0x{:X}, Device Object at 0x{:X}", driver as *const _ as u64, device._device.0 as *const _ as u64);
@@ -398,5 +400,5 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
     log::warn!("TODO: RegisterOBCallback!");
 
     log::info!("Driver Initialized");
-    NTSTATUS::Success
+    STATUS_SUCCESS
 }

@@ -1,6 +1,8 @@
 use core::panic::PanicInfo;
 
-use crate::kdef::{DPFLTR_LEVEL, DbgPrintEx, KeBugCheck};
+use winapi::km::wdm::DbgPrintEx;
+
+use crate::kdef::{DPFLTR_LEVEL, KeBugCheck};
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {

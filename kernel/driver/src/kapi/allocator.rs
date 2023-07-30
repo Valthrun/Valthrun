@@ -1,6 +1,8 @@
 use core::alloc::GlobalAlloc;
 
-use crate::kdef::{ExAllocatePoolWithTag, POOL_TYPE, ExFreePoolWithTag, VOID};
+use winapi::shared::ntdef::PVOID;
+
+use crate::kdef::{ExAllocatePoolWithTag, POOL_TYPE, ExFreePoolWithTag};
 
 const POOL_TAG: u32 = 0x123333;
 
@@ -11,7 +13,7 @@ unsafe impl GlobalAlloc for NonPagedAllocator {
     }
 
     unsafe fn dealloc(&self, ptr: *mut u8, _layout: core::alloc::Layout) {
-        ExFreePoolWithTag(ptr as *mut VOID, POOL_TAG);
+        ExFreePoolWithTag(ptr as PVOID, POOL_TAG);
     }
 }
 

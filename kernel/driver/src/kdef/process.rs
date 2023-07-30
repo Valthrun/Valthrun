@@ -1,25 +1,25 @@
-use crate::kapi::NTSTATUS;
+use core::ffi::c_void;
 
-use super::{_LIST_ENTRY, PVOID, UNICODE_STRING};
+use winapi::{shared::ntdef::{LIST_ENTRY, NTSTATUS, PVOID, UNICODE_STRING}, km::wdm::PEPROCESS};
 
 #[link(name = "ntoskrnl")]
 extern "system" {
-    pub fn PsGetProcessId(process: *const _KPROCESS) -> i32;
-    pub fn IoGetCurrentProcess() -> *const _EPROCESS;
+    pub fn PsGetProcessId(process: PEPROCESS) -> i32;
+    pub fn IoGetCurrentProcess() -> PEPROCESS;
 
-    pub fn PsGetProcessPeb(process: *const _KPROCESS) -> *const _PEB;
-    pub fn PsLookupProcessByProcessId(process_id: i32, process: *mut *const _KPROCESS) -> NTSTATUS;
+    pub fn PsGetProcessPeb(process: PEPROCESS) -> *const _PEB;
+    pub fn PsLookupProcessByProcessId(process_id: i32, process: *mut PEPROCESS) -> NTSTATUS;
     
-    pub fn KeStackAttachProcess(process: *const _KPROCESS, apc_state: &mut _KAPC_STATE);
+    pub fn KeStackAttachProcess(process: PEPROCESS, apc_state: &mut _KAPC_STATE);
     pub fn KeUnstackDetachProcess(apc_state: &mut _KAPC_STATE);
     
-    pub static PsInitialSystemProcess: *const _KPROCESS;
+    pub static PsInitialSystemProcess: PEPROCESS;
 }
 
 #[repr(C)]
 #[allow(non_snake_case, non_camel_case_types)]
 pub struct _KAPC_STATE {
-    pub ApcListHead: [_LIST_ENTRY; 2],
+    pub ApcListHead: [LIST_ENTRY; 2],
     pub Process: *const _KPROCESS,
     pub InProgressFlags: u8,
     pub KernelApcPending: bool,
@@ -32,9 +32,9 @@ pub struct _PEB_LDR_DATA {
     pub Length: u32,
     pub Initialized: bool,
     pub SsHandle: PVOID,                                                    
-    pub InLoadOrderModuleList: _LIST_ENTRY,                            
-    pub InMemoryOrderModuleList: _LIST_ENTRY,                             
-    pub InInitializationOrderModuleList: _LIST_ENTRY,                   
+    pub InLoadOrderModuleList: LIST_ENTRY,                            
+    pub InMemoryOrderModuleList: LIST_ENTRY,                             
+    pub InInitializationOrderModuleList: LIST_ENTRY,                   
     pub EntryInProgress: PVOID,                                              
     pub ShutdownInProgress: u8,                                             
     pub ShutdownThreadId: PVOID,                                           
@@ -43,9 +43,9 @@ pub struct _PEB_LDR_DATA {
 #[repr(C)]
 #[allow(non_snake_case, non_camel_case_types)]
 pub struct _LDR_DATA_TABLE_ENTRY {
-    pub InLoadOrderLinks: _LIST_ENTRY,
-    pub InMemoryOrderLinks: _LIST_ENTRY, 
-    pub InInitializationOrderLinks: _LIST_ENTRY,                     
+    pub InLoadOrderLinks: LIST_ENTRY,
+    pub InMemoryOrderLinks: LIST_ENTRY, 
+    pub InInitializationOrderLinks: LIST_ENTRY,                     
     pub DllBase: *const (),                                                     
     pub EntryPoint: *const (),                                                     
     pub SizeOfImage: u32,    
@@ -79,5 +79,4 @@ pub struct _PEB {
     pub SessionId: u32,
 }
 
-pub type _KPROCESS = ();
-pub type _EPROCESS = ();
+pub type _KPROCESS = c_void;

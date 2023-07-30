@@ -1,6 +1,7 @@
 use alloc::{format, ffi::CString};
+use winapi::km::wdm::DbgPrintEx;
 
-use crate::kdef::{DbgPrintEx, DPFLTR_LEVEL};
+use crate::kdef::DPFLTR_LEVEL;
 
 pub struct KernelLogger;
 

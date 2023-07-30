@@ -1,7 +1,9 @@
-use crate::kdef::{_KAPC_STATE, _KPROCESS, KeUnstackDetachProcess, KeStackAttachProcess};
+use winapi::km::wdm::PEPROCESS;
+
+use crate::kdef::{KeUnstackDetachProcess, KeStackAttachProcess, _KAPC_STATE};
 
 pub struct ProcessAttachGuard {
-    _process: *const _KPROCESS,
+    _process: PEPROCESS,
     apc_state: _KAPC_STATE
 }
 impl Drop for ProcessAttachGuard {
@@ -10,7 +12,7 @@ impl Drop for ProcessAttachGuard {
     }
 }
 
-pub fn attach_process_stack<'a>(process: *const _KPROCESS) -> ProcessAttachGuard {
+pub fn attach_process_stack<'a>(process: PEPROCESS) -> ProcessAttachGuard {
     let mut apc_state: _KAPC_STATE = unsafe { core::mem::zeroed() };
     unsafe { KeStackAttachProcess(process, &mut apc_state) };
     ProcessAttachGuard{

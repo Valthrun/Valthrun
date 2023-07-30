@@ -1,6 +1,6 @@
-use crate::kapi::NTSTATUS;
+use winapi::shared::ntdef::{PVOID, UNICODE_STRING, PCVOID, NTSTATUS};
 
-use super::{UNICODE_STRING, PVOID, POBJECT_TYPE, PCVOID};
+use super::POBJECT_TYPE;
 
 pub type OB_OPERATION = u32;
 
@@ -55,6 +55,7 @@ pub struct _OB_CALLBACK_REGISTRATION {
     pub OperationRegistration: *const _OB_OPERATION_REGISTRATION,
 }
 
+#[allow(unused)]
 extern "system" {
     pub fn ObRegisterCallbacks(CallbackRegistration: *const _OB_CALLBACK_REGISTRATION, RegistrationHandle: *mut PVOID) -> NTSTATUS; 
     pub fn ObUnRegisterCallbacks(RegistrationHandle: PVOID);

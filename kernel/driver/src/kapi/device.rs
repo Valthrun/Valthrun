@@ -1,10 +1,12 @@
-use crate::kdef::{PDEVICE_OBJECT, DRIVER_OBJECT, UNICODE_STRING, IoCreateDevice, DEVICE_FLAGS, IoDeleteDevice};
+use winapi::{km::wdm::{PDEVICE_OBJECT, DRIVER_OBJECT, IoCreateDevice, DEVICE_TYPE, DEVICE_FLAGS, IoDeleteDevice}, shared::ntdef::UNICODE_STRING};
+
+use super::NTStatusEx;
 
 pub struct DeviceHandle(pub PDEVICE_OBJECT);
 unsafe impl Sync for DeviceHandle {}
 
 impl DeviceHandle {
-    pub fn create(driver: &mut DRIVER_OBJECT, device_name: &UNICODE_STRING, device_type: u32, characteristics: u32, exclusive: bool) -> anyhow::Result<Self> {
+    pub fn create(driver: &mut DRIVER_OBJECT, device_name: &UNICODE_STRING, device_type: DEVICE_TYPE, characteristics: u32, exclusive: bool) -> anyhow::Result<Self> {
         let mut device_ptr: PDEVICE_OBJECT = core::ptr::null_mut();
         let result = unsafe {
             IoCreateDevice(
@@ -12,7 +14,7 @@ impl DeviceHandle {
                 device_name, 
                 device_type,
                 characteristics,
-                exclusive, 
+                if exclusive { 1 } else { 0 }, 
                 &mut device_ptr
             )
         };

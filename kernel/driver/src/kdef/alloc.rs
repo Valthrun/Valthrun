@@ -1,7 +1,8 @@
 //! Kernel Mode pools.
 
-use super::PVOID;
+use winapi::shared::ntdef::PVOID;
 
+#[allow(unused)]
 extern "system" {
     /// Allocates pool memory of the specified type and tag.
     pub fn ExAllocatePoolWithTag(PoolType: POOL_TYPE, NumberOfBytes: usize, Tag: u32) -> PVOID;
@@ -19,6 +20,7 @@ extern "system" {
 
 /// Specifies the type of system memory to allocate.
 #[repr(C)]
+#[allow(unused)]
 pub enum POOL_TYPE {
     /// Nonpageable system memory, can be accessed from any IRQL.
     NonPagedPool = 0,

@@ -20,3 +20,11 @@ log = "0.4.19"
 obfstr = "0.4.3"
 # static_init = { version = "1.0.3", features = ["spin_loop"] }
 valthrun-driver-shared = { path = "../shared" }
+
+[dependencies.winapi]
+git = "https://github.com/Trantect/winapi-rs.git"
+branch = "feature/km"
+features = [
+    "wdm",
+    "ntstatus",
+]

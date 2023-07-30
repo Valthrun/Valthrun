@@ -3,11 +3,12 @@ use core::ffi::CStr;
 use alloc::vec::Vec;
 use anyhow::{anyhow, Context};
 use valthrun_driver_shared::{ModuleInfo, requests::{RequestCSModule, ResponseCsModule}, CSModuleInfo};
+use winapi::{shared::ntdef::PLIST_ENTRY, km::wdm::PEPROCESS};
 
-use crate::{get_windows_build_number, kapi::{attach_process_stack, UnicodeStringEx}, kdef::{_KPROCESS, PsInitialSystemProcess, _LIST_ENTRY, PsGetProcessPeb, _LDR_DATA_TABLE_ENTRY, PsGetProcessId}};
+use crate::{get_windows_build_number, kapi::{attach_process_stack, UnicodeStringEx}, kdef::{PsInitialSystemProcess, PsGetProcessPeb, _LDR_DATA_TABLE_ENTRY, PsGetProcessId}};
 
 
-fn get_cs2_process() -> anyhow::Result<Vec<*const _KPROCESS>> {
+fn get_cs2_process() -> anyhow::Result<Vec<PEPROCESS>> {
     let build_number = get_windows_build_number()
         .map_err(|status| anyhow!("RtlGetVersion {}", status))?;
     log::trace!("Build No {build_number}");
@@ -55,7 +56,7 @@ fn get_cs2_process() -> anyhow::Result<Vec<*const _KPROCESS>> {
             * 3. next_pep = Flink - offset_active_process_links
             */
             current_pep.byte_offset(offset_active_process_links)
-                .cast::<*const _LIST_ENTRY>()
+                .cast::<PLIST_ENTRY>()
                 .read()
                 .read()
                 .Flink
@@ -78,7 +79,7 @@ fn get_cs2_process() -> anyhow::Result<Vec<*const _KPROCESS>> {
 }
 
 
-fn get_process_module(process: *const _KPROCESS, name: &str) -> anyhow::Result<Option<ModuleInfo>> {
+fn get_process_module(process: PEPROCESS, name: &str) -> anyhow::Result<Option<ModuleInfo>> {
     let _attach_guard = attach_process_stack(process);
     let peb = unsafe { 
         PsGetProcessPeb(process)
@@ -90,7 +91,7 @@ fn get_process_module(process: *const _KPROCESS, name: &str) -> anyhow::Result<O
         None => anyhow::bail!("missing process module list")
     };
 
-    let mut current_entry = ldr.InLoadOrderModuleList.Flink;
+    let mut current_entry = ldr.InLoadOrderModuleList.Flink as *const _;
     while current_entry != &ldr.InLoadOrderModuleList {
         let entry = unsafe {
             current_entry
