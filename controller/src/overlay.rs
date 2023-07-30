@@ -109,7 +109,7 @@ pub fn init(title: &str) -> System {
         window.set_decorations(false);
         window.set_undecorated_shadow(false);
 
-        let hwnd = HWND(window.hwnd() as isize);
+        let hwnd = HWND(window.hwnd());
         unsafe {
             SetWindowLongA(
                 hwnd,
@@ -318,7 +318,7 @@ impl InputSystem {
         let mut point: POINT = Default::default();
         unsafe {
             GetCursorPos(&mut point);
-            ScreenToClient(HWND(window.hwnd() as isize), &mut point);
+            ScreenToClient(HWND(window.hwnd()), &mut point);
         };
         io.add_mouse_pos_event([
             (point.x as f64 / window.scale_factor()) as f32,
@@ -362,7 +362,7 @@ impl System {
                     if window_active != ui_active {
                         ui_active = window_active;
 
-                        let hwnd = HWND(gl_window.window().hwnd() as isize);
+                        let hwnd = HWND(gl_window.window().hwnd());
                         let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
                         if window_active {
                             style &= !(WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize);

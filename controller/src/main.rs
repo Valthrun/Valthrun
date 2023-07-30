@@ -51,7 +51,7 @@ impl Debug for EntityHandle {
 
 impl EntityHandle {
     pub fn get_entity_index(&self) -> u32 {
-        (self.value & 0x7FFF) as u32
+        self.value & 0x7FFF
     }
 
     pub fn is_valid(&self) -> bool {
@@ -59,7 +59,7 @@ impl EntityHandle {
     }
 
     pub fn get_serial_number(&self) -> u32 {
-        (self.value >> 15) as u32
+        self.value >> 15
     }
 
     pub fn entity_array_offsets(&self) -> (u64, u64) {
@@ -250,7 +250,7 @@ impl ViewController {
         ]);
         screen_pos.x = (screen_pos.x + 1.0) * self.screen.x / 2.0;
         screen_pos.y = (-screen_pos.y + 1.0) * self.screen.y / 2.0;
-        return Some(screen_pos);
+        Some(screen_pos)
     }
 }
 
@@ -298,7 +298,7 @@ impl CSWindowTracker {
         self.current_bounds = rect;
         log::debug!("CS2 window changed: {:?}", rect);
         unsafe {
-            let overlay_hwnd = HWND(overlay.hwnd() as isize);
+            let overlay_hwnd = HWND(overlay.hwnd());
             MoveWindow(
                 overlay_hwnd,
                 rect.left,
@@ -390,7 +390,7 @@ impl CachedModel {
                 self.address + internal_offsets::CModel::BONE_FLAGS,
                 0, /* read the whole array */
             ],
-            bone_count as usize,
+            bone_count,
         )?;
 
         let model_bone_parent_index = cs2.read_vec::<u16>(
@@ -399,11 +399,11 @@ impl CachedModel {
                 self.address + internal_offsets::CModel::BONE_PARENT,
                 0, /* read the whole array */
             ],
-            bone_count as usize,
+            bone_count,
         )?;
 
         self.bones.clear();
-        self.bones.reserve(bone_count as usize);
+        self.bones.reserve(bone_count);
         for bone_index in 0..bone_count {
             let name = cs2.read_string(
                 Module::Absolute,
@@ -508,7 +508,7 @@ impl EntitySystem {
 
     /* Returns a Vec<CSSPlayerController*> */
     pub fn get_player_controllers(&self, cs2: &CS2Handle) -> anyhow::Result<Vec<u64>> {
-        let local_controller_identity = cs2.read::<EntityIdentity>(Module::Client, &[ 
+        let local_controller_identity = cs2.read::<EntityIdentity>(Module::Client, &[
             self.local_controller_ptr,
             offsets::client::CEntityInstance::m_pEntity, /* read the entity identnity index  */
             0, /* read everything */
@@ -609,7 +609,7 @@ impl Application {
             let model = self.cs2.read::<u64>(
                 Module::Absolute,
                 &[
-                    game_sceen_node 
+                    game_sceen_node
                     + offsets::client::CSkeletonInstance::m_modelState /* model state */
                     + offsets::client::CModelState::m_hModel, /* CModel* */
                     0,
@@ -632,7 +632,7 @@ impl Application {
             let bone_states = self.cs2.read_vec::<BoneStateData>(
                 Module::Absolute,
                 &[
-                    game_sceen_node 
+                    game_sceen_node
                     + offsets::client::CSkeletonInstance::m_modelState /* model state */
                     + internal_offsets::CModelState::BONE_STATE_DATA,
                     0, /* read the whole array */
@@ -759,7 +759,7 @@ impl Application {
         {
             let text = "Valthrun Overlay";
             ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
                 10.0,
             ]);
             ui.text(text);

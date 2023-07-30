@@ -165,10 +165,9 @@ fn cutl_tshash_elements<T: Sized>(cs2: &CS2Handle, address: u64) -> anyhow::Resu
             let data = cs2.read::<T>(
                 Module::Absolute,
                 &[
-                    current_blob 
+                    current_blob
                     + 0x20 // blob header
-                    + (scope_class_table.memory_pool.block_size as u64 * block_index as u64) // block index
-                    + 0x00, // data index
+                    + (scope_class_table.memory_pool.block_size as u64 * block_index as u64), // data index
                 ],
             )?;
 
