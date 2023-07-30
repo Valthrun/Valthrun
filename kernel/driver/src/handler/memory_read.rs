@@ -1,19 +1,20 @@
 use alloc::vec::Vec;
 use valthrun_driver_shared::{requests::{RequestRead, ResponseRead}, IO_MAX_DEREF_COUNT};
-use winapi::km::wdm::PEPROCESS;
 
-use crate::{kdef::{PsLookupProcessByProcessId, ProbeForRead}, kapi::{attach_process_stack, self, NTStatusEx}};
+use crate::{kdef::ProbeForRead, kapi::{self, Process}};
 
 pub fn handler_read(req: &RequestRead, res: &mut ResponseRead) -> anyhow::Result<()> {
-    let mut process: PEPROCESS = core::ptr::null_mut();
-    if let Err(_status) = unsafe { PsLookupProcessByProcessId(req.process_id, &mut process) }.ok() {
-        *res = ResponseRead::UnknownProcess;
-        return Ok(());
-    }
-    
     if req.offset_count > IO_MAX_DEREF_COUNT || req.offset_count > req.offsets.len() {
         anyhow::bail!("offset count is not valid")
     }
+
+    let process = match Process::by_id(req.process_id) {
+        Some(process) => process,
+        None => {
+            *res = ResponseRead::UnknownProcess;
+            return Ok(());
+        }
+    };
     
     let mut read_buffer = Vec::with_capacity(req.count);
     read_buffer.resize(req.count, 0u8);
@@ -23,7 +24,7 @@ pub fn handler_read(req: &RequestRead, res: &mut ResponseRead) -> anyhow::Result
     let mut resolved_offsets = [0u64; IO_MAX_DEREF_COUNT];
     let mut offset_index = 1usize;
 
-    let attach_guard = attach_process_stack(process);
+    let _attach_guard = process.attach();
     let read_result = kapi::try_seh(|| {
         while offset_index < local_offsets.len() {
             let deref_address = unsafe {
@@ -46,7 +47,7 @@ pub fn handler_read(req: &RequestRead, res: &mut ResponseRead) -> anyhow::Result
         read_buffer.copy_from_slice(read_source);
     });
 
-    drop(attach_guard);
+    drop(_attach_guard);
     if !read_result.is_ok() {
         *res = ResponseRead::InvalidAddress { resolved_offsets, resolved_offset_count: offset_index - 1  };
         return Ok(());

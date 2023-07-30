@@ -3,7 +3,7 @@
 use std::{ffi::CStr, fmt::Debug};
 use anyhow::Context;
 use obfstr::obfstr;
-use valthrun_kinterface::{ModuleInfo, CSModuleInfo, KernelInterface, requests::{DriverRequestCSModule, RequestCSModule, ResponseCsModule}, SearchPattern};
+use valthrun_kinterface::{ModuleInfo, CS2ModuleInfo, KernelInterface, requests::{RequestCSModule, ResponseCsModule}, SearchPattern};
 
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
@@ -17,7 +17,7 @@ pub enum Module {
 
 static EMPTY_MODULE_INFO: ModuleInfo = ModuleInfo{ base_address: 0, module_size: usize::MAX };
 impl Module {
-    pub fn get_base_offset<'a>(&self, module_info: &'a CSModuleInfo) -> Option<&'a ModuleInfo> {
+    pub fn get_base_offset<'a>(&self, module_info: &'a CS2ModuleInfo) -> Option<&'a ModuleInfo> {
         Some(match self {
             Module::Absolute => &EMPTY_MODULE_INFO,
             Module::Client => &module_info.client,
@@ -30,13 +30,13 @@ impl Module {
 /// Handle to the CS2 process
 pub struct CS2Handle {
     pub ke_interface: KernelInterface,
-    pub module_info: CSModuleInfo,
+    pub module_info: CS2ModuleInfo,
 }
 
 impl CS2Handle {
     pub fn create() -> anyhow::Result<Self> {
         let interface = KernelInterface::create(obfstr!("\\\\.\\valthrun"))?;
-        let module_info = interface.execute_request::<DriverRequestCSModule>(&RequestCSModule{})?;
+        let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule{})?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
             error => anyhow::bail!("failed to load module info: {:?}", error)

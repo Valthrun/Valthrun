@@ -7,7 +7,7 @@ use cs2_schema::offsets;
 use glium::glutin::{window::Window, platform::windows::WindowExtWindows};
 use imgui::{Condition, ImColor32};
 use obfstr::obfstr;
-use valthrun_kinterface::ByteSequencePattern;
+use valthrun_kinterface::{ByteSequencePattern, requests::RequestProtectionToggle};
 use windows::{Win32::{UI::WindowsAndMessaging::{FindWindowA, MoveWindow, GetClientRect}, Foundation::{RECT, HWND, POINT}, Graphics::Gdi::ClientToScreen}, core::PCSTR};
 
 use crate::handle::{CS2Handle, Module};
@@ -730,6 +730,15 @@ fn main() -> anyhow::Result<()> {
     env_logger::init();
 
     let cs2 = CS2Handle::create()?;
+
+    /*
+     * Please no not analyze me:
+     * https://www.unknowncheats.me/wiki/Valve_Anti-Cheat:VAC_external_tool_detection_(and_more)
+     * 
+     * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
+     */
+    cs2.ke_interface.execute_request::<RequestProtectionToggle>(&RequestProtectionToggle{ enabled: true })?;
+
     let cs2_offsets = CS2Offsets::load_offsets(&cs2)?;
     
     let mut app = Application{

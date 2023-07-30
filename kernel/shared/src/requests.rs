@@ -1,4 +1,4 @@
-use crate::{IO_MAX_DEREF_COUNT, CSModuleInfo};
+use crate::{IO_MAX_DEREF_COUNT, CS2ModuleInfo};
 
 
 pub trait DriverRequest : Sized {
@@ -32,7 +32,7 @@ impl DriverRequest for RequestHealthCheck {
 pub struct RequestCSModule;
 #[derive(Debug)]
 pub enum ResponseCsModule {
-    Success(CSModuleInfo),
+    Success(CS2ModuleInfo),
     UbiquitousProcesses(usize),
     NoProcess,
 }

@@ -26,6 +26,8 @@ pub struct ProcessProtectionInformation {
 extern "system" {
     pub fn PsGetProcessId(process: PEPROCESS) -> i32;
     pub fn IoGetCurrentProcess() -> PEPROCESS;
+    pub fn ObfDereferenceObject(object: PVOID);
+    pub fn ObfReferenceObject(object: PVOID);
 
     pub fn PsGetProcessPeb(process: PEPROCESS) -> *const _PEB;
     pub fn PsLookupProcessByProcessId(process_id: i32, process: *mut PEPROCESS) -> NTSTATUS;

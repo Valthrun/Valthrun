@@ -4,6 +4,4 @@ members = [
     "kinterface",
     "controller",
     "schema",
-
-    "kernel/driver"
 ]

@@ -1,7 +1,7 @@
 
 use std::ffi::{CString, c_void};
 
-use valthrun_driver_shared::{requests::{DriverRequest, DriverRequestRead, RequestRead, ResponseRead}, IO_MAX_DEREF_COUNT};
+use valthrun_driver_shared::{requests::{DriverRequest, RequestRead, ResponseRead}, IO_MAX_DEREF_COUNT};
 use windows::{Win32::{Storage::FileSystem::{CreateFileA, self, FILE_FLAGS_AND_ATTRIBUTES}, Foundation, System::IO::DeviceIoControl}, core::PCSTR};
 
 use crate::{SearchPattern, KResult, KInterfaceError};
@@ -30,13 +30,13 @@ impl KernelInterface {
         })
     }
 
-    pub fn execute_request<R: DriverRequest>(&self, payload: &R::Payload) -> KResult<R::Result> {
+    pub fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
         let mut result: R::Result = Default::default();
         let success = unsafe {
             DeviceIoControl(
                 self.driver_handle, 
                 R::control_code(), 
-                Some(payload as *const _ as *const c_void), std::mem::size_of::<R::Payload>() as u32, 
+                Some(payload as *const _ as *const c_void), std::mem::size_of::<R>() as u32, 
                 Some(&mut result as *mut _ as *mut c_void), std::mem::size_of::<R::Result>() as u32, 
                 None, 
                 None
@@ -80,7 +80,7 @@ impl KernelInterface {
         }
 
         offset_buffer[0..offsets.len()].copy_from_slice(offsets);
-        let result = self.execute_request::<DriverRequestRead>(
+        let result = self.execute_request::<RequestRead>(
             &RequestRead{
                 process_id,
                 

@@ -2,7 +2,7 @@ use anyhow::Context;
 use valthrun_driver_shared::requests::{RequestProtectionToggle, ResponseProtectionToggle};
 use winapi::{shared::ntdef::{UNICODE_STRING, PVOID}, km::wdm::PEPROCESS};
 
-use crate::{PROCESS_PROTECTION, kdef::{PsGetProcessId, IoGetCurrentProcess, MmGetSystemRoutineAddress, PSProtection, ProcessProtectionInformation}, kapi::UnicodeStringEx};
+use crate::{PROCESS_PROTECTION, kdef::{PsGetProcessId, IoGetCurrentProcess, MmGetSystemRoutineAddress, ProcessProtectionInformation}, kapi::UnicodeStringEx};
 
 /// Gets ta pointer to a function from ntoskrnl exports
 fn get_ntoskrnl_exports(function_name: *const UNICODE_STRING) -> PVOID {

@@ -364,8 +364,9 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
     driver.MajorFunction[0x00] = Some(irp_create); /* IRP_MJ_CREATE */
     driver.MajorFunction[0x02] = Some(irp_close); /* IRP_MJ_CLOSE */
     driver.MajorFunction[0x0E] = Some(irp_control); /* IRP_MJ_DEVICE_CONTROL */
-    
-    // TODO: PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallbackEx, FALSE);
+
+    // TODO: Detect when a process died/finished and remove it from process protection list 
+    // PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallbackEx, FALSE);
 
     let process_protection = match ProcessProtection::new() {
         Ok(process_protection) => process_protection,
@@ -396,8 +397,6 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
     handler.register::<RequestProtectionToggle>(&handler_protection_toggle);
 
     unsafe { *REQUEST_HANDLER.get() = Some(handler) };
-
-    log::warn!("TODO: RegisterOBCallback!");
 
     log::info!("Driver Initialized");
     STATUS_SUCCESS

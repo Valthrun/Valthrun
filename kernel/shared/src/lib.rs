@@ -11,7 +11,7 @@ pub struct ModuleInfo {
 }
 
 #[derive(Debug, Default)]
-pub struct CSModuleInfo {
+pub struct CS2ModuleInfo {
     pub process_id: i32,
 
     pub client: ModuleInfo,
