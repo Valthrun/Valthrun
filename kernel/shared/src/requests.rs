@@ -1,7 +1,6 @@
-use crate::{IO_MAX_DEREF_COUNT, CS2ModuleInfo};
+use crate::{CS2ModuleInfo, IO_MAX_DEREF_COUNT};
 
-
-pub trait DriverRequest : Sized {
+pub trait DriverRequest: Sized {
     type Result: Sized + Default;
 
     fn control_code() -> u32 {
@@ -16,7 +15,6 @@ pub trait DriverRequest : Sized {
     fn function_code() -> u16;
 }
 
-
 pub struct RequestHealthCheck;
 #[derive(Debug, Default)]
 pub struct ResponseHealthCheck {
@@ -26,7 +24,9 @@ pub struct ResponseHealthCheck {
 impl DriverRequest for RequestHealthCheck {
     type Result = ResponseHealthCheck;
 
-    fn function_code() -> u16 { 0x01 }
+    fn function_code() -> u16 {
+        0x01
+    }
 }
 
 pub struct RequestCSModule;
@@ -44,12 +44,14 @@ impl Default for ResponseCsModule {
 impl DriverRequest for RequestCSModule {
     type Result = ResponseCsModule;
 
-    fn function_code() -> u16 { 0x02 }
+    fn function_code() -> u16 {
+        0x02
+    }
 }
 
 pub struct RequestRead {
     pub process_id: i32,
-    
+
     pub offsets: [u64; IO_MAX_DEREF_COUNT],
     pub offset_count: usize,
 
@@ -61,27 +63,28 @@ pub enum ResponseRead {
     Success,
     InvalidAddress {
         resolved_offsets: [u64; IO_MAX_DEREF_COUNT],
-        resolved_offset_count: usize
+        resolved_offset_count: usize,
     },
     UnknownProcess,
 }
 impl Default for ResponseRead {
     fn default() -> Self {
-        Self::InvalidAddress { 
+        Self::InvalidAddress {
             resolved_offsets: Default::default(),
-            resolved_offset_count: 0
+            resolved_offset_count: 0,
         }
     }
 }
 impl DriverRequest for RequestRead {
     type Result = ResponseRead;
 
-    fn function_code() -> u16 { 0x03 }
+    fn function_code() -> u16 {
+        0x03
+    }
 }
 
-
 pub struct RequestProtectionToggle {
-    pub enabled: bool
+    pub enabled: bool,
 }
 #[derive(Default)]
 pub struct ResponseProtectionToggle;
@@ -89,5 +92,7 @@ pub struct ResponseProtectionToggle;
 impl DriverRequest for RequestProtectionToggle {
     type Result = ResponseProtectionToggle;
 
-    fn function_code() -> u16 { 0x04 }
+    fn function_code() -> u16 {
+        0x04
+    }
 }

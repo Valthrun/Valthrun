@@ -3,12 +3,11 @@ use std::ffi::NulError;
 use thiserror::Error;
 use valthrun_driver_shared::IO_MAX_DEREF_COUNT;
 
-
 #[derive(Error, Debug)]
 pub enum KInterfaceError {
     #[error("kernel interface path contains invalid characters")]
     DeviceInvalidPath(NulError),
-    
+
     #[error("kernel interface unavailable: {0}")]
     DeviceUnavailable(windows::core::Error),
 
@@ -24,7 +23,7 @@ pub enum KInterfaceError {
 
         resolved_offsets: [u64; IO_MAX_DEREF_COUNT],
         resolved_offset_count: usize,
-        
+
         offsets: [u64; IO_MAX_DEREF_COUNT],
         offset_count: usize,
     },

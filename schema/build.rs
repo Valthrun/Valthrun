@@ -1,14 +1,13 @@
-use std::{env, path::Path, fs::File, io::BufWriter};
 use std::io::Write;
+use std::{env, fs::File, io::BufWriter, path::Path};
 
 use anyhow::Context;
 use serde::Deserialize;
 
-
 #[derive(Debug, Default, Deserialize)]
 pub struct SchemaScope {
     schema_name: String,
-    classes: Vec<ClassOffsets>
+    classes: Vec<ClassOffsets>,
 }
 
 #[derive(Debug, Default, Deserialize)]
@@ -20,12 +19,11 @@ pub struct ClassOffsets {
 #[derive(Debug, Default, Deserialize)]
 pub struct Offset {
     field_name: String,
-    offset: u64
+    offset: u64,
 }
 
 fn main() -> anyhow::Result<()> {
-    let mut schema = File::open("./cs2_schema.json")
-        .context("failed to open cs2_schema.json")?;
+    let mut schema = File::open("./cs2_schema.json").context("failed to open cs2_schema.json")?;
     let schema_scopes = serde_json::from_reader::<_, Vec<SchemaScope>>(&mut schema)
         .context("failed to parse schema")?;
 
@@ -47,11 +45,19 @@ fn main() -> anyhow::Result<()> {
         writeln!(&mut writer, "pub mod {} {{", mod_name)?;
         for class in scope.classes {
             let class_name = class.class_name.replace(":", "_");
-            writeln!(&mut writer, "  /* class {} ({}) */", class_name, class.class_name)?;
+            writeln!(
+                &mut writer,
+                "  /* class {} ({}) */",
+                class_name, class.class_name
+            )?;
             writeln!(&mut writer, "  pub mod {} {{", class_name)?;
-            
+
             for offset in class.offsets {
-                writeln!(&mut writer, "    pub const {}: u64 = 0x{:X};", offset.field_name, offset.offset)?;
+                writeln!(
+                    &mut writer,
+                    "    pub const {}: u64 = 0x{:X};",
+                    offset.field_name, offset.offset
+                )?;
             }
 
             writeln!(&mut writer, "  }}")?;

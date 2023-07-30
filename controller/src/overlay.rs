@@ -3,17 +3,27 @@ use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
 use glium::glutin::event_loop::{ControlFlow, EventLoop};
 use glium::glutin::platform::windows::WindowExtWindows;
-use glium::glutin::window::{WindowBuilder, Window};
+use glium::glutin::window::{Window, WindowBuilder};
 use glium::{Display, Surface};
-use imgui::{Context, FontConfig, FontSource, Ui, ClipboardBackend, MouseButton, Key};
+use imgui::{ClipboardBackend, Context, FontConfig, FontSource, Key, MouseButton, Ui};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use windows::Win32::Foundation::{HWND, BOOL, POINT};
-use windows::Win32::Graphics::Dwm::{DWM_BLURBEHIND, DWM_BB_ENABLE, DwmEnableBlurBehindWindow, DWM_BB_BLURREGION};
-use windows::Win32::Graphics::Gdi::{CreateRectRgn, ScreenToClient};
-use windows::Win32::UI::Input::KeyboardAndMouse::{GetAsyncKeyState, VK_LBUTTON, VK_RBUTTON, VK_MBUTTON, VK_XBUTTON1, VK_XBUTTON2, SetActiveWindow, VIRTUAL_KEY, VK_LSHIFT, VK_RSHIFT, VK_LCONTROL, VK_CONTROL, VK_LWIN, VK_MENU, VK_LMENU, VK_RMENU, VK_RWIN};
-use windows::Win32::UI::WindowsAndMessaging::{SetWindowLongPtrA, GWL_STYLE, WS_VISIBLE, WS_CLIPSIBLINGS, GWL_EXSTYLE, WS_EX_LAYERED, WS_EX_TRANSPARENT, WS_EX_TOOLWINDOW, WS_EX_NOACTIVATE, ShowWindow, SW_SHOW, SetWindowPos, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, GetCursorPos, GetWindowLongPtrA, SetWindowLongA, WS_POPUP};
 use std::time::Instant;
+use windows::Win32::Foundation::{BOOL, HWND, POINT};
+use windows::Win32::Graphics::Dwm::{
+    DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
+};
+use windows::Win32::Graphics::Gdi::{CreateRectRgn, ScreenToClient};
+use windows::Win32::UI::Input::KeyboardAndMouse::{
+    GetAsyncKeyState, SetActiveWindow, VIRTUAL_KEY, VK_CONTROL, VK_LBUTTON, VK_LCONTROL, VK_LMENU,
+    VK_LSHIFT, VK_LWIN, VK_MBUTTON, VK_MENU, VK_RBUTTON, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_XBUTTON1,
+    VK_XBUTTON2,
+};
+use windows::Win32::UI::WindowsAndMessaging::{
+    GetCursorPos, GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
+    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WS_CLIPSIBLINGS,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
+};
 
 pub struct ClipboardSupport(pub ClipboardContext);
 impl ClipboardBackend for ClipboardSupport {
@@ -39,8 +49,9 @@ pub struct System {
 pub fn init(title: &str) -> System {
     let event_loop = EventLoop::new();
     let context = glutin::ContextBuilder::new().with_vsync(false);
-    
-    let target_monitor = event_loop.primary_monitor()
+
+    let target_monitor = event_loop
+        .primary_monitor()
         .or_else(|| event_loop.available_monitors().next())
         .unwrap();
 
@@ -50,8 +61,9 @@ pub fn init(title: &str) -> System {
         .with_inner_size(target_monitor.size())
         .with_position(target_monitor.position());
 
-    let display = Display::new(builder, context, &event_loop).expect("Failed to initialize display");
-    
+    let display =
+        Display::new(builder, context, &event_loop).expect("Failed to initialize display");
+
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
 
@@ -74,35 +86,42 @@ pub fn init(title: &str) -> System {
     // value (as the scaling is handled by winit)
     let font_size = 13.0;
 
-    imgui.fonts().add_font(&[
-        FontSource::TtfData {
-            data: include_bytes!("../resources/Roboto-Regular.ttf"),
-            size_pixels: font_size,
-            config: Some(FontConfig {
-                // As imgui-glium-renderer isn't gamma-correct with
-                // it's font rendering, we apply an arbitrary
-                // multiplier to make the font a bit "heavier". With
-                // default imgui-glow-renderer this is unnecessary.
-                rasterizer_multiply: 1.5,
-                // Oversampling font helps improve text rendering at
-                // expense of larger font atlas texture.
-                oversample_h: 4,
-                oversample_v: 4,
-                ..FontConfig::default()
-            }),
-        }
-    ]);
+    imgui.fonts().add_font(&[FontSource::TtfData {
+        data: include_bytes!("../resources/Roboto-Regular.ttf"),
+        size_pixels: font_size,
+        config: Some(FontConfig {
+            // As imgui-glium-renderer isn't gamma-correct with
+            // it's font rendering, we apply an arbitrary
+            // multiplier to make the font a bit "heavier". With
+            // default imgui-glow-renderer this is unnecessary.
+            rasterizer_multiply: 1.5,
+            // Oversampling font helps improve text rendering at
+            // expense of larger font atlas texture.
+            oversample_h: 4,
+            oversample_v: 4,
+            ..FontConfig::default()
+        }),
+    }]);
     {
         let window = display.gl_window();
         let window = window.window();
 
         window.set_decorations(false);
         window.set_undecorated_shadow(false);
-        
+
         let hwnd = HWND(window.hwnd() as isize);
         unsafe {
-            SetWindowLongA(hwnd, GWL_STYLE, (WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS ).0 as i32);
-            SetWindowLongPtrA(hwnd, GWL_EXSTYLE, (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE).0 as isize);
+            SetWindowLongA(
+                hwnd,
+                GWL_STYLE,
+                (WS_POPUP | WS_VISIBLE | WS_CLIPSIBLINGS).0 as i32,
+            );
+            SetWindowLongPtrA(
+                hwnd,
+                GWL_EXSTYLE,
+                (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE).0
+                    as isize,
+            );
             ShowWindow(hwnd, SW_SHOW);
 
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
@@ -115,9 +134,8 @@ pub fn init(title: &str) -> System {
         }
     }
 
-    let renderer = Renderer::init(&mut imgui, &display)
-        .expect("Failed to initialize renderer");
-    
+    let renderer = Renderer::init(&mut imgui, &display).expect("Failed to initialize renderer");
+
     System {
         event_loop,
         display,
@@ -127,7 +145,6 @@ pub fn init(title: &str) -> System {
         font_size,
     }
 }
-
 
 fn to_imgui_key(keycode: VIRTUAL_KEY) -> Option<Key> {
     use windows::Win32::UI::Input::KeyboardAndMouse::*;
@@ -238,7 +255,7 @@ fn to_imgui_key(keycode: VIRTUAL_KEY) -> Option<Key> {
         VK_F10 => Some(Key::F10),
         VK_F11 => Some(Key::F11),
         VK_F12 => Some(Key::F12),
-        _ => None
+        _ => None,
     }
 }
 
@@ -266,7 +283,7 @@ impl InputSystem {
             key_states: vec![false; VK_KEY_MAX],
         }
     }
-    
+
     pub fn update(&mut self, window: &glutin::window::Window, io: &mut imgui::Io) {
         for vkey in 0..VK_KEY_MAX {
             let key_state = unsafe { GetAsyncKeyState(vkey as i32) as u16 };
@@ -298,12 +315,11 @@ impl InputSystem {
             }
         }
 
-        
         let mut point: POINT = Default::default();
         unsafe {
             GetCursorPos(&mut point);
             ScreenToClient(HWND(window.hwnd() as isize), &mut point);
-        }; 
+        };
         io.add_mouse_pos_event([
             (point.x as f64 / window.scale_factor()) as f32,
             (point.y as f64 / window.scale_factor()) as f32,
@@ -345,7 +361,7 @@ impl System {
                     let window_active = io.want_capture_mouse | io.want_capture_keyboard;
                     if window_active != ui_active {
                         ui_active = window_active;
-                        
+
                         let hwnd = HWND(gl_window.window().hwnd() as isize);
                         let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
                         if window_active {
