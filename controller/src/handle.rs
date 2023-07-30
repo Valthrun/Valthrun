@@ -49,16 +49,19 @@ impl CS2Handle {
         };
 
         log::debug!(
-            "Successfully initialized CS2 handle. Process id {}",
+            "{}. Process id {}",
+            obfstr!("Successfully initialized CS2 handle"),
             module_info.process_id
         );
         log::debug!(
-            "  client.dll located at {:X} ({:X} bytes)",
+            "  {} located at {:X} ({:X} bytes)",
+            obfstr!("client.dll"),
             module_info.client.base_address,
             module_info.client.module_size
         );
         log::debug!(
-            "  engine2.dll located at {:X} ({:X} bytes)",
+            "  {} located at {:X} ({:X} bytes)",
+            obfstr!("engine2.dll"),
             module_info.engine.base_address,
             module_info.engine.module_size
         );

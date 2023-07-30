@@ -9,7 +9,7 @@ use obfstr::obfstr;
 use std::{
     cell::RefCell,
     collections::{btree_map::Entry, BTreeMap},
-    fmt::Debug,
+    fmt::Debug, sync::Arc,
 };
 use valthrun_kinterface::{requests::RequestProtectionToggle, ByteSequencePattern};
 use windows::{
@@ -35,7 +35,7 @@ pub struct EntityHandle {
 
 impl Debug for EntityHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("EntityHandle")
+        f.debug_struct(obfstr!("EntityHandle"))
             .field("value", &self.value)
             .field(
                 "entity_index",
@@ -108,7 +108,7 @@ impl EntityIdentity {
         while prev_entity > 0 {
             let entity = cs2
                 .read::<EntityIdentity>(Module::Absolute, &[prev_entity])
-                .context("failed to read prev entity identity of class")?;
+                .context(obfstr!("failed to read prev entity identity of class").to_string())?;
             prev_entity = entity.p_prev_by_class;
             result.push(entity);
         }
@@ -117,7 +117,7 @@ impl EntityIdentity {
         while next_entity > 0 {
             let entity = cs2
                 .read::<EntityIdentity>(Module::Absolute, &[next_entity])
-                .context("failed to read next entity identity of class")?;
+                .context(obfstr!("failed to read next entity identity of class").to_string())?;
             next_entity = entity.p_next_by_class;
             result.push(entity);
         }
@@ -126,31 +126,32 @@ impl EntityIdentity {
     }
 }
 
-struct CS2Offsets {
+pub struct CS2Offsets {
     /// Client offset for the local player controller ptr
-    local_controller: u64,
+    pub local_controller: u64,
 
     /// Client offset for the global entity list ptr
-    global_entity_list: u64,
+    pub global_entity_list: u64,
+
+    /// Client offset for the global world to screen view matrix
+    pub view_matrix: u64,
 }
 
 impl CS2Offsets {
     pub fn load_offsets(cs2: &CS2Handle) -> anyhow::Result<Self> {
-        let local_controller = Self::find_local_player_controller_ptr(cs2)?;
-        let global_entity_list = Self::find_entity_list(cs2)?;
-
         Ok(Self {
-            local_controller,
-            global_entity_list,
+            local_controller: Self::find_local_player_controller_ptr(cs2)?,
+            global_entity_list: Self::find_entity_list(cs2)?,
+            view_matrix: Self::find_view_matrix(cs2)?
         })
     }
 
     fn find_local_player_controller_ptr(cs2: &CS2Handle) -> anyhow::Result<u64> {
         // 48 83 3D ? ? ? ? ? 0F 95 -> IsLocalPlayerControllerValid
-        let pattern = ByteSequencePattern::parse("48 83 3D ? ? ? ? ? 0F 95").unwrap();
+        let pattern = ByteSequencePattern::parse(obfstr!("48 83 3D ? ? ? ? ? 0F 95")).unwrap();
         let inst_address = cs2
             .find_pattern(Module::Client, &pattern)?
-            .context("failed to find local player controller ptr")?;
+            .with_context(|| obfstr!("failed to find local player controller ptr").to_string())?;
 
         let address =
             inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x08;
@@ -161,15 +162,28 @@ impl CS2Offsets {
     fn find_entity_list(cs2: &CS2Handle) -> anyhow::Result<u64> {
         // 4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B -> Global entity list
         let pattern_entity_list =
-            ByteSequencePattern::parse("4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B").unwrap();
+            ByteSequencePattern::parse(obfstr!("4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B")).unwrap();
         let inst_address = cs2
-            .find_pattern(Module::Client, &pattern_entity_list)
-            .context("missing entity list")?
-            .context("failed to find global entity list pattern")?;
+            .find_pattern(Module::Client, &pattern_entity_list)?
+            .with_context(|| obfstr!("failed to find global entity list pattern").to_string())?;
         let entity_list_address =
             inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x07;
         log::debug!("Entity list at {:X}", entity_list_address);
         Ok(entity_list_address)
+    }
+
+    fn find_view_matrix(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        let pattern_entity_list =
+            ByteSequencePattern::parse(obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06")).unwrap();
+
+        let inst_address = cs2
+            .find_pattern(Module::Client, &pattern_entity_list)?
+            .with_context(|| obfstr!("failed to find view matrix pattern").to_string())?;
+
+        let address =
+            inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x07;
+        log::debug!("View Matrix {:X}", address);
+        Ok(address)
     }
 }
 
@@ -208,9 +222,9 @@ pub struct ViewController {
 }
 
 impl ViewController {
-    pub fn new(cs2_view_matrix_offset: u64) -> Self {
+    pub fn new(offsets: Arc<CS2Offsets>) -> Self {
         Self {
-            cs2_view_matrix_offset,
+            cs2_view_matrix_offset: offsets.view_matrix,
             view_matrix: Default::default(),
             screen: mint::Vector2 { x: 0.0, y: 0.0 },
         }
@@ -266,11 +280,11 @@ impl CSWindowTracker {
         let cs2_hwnd = unsafe {
             FindWindowA(
                 PCSTR::null(),
-                PCSTR::from_raw("Counter-Strike 2\0".as_ptr()),
+                PCSTR::from_raw(obfstr!("Counter-Strike 2\0").as_ptr()),
             )
         };
         if cs2_hwnd.0 == 0 {
-            anyhow::bail!("failed to locate CS2 window");
+            anyhow::bail!(obfstr!("failed to locate CS2 window").to_string());
         }
 
         Ok(Self {
@@ -296,7 +310,7 @@ impl CSWindowTracker {
         }
 
         self.current_bounds = rect;
-        log::debug!("CS2 window changed: {:?}", rect);
+        log::debug!("{}: {:?}", obfstr!("CS2 window changed"), rect);
         unsafe {
             let overlay_hwnd = HWND(overlay.hwnd());
             MoveWindow(
@@ -334,7 +348,7 @@ mod internal_offsets {
 }
 struct Application {
     cs2: CS2Handle,
-    cs2_offsets: CS2Offsets,
+    cs2_offsets: Arc<CS2Offsets>,
     cs2_entities: EntitySystem,
 
     settings_visible: bool,
@@ -380,7 +394,7 @@ impl CachedModel {
             &[self.address + internal_offsets::CModel::BONE_NAME - 0x08],
         )? as usize;
         if bone_count > 1000 {
-            anyhow::bail!("model contains too many bones ({bone_count})");
+            anyhow::bail!(obfstr!("model contains too many bones ({bone_count})").to_string());
         }
 
         log::trace!("Reading {} bones", bone_count);
@@ -460,16 +474,15 @@ enum BoneFlags {
 }
 
 struct EntitySystem {
-    local_controller_ptr: u64,
-    global_list_address: u64,
+    offsets: Arc<CS2Offsets>,
 }
 
 impl EntitySystem {
     /* Returns a CSSPlayerController instance */
     pub fn get_local_player_controller(&self, cs2: &CS2Handle) -> anyhow::Result<Option<u64>> {
         let entity = cs2
-            .read::<u64>(Module::Client, &[self.local_controller_ptr])
-            .context("failed to read local player controller")?;
+            .read::<u64>(Module::Client, &[self.offsets.local_controller])
+            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
 
         if entity > 0 {
             Ok(Some(entity))
@@ -486,14 +499,15 @@ impl EntitySystem {
         let (bulk, offset) = handle.entity_array_offsets();
         let identity = cs2.read::<EntityIdentity>(
             Module::Client,
-            &[self.global_list_address, bulk * 0x08, offset * 120],
+            &[self.offsets.global_entity_list, bulk * 0x08, offset * 120],
         );
 
         let identity = match identity {
             Ok(identity) => identity,
             Err(error) => {
                 return Err(error.context(format!(
-                    "failed to read global entity list entry for handle {:?}",
+                    "{}: {:?}",
+                    obfstr!("failed to read global entity list entry for handle"),
                     handle
                 )))
             }
@@ -509,10 +523,10 @@ impl EntitySystem {
     /* Returns a Vec<CSSPlayerController*> */
     pub fn get_player_controllers(&self, cs2: &CS2Handle) -> anyhow::Result<Vec<u64>> {
         let local_controller_identity = cs2.read::<EntityIdentity>(Module::Client, &[
-            self.local_controller_ptr,
+            self.offsets.local_controller,
             offsets::client::CEntityInstance::m_pEntity, /* read the entity identnity index  */
             0, /* read everything */
-        ]).context("failed to read local player controller identity")?;
+        ]).with_context(|| obfstr!("failed to read local player controller identity").to_string())?;
 
         Ok(local_controller_identity
             .collect_all_of_class(cs2)?
@@ -550,7 +564,7 @@ impl Application {
         let local_player_controller = self
             .cs2_entities
             .get_local_player_controller(&self.cs2)?
-            .context("missing local player controller")?;
+            .with_context(|| obfstr!("missing local player controller").to_string())?;
 
         for player_controller in self.cs2_entities.get_player_controllers(&self.cs2)? {
             let player_pawn_handle = self
@@ -559,7 +573,7 @@ impl Application {
                     Module::Absolute,
                     &[player_controller + offsets::client::CCSPlayerController::m_hPlayerPawn],
                 )
-                .context("failed to read player pawn handle")?;
+                .with_context(|| obfstr!("failed to read player pawn handle").to_string())?;
 
             if !player_pawn_handle.is_valid() {
                 continue;
@@ -571,7 +585,7 @@ impl Application {
                     Module::Absolute,
                     &[player_controller + offsets::client::CCSPlayerController::m_iPawnHealth],
                 )
-                .context("failed to read player controller pawn health")?;
+                .with_context(|| obfstr!("failed to read player controller pawn health").to_string())?;
             if player_health <= 0 {
                 continue;
             }
@@ -579,7 +593,7 @@ impl Application {
             let player_pawn = self
                 .cs2_entities
                 .get_by_handle(&self.cs2, &player_pawn_handle)?
-                .context("missing player pawn for player controller")?;
+                .with_context(|| obfstr!("missing player pawn for player controller").to_string())?;
 
             /* Will be an instance of CSkeletonInstance */
             let game_sceen_node = self.cs2.read::<u64>(
@@ -622,7 +636,7 @@ impl Application {
                     let model_name =
                         self.cs2
                             .read_string(Module::Absolute, &[model + 0x08, 0], Some(32))?;
-                    log::debug!("Discovered new player model {}. Caching.", model_name);
+                    log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
 
                     let model = CachedModel::create(&self.cs2, model)?;
                     value.insert(model)
@@ -757,7 +771,9 @@ impl Application {
         let settings = self.settings.borrow();
 
         {
-            let text = "Valthrun Overlay";
+            let text_buf;
+            let text = obfstr!(text_buf = "Valthrun Overlay");
+            
             ui.set_cursor_pos([
                 ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
                 10.0,
@@ -860,7 +876,7 @@ impl Application {
         ui.window(obfstr!("Valthrun"))
             .size([600.0, 300.0], Condition::FirstUseEver)
             .build(|| {
-                ui.text("Valthrun an open source CS2 external read only kernel cheat.");
+                ui.text(obfstr!("Valthrun an open source CS2 external read only kernel cheat."));
                 ui.separator();
                 let mouse_pos = ui.io().mouse_pos;
                 ui.text(format!(
@@ -869,9 +885,9 @@ impl Application {
                 ));
 
                 let mut settings = self.settings.borrow_mut();
-                ui.checkbox("Player Position Dots", &mut settings.player_pos_dot);
-                ui.checkbox("ESP Boxes", &mut settings.esp_boxes);
-                ui.checkbox("ESP Skeletons", &mut settings.esp_skeleton);
+                ui.checkbox(obfstr!("Player Position Dots"), &mut settings.player_pos_dot);
+                ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
+                ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
             });
     }
 }
@@ -890,15 +906,12 @@ fn main() -> anyhow::Result<()> {
     cs2.ke_interface
         .execute_request::<RequestProtectionToggle>(&RequestProtectionToggle { enabled: true })?;
 
-    let cs2_offsets = CS2Offsets::load_offsets(&cs2)?;
+    let cs2_offsets = Arc::new(CS2Offsets::load_offsets(&cs2)?);
 
     let mut app = Application {
         cs2,
-        cs2_entities: EntitySystem {
-            global_list_address: cs2_offsets.global_entity_list,
-            local_controller_ptr: cs2_offsets.local_controller,
-        },
-        cs2_offsets,
+        cs2_entities: EntitySystem { offsets: cs2_offsets.clone() },
+        cs2_offsets: cs2_offsets.clone(),
 
         settings_visible: false,
         window_tracker: Some(CSWindowTracker::new()?),
@@ -906,8 +919,7 @@ fn main() -> anyhow::Result<()> {
         players: Vec::with_capacity(16),
         model_cache: Default::default(),
 
-        // 0x16D1D90 - 48 8D 0D ? ? ? ? 48 C1 E0 06
-        view_controller: ViewController::new(0x16D1D90),
+        view_controller: ViewController::new(cs2_offsets.clone()),
 
         settings: RefCell::new(AppSettings {
             esp_boxes: true,
@@ -915,7 +927,8 @@ fn main() -> anyhow::Result<()> {
             player_pos_dot: true,
         }),
     };
-    overlay::init("Test").main_loop(move |run, window, ui| {
+    
+    overlay::init(obfstr!("CS2 Overlay")).main_loop(move |run, window, ui| {
         if let Err(err) = app.update(window, ui) {
             log::error!("{:#}", err);
             *run = false;

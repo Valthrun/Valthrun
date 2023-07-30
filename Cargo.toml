@@ -5,3 +5,7 @@ members = [
     "controller",
     "schema",
 ]
+
+[profile.release]
+panic = "abort"
+lto = true
