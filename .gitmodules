@@ -1,3 +1,0 @@
-[submodule "controller/third_party/imgui-dx11-renderer"]
-	path = controller/third_party/imgui-dx11-renderer
-	url = https://github.com/Veykril/imgui-dx11-renderer.git

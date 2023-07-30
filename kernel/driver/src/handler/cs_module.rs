@@ -63,7 +63,7 @@ fn get_cs2_process() -> anyhow::Result<Vec<*const _KPROCESS>> {
                 .cast()
         };
 
-        //log::debug!("{:X}: {:?} ({}); Next {:X}", current_pep as u64, name, active_threads, next_pep as u64);
+        log::debug!("{:X}: {:?} ({}); Next {:X}", current_pep as u64, name, active_threads, next_pep as u64);
         if active_threads > 0 && name == Some("cs2.exe") {
             cs2_candidates.push(current_pep);
         }

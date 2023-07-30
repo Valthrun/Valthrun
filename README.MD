@@ -9,9 +9,11 @@ That's a lot of descriptive words, but what does each of them mean?
 - kernel; We do not use any user level WinAPIs in order to get information from the CS2 process
   
 Note:  
-This project has been inspired by #[GarHal_CSGO](https://github.com/dretax/GarHal_CSGO).  
+This project has been inspired by [GarHal_CSGO](https://github.com/dretax/GarHal_CSGO).  
 As GarHal this is a lerning project!
   
-# Functions
-Currently nothing has been implemented.  
-We're just getting started.
+# Overlay
+The overlay is currently in development and not fully ready.
+
+# Screenshots
+![](https://img.did.science/2023_07_30_17_28_23.png)

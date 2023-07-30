@@ -2,6 +2,7 @@
 
 use std::{ffi::CStr, fmt::Debug};
 use anyhow::Context;
+use obfstr::obfstr;
 use valthrun_kinterface::{ModuleInfo, CSModuleInfo, KernelInterface, requests::{DriverRequestCSModule, RequestCSModule, ResponseCsModule}, SearchPattern};
 
 #[derive(Debug, Clone, Copy)]
@@ -34,7 +35,7 @@ pub struct CS2Handle {
 
 impl CS2Handle {
     pub fn create() -> anyhow::Result<Self> {
-        let interface = KernelInterface::create("\\\\.\\valthrun")?;
+        let interface = KernelInterface::create(obfstr!("\\\\.\\valthrun"))?;
         let module_info = interface.execute_request::<DriverRequestCSModule>(&RequestCSModule{})?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
@@ -66,30 +67,42 @@ impl CS2Handle {
         )
     }
 
-    pub fn read_buffer(&self, module: Module, offsets: &[u64], buffer: &mut [u8]) -> anyhow::Result<()> {
+    pub fn read_slice<T: Sized>(&self, module: Module, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
         let mut offsets = offsets.to_vec();
         offsets[0] += module.get_base_offset(&self.module_info).context("invalid module")?.base_address;
 
         Ok(
-            self.ke_interface.read_buffer(self.module_info.process_id, offsets.as_slice(), buffer)?
+            self.ke_interface.read_slice(self.module_info.process_id, offsets.as_slice(), buffer)?
+        )
+    }
+    
+    pub fn read_vec<T: Sized>(&self, module: Module, offsets: &[u64], length: usize) -> anyhow::Result<Vec<T>> {
+        let mut offsets = offsets.to_vec();
+        offsets[0] += module.get_base_offset(&self.module_info).context("invalid module")?.base_address;
+
+        Ok(
+            self.ke_interface.read_vec(self.module_info.process_id, offsets.as_slice(), length)?
         )
     }
 
     pub fn read_string(&self, module: Module, offsets: &[u64], expected_length: Option<usize>) -> anyhow::Result<String> {
-        let expected_length = expected_length.unwrap_or(128);
+        let mut expected_length = expected_length.unwrap_or(8); // Using 8 as we don't know how far we can read
         let mut buffer = Vec::new();
-        buffer.resize(expected_length, 0u8);
 
-        
-        self.read_buffer(module, offsets, buffer.as_mut_slice())?;
+        // FIXME: Do cstring reading within the kernel driver!
+        loop {
+            buffer.resize(expected_length, 0u8);
+            self.read_slice(module, offsets, buffer.as_mut_slice())?;
+            if let Ok(str) = CStr::from_bytes_until_nul(&buffer) {
+                return Ok(
+                    str.to_str()
+                        .context("invalid string contents")?
+                        .to_string()
+                );
+            }
 
-        Ok(
-            CStr::from_bytes_until_nul(&buffer)
-                .context("invalid string contents")?
-                .to_str()
-                .context("invalid string contents")?
-                .to_string()
-        )
+            expected_length += 8;
+        }
     }
     
     pub fn find_pattern(&self, module: Module, pattern: &dyn SearchPattern) -> anyhow::Result<Option<u64>> {

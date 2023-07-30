@@ -18,8 +18,10 @@ pub enum KInterfaceError {
     #[error("provided {provided} offsets but only {limit} are supported")]
     TooManyOffsets { provided: usize, limit: usize },
 
-    #[error("failed to read {resolved_offset_count}/{offset_count}")]
+    #[error("failed to read {target_address:X} ({resolved_offset_count}/{offset_count})")]
     InvalidAddress {
+        target_address: u64,
+
         resolved_offsets: [u64; IO_MAX_DEREF_COUNT],
         resolved_offset_count: usize,
         

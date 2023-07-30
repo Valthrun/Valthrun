@@ -59,11 +59,21 @@ impl KernelInterface {
                 std::mem::size_of::<T>()
             )
         };
-        self.read_buffer(process_id, offsets, result_buff)?;
+        self.read_slice(process_id, offsets, result_buff)?;
         Ok(result)
     }
 
-    pub fn read_buffer(&self, process_id: i32, offsets: &[u64], buffer: &mut [u8]) -> KResult<()> {
+    pub fn read_vec<T: Sized>(&self, process_id: i32, offsets: &[u64], length: usize) -> KResult<Vec<T>> {
+        let mut buffer = Vec::new();
+        buffer.reserve(length);
+        
+        self.read_slice(process_id, offsets, buffer.spare_capacity_mut())?;
+        unsafe { buffer.set_len(length) };
+
+        Ok(buffer)
+    }
+
+    pub fn read_slice<T: Sized>(&self, process_id: i32, offsets: &[u64], buffer: &mut [T]) -> KResult<()> {
         let mut offset_buffer = [0u64; IO_MAX_DEREF_COUNT];
         if offsets.len() > offset_buffer.len() {
             return Err(KInterfaceError::TooManyOffsets { provided: offsets.len(), limit: offset_buffer.len() });
@@ -77,15 +87,16 @@ impl KernelInterface {
                 offsets: offset_buffer.clone(),
                 offset_count: offsets.len(),
 
-                buffer: buffer.as_mut_ptr(),
-                count: buffer.len()
+                buffer: buffer.as_mut_ptr() as *mut u8,
+                count: buffer.len() * std::mem::size_of::<T>()
             }
         )?;
         match result {
             ResponseRead::Success => Ok(()),
             ResponseRead::InvalidAddress { resolved_offset_count, resolved_offsets } => {
                 //log::trace!("Invalid read {:?}: {:?} -> {:?}", offsets, resolved_offsets, resolved_offset_count);
-                Err(KInterfaceError::InvalidAddress { 
+                Err(KInterfaceError::InvalidAddress {
+                    target_address: if resolved_offset_count == 0 { offsets[0] } else { resolved_offsets[resolved_offset_count - 1] },
                     resolved_offsets, resolved_offset_count, 
                     offsets: offset_buffer, offset_count: offsets.len()
                 })
@@ -101,7 +112,7 @@ impl KernelInterface {
 
         let mut buffer = Vec::<u8>::with_capacity(length);
         buffer.resize(length, 0);
-        self.read_buffer(process_id, &[ address ], &mut buffer)?;
+        self.read_slice(process_id, &[ address ], &mut buffer)?;
 
         for (index, window) in buffer.windows(pattern.length()).enumerate() {
             if !pattern.is_matching(window) {
