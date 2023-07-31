@@ -115,5 +115,5 @@ It is planned to dynamically resolved these offsets and eliminate the need for m
 ![](https://img.did.science/2023_07_31_01_38_46.png)
 
 # Help
-You can find help on the official Valthrun Discord server:
+You can find help on the official Valthrun Discord server:  
 ![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)  
