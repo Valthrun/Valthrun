@@ -7,11 +7,13 @@ use glium::glutin::event_loop::{ControlFlow, EventLoop};
 use glium::glutin::platform::windows::WindowExtWindows;
 use glium::glutin::window::{WindowBuilder, Window};
 use glium::{Display, Surface};
-use imgui::{Context, FontConfig, FontSource, Ui, Io};
+use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use input::InputSystem;
 use window_tracker::WindowTracker;
+use windows::core::PCSTR;
+use std::ffi::CString;
 use std::time::Instant;
 use windows::Win32::Foundation::{BOOL, HWND};
 use windows::Win32::Graphics::Dwm::{
@@ -22,13 +24,26 @@ use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
     GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WS_CLIPSIBLINGS,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK,
 };
 
 mod clipboard;
 mod error;
 mod input;
 mod window_tracker;
+
+pub fn show_error_message(title: &str, message: &str) {
+    let title = CString::new(title).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
+    let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
+    unsafe {
+        MessageBoxA(
+            HWND::default(), 
+            PCSTR::from_raw(message.as_ptr() as *const u8), 
+            PCSTR::from_raw(title.as_ptr() as *const u8),
+            MB_ICONERROR | MB_OK
+        );
+    }
+}
 
 pub struct System {
     pub event_loop: EventLoop<()>,
@@ -173,7 +188,7 @@ impl OverlayActiveTracker {
                 style |= WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize;
             }
 
-            log::debug!("Set UI active: {window_active}");
+            //log::debug!("Set UI active: {window_active}");
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
             if window_active {
                 SetActiveWindow(hwnd);
@@ -183,7 +198,11 @@ impl OverlayActiveTracker {
 }
 
 impl System {
-    pub fn main_loop<F: FnMut(&mut bool, &mut Ui) + 'static>(self, mut run_ui: F) -> ! {
+    pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
+    where
+        U: FnMut(&mut imgui::Context) -> bool + 'static,
+        R: FnMut(&mut imgui::Ui) -> bool + 'static,
+    {
         let System {
             event_loop,
             display,
@@ -217,14 +236,18 @@ impl System {
                 active_tracker.update(window, imgui.io());
                 window_tracker.update(window);
 
+                if !update(&mut imgui) {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+
                 window.request_redraw();
             }
             Event::RedrawRequested(_) => {
                 let gl_window = display.gl_window();
                 let ui = imgui.frame();
 
-                let mut run = true;
-                run_ui(&mut run, ui);
+                let mut run = render(ui);
 
                 let mut target = display.draw();
                 target.clear_all((0.0, 0.0, 0.0, 0.0), 0.0, 0);

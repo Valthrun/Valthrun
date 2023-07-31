@@ -20,6 +20,7 @@ obfstr = "0.4.3"
 nalgebra = "0.32.3"
 mint = "0.5.9"
 clap = { version = "4.3.19", features = ["derive"] }
+serde_yaml = "0.9.25"
 
 [build-dependencies]
 winres = "0.1"

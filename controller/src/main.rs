@@ -1,4 +1,5 @@
 #![feature(iterator_try_collect)]
+#![feature(result_option_inspect)]
 #![allow(dead_code)]
 
 use anyhow::Context;
@@ -6,14 +7,18 @@ use cs2::{CS2Handle, Module, EntityHandle, CS2Offsets, EntitySystem, offsets_man
 use cs2_schema::offsets;
 use imgui::{Condition, ImColor32};
 use obfstr::obfstr;
+use settings::{AppSettings, load_app_settings};
 use view::ViewController;
 use std::{
     cell::RefCell,
     collections::{btree_map::Entry, BTreeMap},
-    fmt::Debug, sync::Arc, time::Instant,
+    fmt::Debug, sync::Arc, time::Instant, rc::Rc,
 };
 
+use crate::settings::save_app_settings;
+
 mod view;
+mod settings;
 
 struct PlayerInfo {
     local: bool,
@@ -27,13 +32,6 @@ struct PlayerInfo {
     bone_states: Vec<BoneStateData>,
 }
 
-
-#[derive(Debug, Clone, Copy)]
-pub struct AppSettings {
-    pub player_pos_dot: bool,
-    pub esp_skeleton: bool,
-    pub esp_boxes: bool,
-}
 
 struct CachedModel {
     model: Arc<CS2Model>,
@@ -88,13 +86,35 @@ struct Application {
     view_controller: ViewController,
 
     settings: RefCell<AppSettings>,
+    settings_dirty: bool,
 }
 
 impl Application {
+    pub fn pre_update(&mut self, context: &mut imgui::Context) -> anyhow::Result<()> {
+        if self.settings_dirty {
+            self.settings_dirty = false;
+            let mut settings = self.settings.borrow_mut();
+
+            let mut imgui_settings = String::new();
+            context.save_ini_settings(&mut imgui_settings);
+            settings.imgui = Some(imgui_settings);
+
+            if let Err(error) = save_app_settings(&*settings) {
+                log::warn!("Failed to save user settings: {}", error);
+            };
+        }
+        Ok(())
+    }
+
     pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
         if ui.is_key_pressed_no_repeat(imgui::Key::Keypad0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
+            
+            if !self.settings_visible {
+                /* overlay has just been closed */
+                self.settings_dirty = true;
+            }
         }
 
         self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
@@ -323,14 +343,15 @@ impl Application {
             ui.text(text)
         }
 
-        ui.set_cursor_pos([10.0, 300.0]);
-
-        ui.text(format!("{} players alive", self.players.len()));
-        for entry in self.players.iter() {
-            ui.text(format!(
-                "{} ({}) | {:?}",
-                entry.player_name, entry.player_health, entry.position
-            ));
+        if settings.player_list {
+            ui.set_cursor_pos([10.0, 300.0]);
+            ui.text(format!("{} players alive", self.players.len()));
+            for entry in self.players.iter() {
+                ui.text(format!(
+                    "{} ({}) | {:?}",
+                    entry.player_name, entry.player_health, entry.position
+                ));
+            }
         }
 
         let draw = ui.get_window_draw_list();
@@ -413,13 +434,9 @@ impl Application {
             .build(|| {
                 ui.text(obfstr!("Valthrun an open source CS2 external read only kernel cheat."));
                 ui.separator();
-                let mouse_pos = ui.io().mouse_pos;
-                ui.text(format!(
-                    "Mouse Position: ({:.1},{:.1})",
-                    mouse_pos[0], mouse_pos[1]
-                ));
 
                 let mut settings = self.settings.borrow_mut();
+                ui.checkbox(obfstr!("Player List"), &mut settings.player_list);
                 ui.checkbox(obfstr!("Player Position Dots"), &mut settings.player_pos_dot);
                 ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
                 ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
@@ -427,8 +444,21 @@ impl Application {
     }
 }
 
-fn main() -> anyhow::Result<()> {
+fn show_critical_error(message: &str) {
+    log::error!("{}", message);
+    overlay::show_error_message(obfstr!("Valthrun Controller"), message);
+}
+
+fn main() {
     env_logger::init();
+
+    if let Err(error) = real_main() {
+        show_critical_error(&format!("{:#}", error));
+    }
+}
+
+fn real_main() -> anyhow::Result<()> {
+    let settings = load_app_settings()?;
 
     let cs2 = Arc::new(CS2Handle::create()?);
 
@@ -446,7 +476,8 @@ fn main() -> anyhow::Result<()> {
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
     );
 
-    let mut app = Application {
+    let imgui_settings = settings.imgui.clone();
+    let app = Application {
         cs2,
         cs2_entities: EntitySystem::new(cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
@@ -458,21 +489,39 @@ fn main() -> anyhow::Result<()> {
 
         view_controller: ViewController::new(cs2_offsets.clone()),
 
-        settings: RefCell::new(AppSettings {
-            esp_boxes: true,
-            esp_skeleton: true,
-            player_pos_dot: true,
-        }),
+        settings: RefCell::new(settings),
+        settings_dirty: false,
     };
+    let app = Rc::new(RefCell::new(app));
     
-    let overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
-    overlay.main_loop(move |run, ui| {
-        if let Err(err) = app.update(ui) {
-            log::error!("{:#}", err);
-            *run = false;
-            return;
-        };
+    let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
+    if let Some(imgui_settings) = imgui_settings {
+        overlay.imgui.load_ini_settings(&imgui_settings);
+    }
 
-        app.render(ui);
-    });
+    overlay.main_loop(
+        {
+            let app = app.clone();
+            move |context| {
+                let mut app = app.borrow_mut();
+                if let Err(err) = app.pre_update(context) {
+                    show_critical_error(&format!("{:#}", err));
+                    false
+                } else {
+                    true    
+                }            
+            }
+        },
+        move |ui| {
+            let mut app = app.borrow_mut();
+
+            if let Err(err) = app.update(ui) {
+                show_critical_error(&format!("{:#}", err));
+                return false;
+            }
+
+            app.render(ui);
+            true
+        }
+    )
 }

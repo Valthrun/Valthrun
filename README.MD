@@ -35,6 +35,11 @@ Attention: Ensure you have `NUMLOCK` enabled!
   - List of player currently watching you / the observer target
 - Player competitive ranks / wins
 
+Mess around:
+- `KeUserModeCallback`
+https://www.unknowncheats.me/forum/anti-cheat-bypass/347320-communication-via-callbacks.html
+- Invoking Shellcode within CS (send text message, change player name etc.)
+
 # Build
 ## 0. Prerequiresits
 The following prerequisites must be fullfilled to build this project
