@@ -1,4 +1,5 @@
 ![Valthrun CS2 Logo](./logo.svg)
+![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)  
 Valthrun an open source external Counter-Strike 2 read only kernel cheat.  
 That's a lot of descriptive words, but what does each of them mean?  
 - Valthrun; The name of this project
@@ -110,3 +111,7 @@ It is planned to dynamically resolved these offsets and eliminate the need for m
 # Screenshots
 ![](https://img.did.science/2023_07_30_17_28_23.png)
 ![](https://img.did.science/2023_07_31_01_38_46.png)
+
+# Help
+You can find help on the official Valthrun Discord server:
+![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)  
