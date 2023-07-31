@@ -3,8 +3,8 @@
 use anyhow::Context;
 use obfstr::obfstr;
 use std::{ffi::CStr, fmt::Debug};
-use valthrun_kinterface::{
-    requests::{RequestCSModule, ResponseCsModule},
+use kinterface::{
+    requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle},
     CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern,
 };
 
@@ -42,6 +42,8 @@ pub struct CS2Handle {
 impl CS2Handle {
     pub fn create() -> anyhow::Result<Self> {
         let interface = KernelInterface::create(obfstr!("\\\\.\\valthrun"))?;
+        interface.execute_request(&RequestProtectionToggle{ enabled: true })?;
+        
         let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule {})?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
@@ -70,6 +72,12 @@ impl CS2Handle {
             ke_interface: interface,
             module_info,
         })
+    }
+
+    pub fn protect_process(&self) -> anyhow::Result<()> {
+        self.ke_interface
+            .execute_request(&RequestProtectionToggle { enabled: true })?;
+        Ok(())
     }
 
     pub fn memory_address(&self, module: Module, offset: u64) -> anyhow::Result<u64> {

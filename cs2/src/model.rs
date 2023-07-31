@@ -1,0 +1,119 @@
+use obfstr::obfstr;
+
+use crate::{CS2Handle, Module, offsets_manual};
+
+pub enum BoneFlags {
+    FlagNoBoneFlags = 0x0,
+    FlagBoneflexdriver = 0x4,
+    FlagCloth = 0x8,
+    FlagPhysics = 0x10,
+    FlagAttachment = 0x20,
+    FlagAnimation = 0x40,
+    FlagMesh = 0x80,
+    FlagHitbox = 0x100,
+    FlagBoneUsedByVertexLod0 = 0x400,
+    FlagBoneUsedByVertexLod1 = 0x800,
+    FlagBoneUsedByVertexLod2 = 0x1000,
+    FlagBoneUsedByVertexLod3 = 0x2000,
+    FlagBoneUsedByVertexLod4 = 0x4000,
+    FlagBoneUsedByVertexLod5 = 0x8000,
+    FlagBoneUsedByVertexLod6 = 0x10000,
+    FlagBoneUsedByVertexLod7 = 0x20000,
+    FlagBoneMergeRead = 0x40000,
+    FlagBoneMergeWrite = 0x80000,
+    FlagAllBoneFlags = 0xfffff,
+    BlendPrealigned = 0x100000,
+    FlagRigidlength = 0x200000,
+    FlagProcedural = 0x400000,
+}
+
+#[derive(Debug, Clone, Default)]
+pub struct Bone {
+    pub name: String,
+    pub flags: u32,
+    pub parent: Option<usize>
+}
+
+#[derive(Debug, Default)]
+pub struct CS2Model {
+    pub bones: Vec<Bone>,
+     
+    pub vhull_min: nalgebra::Vector3<f32>,
+    pub vhull_max: nalgebra::Vector3<f32>,
+ 
+    pub vview_min: nalgebra::Vector3<f32>,
+    pub vview_max: nalgebra::Vector3<f32>,
+}
+
+impl CS2Model {
+    pub fn read(cs2: &CS2Handle, address: u64) -> anyhow::Result<Self> {
+        let mut result: Self = Default::default();
+        result.do_read(cs2, address)?;
+        Ok(result)
+    }
+
+    fn do_read(&mut self, cs2: &CS2Handle, address: u64) -> anyhow::Result<()> {
+        [
+            self.vhull_min,
+            self.vhull_max,
+
+            self.vview_min,
+            self.vview_max,
+        ] = cs2.read::<[ nalgebra::Vector3<f32>; 4 ]>(Module::Absolute, &[ address + 0x18 ])?;
+
+        let bone_count = cs2.read::<u64>(
+            Module::Absolute,
+            &[address + offsets_manual::client::CModel::BONE_NAME - 0x08],
+        )? as usize;
+        if bone_count > 1000 {
+            anyhow::bail!(obfstr!("model contains too many bones ({bone_count})").to_string());
+        }
+
+        log::trace!("Reading {} bones", bone_count);
+        let model_bone_flags = cs2.read_vec::<u32>(
+            Module::Absolute,
+            &[
+                address + offsets_manual::client::CModel::BONE_FLAGS,
+                0, /* read the whole array */
+            ],
+            bone_count,
+        )?;
+
+        let model_bone_parent_index = cs2.read_vec::<u16>(
+            Module::Absolute,
+            &[
+                address + offsets_manual::client::CModel::BONE_PARENT,
+                0, /* read the whole array */
+            ],
+            bone_count,
+        )?;
+
+        self.bones.clear();
+        self.bones.reserve(bone_count);
+        for bone_index in 0..bone_count {
+            let name = cs2.read_string(
+                Module::Absolute,
+                &[
+                    address + offsets_manual::client::CModel::BONE_NAME,
+                    0x08 * bone_index as u64,
+                    0,
+                ],
+                None,
+            )?;
+
+            let parent_index = model_bone_parent_index[bone_index];
+            let flags = model_bone_flags[bone_index];
+
+            self.bones.push(Bone {
+                name: name.clone(),
+                parent: if parent_index as usize >= bone_count {
+                    None
+                } else {
+                    Some(parent_index as usize)
+                },
+                flags,
+            });
+        }
+        Ok(())
+    }
+}

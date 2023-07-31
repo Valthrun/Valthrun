@@ -1,14 +1,13 @@
-#![allow(dead_code)]
-use std::{fmt::Debug, fs::File, io::BufWriter, marker::PhantomData};
+use std::{fmt::Debug, fs::File, io::BufWriter};
 
 use anyhow::Context;
-use serde::{Deserialize, Serialize};
-use valthrun_kinterface::ByteSequencePattern;
+use cs2_schema::definition::{ClassOffsets, Offset, SchemaScope};
+use kinterface::ByteSequencePattern;
 
-use crate::handle::{CS2Handle, Module};
+use crate::{CS2Handle, Module, PtrCStr, Ptr, offsets_manual};
 
 // Returns SchemaSystem_001
-fn get_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
+fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
     let load_address = cs2
         .find_pattern(
             Module::Schemasystem,
@@ -65,63 +64,6 @@ struct CUtlTSHash<const N: usize> {
     memory_pool: CUtlMemoryPool,
     buckets: [HashBucketT; N],
 }
-
-#[repr(C)]
-pub struct Ptr<T> {
-    pub value: u64,
-    _data: PhantomData<T>,
-}
-const _: [u8; 0x08] = [0; std::mem::size_of::<Ptr<()>>()];
-
-impl<T> Debug for Ptr<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "0x{:X}", &self.value)
-    }
-}
-
-impl<T> Default for Ptr<T> {
-    fn default() -> Self {
-        Self {
-            value: 0,
-            _data: Default::default(),
-        }
-    }
-}
-
-impl<T: Sized> Ptr<T> {
-    pub fn try_read(&self, cs2: &CS2Handle) -> anyhow::Result<Option<T>> {
-        if self.value == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(cs2.read::<T>(Module::Absolute, &[self.value])?))
-        }
-    }
-
-    pub fn read(&self, cs2: &CS2Handle) -> anyhow::Result<T> {
-        cs2.read::<T>(Module::Absolute, &[self.value])
-    }
-}
-
-impl Ptr<*const i8> {
-    pub fn read_string(&self, cs2: &CS2Handle) -> anyhow::Result<String> {
-        cs2.read_string(Module::Absolute, &[self.value], None)
-    }
-
-    pub fn try_read_string(&self, cs2: &CS2Handle) -> anyhow::Result<Option<String>> {
-        if self.value == 0 {
-            Ok(None)
-        } else {
-            Ok(Some(cs2.read_string(
-                Module::Absolute,
-                &[self.value],
-                None,
-            )?))
-        }
-    }
-}
-
-pub type PtrCStr = Ptr<*const i8>;
-const _: [u8; 0x08] = [0; std::mem::size_of::<PtrCStr>()];
 
 #[repr(C)]
 struct CSchemaField {
@@ -185,24 +127,6 @@ fn cutl_tshash_elements<T: Sized>(cs2: &CS2Handle, address: u64) -> anyhow::Resu
     Ok(result)
 }
 
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct SchemaScope {
-    schema_name: String,
-    classes: Vec<ClassOffsets>,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct ClassOffsets {
-    class_name: String,
-    offsets: Vec<Offset>,
-}
-
-#[derive(Debug, Default, Serialize, Deserialize)]
-pub struct Offset {
-    field_name: String,
-    offset: u64,
-}
-
 fn read_class_binding(cs2: &CS2Handle, address: u64) -> anyhow::Result<ClassOffsets> {
     let binding = cs2.read::<CSchemaClassBinding>(Module::Absolute, &[address])?;
     let mut class_offsets: ClassOffsets = Default::default();
@@ -226,17 +150,13 @@ fn read_class_binding(cs2: &CS2Handle, address: u64) -> anyhow::Result<ClassOffs
     Ok(class_offsets)
 }
 
-const OFFSET_SCHEMA_SYSTEM_SCOPE_SIZE: u64 = 0x190;
-const OFFSET_SCHEMA_SYSTEM_SCOPE_ARRAY: u64 = 0x198;
-const OFFSET_SCHEMA_SCOPE_CLASS_BINDINGS: u64 = 0x558;
-const OFFSET_SCHEMA_SCOPE_ENUM_BINDINGS: u64 = 0x2DA0;
 pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<()> {
     log::info!("Dumping schema!");
 
-    let schema_system = get_schema_system(cs2)?;
+    let schema_system = find_schema_system(cs2)?;
     let scope_size = cs2.read::<u64>(
         Module::Schemasystem,
-        &[schema_system + OFFSET_SCHEMA_SYSTEM_SCOPE_SIZE],
+        &[schema_system + offsets_manual::schemasystem::SYSTEM_SCOPE_SIZE],
     )?;
     log::debug!(
         "Schema system located at 0x{:X} (0x{:X}) containing 0x{:X} scopes",
@@ -251,7 +171,7 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<()> {
         let scope = cs2.read::<u64>(
             Module::Schemasystem,
             &[
-                schema_system + OFFSET_SCHEMA_SYSTEM_SCOPE_ARRAY, // PTR to scope array
+                schema_system + offsets_manual::schemasystem::SYSTEM_SCOPE_ARRAY, // PTR to scope array
                 scope_index * 8,                                  // entry in array
             ],
         )?;
@@ -260,9 +180,9 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<()> {
         scope_info.schema_name = cs2.read_string(Module::Absolute, &[scope + 0x08], Some(0x100))?;
 
         let class_bindings =
-            cutl_tshash_elements::<u64>(cs2, scope + OFFSET_SCHEMA_SCOPE_CLASS_BINDINGS)?;
+            cutl_tshash_elements::<u64>(cs2, scope + offsets_manual::schemasystem::SCOPE_CLASS_BINDINGS)?;
         scope_info.classes.reserve(class_bindings.len());
-        // let enum_bindings = cutl_tshash_elements::<u64>(cs2, scope + OFFSET_SCHEMA_SCOPE_ENUM_BINDINGS)?;
+        // let enum_bindings = cutl_tshash_elements::<u64>(cs2, scope + offsets_manual::schemasystem::SCOPE_ENUM_BINDINGS)?;
 
         log::debug!(
             " {:X} -> {} ({})",

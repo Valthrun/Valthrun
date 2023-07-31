@@ -4,7 +4,12 @@ members = [
     "kinterface",
     "controller",
     "schema",
+    "cs2",
+    "overlay",
 ]
+
+[profile.dev]
+incremental = true
 
 [profile.release]
 panic = "abort"

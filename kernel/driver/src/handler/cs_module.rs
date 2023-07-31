@@ -37,7 +37,8 @@ pub fn handler_get_modules(_req: &RequestCSModule, res: &mut ResponseCsModule) -
 
     module_info.schemasystem = attached_process.get_module(obfstr!("schemasystem.dll"))
         .with_context(|| format!("missing {}", obfstr!("schemasystem.dll")))?;
-
+    drop(attached_process);
+    
     *res = ResponseCsModule::Success(module_info);
     Ok(())
 }

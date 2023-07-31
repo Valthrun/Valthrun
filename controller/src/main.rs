@@ -2,190 +2,18 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
+use cs2::{CS2Handle, Module, EntityHandle, CS2Offsets, EntitySystem, offsets_manual, CS2Model, BoneFlags};
 use cs2_schema::offsets;
-use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use imgui::{Condition, ImColor32};
 use obfstr::obfstr;
+use view::ViewController;
 use std::{
     cell::RefCell,
     collections::{btree_map::Entry, BTreeMap},
-    fmt::Debug, sync::Arc,
-};
-use valthrun_kinterface::{requests::RequestProtectionToggle, ByteSequencePattern};
-use windows::{
-    core::PCSTR,
-    Win32::{
-        Foundation::{HWND, POINT, RECT},
-        Graphics::Gdi::ClientToScreen,
-        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow},
-    },
+    fmt::Debug, sync::Arc, time::Instant,
 };
 
-use crate::handle::{CS2Handle, Module};
-
-mod handle;
-mod overlay;
-mod schema;
-
-#[repr(C)]
-#[derive(Default, Clone)]
-pub struct EntityHandle {
-    pub value: u32,
-}
-
-impl Debug for EntityHandle {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct(obfstr!("EntityHandle"))
-            .field("value", &self.value)
-            .field(
-                "entity_index",
-                &format_args!("0x{:X}", &self.get_entity_index()),
-            )
-            .field(
-                "serial_number",
-                &format_args!("0x{:X}", &self.get_serial_number()),
-            )
-            .finish()
-    }
-}
-
-impl EntityHandle {
-    pub fn get_entity_index(&self) -> u32 {
-        self.value & 0x7FFF
-    }
-
-    pub fn is_valid(&self) -> bool {
-        self.get_entity_index() < 0x7FF0
-    }
-
-    pub fn get_serial_number(&self) -> u32 {
-        self.value >> 15
-    }
-
-    pub fn entity_array_offsets(&self) -> (u64, u64) {
-        let entity_index = self.get_entity_index();
-        ((entity_index >> 9) as u64, (entity_index & 0x1FF) as u64)
-    }
-}
-
-#[repr(C)]
-#[derive(Debug, Default, Clone)]
-struct EntityIdentity {
-    entity_ptr: u64,
-    ptr_2: u64,
-
-    handle: EntityHandle,
-    name_stringable_index: u32,
-    name: u64,
-
-    designer_name: u64,
-    pad_0: u64,
-
-    flags: u64,
-    world_group_id: u32,
-    data_object_types: u32,
-
-    path_index: u64,
-    pad_1: u64,
-
-    pad_2: u64,
-    p_prev: u64,
-
-    p_next: u64,
-    p_prev_by_class: u64,
-
-    p_next_by_class: u64,
-}
-const _: [u8; 120] = [0; std::mem::size_of::<EntityIdentity>()];
-
-impl EntityIdentity {
-    fn collect_all_of_class(&self, cs2: &CS2Handle) -> anyhow::Result<Vec<EntityIdentity>> {
-        let mut result = Vec::new();
-        result.reserve(128);
-        result.push(self.clone());
-
-        let mut prev_entity = self.p_prev_by_class;
-        while prev_entity > 0 {
-            let entity = cs2
-                .read::<EntityIdentity>(Module::Absolute, &[prev_entity])
-                .context(obfstr!("failed to read prev entity identity of class").to_string())?;
-            prev_entity = entity.p_prev_by_class;
-            result.push(entity);
-        }
-
-        let mut next_entity = self.p_next_by_class;
-        while next_entity > 0 {
-            let entity = cs2
-                .read::<EntityIdentity>(Module::Absolute, &[next_entity])
-                .context(obfstr!("failed to read next entity identity of class").to_string())?;
-            next_entity = entity.p_next_by_class;
-            result.push(entity);
-        }
-
-        Ok(result)
-    }
-}
-
-pub struct CS2Offsets {
-    /// Client offset for the local player controller ptr
-    pub local_controller: u64,
-
-    /// Client offset for the global entity list ptr
-    pub global_entity_list: u64,
-
-    /// Client offset for the global world to screen view matrix
-    pub view_matrix: u64,
-}
-
-impl CS2Offsets {
-    pub fn load_offsets(cs2: &CS2Handle) -> anyhow::Result<Self> {
-        Ok(Self {
-            local_controller: Self::find_local_player_controller_ptr(cs2)?,
-            global_entity_list: Self::find_entity_list(cs2)?,
-            view_matrix: Self::find_view_matrix(cs2)?
-        })
-    }
-
-    fn find_local_player_controller_ptr(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        // 48 83 3D ? ? ? ? ? 0F 95 -> IsLocalPlayerControllerValid
-        let pattern = ByteSequencePattern::parse(obfstr!("48 83 3D ? ? ? ? ? 0F 95")).unwrap();
-        let inst_address = cs2
-            .find_pattern(Module::Client, &pattern)?
-            .with_context(|| obfstr!("failed to find local player controller ptr").to_string())?;
-
-        let address =
-            inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x08;
-        log::debug!("Local player controller ptr at {:X}", address);
-        Ok(address)
-    }
-
-    fn find_entity_list(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        // 4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B -> Global entity list
-        let pattern_entity_list =
-            ByteSequencePattern::parse(obfstr!("4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B")).unwrap();
-        let inst_address = cs2
-            .find_pattern(Module::Client, &pattern_entity_list)?
-            .with_context(|| obfstr!("failed to find global entity list pattern").to_string())?;
-        let entity_list_address =
-            inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x07;
-        log::debug!("Entity list at {:X}", entity_list_address);
-        Ok(entity_list_address)
-    }
-
-    fn find_view_matrix(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        let pattern_entity_list =
-            ByteSequencePattern::parse(obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06")).unwrap();
-
-        let inst_address = cs2
-            .find_pattern(Module::Client, &pattern_entity_list)?
-            .with_context(|| obfstr!("failed to find view matrix pattern").to_string())?;
-
-        let address =
-            inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x07;
-        log::debug!("View Matrix {:X}", address);
-        Ok(address)
-    }
-}
+mod view;
 
 struct PlayerInfo {
     local: bool,
@@ -194,173 +22,11 @@ struct PlayerInfo {
     position: nalgebra::Vector3<f32>,
 
     debug_text: String,
-    bones: Vec<PlayerBone>,
-    model: Option<PlayerModel>,
+    
+    model: Arc<CS2Model>,
+    bone_states: Vec<BoneStateData>,
 }
 
-#[repr(C)]
-#[derive(Debug, Default, Clone)]
-struct PlayerModel {
-    vhull_min: nalgebra::Vector3<f32>,
-    vhull_max: nalgebra::Vector3<f32>,
-
-    vview_min: nalgebra::Vector3<f32>,
-    vview_max: nalgebra::Vector3<f32>,
-}
-
-#[derive(Debug, Clone)]
-struct PlayerBone {
-    name: String,
-    flags: u32,
-    parent: Option<usize>,
-    position: nalgebra::Vector3<f32>,
-}
-pub struct ViewController {
-    cs2_view_matrix_offset: u64,
-    view_matrix: nalgebra::Matrix4<f32>,
-    screen: mint::Vector2<f32>,
-}
-
-impl ViewController {
-    pub fn new(offsets: Arc<CS2Offsets>) -> Self {
-        Self {
-            cs2_view_matrix_offset: offsets.view_matrix,
-            view_matrix: Default::default(),
-            screen: mint::Vector2 { x: 0.0, y: 0.0 },
-        }
-    }
-
-    pub fn update(&mut self, screen: mint::Vector2<f32>, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.screen = screen;
-        self.view_matrix = cs2.read(Module::Client, &[self.cs2_view_matrix_offset])?;
-        Ok(())
-    }
-
-    /// Returning an mint::Vector2<f32> as the result should be used via ImGui.
-    pub fn world_to_screen(
-        &self,
-        vec: &nalgebra::Vector3<f32>,
-        allow_of_screen: bool,
-    ) -> Option<mint::Vector2<f32>> {
-        let screen_coords =
-            nalgebra::Vector4::new(vec.x, vec.y, vec.z, 1.0).transpose() * self.view_matrix;
-
-        if screen_coords.w < 0.1 {
-            return None;
-        }
-
-        if !allow_of_screen
-            && (screen_coords.x < -screen_coords.w
-                || screen_coords.x > screen_coords.w
-                || screen_coords.y < -screen_coords.w
-                || screen_coords.y > screen_coords.w)
-        {
-            return None;
-        }
-
-        let mut screen_pos = mint::Vector2::from_slice(&[
-            screen_coords.x / screen_coords.w,
-            screen_coords.y / screen_coords.w,
-        ]);
-        screen_pos.x = (screen_pos.x + 1.0) * self.screen.x / 2.0;
-        screen_pos.y = (-screen_pos.y + 1.0) * self.screen.y / 2.0;
-        Some(screen_pos)
-    }
-}
-
-/// Track the CS2 window and adjust overlay accordingly.
-/// This is only required when playing in windowed mode.
-pub struct CSWindowTracker {
-    cs2_hwnd: HWND,
-    current_bounds: RECT,
-}
-
-impl CSWindowTracker {
-    pub fn new() -> anyhow::Result<Self> {
-        let cs2_hwnd = unsafe {
-            FindWindowA(
-                PCSTR::null(),
-                PCSTR::from_raw(obfstr!("Counter-Strike 2\0").as_ptr()),
-            )
-        };
-        if cs2_hwnd.0 == 0 {
-            anyhow::bail!(obfstr!("failed to locate CS2 window").to_string());
-        }
-
-        Ok(Self {
-            cs2_hwnd,
-            current_bounds: Default::default(),
-        })
-    }
-
-    pub fn update_overlay(&mut self, overlay: &Window) {
-        let mut rect: RECT = Default::default();
-        let success = unsafe { GetClientRect(self.cs2_hwnd, &mut rect) };
-        if !success.as_bool() {
-            return;
-        }
-
-        unsafe {
-            ClientToScreen(self.cs2_hwnd, &mut rect.left as *mut _ as *mut POINT);
-            ClientToScreen(self.cs2_hwnd, &mut rect.right as *mut _ as *mut POINT);
-        }
-
-        if rect == self.current_bounds {
-            return;
-        }
-
-        self.current_bounds = rect;
-        log::debug!("{}: {:?}", obfstr!("CS2 window changed"), rect);
-        unsafe {
-            let overlay_hwnd = HWND(overlay.hwnd());
-            MoveWindow(
-                overlay_hwnd,
-                rect.left,
-                rect.top,
-                rect.right - rect.left,
-                rect.bottom - rect.top,
-                true,
-            );
-        }
-    }
-}
-
-mod internal_offsets {
-    // Sig source: https://www.unknowncheats.me/forum/3725362-post1.html
-    // https://www.unknowncheats.me/forum/3713485-post262.html
-    #[allow(non_snake_case)]
-    pub mod CModel {
-        /* 85 D2 78 16 3B 91. Offset is array of u32 */
-        pub const BONE_FLAGS: u64 = 0x1A8;
-
-        /* 85 D2 78 25 3B 91. Offset is array of *const i8 */
-        pub const BONE_NAME: u64 = 0x160;
-
-        /* UC sig does not work. Offset is array of u16 */
-        pub const BONE_PARENT: u64 = 0x178;
-    }
-
-    #[allow(non_snake_case)]
-    pub mod CModelState {
-        /* Offset is array of BoneData */
-        pub const BONE_STATE_DATA: u64 = 0x80;
-    }
-}
-struct Application {
-    cs2: CS2Handle,
-    cs2_offsets: Arc<CS2Offsets>,
-    cs2_entities: EntitySystem,
-
-    settings_visible: bool,
-    window_tracker: Option<CSWindowTracker>,
-
-    model_cache: BTreeMap<u64, CachedModel>,
-
-    players: Vec<PlayerInfo>,
-    view_controller: ViewController,
-
-    settings: RefCell<AppSettings>,
-}
 
 #[derive(Debug, Clone, Copy)]
 pub struct AppSettings {
@@ -370,169 +36,34 @@ pub struct AppSettings {
 }
 
 struct CachedModel {
-    address: u64,
-    bones: Vec<PlayerBone>,
-    player_model: PlayerModel,
+    model: Arc<CS2Model>,
+    last_use: Instant,
+    flag_used: bool,
 }
 
 impl CachedModel {
-    pub fn create(cs2: &CS2Handle, address: u64) -> anyhow::Result<Self> {
-        let mut result = Self {
-            address,
-            bones: Default::default(),
-            player_model: Default::default(),
-        };
-        result.reload_cache(cs2)?;
-        Ok(result)
+    pub fn create(model: Arc<CS2Model>) -> Self {
+        Self {
+            model,
+            last_use: Instant::now(),
+            flag_used: false,
+        }
     }
 
-    pub fn reload_cache(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.player_model = cs2.read::<PlayerModel>(Module::Absolute, &[self.address + 0x18])?;
-
-        let bone_count = cs2.read::<u64>(
-            Module::Absolute,
-            &[self.address + internal_offsets::CModel::BONE_NAME - 0x08],
-        )? as usize;
-        if bone_count > 1000 {
-            anyhow::bail!(obfstr!("model contains too many bones ({bone_count})").to_string());
-        }
-
-        log::trace!("Reading {} bones", bone_count);
-        let model_bone_flags = cs2.read_vec::<u32>(
-            Module::Absolute,
-            &[
-                self.address + internal_offsets::CModel::BONE_FLAGS,
-                0, /* read the whole array */
-            ],
-            bone_count,
-        )?;
-
-        let model_bone_parent_index = cs2.read_vec::<u16>(
-            Module::Absolute,
-            &[
-                self.address + internal_offsets::CModel::BONE_PARENT,
-                0, /* read the whole array */
-            ],
-            bone_count,
-        )?;
-
-        self.bones.clear();
-        self.bones.reserve(bone_count);
-        for bone_index in 0..bone_count {
-            let name = cs2.read_string(
-                Module::Absolute,
-                &[
-                    self.address + internal_offsets::CModel::BONE_NAME,
-                    0x08 * bone_index as u64,
-                    0,
-                ],
-                None,
-            )?;
-
-            let parent_index = model_bone_parent_index[bone_index];
-            let flags = model_bone_flags[bone_index];
-
-            self.bones.push(PlayerBone {
-                name: name.clone(),
-                parent: if parent_index as usize >= bone_count {
-                    None
-                } else {
-                    Some(parent_index as usize)
-                },
-
-                position: Default::default(),
-                flags,
-            });
-        }
-        Ok(())
+    pub fn flag_use(&mut self) {
+        self.flag_used = true;
     }
-}
 
-enum BoneFlags {
-    FlagNoBoneFlags = 0x0,
-    FlagBoneflexdriver = 0x4,
-    FlagCloth = 0x8,
-    FlagPhysics = 0x10,
-    FlagAttachment = 0x20,
-    FlagAnimation = 0x40,
-    FlagMesh = 0x80,
-    FlagHitbox = 0x100,
-    FlagBoneUsedByVertexLod0 = 0x400,
-    FlagBoneUsedByVertexLod1 = 0x800,
-    FlagBoneUsedByVertexLod2 = 0x1000,
-    FlagBoneUsedByVertexLod3 = 0x2000,
-    FlagBoneUsedByVertexLod4 = 0x4000,
-    FlagBoneUsedByVertexLod5 = 0x8000,
-    FlagBoneUsedByVertexLod6 = 0x10000,
-    FlagBoneUsedByVertexLod7 = 0x20000,
-    FlagBoneMergeRead = 0x40000,
-    FlagBoneMergeWrite = 0x80000,
-    FlagAllBoneFlags = 0xfffff,
-    BlendPrealigned = 0x100000,
-    FlagRigidlength = 0x200000,
-    FlagProcedural = 0x400000,
-}
-
-struct EntitySystem {
-    offsets: Arc<CS2Offsets>,
-}
-
-impl EntitySystem {
-    /* Returns a CSSPlayerController instance */
-    pub fn get_local_player_controller(&self, cs2: &CS2Handle) -> anyhow::Result<Option<u64>> {
-        let entity = cs2
-            .read::<u64>(Module::Client, &[self.offsets.local_controller])
-            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
-
-        if entity > 0 {
-            Ok(Some(entity))
+    /// Commits the used flag.
+    /// Returns the seconds since last use.
+    pub fn commit_use(&mut self) -> u64 {
+        if self.flag_used {
+            self.flag_used = false;
+            self.last_use = Instant::now();
+            0
         } else {
-            Ok(None)
+            self.last_use.elapsed().as_secs()
         }
-    }
-
-    pub fn get_by_handle(
-        &self,
-        cs2: &CS2Handle,
-        handle: &EntityHandle,
-    ) -> anyhow::Result<Option<u64>> {
-        let (bulk, offset) = handle.entity_array_offsets();
-        let identity = cs2.read::<EntityIdentity>(
-            Module::Client,
-            &[self.offsets.global_entity_list, bulk * 0x08, offset * 120],
-        );
-
-        let identity = match identity {
-            Ok(identity) => identity,
-            Err(error) => {
-                return Err(error.context(format!(
-                    "{}: {:?}",
-                    obfstr!("failed to read global entity list entry for handle"),
-                    handle
-                )))
-            }
-        };
-
-        if identity.handle.get_entity_index() == handle.get_entity_index() {
-            Ok(Some(identity.entity_ptr))
-        } else {
-            Ok(None)
-        }
-    }
-
-    /* Returns a Vec<CSSPlayerController*> */
-    pub fn get_player_controllers(&self, cs2: &CS2Handle) -> anyhow::Result<Vec<u64>> {
-        let local_controller_identity = cs2.read::<EntityIdentity>(Module::Client, &[
-            self.offsets.local_controller,
-            offsets::client::CEntityInstance::m_pEntity, /* read the entity identnity index  */
-            0, /* read everything */
-        ]).with_context(|| obfstr!("failed to read local player controller identity").to_string())?;
-
-        Ok(local_controller_identity
-            .collect_all_of_class(cs2)?
-            .into_iter()
-            .map(|identity| identity.entity_ptr)
-            .collect())
     }
 }
 
@@ -545,18 +76,30 @@ pub struct BoneStateData {
 }
 const _: [u8; 0x20] = [0; std::mem::size_of::<BoneStateData>()];
 
+struct Application {
+    cs2: Arc<CS2Handle>,
+    cs2_offsets: Arc<CS2Offsets>,
+    cs2_entities: EntitySystem,
+
+    settings_visible: bool,
+    model_cache: BTreeMap<u64, CachedModel>,
+
+    players: Vec<PlayerInfo>,
+    view_controller: ViewController,
+
+    settings: RefCell<AppSettings>,
+}
+
 impl Application {
-    pub fn update(&mut self, window: &Window, ui: &imgui::Ui) -> anyhow::Result<()> {
+    pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
         if ui.is_key_pressed_no_repeat(imgui::Key::Keypad0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
         }
 
-        if let Some(tracker) = self.window_tracker.as_mut() {
-            tracker.update_overlay(window);
-        }
+        self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
         self.view_controller
-            .update(mint::Vector2::from_slice(&ui.io().display_size), &self.cs2)?;
+            .update_view_matrix(&self.cs2)?;
 
         self.players.clear();
         self.players.reserve(16);
@@ -638,31 +181,22 @@ impl Application {
                             .read_string(Module::Absolute, &[model + 0x08, 0], Some(32))?;
                     log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
 
-                    let model = CachedModel::create(&self.cs2, model)?;
-                    value.insert(model)
+                    let model = CS2Model::read(&self.cs2, model)?;
+                    value.insert(CachedModel::create(Arc::new(model)))
                 }
             };
+            model.flag_use();
 
             let bone_states = self.cs2.read_vec::<BoneStateData>(
                 Module::Absolute,
                 &[
                     game_sceen_node
                     + offsets::client::CSkeletonInstance::m_modelState /* model state */
-                    + internal_offsets::CModelState::BONE_STATE_DATA,
+                    + offsets_manual::client::CModelState::BONE_STATE_DATA,
                     0, /* read the whole array */
                 ],
-                model.bones.len(),
+                model.model.bones.len(),
             )?;
-
-            let bones = model
-                .bones
-                .iter()
-                .zip(bone_states.iter())
-                .map(|(bone_info, bone_state)| PlayerBone {
-                    position: bone_state.position,
-                    ..(*bone_info).clone()
-                })
-                .collect::<Vec<_>>();
 
             self.players.push(PlayerInfo {
                 local: player_controller == local_player_controller,
@@ -672,8 +206,8 @@ impl Application {
 
                 debug_text: "".to_string(),
 
-                bones,
-                model: Some(model.player_model.clone()),
+                bone_states,
+                model: model.model.clone(),
             });
         }
 
@@ -825,7 +359,10 @@ impl Application {
             }
 
             if settings.esp_skeleton {
-                for bone in entry.bones.iter() {
+                let bones = entry.model.bones.iter()
+                    .zip(entry.bone_states.iter());
+
+                for (bone, state) in bones {
                     if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
                         continue;
                     }
@@ -838,13 +375,13 @@ impl Application {
 
                     let parent_position = match self
                         .view_controller
-                        .world_to_screen(&entry.bones[parent_index].position, true)
+                        .world_to_screen(&entry.bone_states[parent_index].position, true)
                     {
                         Some(position) => position,
                         None => continue,
                     };
                     let bone_position =
-                        match self.view_controller.world_to_screen(&bone.position, true) {
+                        match self.view_controller.world_to_screen(&state.position, true) {
                             Some(position) => position,
                             None => continue,
                         };
@@ -859,15 +396,13 @@ impl Application {
             }
 
             if settings.esp_boxes {
-                if let Some(model) = entry.model.as_ref() {
-                    self.draw_box_3d(
-                        &draw,
-                        &(model.vhull_min + entry.position),
-                        &(model.vhull_max + entry.position),
-                        ImColor32::from_rgb(255, 0, 255),
-                    );
-                    //self.draw_box_3d(&draw, &(model.vview_min + entry.position), &(model.vview_max + entry.position), ImColor32::from_rgb(0, 0, 255));
-                }
+                self.draw_box_3d(
+                    &draw,
+                    &(entry.model.vhull_min + entry.position),
+                    &(entry.model.vhull_max + entry.position),
+                    ImColor32::from_rgb(255, 0, 255),
+                );
+                //self.draw_box_3d(&draw, &(model.vview_min + entry.position), &(model.vview_max + entry.position), ImColor32::from_rgb(0, 0, 255));
             }
         }
     }
@@ -895,7 +430,7 @@ impl Application {
 fn main() -> anyhow::Result<()> {
     env_logger::init();
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = Arc::new(CS2Handle::create()?);
 
     /*
      * Please no not analyze me:
@@ -903,18 +438,20 @@ fn main() -> anyhow::Result<()> {
      *
      * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
      */
-    cs2.ke_interface
-        .execute_request::<RequestProtectionToggle>(&RequestProtectionToggle { enabled: true })?;
+    cs2.protect_process()
+        .with_context(|| obfstr!("failed to protect process").to_string())?;
 
-    let cs2_offsets = Arc::new(CS2Offsets::load_offsets(&cs2)?);
+    let cs2_offsets = Arc::new(
+        CS2Offsets::resolve_offsets(&cs2)
+            .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
+    );
 
     let mut app = Application {
         cs2,
-        cs2_entities: EntitySystem { offsets: cs2_offsets.clone() },
+        cs2_entities: EntitySystem::new(cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
 
         settings_visible: false,
-        window_tracker: Some(CSWindowTracker::new()?),
 
         players: Vec::with_capacity(16),
         model_cache: Default::default(),
@@ -928,8 +465,9 @@ fn main() -> anyhow::Result<()> {
         }),
     };
     
-    overlay::init(obfstr!("CS2 Overlay")).main_loop(move |run, window, ui| {
-        if let Err(err) = app.update(window, ui) {
+    let overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
+    overlay.main_loop(move |run, ui| {
+        if let Err(err) = app.update(ui) {
             log::error!("{:#}", err);
             *run = false;
             return;
@@ -937,6 +475,4 @@ fn main() -> anyhow::Result<()> {
 
         app.render(ui);
     });
-
-    Ok(())
 }

@@ -1,6 +1,6 @@
 use core::panic::PanicInfo;
 
-use winapi::km::wdm::DbgPrintEx;
+use winapi::km::wdm::{DbgPrintEx, DbgBreakPoint};
 
 use crate::kdef::{DPFLTR_LEVEL, KeBugCheck};
 
@@ -8,6 +8,7 @@ use crate::kdef::{DPFLTR_LEVEL, KeBugCheck};
 fn panic(_info: &PanicInfo) -> ! {
     unsafe {
         DbgPrintEx(0, DPFLTR_LEVEL::ERROR as u32, "[VT] Driver paniced. Trigger BugCheck.\n\0".as_ptr());
+        DbgBreakPoint();
         KeBugCheck(1);
     }
 }
@@ -25,6 +26,7 @@ static _FLTUSED: i32 = 0;
 extern "C" fn __CxxFrameHandler3() -> ! {
     unsafe {
         DbgPrintEx(0, DPFLTR_LEVEL::ERROR as u32, "[VT] __CxxFrameHandler3 has been called. This should no occur.\n\0".as_ptr());
+        DbgBreakPoint();
         KeBugCheck(1);
     }
 }

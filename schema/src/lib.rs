@@ -1,3 +1,5 @@
+pub mod definition;
+
 /// If you want to explore the schema and all the class relations,
 /// please use https://github.com/neverlosecc/source2sdk.
 ///

@@ -14,7 +14,7 @@ use log::Level;
 use valthrun_driver_shared::requests::{RequestHealthCheck, RequestCSModule, RequestRead, RequestProtectionToggle};
 use winapi::{shared::{ntdef::{UNICODE_STRING, NTSTATUS, PVOID}, ntstatus::{STATUS_SUCCESS, STATUS_INVALID_PARAMETER, STATUS_FAILED_DRIVER_ENTRY}}, km::wdm::{DRIVER_OBJECT, DEVICE_TYPE, DEVICE_FLAGS, IoCreateSymbolicLink, IoDeleteSymbolicLink, DEVICE_OBJECT, IRP, IoGetCurrentIrpStackLocation, PEPROCESS, DbgPrintEx}};
 
-use crate::{logger::APP_LOGGER, handler::{handler_get_modules, handler_read, handler_protection_toggle}, kdef::{DPFLTR_LEVEL, PsGetProcessId, IoGetCurrentProcess, _OB_PRE_DUPLICATE_HANDLE_INFORMATION, _OB_PRE_CREATE_HANDLE_INFORMATION}, kapi::IrpEx};
+use crate::{logger::APP_LOGGER, handler::{handler_get_modules, handler_read, handler_protection_toggle}, kdef::{DPFLTR_LEVEL, PsGetProcessId, IoGetCurrentProcess, _OB_PRE_DUPLICATE_HANDLE_INFORMATION, _OB_PRE_CREATE_HANDLE_INFORMATION}, kapi::{IrpEx, Process}};
 
 mod panic_hook;
 mod logger;
@@ -98,6 +98,18 @@ extern "system" fn irp_create(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NTS
 
 extern "system" fn irp_close(_device: &mut DEVICE_OBJECT, irp: &mut IRP) -> NTSTATUS {
     log::debug!("IRP close callback");
+
+    /*
+     * Disable process protection for the process which is closing this driver.
+     * A better solution would be to register a process termination callback
+     * and remove the process ids from the protected list.
+     */
+    let current_process = Process::current();
+    let process_protection = unsafe { &*PROCESS_PROTECTION.get() };
+    if let Some(process_protection) = process_protection.as_ref() {
+        process_protection.toggle_protection(current_process.get_id(), false);
+    }
+
     irp.complete_request(STATUS_SUCCESS)
 }
 
@@ -364,9 +376,6 @@ pub extern "system" fn driver_entry(driver: &mut DRIVER_OBJECT) -> NTSTATUS {
     driver.MajorFunction[0x00] = Some(irp_create); /* IRP_MJ_CREATE */
     driver.MajorFunction[0x02] = Some(irp_close); /* IRP_MJ_CLOSE */
     driver.MajorFunction[0x0E] = Some(irp_control); /* IRP_MJ_DEVICE_CONTROL */
-
-    // TODO: Detect when a process died/finished and remove it from process protection list 
-    // PsSetCreateProcessNotifyRoutineEx(ProcessNotifyCallbackEx, FALSE);
 
     let process_protection = match ProcessProtection::new() {
         Ok(process_protection) => process_protection,
