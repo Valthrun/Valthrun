@@ -1,12 +1,18 @@
 #![no_std]
+#![feature(iterator_try_collect)]
 
 pub const IO_MAX_DEREF_COUNT: usize = 31;
 
 pub mod requests;
 
+mod pattern;
+pub use pattern::*;
+
+extern crate alloc;
+
 #[derive(Debug, Default)]
 pub struct ModuleInfo {
-    pub base_address: u64,
+    pub base_address: usize,
     pub module_size: usize,
 }
 

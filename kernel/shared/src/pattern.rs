@@ -1,6 +1,24 @@
+use alloc::vec::Vec;
+
 pub trait SearchPattern {
     fn length(&self) -> usize;
     fn is_matching(&self, target: &[u8]) -> bool;
+
+    fn find(&self, buffer: &[u8]) -> Option<usize> {
+        if self.length() > buffer.len() {
+            return None;
+        }
+
+        for (index, window) in buffer.windows(self.length()).enumerate() {
+            if !self.is_matching(window) {
+                continue;
+            }
+
+            return Some(index as usize);
+        }
+
+        None
+    }
 }
 
 #[derive(Debug)]

@@ -17,7 +17,7 @@ fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
 
     log::trace!(
         "Schema sig resolved to {:X} ({:X})",
-        cs2.module_info.schemasystem.base_address + load_address,
+        cs2.module_info.schemasystem.base_address as u64 + load_address,
         load_address
     );
     Ok(load_address + cs2.read::<u32>(Module::Schemasystem, &[load_address + 0x03])? as u64 + 0x07)

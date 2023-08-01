@@ -3,9 +3,6 @@
 mod kinterface;
 pub use kinterface::*;
 
-mod pattern;
-pub use pattern::*;
-
 mod error;
 pub use error::*;
 

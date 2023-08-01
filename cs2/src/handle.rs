@@ -42,6 +42,13 @@ pub struct CS2Handle {
 impl CS2Handle {
     pub fn create() -> anyhow::Result<Self> {
         let interface = KernelInterface::create(obfstr!("\\\\.\\valthrun"))?;
+
+        /*
+         * Please no not analyze me:
+         * https://www.unknowncheats.me/wiki/Valve_Anti-Cheat:VAC_external_tool_detection_(and_more)
+         *
+         * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
+         */
         interface.execute_request(&RequestProtectionToggle{ enabled: true })?;
         
         let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule {})?;
@@ -84,7 +91,7 @@ impl CS2Handle {
         Ok(module
             .get_base_offset(&self.module_info)
             .context("invalid module")?
-            .base_address
+            .base_address as u64
             + offset)
     }
 
@@ -93,7 +100,7 @@ impl CS2Handle {
         offsets[0] += module
             .get_base_offset(&self.module_info)
             .context("invalid module")?
-            .base_address;
+            .base_address as u64;
 
         Ok(self
             .ke_interface
@@ -110,7 +117,7 @@ impl CS2Handle {
         offsets[0] += module
             .get_base_offset(&self.module_info)
             .context("invalid module")?
-            .base_address;
+            .base_address as u64;
 
         Ok(self
             .ke_interface
@@ -127,7 +134,7 @@ impl CS2Handle {
         offsets[0] += module
             .get_base_offset(&self.module_info)
             .context("invalid module")?
-            .base_address;
+            .base_address as u64;
 
         Ok(self
             .ke_interface
@@ -165,10 +172,10 @@ impl CS2Handle {
             .context("invalid module")?;
         let address = self.ke_interface.find_pattern(
             self.module_info.process_id,
-            module.base_address,
+            module.base_address as u64,
             module.module_size,
             pattern,
         )?;
-        Ok(address.map(|addr| addr.wrapping_sub(module.base_address)))
+        Ok(address.map(|addr| addr.wrapping_sub(module.base_address as u64)))
     }
 }

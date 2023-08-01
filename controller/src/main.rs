@@ -462,15 +462,6 @@ fn real_main() -> anyhow::Result<()> {
 
     let cs2 = Arc::new(CS2Handle::create()?);
 
-    /*
-     * Please no not analyze me:
-     * https://www.unknowncheats.me/wiki/Valve_Anti-Cheat:VAC_external_tool_detection_(and_more)
-     *
-     * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
-     */
-    cs2.protect_process()
-        .with_context(|| obfstr!("failed to protect process").to_string())?;
-
     let cs2_offsets = Arc::new(
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
