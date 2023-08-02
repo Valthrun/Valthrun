@@ -22,8 +22,8 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::CreateRectRgn;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
-    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WS_CLIPSIBLINGS,
+    GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos,
+    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, WS_CLIPSIBLINGS,
     WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK,
 };
 
@@ -71,7 +71,8 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         .with_resizable(false)
         .with_title(title.to_owned())
         .with_inner_size(target_monitor.size())
-        .with_position(target_monitor.position());
+        .with_position(target_monitor.position())
+        .with_visible(false);
 
     let display = Display::new(builder, context, &event_loop)
         .map_err(OverlayError::DisplayError)?;
@@ -124,6 +125,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 
         let hwnd = HWND(window.hwnd());
         unsafe {
+            // Make it transparent
             SetWindowLongA(
                 hwnd,
                 GWL_STYLE,
@@ -135,15 +137,15 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
                 (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE).0
                     as isize,
             );
-            ShowWindow(hwnd, SW_SHOW);
-
-            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
             let mut bb: DWM_BLURBEHIND = Default::default();
             bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
             bb.fEnable = BOOL::from(true);
             bb.hRgnBlur = CreateRectRgn(0, 0, 1, 1);
-            DwmEnableBlurBehindWindow(hwnd, &bb).unwrap(); // TODO: Better error handling!
+            DwmEnableBlurBehindWindow(hwnd, &bb)?;
+
+            // Move the window to the top
+            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         }
     }
 
@@ -216,7 +218,8 @@ impl System {
 
         let mut active_tracker = OverlayActiveTracker::new();
         let mut input_system = InputSystem::new();
-        
+        let mut initial_render = true;
+
         event_loop.run(move |event, _, control_flow| match event {
             Event::NewEvents(_) => {
                 let now = Instant::now();
@@ -265,6 +268,11 @@ impl System {
                 
                 if !run {
                     *control_flow = ControlFlow::Exit;
+                }
+
+                if initial_render {
+                    initial_render = false;
+                    gl_window.window().set_visible(true);
                 }
             }
             Event::WindowEvent {

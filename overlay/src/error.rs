@@ -22,4 +22,7 @@ pub enum OverlayError {
 
     #[error("{0}")]
     RenderError(#[from] RendererError),
+
+    #[error("{0}")]
+    WindowsError(#[from] windows::core::Error)
 }

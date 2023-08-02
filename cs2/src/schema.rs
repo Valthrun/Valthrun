@@ -1,4 +1,4 @@
-use std::{fmt::Debug, fs::File, io::BufWriter};
+use std::fmt::Debug;
 
 use anyhow::Context;
 use cs2_schema::definition::{ClassOffsets, Offset, SchemaScope};
