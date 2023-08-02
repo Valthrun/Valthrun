@@ -3,16 +3,18 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
+use clap::{Parser, Args, Subcommand};
 use cs2::{CS2Handle, Module, EntityHandle, CS2Offsets, EntitySystem, offsets_manual, CS2Model, BoneFlags};
 use cs2_schema::offsets;
 use imgui::{Condition, ImColor32};
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use view::ViewController;
+use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::RefCell,
     collections::{btree_map::Entry, BTreeMap},
-    fmt::Debug, sync::Arc, time::Instant, rc::Rc,
+    fmt::Debug, sync::Arc, time::Instant, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
 use crate::settings::save_app_settings;
@@ -446,22 +448,89 @@ impl Application {
 
 fn show_critical_error(message: &str) {
     log::error!("{}", message);
-    overlay::show_error_message(obfstr!("Valthrun Controller"), message);
+
+    if !is_console_invoked() {
+        overlay::show_error_message(obfstr!("Valthrun Controller"), message);
+    }
 }
 
 fn main() {
-    env_logger::init();
+    let args = match AppArgs::try_parse() {
+        Ok(args) => args,
+        Err(error) => {
+            println!("{:#}", error);
+            std::process::exit(1);
+        }
+    };
 
-    if let Err(error) = real_main() {
+    env_logger::builder()
+        .filter_level(log::LevelFilter::Info)
+        .parse_default_env()
+        .init();
+
+    let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
+    let result = match command {
+        AppCommand::DumpSchema(args) => main_schema_dump(args),
+        AppCommand::Overlay => main_overlay()
+    };
+    
+    if let Err(error) = result {
         show_critical_error(&format!("{:#}", error));
     }
 }
 
-fn real_main() -> anyhow::Result<()> {
+#[derive(Debug, Parser)]
+#[clap(name = "Valthrun", version)]
+struct AppArgs {
+    #[clap(subcommand)]
+    command: Option<AppCommand>
+}
+
+#[derive(Debug, Subcommand)]
+enum AppCommand {
+    /// Start the overlay
+    Overlay,
+
+    /// Create a schema dump
+    DumpSchema(SchemaDumpArgs)
+}
+
+#[derive(Debug, Args)]
+struct SchemaDumpArgs {
+    pub target_file: PathBuf,
+}
+
+fn is_console_invoked() -> bool {
+    let console_count = unsafe { 
+        let mut result = [0u32; 128];
+        GetConsoleProcessList(&mut result)
+    };
+
+    console_count > 1
+}
+
+fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
+    log::info!("Dumping schema. Please wait...");
+
+    let cs2 = CS2Handle::create()?;
+    let schema = cs2::dump_schema(&cs2)?;
+
+    let output = File::options()
+        .create(true)
+        .truncate(true)
+        .write(true)
+        .open(&args.target_file)?;
+
+    let mut output = BufWriter::new(output);
+    serde_json::to_writer_pretty(&mut output, &schema)?;
+    log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
+    Ok(())
+}
+
+fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
 
     let cs2 = Arc::new(CS2Handle::create()?);
-
     let cs2_offsets = Arc::new(
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?

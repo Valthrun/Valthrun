@@ -150,9 +150,7 @@ fn read_class_binding(cs2: &CS2Handle, address: u64) -> anyhow::Result<ClassOffs
     Ok(class_offsets)
 }
 
-pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<()> {
-    log::info!("Dumping schema!");
-
+pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
     let schema_system = find_schema_system(cs2)?;
     let scope_size = cs2.read::<u64>(
         Module::Schemasystem,
@@ -199,14 +197,5 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<()> {
         schema_scops.push(scope_info);
     }
 
-    let output = File::options()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open("cs2_schema.json")?;
-
-    let mut output = BufWriter::new(output);
-    serde_json::to_writer_pretty(&mut output, &schema_scops)?;
-    log::info!("Schema dumped");
-    Ok(())
+    Ok(schema_scops)
 }
