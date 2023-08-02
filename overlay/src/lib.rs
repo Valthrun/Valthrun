@@ -24,7 +24,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos,
     GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, WS_CLIPSIBLINGS,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK, ShowWindow, SW_SHOW,
 };
 
 mod clipboard;
@@ -190,7 +190,7 @@ impl OverlayActiveTracker {
                 style |= WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize;
             }
 
-            //log::debug!("Set UI active: {window_active}");
+            log::debug!("Set UI active: {window_active}");
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
             if window_active {
                 SetActiveWindow(hwnd);
@@ -272,7 +272,10 @@ impl System {
 
                 if initial_render {
                     initial_render = false;
-                    gl_window.window().set_visible(true);
+                    // Note:
+                    // We can not use `gl_window.window().set_visible(true)` as this will prevent the overlay
+                    // to be click trough...
+                    unsafe { ShowWindow(HWND(gl_window.window().hwnd() as isize), SW_SHOW); }
                 }
             }
             Event::WindowEvent {
