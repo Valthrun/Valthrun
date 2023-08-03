@@ -190,7 +190,7 @@ impl OverlayActiveTracker {
                 style |= WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize;
             }
 
-            log::debug!("Set UI active: {window_active}");
+            //log::debug!("Set UI active: {window_active}");
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
             if window_active {
                 SetActiveWindow(hwnd);

@@ -464,7 +464,7 @@ fn main() {
     };
 
     env_logger::builder()
-        .filter_level(log::LevelFilter::Info)
+        .filter_level(if args.verbose { log::LevelFilter::Trace } else { log::LevelFilter::Info })
         .parse_default_env()
         .init();
 
@@ -482,6 +482,10 @@ fn main() {
 #[derive(Debug, Parser)]
 #[clap(name = "Valthrun", version)]
 struct AppArgs {
+    /// Enable verbose logging ($env:RUST_LOG="trace")
+    #[clap(short, long)]
+    verbose: bool,
+
     #[clap(subcommand)]
     command: Option<AppCommand>
 }

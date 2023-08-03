@@ -109,12 +109,9 @@ I haven't had the opportunity to test the overlay with VAC live,
 but I assume it should work similarly well.
 
 # Supported Windows Versions
-Curently only a few windows versions are supported due to the required offsets within `_EPROCESS`.  
-- Windows 11 22H2 22621
-
-Click [here](https://www.vergiliusproject.com/kernels/x64/Windows%2010%20%7C%202016/1909%2019H2%20(November%202019%20Update)/_EPROCESS) to view the EPROCESS offsets. Click [here](https://docs.microsoft.com/en-us/windows/release-health/release-information) to view the release information site.  
-It is planned to dynamically resolved these offsets and eliminate the need for manually updating these.  
-
+All recent windows versions should be supported as all functions / struct offsets are resolved dynamically.  
+If you encounter an issue, please submit an issue detailing your Windows version and which error you encounter.  
+  
 # Screenshots
 ![](https://img.did.science/2023_07_30_17_28_23.png)
 ![](https://img.did.science/2023_07_31_01_38_46.png)
