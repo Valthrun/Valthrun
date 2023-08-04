@@ -11,7 +11,7 @@ fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
     let load_address = cs2
         .find_pattern(
             Module::Schemasystem,
-            &ByteSequencePattern::parse("48 89 05 ? ? ? ? 4C 8D 45 D0").unwrap(),
+            &ByteSequencePattern::parse("48 89 05 ? ? ? ? 4C 8D 45").unwrap(),
         )?
         .context("could not find schema system by signature")?;
 
@@ -162,6 +162,10 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
         schema_system,
         scope_size
     );
+
+    if scope_size > 0x20 {
+        anyhow::bail!("Too many scopes ({}). Something went wrong?", scope_size);
+    }
 
     let mut schema_scops = Vec::<SchemaScope>::with_capacity(scope_size as usize);
     for scope_index in 0..scope_size {

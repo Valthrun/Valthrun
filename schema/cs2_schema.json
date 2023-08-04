@@ -2935,31 +2935,6 @@
         ]
       },
       {
-        "class_name": "CAnimAttachment",
-        "offsets": [
-          {
-            "field_name": "m_influenceRotations",
-            "offset": 0
-          },
-          {
-            "field_name": "m_influenceOffsets",
-            "offset": 48
-          },
-          {
-            "field_name": "m_influenceIndices",
-            "offset": 96
-          },
-          {
-            "field_name": "m_influenceWeights",
-            "offset": 108
-          },
-          {
-            "field_name": "m_numInfluences",
-            "offset": 120
-          }
-        ]
-      },
-      {
         "class_name": "AnimNodeID",
         "offsets": [
           {
@@ -2987,15 +2962,6 @@
         ]
       },
       {
-        "class_name": "AnimParamID",
-        "offsets": [
-          {
-            "field_name": "m_id",
-            "offset": 0
-          }
-        ]
-      },
-      {
         "class_name": "AnimComponentID",
         "offsets": [
           {
@@ -3014,6 +2980,19 @@
         ]
       },
       {
+        "class_name": "AnimParamID",
+        "offsets": [
+          {
+            "field_name": "m_id",
+            "offset": 0
+          }
+        ]
+      },
+      {
+        "class_name": "AnimParamName",
+        "offsets": []
+      },
+      {
         "class_name": "AnimTagID",
         "offsets": [
           {
@@ -3025,6 +3004,31 @@
       {
         "class_name": "AnimTagName",
         "offsets": []
+      },
+      {
+        "class_name": "CAnimAttachment",
+        "offsets": [
+          {
+            "field_name": "m_influenceRotations",
+            "offset": 0
+          },
+          {
+            "field_name": "m_influenceOffsets",
+            "offset": 48
+          },
+          {
+            "field_name": "m_influenceIndices",
+            "offset": 96
+          },
+          {
+            "field_name": "m_influenceWeights",
+            "offset": 108
+          },
+          {
+            "field_name": "m_numInfluences",
+            "offset": 120
+          }
+        ]
       },
       {
         "class_name": "VPhysics2ShapeDef_t",
@@ -5462,24 +5466,20 @@
             "offset": 24
           },
           {
-            "field_name": "m_idToIndexMap",
+            "field_name": "m_nameToIndexMap",
             "offset": 48
           },
           {
-            "field_name": "m_nameToIndexMap",
+            "field_name": "m_indexToHandle",
             "offset": 80
           },
           {
-            "field_name": "m_indexToHandle",
-            "offset": 112
-          },
-          {
             "field_name": "m_autoResetParams",
-            "offset": 136
+            "offset": 104
           },
           {
             "field_name": "m_autoResetMap",
-            "offset": 160
+            "offset": 128
           }
         ]
       },
@@ -6168,6 +6168,10 @@
           {
             "field_name": "m_flSpringFrequencyMax",
             "offset": 148
+          },
+          {
+            "field_name": "m_flMaxStretch",
+            "offset": 152
           }
         ]
       },
@@ -7261,15 +7265,15 @@
           },
           {
             "field_name": "m_DebugSetting",
-            "offset": 56
+            "offset": 64
           },
           {
             "field_name": "m_flDebugNormalizedValue",
-            "offset": 60
+            "offset": 68
           },
           {
             "field_name": "m_vDebugOffset",
-            "offset": 64
+            "offset": 80
           }
         ]
       },
@@ -7306,36 +7310,54 @@
             "offset": 64
           },
           {
-            "field_name": "m_previewButton",
+            "field_name": "m_bNetworkingRequested",
             "offset": 76
           },
           {
-            "field_name": "m_bUseMostRecentValue",
-            "offset": 80
-          },
+            "field_name": "m_bIsReferenced",
+            "offset": 77
+          }
+        ]
+      },
+      {
+        "class_name": "CConcreteAnimParameter",
+        "offsets": [
           {
-            "field_name": "m_bAutoReset",
-            "offset": 81
+            "field_name": "m_previewButton",
+            "offset": 80
           },
           {
             "field_name": "m_eNetworkSetting",
             "offset": 84
           },
           {
-            "field_name": "m_bGameWritable",
+            "field_name": "m_bUseMostRecentValue",
             "offset": 88
           },
           {
-            "field_name": "m_bGraphWritable",
+            "field_name": "m_bAutoReset",
             "offset": 89
           },
           {
-            "field_name": "m_bIsReferenced",
+            "field_name": "m_bGameWritable",
             "offset": 90
           },
           {
-            "field_name": "m_bNetworkingRequested",
+            "field_name": "m_bGraphWritable",
             "offset": 91
+          }
+        ]
+      },
+      {
+        "class_name": "CVirtualAnimParameter",
+        "offsets": [
+          {
+            "field_name": "m_expressionString",
+            "offset": 80
+          },
+          {
+            "field_name": "m_eParamType",
+            "offset": 88
           }
         ]
       },
@@ -8655,11 +8677,11 @@
           },
           {
             "field_name": "m_AnimgraphParameterNameOrientation",
-            "offset": 28
+            "offset": 32
           },
           {
             "field_name": "m_TargetCoordSystem",
-            "offset": 32
+            "offset": 40
           }
         ]
       },
@@ -14277,6 +14299,19 @@
         ]
       },
       {
+        "class_name": "CPulseCell_Outflow_TestExplicitYesNo",
+        "offsets": [
+          {
+            "field_name": "m_Yes",
+            "offset": 72
+          },
+          {
+            "field_name": "m_No",
+            "offset": 88
+          }
+        ]
+      },
+      {
         "class_name": "CPulseCell_Value_TestValue50",
         "offsets": []
       },
@@ -14365,6 +14400,10 @@
           {
             "field_name": "m_Tracepoints",
             "offset": 216
+          },
+          {
+            "field_name": "m_bTestYesOrNoPath",
+            "offset": 240
           }
         ]
       },
@@ -14415,7 +14454,7 @@
         "offsets": [
           {
             "field_name": "m_nInstanceValueX",
-            "offset": 240
+            "offset": 248
           }
         ]
       },
@@ -14579,6 +14618,10 @@
           {
             "field_name": "m_bAnimationNonLooping",
             "offset": 84
+          },
+          {
+            "field_name": "m_vecPreviewGravity",
+            "offset": 88
           }
         ]
       },
@@ -15206,11 +15249,11 @@
         "offsets": []
       },
       {
-        "class_name": "CParticleFunctionForce",
+        "class_name": "CParticleFunctionOperator",
         "offsets": []
       },
       {
-        "class_name": "CParticleFunctionOperator",
+        "class_name": "CParticleFunctionForce",
         "offsets": []
       },
       {
@@ -20005,11 +20048,11 @@
         "offsets": [
           {
             "field_name": "m_MinForce",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_MaxForce",
-            "offset": 460
+            "offset": 476
           }
         ]
       },
@@ -20018,11 +20061,11 @@
         "offsets": [
           {
             "field_name": "m_nControlPointNumber",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_flScale",
-            "offset": 456
+            "offset": 472
           }
         ]
       },
@@ -20031,15 +20074,15 @@
         "offsets": [
           {
             "field_name": "m_flForceScale",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_vecTwistAxis",
-            "offset": 452
+            "offset": 468
           },
           {
             "field_name": "m_bFlipBasedOnYaw",
-            "offset": 464
+            "offset": 480
           }
         ]
       },
@@ -20048,19 +20091,19 @@
         "offsets": [
           {
             "field_name": "m_fForceAmount",
-            "offset": 448
-          },
-          {
-            "field_name": "m_TwistAxis",
-            "offset": 452
-          },
-          {
-            "field_name": "m_bLocalSpace",
             "offset": 464
           },
           {
-            "field_name": "m_nControlPointNumber",
+            "field_name": "m_TwistAxis",
             "offset": 468
+          },
+          {
+            "field_name": "m_bLocalSpace",
+            "offset": 480
+          },
+          {
+            "field_name": "m_nControlPointNumber",
+            "offset": 484
           }
         ]
       },
@@ -20069,27 +20112,27 @@
         "offsets": [
           {
             "field_name": "m_vecComponentScale",
-            "offset": 448
-          },
-          {
-            "field_name": "m_fForceAmount",
             "offset": 464
           },
           {
+            "field_name": "m_fForceAmount",
+            "offset": 480
+          },
+          {
             "field_name": "m_fFalloffPower",
-            "offset": 808
+            "offset": 824
           },
           {
             "field_name": "m_TransformInput",
-            "offset": 816
+            "offset": 832
           },
           {
             "field_name": "m_fForceAmountMin",
-            "offset": 920
+            "offset": 936
           },
           {
             "field_name": "m_bApplyMinForce",
-            "offset": 1264
+            "offset": 1280
           }
         ]
       },
@@ -20098,31 +20141,31 @@
         "offsets": [
           {
             "field_name": "m_flMinDist",
-            "offset": 448
-          },
-          {
-            "field_name": "m_vecForceAtMinDist",
-            "offset": 452
-          },
-          {
-            "field_name": "m_flMaxDist",
             "offset": 464
           },
           {
-            "field_name": "m_vecForceAtMaxDist",
+            "field_name": "m_vecForceAtMinDist",
             "offset": 468
           },
           {
-            "field_name": "m_vecPlaneNormal",
+            "field_name": "m_flMaxDist",
             "offset": 480
           },
           {
+            "field_name": "m_vecForceAtMaxDist",
+            "offset": 484
+          },
+          {
+            "field_name": "m_vecPlaneNormal",
+            "offset": 496
+          },
+          {
             "field_name": "m_nControlPointNumber",
-            "offset": 492
+            "offset": 508
           },
           {
             "field_name": "m_flExponent",
-            "offset": 496
+            "offset": 512
           }
         ]
       },
@@ -20131,19 +20174,19 @@
         "offsets": [
           {
             "field_name": "m_flStartLerpTime",
-            "offset": 448
-          },
-          {
-            "field_name": "m_StartingForce",
-            "offset": 452
-          },
-          {
-            "field_name": "m_flEndLerpTime",
             "offset": 464
           },
           {
-            "field_name": "m_EndingForce",
+            "field_name": "m_StartingForce",
             "offset": 468
+          },
+          {
+            "field_name": "m_flEndLerpTime",
+            "offset": 480
+          },
+          {
+            "field_name": "m_EndingForce",
+            "offset": 484
           }
         ]
       },
@@ -20152,35 +20195,35 @@
         "offsets": [
           {
             "field_name": "m_flNoiseCoordScale0",
-            "offset": 448
-          },
-          {
-            "field_name": "m_flNoiseCoordScale1",
-            "offset": 452
-          },
-          {
-            "field_name": "m_flNoiseCoordScale2",
-            "offset": 456
-          },
-          {
-            "field_name": "m_flNoiseCoordScale3",
-            "offset": 460
-          },
-          {
-            "field_name": "m_vecNoiseAmount0",
             "offset": 464
           },
           {
-            "field_name": "m_vecNoiseAmount1",
+            "field_name": "m_flNoiseCoordScale1",
+            "offset": 468
+          },
+          {
+            "field_name": "m_flNoiseCoordScale2",
+            "offset": 472
+          },
+          {
+            "field_name": "m_flNoiseCoordScale3",
             "offset": 476
           },
           {
+            "field_name": "m_vecNoiseAmount0",
+            "offset": 480
+          },
+          {
+            "field_name": "m_vecNoiseAmount1",
+            "offset": 492
+          },
+          {
             "field_name": "m_vecNoiseAmount2",
-            "offset": 488
+            "offset": 504
           },
           {
             "field_name": "m_vecNoiseAmount3",
-            "offset": 500
+            "offset": 516
           }
         ]
       },
@@ -20189,27 +20232,27 @@
         "offsets": [
           {
             "field_name": "m_nNoiseType",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_vecNoiseFreq",
-            "offset": 456
+            "offset": 472
           },
           {
             "field_name": "m_vecNoiseScale",
-            "offset": 2080
+            "offset": 2096
           },
           {
             "field_name": "m_vecOffsetRate",
-            "offset": 3704
+            "offset": 3720
           },
           {
             "field_name": "m_flWorleySeed",
-            "offset": 5328
+            "offset": 5344
           },
           {
             "field_name": "m_flWorleyJitter",
-            "offset": 5672
+            "offset": 5688
           }
         ]
       },
@@ -20218,15 +20261,15 @@
         "offsets": [
           {
             "field_name": "m_flForceScale",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_vForce",
-            "offset": 792
+            "offset": 808
           },
           {
             "field_name": "m_nCP",
-            "offset": 2416
+            "offset": 2432
           }
         ]
       },
@@ -20235,7 +20278,7 @@
         "offsets": [
           {
             "field_name": "m_vForce",
-            "offset": 448
+            "offset": 464
           }
         ]
       },
@@ -20244,39 +20287,47 @@
         "offsets": [
           {
             "field_name": "m_vecSamplePosition",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_vecScale",
-            "offset": 2072
+            "offset": 2088
           },
           {
             "field_name": "m_bSampleWind",
-            "offset": 3696
+            "offset": 3712
           },
           {
             "field_name": "m_bSampleWater",
-            "offset": 3697
+            "offset": 3713
+          },
+          {
+            "field_name": "m_bDampenNearWaterPlane",
+            "offset": 3714
           },
           {
             "field_name": "m_bSampleGravity",
-            "offset": 3698
+            "offset": 3715
           },
           {
             "field_name": "m_vecGravityForce",
-            "offset": 3704
+            "offset": 3720
+          },
+          {
+            "field_name": "m_bUseBasicMovementGravity",
+            "offset": 5344
           },
           {
             "field_name": "m_flLocalGravityScale",
-            "offset": 5328
+            "offset": 5352
           },
           {
             "field_name": "m_flLocalBuoyancyScale",
-            "offset": 5672
+            "offset": 5696
           },
           {
             "field_name": "m_vecBuoyancyForce",
-            "offset": 6016
+            "offset": 6040
           }
         ]
       },
@@ -20285,23 +20336,23 @@
         "offsets": [
           {
             "field_name": "m_flForceScale",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_bRopes",
-            "offset": 792
+            "offset": 808
           },
           {
             "field_name": "m_bRopesZOnly",
-            "offset": 793
+            "offset": 809
           },
           {
             "field_name": "m_bExplosions",
-            "offset": 794
+            "offset": 810
           },
           {
             "field_name": "m_bParticles",
-            "offset": 795
+            "offset": 811
           }
         ]
       },
@@ -20310,15 +20361,15 @@
         "offsets": [
           {
             "field_name": "m_nCP",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_nScaleCP",
-            "offset": 452
+            "offset": 468
           },
           {
             "field_name": "m_vecAccel",
-            "offset": 456
+            "offset": 472
           }
         ]
       },
@@ -20327,11 +20378,15 @@
         "offsets": [
           {
             "field_name": "m_flRadiusScale",
-            "offset": 448
+            "offset": 464
           },
           {
             "field_name": "m_flForceScale",
-            "offset": 452
+            "offset": 468
+          },
+          {
+            "field_name": "m_flTargetDensity",
+            "offset": 472
           }
         ]
       },
@@ -20521,6 +20576,10 @@
           {
             "field_name": "m_vecOutputMax",
             "offset": 2080
+          },
+          {
+            "field_name": "m_bOldCode",
+            "offset": 3704
           }
         ]
       },
@@ -20780,6 +20839,10 @@
           {
             "field_name": "m_flOutputMax",
             "offset": 468
+          },
+          {
+            "field_name": "m_bOldCode",
+            "offset": 472
           }
         ]
       },
@@ -20817,6 +20880,23 @@
           {
             "field_name": "m_nVoxelGridResolution",
             "offset": 492
+          }
+        ]
+      },
+      {
+        "class_name": "C_OP_Diffusion",
+        "offsets": [
+          {
+            "field_name": "m_flRadiusScale",
+            "offset": 448
+          },
+          {
+            "field_name": "m_nFieldOutput",
+            "offset": 452
+          },
+          {
+            "field_name": "m_nVoxelGridResolution",
+            "offset": 456
           }
         ]
       },
@@ -24346,12 +24426,20 @@
             "offset": 448
           },
           {
-            "field_name": "m_vecPlaneNormal",
+            "field_name": "m_flFalloff",
             "offset": 792
           },
           {
+            "field_name": "m_bDirectional",
+            "offset": 1136
+          },
+          {
+            "field_name": "m_vecPlaneNormal",
+            "offset": 1144
+          },
+          {
             "field_name": "m_nControlPointNumber",
-            "offset": 2416
+            "offset": 2768
           }
         ]
       },
@@ -26307,8 +26395,12 @@
             "offset": 1544
           },
           {
-            "field_name": "m_hMaterial",
+            "field_name": "m_MaterialVars",
             "offset": 1552
+          },
+          {
+            "field_name": "m_hMaterial",
+            "offset": 1600
           }
         ]
       },
@@ -27302,7 +27394,7 @@
         "offsets": [
           {
             "field_name": "m_flForceScale",
-            "offset": 448
+            "offset": 464
           }
         ]
       },
@@ -27346,6 +27438,23 @@
           {
             "field_name": "m_nMaxIterations",
             "offset": 1136
+          }
+        ]
+      },
+      {
+        "class_name": "C_OP_ParticlePhysics",
+        "offsets": [
+          {
+            "field_name": "m_Gravity",
+            "offset": 448
+          },
+          {
+            "field_name": "m_fDrag",
+            "offset": 2072
+          },
+          {
+            "field_name": "m_nMaxConstraintPasses",
+            "offset": 2416
           }
         ]
       }
@@ -28038,6 +28147,19 @@
         ]
       },
       {
+        "class_name": "CBreakableStageHelper",
+        "offsets": [
+          {
+            "field_name": "m_nCurrentStage",
+            "offset": 8
+          },
+          {
+            "field_name": "m_nStageCount",
+            "offset": 12
+          }
+        ]
+      },
+      {
         "class_name": "CommandToolCommand_t",
         "offsets": [
           {
@@ -28141,72 +28263,52 @@
         "class_name": "CPlayer_CameraServices",
         "offsets": [
           {
-            "field_name": "m_iFOV",
+            "field_name": "m_vecCsViewPunchAngle",
             "offset": 64
           },
           {
-            "field_name": "m_iFOVStart",
-            "offset": 68
-          },
-          {
-            "field_name": "m_flFOVTime",
-            "offset": 72
-          },
-          {
-            "field_name": "m_flFOVRate",
+            "field_name": "m_nCsViewPunchAngleTick",
             "offset": 76
           },
           {
-            "field_name": "m_vecCsViewPunchAngle",
+            "field_name": "m_flCsViewPunchAngleTickRatio",
             "offset": 80
           },
           {
-            "field_name": "m_nCsViewPunchAngleTick",
-            "offset": 92
-          },
-          {
-            "field_name": "m_flCsViewPunchAngleTickRatio",
-            "offset": 96
-          },
-          {
-            "field_name": "m_hZoomOwner",
-            "offset": 100
-          },
-          {
             "field_name": "m_PlayerFog",
-            "offset": 104
+            "offset": 88
           },
           {
             "field_name": "m_hColorCorrectionCtrl",
-            "offset": 168
+            "offset": 152
           },
           {
             "field_name": "m_hViewEntity",
-            "offset": 172
+            "offset": 156
           },
           {
             "field_name": "m_hTonemapController",
-            "offset": 176
+            "offset": 160
           },
           {
             "field_name": "m_audio",
-            "offset": 184
+            "offset": 168
           },
           {
             "field_name": "m_PostProcessingVolumes",
-            "offset": 304
+            "offset": 288
           },
           {
             "field_name": "m_flOldPlayerZ",
-            "offset": 328
+            "offset": 312
           },
           {
             "field_name": "m_flOldPlayerViewOffsetZ",
-            "offset": 332
+            "offset": 316
           },
           {
             "field_name": "m_hTriggerSoundscapeList",
-            "offset": 360
+            "offset": 344
           }
         ]
       },
@@ -30726,119 +30828,6 @@
       {
         "class_name": "CEnvSoundscapeTriggerable",
         "offsets": []
-      },
-      {
-        "class_name": "CTriggerCamera",
-        "offsets": [
-          {
-            "field_name": "m_hPlayer",
-            "offset": 1200
-          },
-          {
-            "field_name": "m_hTarget",
-            "offset": 1204
-          },
-          {
-            "field_name": "m_pPath",
-            "offset": 1208
-          },
-          {
-            "field_name": "m_sPath",
-            "offset": 1216
-          },
-          {
-            "field_name": "m_flWait",
-            "offset": 1224
-          },
-          {
-            "field_name": "m_flReturnTime",
-            "offset": 1228
-          },
-          {
-            "field_name": "m_flStopTime",
-            "offset": 1232
-          },
-          {
-            "field_name": "m_moveDistance",
-            "offset": 1236
-          },
-          {
-            "field_name": "m_targetSpeed",
-            "offset": 1240
-          },
-          {
-            "field_name": "m_initialSpeed",
-            "offset": 1244
-          },
-          {
-            "field_name": "m_acceleration",
-            "offset": 1248
-          },
-          {
-            "field_name": "m_deceleration",
-            "offset": 1252
-          },
-          {
-            "field_name": "m_state",
-            "offset": 1256
-          },
-          {
-            "field_name": "m_vecMoveDir",
-            "offset": 1260
-          },
-          {
-            "field_name": "m_fov",
-            "offset": 1272
-          },
-          {
-            "field_name": "m_fovSpeed",
-            "offset": 1276
-          },
-          {
-            "field_name": "m_iszTargetAttachment",
-            "offset": 1280
-          },
-          {
-            "field_name": "m_iAttachmentIndex",
-            "offset": 1288
-          },
-          {
-            "field_name": "m_bSnapToGoal",
-            "offset": 1289
-          },
-          {
-            "field_name": "m_bInterpolatePosition",
-            "offset": 1290
-          },
-          {
-            "field_name": "m_vStartPos",
-            "offset": 1292
-          },
-          {
-            "field_name": "m_vEndPos",
-            "offset": 1304
-          },
-          {
-            "field_name": "m_flInterpStartTime",
-            "offset": 1316
-          },
-          {
-            "field_name": "m_nPlayerButtons",
-            "offset": 1320
-          },
-          {
-            "field_name": "m_bOldTakesDamage",
-            "offset": 1328
-          },
-          {
-            "field_name": "m_nOldTakeDamageFlags",
-            "offset": 1332
-          },
-          {
-            "field_name": "m_OnEndFollow",
-            "offset": 1336
-          }
-        ]
       },
       {
         "class_name": "lerpdata_t",
@@ -33411,6 +33400,10 @@
             "offset": 48
           },
           {
+            "field_name": "m_bFirstThinkAfterConnected",
+            "offset": 49
+          },
+          {
             "field_name": "m_flDMBonusStartTime",
             "offset": 52
           },
@@ -33419,7 +33412,7 @@
             "offset": 56
           },
           {
-            "field_name": "m_unDMBonusWeaponLoadoutSlot",
+            "field_name": "m_nDMBonusWeaponLoadoutSlot",
             "offset": 60
           }
         ]
@@ -33817,12 +33810,32 @@
         "class_name": "CCSPlayer_CameraServices",
         "offsets": [
           {
-            "field_name": "m_hTriggerFogList",
+            "field_name": "m_iFOV",
+            "offset": 368
+          },
+          {
+            "field_name": "m_iFOVStart",
+            "offset": 372
+          },
+          {
+            "field_name": "m_flFOVTime",
+            "offset": 376
+          },
+          {
+            "field_name": "m_flFOVRate",
+            "offset": 380
+          },
+          {
+            "field_name": "m_hZoomOwner",
             "offset": 384
           },
           {
+            "field_name": "m_hTriggerFogList",
+            "offset": 392
+          },
+          {
             "field_name": "m_hLastFogTrigger",
-            "offset": 408
+            "offset": 416
           }
         ]
       },
@@ -33924,96 +33937,88 @@
             "offset": 618
           },
           {
-            "field_name": "m_CachedGetPointContents",
-            "offset": 624
-          },
-          {
-            "field_name": "m_CachedGetPointContentsPoint",
-            "offset": 2160
-          },
-          {
             "field_name": "m_flStuckCheckTime",
-            "offset": 4472
+            "offset": 632
           },
           {
             "field_name": "m_nTraceCount",
-            "offset": 4984
+            "offset": 1144
           },
           {
             "field_name": "m_StuckLast",
-            "offset": 4988
+            "offset": 1148
           },
           {
             "field_name": "m_bSpeedCropped",
-            "offset": 4992
+            "offset": 1152
           },
           {
             "field_name": "m_nOldWaterLevel",
-            "offset": 4996
+            "offset": 1156
           },
           {
             "field_name": "m_flWaterEntryTime",
-            "offset": 5000
+            "offset": 1160
           },
           {
             "field_name": "m_vecForward",
-            "offset": 5004
+            "offset": 1164
           },
           {
             "field_name": "m_vecLeft",
-            "offset": 5016
+            "offset": 1176
           },
           {
             "field_name": "m_vecUp",
-            "offset": 5028
+            "offset": 1188
           },
           {
             "field_name": "m_vecPreviouslyPredictedOrigin",
-            "offset": 5040
+            "offset": 1200
           },
           {
             "field_name": "m_bMadeFootstepNoise",
-            "offset": 5052
+            "offset": 1212
           },
           {
             "field_name": "m_iFootsteps",
-            "offset": 5056
+            "offset": 1216
           },
           {
             "field_name": "m_nRoundFootstepsMade",
-            "offset": 5060
+            "offset": 1220
           },
           {
             "field_name": "m_bOldJumpPressed",
-            "offset": 5064
+            "offset": 1224
           },
           {
             "field_name": "m_flJumpPressedTime",
-            "offset": 5068
+            "offset": 1228
           },
           {
             "field_name": "m_flJumpUntil",
-            "offset": 5072
+            "offset": 1232
           },
           {
             "field_name": "m_flJumpVel",
-            "offset": 5076
+            "offset": 1236
           },
           {
             "field_name": "m_fStashGrenadeParameterWhen",
-            "offset": 5080
+            "offset": 1240
           },
           {
             "field_name": "m_nButtonDownMaskPrev",
-            "offset": 5088
+            "offset": 1248
           },
           {
             "field_name": "m_flOffsetTickCompleteTime",
-            "offset": 5096
+            "offset": 1256
           },
           {
             "field_name": "m_flOffsetTickStashedSpeed",
-            "offset": 5100
+            "offset": 1260
           }
         ]
       },
@@ -36744,8 +36749,12 @@
             "offset": 2645
           },
           {
-            "field_name": "m_bStartActive",
+            "field_name": "m_bNoRamp",
             "offset": 2646
+          },
+          {
+            "field_name": "m_bStartActive",
+            "offset": 2647
           },
           {
             "field_name": "m_iszEffectName",
@@ -37369,19 +37378,6 @@
           {
             "field_name": "m_bIsActive",
             "offset": 1328
-          }
-        ]
-      },
-      {
-        "class_name": "CEnvZoom",
-        "offsets": [
-          {
-            "field_name": "m_flSpeed",
-            "offset": 1200
-          },
-          {
-            "field_name": "m_nFOV",
-            "offset": 1204
           }
         ]
       },
@@ -40449,16 +40445,12 @@
             "offset": 2548
           },
           {
-            "field_name": "m_hCamera",
+            "field_name": "m_BusyActor",
             "offset": 2552
           },
           {
-            "field_name": "m_BusyActor",
-            "offset": 2556
-          },
-          {
             "field_name": "m_iPlayerDeathBehavior",
-            "offset": 2560
+            "offset": 2556
           }
         ]
       },
@@ -40849,6 +40841,19 @@
       },
       {
         "class_name": "CSoundEventAABBEntity",
+        "offsets": [
+          {
+            "field_name": "m_vMins",
+            "offset": 1368
+          },
+          {
+            "field_name": "m_vMaxs",
+            "offset": 1380
+          }
+        ]
+      },
+      {
+        "class_name": "CSoundEventOBBEntity",
         "offsets": [
           {
             "field_name": "m_vMins",
@@ -47148,23 +47153,23 @@
         "offsets": [
           {
             "field_name": "m_hOwner",
-            "offset": 2576
+            "offset": 2568
           },
           {
             "field_name": "m_bHadOwner",
-            "offset": 2580
+            "offset": 2572
           },
           {
             "field_name": "m_flPostSpeakDelay",
-            "offset": 2584
+            "offset": 2576
           },
           {
             "field_name": "m_flPreDelay",
-            "offset": 2588
+            "offset": 2580
           },
           {
             "field_name": "m_bIsBackground",
-            "offset": 2592
+            "offset": 2584
           }
         ]
       },
@@ -49727,10 +49732,6 @@
           {
             "field_name": "m_BlockDirectionTimer",
             "offset": 12504
-          },
-          {
-            "field_name": "m_flLastThinkTime",
-            "offset": 12528
           }
         ]
       },
@@ -51410,300 +51411,308 @@
             "offset": 4900
           },
           {
-            "field_name": "m_iHostagesKilled",
+            "field_name": "m_flHitHeading",
             "offset": 4904
           },
           {
-            "field_name": "m_vecTotalBulletForce",
+            "field_name": "m_nHitBodyPart",
             "offset": 4908
           },
           {
+            "field_name": "m_iHostagesKilled",
+            "offset": 4912
+          },
+          {
+            "field_name": "m_vecTotalBulletForce",
+            "offset": 4916
+          },
+          {
             "field_name": "m_flFlashDuration",
-            "offset": 4920
-          },
-          {
-            "field_name": "m_flFlashMaxAlpha",
-            "offset": 4924
-          },
-          {
-            "field_name": "m_flProgressBarStartTime",
             "offset": 4928
           },
           {
-            "field_name": "m_iProgressBarDuration",
+            "field_name": "m_flFlashMaxAlpha",
             "offset": 4932
           },
           {
-            "field_name": "m_bWaitForNoAttack",
+            "field_name": "m_flProgressBarStartTime",
             "offset": 4936
           },
           {
-            "field_name": "m_flLowerBodyYawTarget",
+            "field_name": "m_iProgressBarDuration",
             "offset": 4940
           },
           {
-            "field_name": "m_bStrafing",
+            "field_name": "m_bWaitForNoAttack",
             "offset": 4944
           },
           {
-            "field_name": "m_lastStandingPos",
+            "field_name": "m_flLowerBodyYawTarget",
             "offset": 4948
           },
           {
-            "field_name": "m_ignoreLadderJumpTime",
-            "offset": 4960
+            "field_name": "m_bStrafing",
+            "offset": 4952
           },
           {
-            "field_name": "m_ladderSurpressionTimer",
+            "field_name": "m_lastStandingPos",
+            "offset": 4956
+          },
+          {
+            "field_name": "m_ignoreLadderJumpTime",
             "offset": 4968
           },
           {
+            "field_name": "m_ladderSurpressionTimer",
+            "offset": 4976
+          },
+          {
             "field_name": "m_lastLadderNormal",
-            "offset": 4992
+            "offset": 5000
           },
           {
             "field_name": "m_lastLadderPos",
-            "offset": 5004
+            "offset": 5012
           },
           {
             "field_name": "m_thirdPersonHeading",
-            "offset": 5016
+            "offset": 5024
           },
           {
             "field_name": "m_flSlopeDropOffset",
-            "offset": 5028
-          },
-          {
-            "field_name": "m_flSlopeDropHeight",
-            "offset": 5032
-          },
-          {
-            "field_name": "m_vHeadConstraintOffset",
             "offset": 5036
           },
           {
+            "field_name": "m_flSlopeDropHeight",
+            "offset": 5040
+          },
+          {
+            "field_name": "m_vHeadConstraintOffset",
+            "offset": 5044
+          },
+          {
             "field_name": "m_iLastWeaponFireUsercmd",
-            "offset": 5056
+            "offset": 5064
           },
           {
             "field_name": "m_angEyeAngles",
-            "offset": 5060
+            "offset": 5068
           },
           {
             "field_name": "m_bVCollisionInitted",
-            "offset": 5072
+            "offset": 5080
           },
           {
             "field_name": "m_storedSpawnPosition",
-            "offset": 5076
+            "offset": 5084
           },
           {
             "field_name": "m_storedSpawnAngle",
-            "offset": 5088
+            "offset": 5096
           },
           {
             "field_name": "m_bIsSpawning",
-            "offset": 5100
-          },
-          {
-            "field_name": "m_bHideTargetID",
-            "offset": 5101
-          },
-          {
-            "field_name": "m_nNumDangerZoneDamageHits",
-            "offset": 5104
-          },
-          {
-            "field_name": "m_bHud_MiniScoreHidden",
             "offset": 5108
           },
           {
-            "field_name": "m_bHud_RadarHidden",
+            "field_name": "m_bHideTargetID",
             "offset": 5109
           },
           {
-            "field_name": "m_nLastKillerIndex",
+            "field_name": "m_nNumDangerZoneDamageHits",
             "offset": 5112
           },
           {
-            "field_name": "m_nLastConcurrentKilled",
+            "field_name": "m_bHud_MiniScoreHidden",
             "offset": 5116
           },
           {
-            "field_name": "m_nDeathCamMusic",
+            "field_name": "m_bHud_RadarHidden",
+            "offset": 5117
+          },
+          {
+            "field_name": "m_nLastKillerIndex",
             "offset": 5120
           },
           {
-            "field_name": "m_iAddonBits",
+            "field_name": "m_nLastConcurrentKilled",
             "offset": 5124
           },
           {
-            "field_name": "m_iPrimaryAddon",
+            "field_name": "m_nDeathCamMusic",
             "offset": 5128
           },
           {
-            "field_name": "m_iSecondaryAddon",
+            "field_name": "m_iAddonBits",
             "offset": 5132
           },
           {
-            "field_name": "m_nTeamDamageGivenForMatch",
+            "field_name": "m_iPrimaryAddon",
             "offset": 5136
           },
           {
-            "field_name": "m_bTDGaveProtectionWarning",
+            "field_name": "m_iSecondaryAddon",
             "offset": 5140
           },
           {
-            "field_name": "m_bTDGaveProtectionWarningThisRound",
-            "offset": 5141
-          },
-          {
-            "field_name": "m_flLastTHWarningTime",
+            "field_name": "m_nTeamDamageGivenForMatch",
             "offset": 5144
           },
           {
-            "field_name": "m_currentDeafnessFilter",
+            "field_name": "m_bTDGaveProtectionWarning",
             "offset": 5148
           },
           {
-            "field_name": "m_enemyPlayersKilledThisRound",
+            "field_name": "m_bTDGaveProtectionWarningThisRound",
+            "offset": 5149
+          },
+          {
+            "field_name": "m_flLastTHWarningTime",
             "offset": 5152
           },
           {
+            "field_name": "m_currentDeafnessFilter",
+            "offset": 5156
+          },
+          {
+            "field_name": "m_enemyPlayersKilledThisRound",
+            "offset": 5160
+          },
+          {
             "field_name": "m_NumEnemiesKilledThisSpawn",
-            "offset": 5176
-          },
-          {
-            "field_name": "m_maxNumEnemiesKillStreak",
-            "offset": 5180
-          },
-          {
-            "field_name": "m_NumEnemiesKilledThisRound",
             "offset": 5184
           },
           {
-            "field_name": "m_NumEnemiesAtRoundStart",
+            "field_name": "m_maxNumEnemiesKillStreak",
             "offset": 5188
           },
           {
-            "field_name": "m_iRoundsWon",
+            "field_name": "m_NumEnemiesKilledThisRound",
             "offset": 5192
           },
           {
-            "field_name": "m_lastRoundResult",
+            "field_name": "m_NumEnemiesAtRoundStart",
             "offset": 5196
           },
           {
-            "field_name": "m_wasNotKilledNaturally",
+            "field_name": "m_iRoundsWon",
             "offset": 5200
           },
           {
-            "field_name": "m_vecPlayerPatchEconIndices",
+            "field_name": "m_lastRoundResult",
             "offset": 5204
           },
           {
+            "field_name": "m_wasNotKilledNaturally",
+            "offset": 5208
+          },
+          {
+            "field_name": "m_vecPlayerPatchEconIndices",
+            "offset": 5212
+          },
+          {
             "field_name": "m_iDeathFlags",
-            "offset": 5224
+            "offset": 5232
           },
           {
             "field_name": "m_hPet",
-            "offset": 5228
+            "offset": 5236
           },
           {
             "field_name": "m_unCurrentEquipmentValue",
-            "offset": 5688
+            "offset": 5696
           },
           {
             "field_name": "m_unRoundStartEquipmentValue",
-            "offset": 5690
+            "offset": 5698
           },
           {
             "field_name": "m_unFreezetimeEndEquipmentValue",
-            "offset": 5692
+            "offset": 5700
           },
           {
             "field_name": "m_szLastPlaceName",
-            "offset": 5694
+            "offset": 5702
           },
           {
             "field_name": "m_nSuicides",
-            "offset": 5712
-          },
-          {
-            "field_name": "m_nSurvivalTeamNumber",
-            "offset": 5716
-          },
-          {
-            "field_name": "m_aimPunchAngle",
             "offset": 5720
           },
           {
+            "field_name": "m_nSurvivalTeamNumber",
+            "offset": 5724
+          },
+          {
+            "field_name": "m_aimPunchAngle",
+            "offset": 5728
+          },
+          {
             "field_name": "m_aimPunchAngleVel",
-            "offset": 5732
+            "offset": 5740
           },
           {
             "field_name": "m_aimPunchTickBase",
-            "offset": 5744
-          },
-          {
-            "field_name": "m_aimPunchTickFraction",
-            "offset": 5748
-          },
-          {
-            "field_name": "m_aimPunchCache",
             "offset": 5752
           },
           {
+            "field_name": "m_aimPunchTickFraction",
+            "offset": 5756
+          },
+          {
+            "field_name": "m_aimPunchCache",
+            "offset": 5760
+          },
+          {
             "field_name": "m_bHasDeathInfo",
-            "offset": 5776
-          },
-          {
-            "field_name": "m_flDeathInfoTime",
-            "offset": 5780
-          },
-          {
-            "field_name": "m_vecDeathInfoOrigin",
             "offset": 5784
           },
           {
+            "field_name": "m_flDeathInfoTime",
+            "offset": 5788
+          },
+          {
+            "field_name": "m_vecDeathInfoOrigin",
+            "offset": 5792
+          },
+          {
             "field_name": "m_bKilledByHeadshot",
-            "offset": 5796
-          },
-          {
-            "field_name": "m_LastHitBox",
-            "offset": 5800
-          },
-          {
-            "field_name": "m_LastHealth",
             "offset": 5804
           },
           {
-            "field_name": "m_flLastCollisionCeiling",
+            "field_name": "m_LastHitBox",
             "offset": 5808
           },
           {
-            "field_name": "m_flLastCollisionCeilingChangeTime",
+            "field_name": "m_LastHealth",
             "offset": 5812
           },
           {
-            "field_name": "m_strVOPrefix",
+            "field_name": "m_flLastCollisionCeiling",
             "offset": 5816
           },
           {
-            "field_name": "m_flLandseconds",
+            "field_name": "m_flLastCollisionCeilingChangeTime",
+            "offset": 5820
+          },
+          {
+            "field_name": "m_strVOPrefix",
             "offset": 5824
           },
           {
-            "field_name": "m_pBot",
+            "field_name": "m_flLandseconds",
             "offset": 5832
           },
           {
-            "field_name": "m_bBotAllowActive",
+            "field_name": "m_pBot",
             "offset": 5840
           },
           {
+            "field_name": "m_bBotAllowActive",
+            "offset": 5848
+          },
+          {
             "field_name": "m_bCommittingSuicideOnTeamChange",
-            "offset": 5841
+            "offset": 5849
           }
         ]
       },
@@ -51716,107 +51725,107 @@
         "offsets": [
           {
             "field_name": "m_pParachuteServices",
-            "offset": 5848
-          },
-          {
-            "field_name": "m_pBulletServices",
             "offset": 5856
           },
           {
-            "field_name": "m_pHostageServices",
+            "field_name": "m_pBulletServices",
             "offset": 5864
           },
           {
-            "field_name": "m_pBuyServices",
+            "field_name": "m_pHostageServices",
             "offset": 5872
           },
           {
-            "field_name": "m_pPingServices",
+            "field_name": "m_pBuyServices",
             "offset": 5880
           },
           {
-            "field_name": "m_pRadioServices",
+            "field_name": "m_pPingServices",
             "offset": 5888
           },
           {
-            "field_name": "m_pDamageReactServices",
+            "field_name": "m_pRadioServices",
             "offset": 5896
           },
           {
+            "field_name": "m_pDamageReactServices",
+            "offset": 5904
+          },
+          {
             "field_name": "m_iRetakesOffering",
-            "offset": 6104
-          },
-          {
-            "field_name": "m_iRetakesOfferingCard",
-            "offset": 6108
-          },
-          {
-            "field_name": "m_bRetakesHasDefuseKit",
             "offset": 6112
           },
           {
-            "field_name": "m_bRetakesMVPLastRound",
-            "offset": 6113
-          },
-          {
-            "field_name": "m_iRetakesMVPBoostItem",
+            "field_name": "m_iRetakesOfferingCard",
             "offset": 6116
           },
           {
-            "field_name": "m_RetakesMVPBoostExtraUtility",
+            "field_name": "m_bRetakesHasDefuseKit",
             "offset": 6120
           },
           {
-            "field_name": "m_bIsBuyMenuOpen",
+            "field_name": "m_bRetakesMVPLastRound",
+            "offset": 6121
+          },
+          {
+            "field_name": "m_iRetakesMVPBoostItem",
             "offset": 6124
           },
           {
+            "field_name": "m_RetakesMVPBoostExtraUtility",
+            "offset": 6128
+          },
+          {
+            "field_name": "m_bIsBuyMenuOpen",
+            "offset": 6132
+          },
+          {
             "field_name": "m_xLastHeadBoneTransform",
-            "offset": 6480
+            "offset": 7488
           },
           {
             "field_name": "m_bLastHeadBoneTransformIsValid",
-            "offset": 6512
+            "offset": 7520
           },
           {
             "field_name": "m_iPlayerLocked",
-            "offset": 6516
+            "offset": 7524
           },
           {
             "field_name": "m_flNextSprayDecalTime",
-            "offset": 6524
+            "offset": 7532
           },
           {
             "field_name": "m_nRagdollDamageBone",
-            "offset": 6532
+            "offset": 7540
           },
           {
             "field_name": "m_vRagdollDamageForce",
-            "offset": 6536
+            "offset": 7544
           },
           {
             "field_name": "m_vRagdollDamagePosition",
-            "offset": 6548
+            "offset": 7556
           },
           {
             "field_name": "m_szRagdollDamageWeaponName",
-            "offset": 6560
+            "offset": 7568
           },
           {
             "field_name": "m_bRagdollDamageHeadshot",
-            "offset": 6624
+            "offset": 7632
           },
           {
             "field_name": "m_EconGloves",
-            "offset": 6632
+            "offset": 7640
           },
           {
             "field_name": "m_qDeathEyeAngles",
-            "offset": 7264
+            "offset": 8272
           },
           {
             "field_name": "m_bSkipOneHeadConstraintUpdate",
-            "offset": 7276
+            "offset": 8284
           }
         ]
       },
@@ -52649,104 +52658,84 @@
         "class_name": "CPlayer_CameraServices",
         "offsets": [
           {
-            "field_name": "m_iFOV",
+            "field_name": "m_vecCsViewPunchAngle",
             "offset": 64
           },
           {
-            "field_name": "m_iFOVStart",
-            "offset": 68
-          },
-          {
-            "field_name": "m_flFOVTime",
-            "offset": 72
-          },
-          {
-            "field_name": "m_flFOVRate",
+            "field_name": "m_nCsViewPunchAngleTick",
             "offset": 76
           },
           {
-            "field_name": "m_vecCsViewPunchAngle",
+            "field_name": "m_flCsViewPunchAngleTickRatio",
             "offset": 80
           },
           {
-            "field_name": "m_nCsViewPunchAngleTick",
-            "offset": 92
-          },
-          {
-            "field_name": "m_flCsViewPunchAngleTickRatio",
-            "offset": 96
-          },
-          {
-            "field_name": "m_hZoomOwner",
-            "offset": 100
-          },
-          {
             "field_name": "m_PlayerFog",
-            "offset": 104
+            "offset": 88
           },
           {
             "field_name": "m_hColorCorrectionCtrl",
-            "offset": 168
+            "offset": 152
           },
           {
             "field_name": "m_hViewEntity",
-            "offset": 172
+            "offset": 156
           },
           {
             "field_name": "m_hTonemapController",
-            "offset": 176
+            "offset": 160
           },
           {
             "field_name": "m_audio",
-            "offset": 184
+            "offset": 168
           },
           {
             "field_name": "m_PostProcessingVolumes",
-            "offset": 304
+            "offset": 288
           },
           {
             "field_name": "m_flOldPlayerZ",
-            "offset": 328
+            "offset": 312
           },
           {
             "field_name": "m_flOldPlayerViewOffsetZ",
-            "offset": 332
+            "offset": 316
           },
           {
             "field_name": "m_CurrentFog",
-            "offset": 336
+            "offset": 320
           },
           {
             "field_name": "m_hOldFogController",
-            "offset": 440
+            "offset": 424
           },
           {
             "field_name": "m_bOverrideFogColor",
-            "offset": 444
+            "offset": 428
           },
           {
             "field_name": "m_OverrideFogColor",
-            "offset": 449
+            "offset": 433
           },
           {
             "field_name": "m_bOverrideFogStartEnd",
-            "offset": 469
+            "offset": 453
           },
           {
             "field_name": "m_fOverrideFogStart",
-            "offset": 476
+            "offset": 460
           },
           {
             "field_name": "m_fOverrideFogEnd",
-            "offset": 496
+            "offset": 480
           },
           {
             "field_name": "m_hActivePostProcessingVolume",
-            "offset": 516
+            "offset": 500
           },
           {
             "field_name": "m_angDemoViewAngles",
-            "offset": 520
+            "offset": 504
           }
         ]
       },
@@ -54096,10 +54085,6 @@
       },
       {
         "class_name": "C_TintController",
-        "offsets": []
-      },
-      {
-        "class_name": "C_TriggerCamera",
         "offsets": []
       },
       {
@@ -55806,6 +55791,10 @@
             "offset": 48
           },
           {
+            "field_name": "m_bFirstThinkAfterConnected",
+            "offset": 49
+          },
+          {
             "field_name": "m_flDMBonusStartTime",
             "offset": 52
           },
@@ -55814,7 +55803,7 @@
             "offset": 56
           },
           {
-            "field_name": "m_unDMBonusWeaponLoadoutSlot",
+            "field_name": "m_nDMBonusWeaponLoadoutSlot",
             "offset": 60
           }
         ]
@@ -56132,12 +56121,32 @@
         "class_name": "CCSPlayer_CameraServices",
         "offsets": [
           {
-            "field_name": "m_flLastShotFOV",
+            "field_name": "m_iFOV",
+            "offset": 528
+          },
+          {
+            "field_name": "m_iFOVStart",
+            "offset": 532
+          },
+          {
+            "field_name": "m_flFOVTime",
+            "offset": 536
+          },
+          {
+            "field_name": "m_flFOVRate",
+            "offset": 540
+          },
+          {
+            "field_name": "m_hZoomOwner",
             "offset": 544
           },
           {
-            "field_name": "m_flDeathCamTilt",
+            "field_name": "m_flLastShotFOV",
             "offset": 548
+          },
+          {
+            "field_name": "m_flDeathCamTilt",
+            "offset": 552
           }
         ]
       },
@@ -56239,88 +56248,80 @@
             "offset": 602
           },
           {
-            "field_name": "m_CachedGetPointContents",
-            "offset": 608
-          },
-          {
-            "field_name": "m_CachedGetPointContentsPoint",
-            "offset": 2144
-          },
-          {
             "field_name": "m_flStuckCheckTime",
-            "offset": 4456
+            "offset": 616
           },
           {
             "field_name": "m_nTraceCount",
-            "offset": 4968
+            "offset": 1128
           },
           {
             "field_name": "m_StuckLast",
-            "offset": 4972
+            "offset": 1132
           },
           {
             "field_name": "m_bSpeedCropped",
-            "offset": 4976
+            "offset": 1136
           },
           {
             "field_name": "m_nOldWaterLevel",
-            "offset": 4980
+            "offset": 1140
           },
           {
             "field_name": "m_flWaterEntryTime",
-            "offset": 4984
+            "offset": 1144
           },
           {
             "field_name": "m_vecForward",
-            "offset": 4988
+            "offset": 1148
           },
           {
             "field_name": "m_vecLeft",
-            "offset": 5000
+            "offset": 1160
           },
           {
             "field_name": "m_vecUp",
-            "offset": 5012
+            "offset": 1172
           },
           {
             "field_name": "m_vecPreviouslyPredictedOrigin",
-            "offset": 5024
+            "offset": 1184
           },
           {
             "field_name": "m_bOldJumpPressed",
-            "offset": 5036
+            "offset": 1196
           },
           {
             "field_name": "m_flJumpPressedTime",
-            "offset": 5040
+            "offset": 1200
           },
           {
             "field_name": "m_flJumpUntil",
-            "offset": 5044
+            "offset": 1204
           },
           {
             "field_name": "m_flJumpVel",
-            "offset": 5048
+            "offset": 1208
           },
           {
             "field_name": "m_fStashGrenadeParameterWhen",
-            "offset": 5052
+            "offset": 1212
           },
           {
             "field_name": "m_nButtonDownMaskPrev",
-            "offset": 5056
+            "offset": 1216
           },
           {
             "field_name": "m_flOffsetTickCompleteTime",
-            "offset": 5064
+            "offset": 1224
           },
           {
             "field_name": "m_flOffsetTickStashedSpeed",
-            "offset": 5068
+            "offset": 1228
           },
           {
             "field_name": "m_bUpdatePredictedOriginAfterDataUpdate",
-            "offset": 5072
+            "offset": 1232
           }
         ]
       },
@@ -57077,12 +57078,16 @@
             "offset": 720
           },
           {
-            "field_name": "m_bSplatDebugInfo",
+            "field_name": "m_bIsScratchTarget",
             "offset": 724
           },
           {
-            "field_name": "m_bCaptureInRenderDoc",
+            "field_name": "m_bSplatDebugInfo",
             "offset": 725
+          },
+          {
+            "field_name": "m_bCaptureInRenderDoc",
+            "offset": 726
           },
           {
             "field_name": "m_vecTexGenInstructions",
@@ -57185,7 +57190,7 @@
         "offsets": [
           {
             "field_name": "m_strBitmapName",
-            "offset": 8
+            "offset": 0
           }
         ]
       },
@@ -59186,8 +59191,12 @@
             "offset": 4117
           },
           {
-            "field_name": "m_bStartActive",
+            "field_name": "m_bNoRamp",
             "offset": 4118
+          },
+          {
+            "field_name": "m_bStartActive",
+            "offset": 4119
           },
           {
             "field_name": "m_iszEffectName",
@@ -60163,6 +60172,10 @@
       },
       {
         "class_name": "C_TriggerVolume",
+        "offsets": []
+      },
+      {
+        "class_name": "C_TriggerMultiple",
         "offsets": []
       },
       {
@@ -61520,6 +61533,10 @@
         ]
       },
       {
+        "class_name": "CDroppedWeaponSplasher",
+        "offsets": []
+      },
+      {
         "class_name": "C_InfoInstructorHintHostageRescueZone",
         "offsets": []
       },
@@ -62788,79 +62805,79 @@
         "offsets": [
           {
             "field_name": "m_flexWeight",
-            "offset": 3872
+            "offset": 3880
           },
           {
             "field_name": "m_vLookTargetPosition",
-            "offset": 3896
+            "offset": 3904
           },
           {
             "field_name": "m_blinktoggle",
-            "offset": 3920
+            "offset": 3928
           },
           {
             "field_name": "m_nLastFlexUpdateFrameCount",
-            "offset": 4016
+            "offset": 4024
           },
           {
             "field_name": "m_CachedViewTarget",
-            "offset": 4020
+            "offset": 4028
           },
           {
             "field_name": "m_nNextSceneEventId",
-            "offset": 4032
-          },
-          {
-            "field_name": "m_iBlink",
-            "offset": 4036
-          },
-          {
-            "field_name": "m_blinktime",
             "offset": 4040
           },
           {
-            "field_name": "m_prevblinktoggle",
+            "field_name": "m_iBlink",
             "offset": 4044
           },
           {
-            "field_name": "m_iJawOpen",
+            "field_name": "m_blinktime",
             "offset": 4048
           },
           {
-            "field_name": "m_flJawOpenAmount",
+            "field_name": "m_prevblinktoggle",
             "offset": 4052
           },
           {
-            "field_name": "m_flBlinkAmount",
+            "field_name": "m_iJawOpen",
             "offset": 4056
           },
           {
-            "field_name": "m_iMouthAttachment",
+            "field_name": "m_flJawOpenAmount",
             "offset": 4060
           },
           {
+            "field_name": "m_flBlinkAmount",
+            "offset": 4064
+          },
+          {
+            "field_name": "m_iMouthAttachment",
+            "offset": 4068
+          },
+          {
             "field_name": "m_iEyeAttachment",
-            "offset": 4061
+            "offset": 4069
           },
           {
             "field_name": "m_bResetFlexWeightsOnModelChange",
-            "offset": 4062
+            "offset": 4070
           },
           {
             "field_name": "m_nEyeOcclusionRendererBone",
-            "offset": 4088
+            "offset": 4096
           },
           {
             "field_name": "m_mEyeOcclusionRendererCameraToBoneTransform",
-            "offset": 4092
+            "offset": 4100
           },
           {
             "field_name": "m_vEyeOcclusionRendererHalfExtent",
-            "offset": 4140
+            "offset": 4148
           },
           {
             "field_name": "m_PhonemeClasses",
-            "offset": 4168
+            "offset": 4176
           }
         ]
       },
@@ -63339,83 +63356,83 @@
         "offsets": [
           {
             "field_name": "m_flFlexDelayTime",
-            "offset": 4280
-          },
-          {
-            "field_name": "m_flFlexDelayedWeight",
             "offset": 4288
           },
           {
-            "field_name": "m_bAttributesInitialized",
+            "field_name": "m_flFlexDelayedWeight",
             "offset": 4296
           },
           {
-            "field_name": "m_AttributeManager",
+            "field_name": "m_bAttributesInitialized",
             "offset": 4304
           },
           {
+            "field_name": "m_AttributeManager",
+            "offset": 4312
+          },
+          {
             "field_name": "m_OriginalOwnerXuidLow",
-            "offset": 5496
-          },
-          {
-            "field_name": "m_OriginalOwnerXuidHigh",
-            "offset": 5500
-          },
-          {
-            "field_name": "m_nFallbackPaintKit",
             "offset": 5504
           },
           {
-            "field_name": "m_nFallbackSeed",
+            "field_name": "m_OriginalOwnerXuidHigh",
             "offset": 5508
           },
           {
-            "field_name": "m_flFallbackWear",
+            "field_name": "m_nFallbackPaintKit",
             "offset": 5512
           },
           {
-            "field_name": "m_nFallbackStatTrak",
+            "field_name": "m_nFallbackSeed",
             "offset": 5516
           },
           {
-            "field_name": "m_bClientside",
+            "field_name": "m_flFallbackWear",
             "offset": 5520
           },
           {
-            "field_name": "m_bParticleSystemsCreated",
-            "offset": 5521
+            "field_name": "m_nFallbackStatTrak",
+            "offset": 5524
           },
           {
-            "field_name": "m_vecAttachedParticles",
+            "field_name": "m_bClientside",
             "offset": 5528
           },
           {
+            "field_name": "m_bParticleSystemsCreated",
+            "offset": 5529
+          },
+          {
+            "field_name": "m_vecAttachedParticles",
+            "offset": 5536
+          },
+          {
             "field_name": "m_hViewmodelAttachment",
-            "offset": 5552
-          },
-          {
-            "field_name": "m_iOldTeam",
-            "offset": 5556
-          },
-          {
-            "field_name": "m_bAttachmentDirty",
             "offset": 5560
           },
           {
-            "field_name": "m_nUnloadedModelIndex",
+            "field_name": "m_iOldTeam",
             "offset": 5564
           },
           {
-            "field_name": "m_iNumOwnerValidationRetries",
+            "field_name": "m_bAttachmentDirty",
             "offset": 5568
           },
           {
+            "field_name": "m_nUnloadedModelIndex",
+            "offset": 5572
+          },
+          {
+            "field_name": "m_iNumOwnerValidationRetries",
+            "offset": 5576
+          },
+          {
             "field_name": "m_hOldProvidee",
-            "offset": 5584
+            "offset": 5592
           },
           {
             "field_name": "m_vecAttachedModels",
-            "offset": 5592
+            "offset": 5600
           }
         ]
       },
@@ -63424,11 +63441,11 @@
         "offsets": [
           {
             "field_name": "m_nForceSkin",
-            "offset": 5616
+            "offset": 5624
           },
           {
             "field_name": "m_bAlwaysAllow",
-            "offset": 5620
+            "offset": 5628
           }
         ]
       },
@@ -63437,51 +63454,51 @@
         "offsets": [
           {
             "field_name": "m_bHasWarnedAI",
-            "offset": 4264
-          },
-          {
-            "field_name": "m_bIsSmokeGrenade",
-            "offset": 4265
-          },
-          {
-            "field_name": "m_bIsLive",
-            "offset": 4266
-          },
-          {
-            "field_name": "m_DmgRadius",
-            "offset": 4268
-          },
-          {
-            "field_name": "m_flDetonateTime",
             "offset": 4272
           },
           {
-            "field_name": "m_flWarnAITime",
+            "field_name": "m_bIsSmokeGrenade",
+            "offset": 4273
+          },
+          {
+            "field_name": "m_bIsLive",
+            "offset": 4274
+          },
+          {
+            "field_name": "m_DmgRadius",
             "offset": 4276
           },
           {
-            "field_name": "m_flDamage",
+            "field_name": "m_flDetonateTime",
             "offset": 4280
           },
           {
-            "field_name": "m_iszBounceSound",
+            "field_name": "m_flWarnAITime",
+            "offset": 4284
+          },
+          {
+            "field_name": "m_flDamage",
             "offset": 4288
           },
           {
-            "field_name": "m_ExplosionSound",
+            "field_name": "m_iszBounceSound",
             "offset": 4296
           },
           {
+            "field_name": "m_ExplosionSound",
+            "offset": 4304
+          },
+          {
             "field_name": "m_hThrower",
-            "offset": 4308
+            "offset": 4316
           },
           {
             "field_name": "m_flNextAttack",
-            "offset": 4336
+            "offset": 4344
           },
           {
             "field_name": "m_hOriginalThrower",
-            "offset": 4340
+            "offset": 4348
           }
         ]
       },
@@ -63896,63 +63913,63 @@
         "offsets": [
           {
             "field_name": "m_vInitialVelocity",
-            "offset": 4344
+            "offset": 4352
           },
           {
             "field_name": "m_nBounces",
-            "offset": 4356
+            "offset": 4364
           },
           {
             "field_name": "m_nExplodeEffectIndex",
-            "offset": 4360
-          },
-          {
-            "field_name": "m_nExplodeEffectTickBegin",
             "offset": 4368
           },
           {
+            "field_name": "m_nExplodeEffectTickBegin",
+            "offset": 4376
+          },
+          {
             "field_name": "m_vecExplodeEffectOrigin",
-            "offset": 4372
+            "offset": 4380
           },
           {
             "field_name": "m_flSpawnTime",
-            "offset": 4384
+            "offset": 4392
           },
           {
             "field_name": "vecLastTrailLinePos",
-            "offset": 4388
+            "offset": 4396
           },
           {
             "field_name": "flNextTrailLineTime",
-            "offset": 4400
-          },
-          {
-            "field_name": "m_bExplodeEffectBegan",
-            "offset": 4404
-          },
-          {
-            "field_name": "m_bCanCreateGrenadeTrail",
-            "offset": 4405
-          },
-          {
-            "field_name": "m_nSnapshotTrajectoryEffectIndex",
             "offset": 4408
           },
           {
-            "field_name": "m_hSnapshotTrajectoryParticleSnapshot",
+            "field_name": "m_bExplodeEffectBegan",
+            "offset": 4412
+          },
+          {
+            "field_name": "m_bCanCreateGrenadeTrail",
+            "offset": 4413
+          },
+          {
+            "field_name": "m_nSnapshotTrajectoryEffectIndex",
             "offset": 4416
           },
           {
-            "field_name": "m_arrTrajectoryTrailPoints",
+            "field_name": "m_hSnapshotTrajectoryParticleSnapshot",
             "offset": 4424
           },
           {
+            "field_name": "m_arrTrajectoryTrailPoints",
+            "offset": 4432
+          },
+          {
             "field_name": "m_arrTrajectoryTrailPointCreationTimes",
-            "offset": 4448
+            "offset": 4456
           },
           {
             "field_name": "m_flTrajectoryTrailEffectCreationTime",
-            "offset": 4472
+            "offset": 4480
           }
         ]
       },
@@ -63961,19 +63978,19 @@
         "offsets": [
           {
             "field_name": "m_bShouldExplode",
-            "offset": 4344
-          },
-          {
-            "field_name": "m_weaponThatThrewMe",
-            "offset": 4348
-          },
-          {
-            "field_name": "m_nParentBoneIndex",
             "offset": 4352
           },
           {
-            "field_name": "m_vecParentBonePos",
+            "field_name": "m_weaponThatThrewMe",
             "offset": 4356
+          },
+          {
+            "field_name": "m_nParentBoneIndex",
+            "offset": 4360
+          },
+          {
+            "field_name": "m_vecParentBonePos",
+            "offset": 4364
           }
         ]
       },
@@ -63982,19 +63999,19 @@
         "offsets": [
           {
             "field_name": "m_bShouldExplode",
-            "offset": 4344
-          },
-          {
-            "field_name": "m_nParentBoneIndex",
-            "offset": 4348
-          },
-          {
-            "field_name": "m_vecParentBonePos",
             "offset": 4352
           },
           {
+            "field_name": "m_nParentBoneIndex",
+            "offset": 4356
+          },
+          {
+            "field_name": "m_vecParentBonePos",
+            "offset": 4360
+          },
+          {
             "field_name": "m_bArmed",
-            "offset": 4364
+            "offset": 4372
           }
         ]
       },
@@ -64003,27 +64020,27 @@
         "offsets": [
           {
             "field_name": "m_flAttachTime",
-            "offset": 4344
+            "offset": 4352
           },
           {
             "field_name": "m_vecTripWireEndPositions",
-            "offset": 4348
+            "offset": 4356
           },
           {
             "field_name": "m_bTripWireEndPositionsUsed",
-            "offset": 4468
+            "offset": 4476
           },
           {
             "field_name": "m_nTripWireStartIndex0",
-            "offset": 4480
+            "offset": 4488
           },
           {
             "field_name": "m_nTripWireEndIndex0",
-            "offset": 4484
+            "offset": 4492
           },
           {
             "field_name": "m_nTripWireCenterIndex0",
-            "offset": 4488
+            "offset": 4496
           }
         ]
       },
@@ -64073,23 +64090,23 @@
         "offsets": [
           {
             "field_name": "m_animgraph",
-            "offset": 4264
-          },
-          {
-            "field_name": "m_animgraphCharacterModeString",
             "offset": 4272
           },
           {
-            "field_name": "m_defaultAnim",
+            "field_name": "m_animgraphCharacterModeString",
             "offset": 4280
           },
           {
-            "field_name": "m_nDefaultAnimLoopMode",
+            "field_name": "m_defaultAnim",
             "offset": 4288
           },
           {
+            "field_name": "m_nDefaultAnimLoopMode",
+            "offset": 4296
+          },
+          {
             "field_name": "m_flInitialModelScale",
-            "offset": 4292
+            "offset": 4300
           }
         ]
       },
@@ -64208,60 +64225,72 @@
             "offset": 3916
           },
           {
-            "field_name": "m_bTenSecWarning",
+            "field_name": "m_bBeingDefused",
             "offset": 3920
           },
           {
-            "field_name": "m_bTriggerWarning",
+            "field_name": "m_bTenSecWarning",
             "offset": 3924
           },
           {
-            "field_name": "m_bExplodeWarning",
+            "field_name": "m_bTriggerWarning",
             "offset": 3928
           },
           {
-            "field_name": "m_bC4Activated",
+            "field_name": "m_bExplodeWarning",
             "offset": 3932
           },
           {
-            "field_name": "m_bLocalBRMusicPlayed",
-            "offset": 3933
-          },
-          {
-            "field_name": "m_flDefuseLength",
+            "field_name": "m_bC4Activated",
             "offset": 3936
           },
           {
-            "field_name": "m_flDefuseCountDown",
+            "field_name": "m_bLocalBRMusicPlayed",
+            "offset": 3937
+          },
+          {
+            "field_name": "m_flDefuseLength",
             "offset": 3940
           },
           {
-            "field_name": "m_bBombDefused",
+            "field_name": "m_flDefuseCountDown",
             "offset": 3944
           },
           {
-            "field_name": "m_hBombDefuser",
+            "field_name": "m_bBombDefused",
             "offset": 3948
           },
           {
-            "field_name": "m_hControlPanel",
+            "field_name": "m_hBombDefuser",
             "offset": 3952
           },
           {
-            "field_name": "m_hDefuserMultimeter",
+            "field_name": "m_hControlPanel",
             "offset": 3956
           },
           {
-            "field_name": "m_flNextRadarFlashTime",
+            "field_name": "m_hDefuserMultimeter",
             "offset": 3960
           },
           {
-            "field_name": "m_bRadarFlash",
+            "field_name": "m_flNextRadarFlashTime",
             "offset": 3964
           },
           {
-            "field_name": "m_hLocalDefusingPlayerHandle",
+            "field_name": "m_bRadarFlash",
             "offset": 3968
+          },
+          {
+            "field_name": "m_pBombDefuser",
+            "offset": 3972
+          },
+          {
+            "field_name": "m_fLastDefuseTime",
+            "offset": 3976
+          },
+          {
+            "field_name": "m_pPredictionOwner",
+            "offset": 3984
           }
         ]
       },
@@ -64270,11 +64299,11 @@
         "offsets": [
           {
             "field_name": "m_bShouldGlow",
-            "offset": 5616
+            "offset": 5624
           },
           {
             "field_name": "m_pReticleHintTextName",
-            "offset": 5617
+            "offset": 5625
           }
         ]
       },
@@ -64308,6 +64337,10 @@
           {
             "field_name": "m_bAttributesInitialized",
             "offset": 5704
+          },
+          {
+            "field_name": "m_hWaterWakeParticles",
+            "offset": 5708
           }
         ]
       },
@@ -64316,43 +64349,43 @@
         "offsets": [
           {
             "field_name": "m_iState",
-            "offset": 5616
-          },
-          {
-            "field_name": "m_iOldState",
-            "offset": 5620
-          },
-          {
-            "field_name": "m_bRemoveable",
             "offset": 5624
           },
           {
-            "field_name": "m_nNextPrimaryAttackTick",
+            "field_name": "m_iOldState",
             "offset": 5628
           },
           {
-            "field_name": "m_flNextPrimaryAttackTickRatio",
+            "field_name": "m_bRemoveable",
             "offset": 5632
           },
           {
-            "field_name": "m_nNextSecondaryAttackTick",
+            "field_name": "m_nNextPrimaryAttackTick",
             "offset": 5636
           },
           {
-            "field_name": "m_flNextSecondaryAttackTickRatio",
+            "field_name": "m_flNextPrimaryAttackTickRatio",
             "offset": 5640
           },
           {
-            "field_name": "m_iClip1",
+            "field_name": "m_nNextSecondaryAttackTick",
             "offset": 5644
           },
           {
-            "field_name": "m_iClip2",
+            "field_name": "m_flNextSecondaryAttackTickRatio",
             "offset": 5648
           },
           {
-            "field_name": "m_pReserveAmmo",
+            "field_name": "m_iClip1",
             "offset": 5652
+          },
+          {
+            "field_name": "m_iClip2",
+            "offset": 5656
+          },
+          {
+            "field_name": "m_pReserveAmmo",
+            "offset": 5660
           }
         ]
       },
@@ -64394,35 +64427,35 @@
         "offsets": [
           {
             "field_name": "m_hMyWearables",
-            "offset": 4264
+            "offset": 4272
           },
           {
             "field_name": "m_bloodColor",
-            "offset": 4288
-          },
-          {
-            "field_name": "m_leftFootAttachment",
-            "offset": 4292
-          },
-          {
-            "field_name": "m_rightFootAttachment",
-            "offset": 4293
-          },
-          {
-            "field_name": "m_nWaterWakeMode",
             "offset": 4296
           },
           {
-            "field_name": "m_flWaterWorldZ",
+            "field_name": "m_leftFootAttachment",
             "offset": 4300
           },
           {
-            "field_name": "m_flWaterNextTraceTime",
+            "field_name": "m_rightFootAttachment",
+            "offset": 4301
+          },
+          {
+            "field_name": "m_nWaterWakeMode",
             "offset": 4304
           },
           {
-            "field_name": "m_flFieldOfView",
+            "field_name": "m_flWaterWorldZ",
             "offset": 4308
+          },
+          {
+            "field_name": "m_flWaterNextTraceTime",
+            "offset": 4312
+          },
+          {
+            "field_name": "m_flFieldOfView",
+            "offset": 4316
           }
         ]
       },
@@ -64431,107 +64464,107 @@
         "offsets": [
           {
             "field_name": "m_pWeaponServices",
-            "offset": 4408
-          },
-          {
-            "field_name": "m_pItemServices",
             "offset": 4416
           },
           {
-            "field_name": "m_pAutoaimServices",
+            "field_name": "m_pItemServices",
             "offset": 4424
           },
           {
-            "field_name": "m_pObserverServices",
+            "field_name": "m_pAutoaimServices",
             "offset": 4432
           },
           {
-            "field_name": "m_pWaterServices",
+            "field_name": "m_pObserverServices",
             "offset": 4440
           },
           {
-            "field_name": "m_pUseServices",
+            "field_name": "m_pWaterServices",
             "offset": 4448
           },
           {
-            "field_name": "m_pFlashlightServices",
+            "field_name": "m_pUseServices",
             "offset": 4456
           },
           {
-            "field_name": "m_pCameraServices",
+            "field_name": "m_pFlashlightServices",
             "offset": 4464
           },
           {
-            "field_name": "m_pMovementServices",
+            "field_name": "m_pCameraServices",
             "offset": 4472
           },
           {
+            "field_name": "m_pMovementServices",
+            "offset": 4480
+          },
+          {
             "field_name": "m_ServerViewAngleChanges",
-            "offset": 4488
+            "offset": 4496
           },
           {
             "field_name": "m_nHighestConsumedServerViewAngleChangeIndex",
-            "offset": 4568
+            "offset": 4576
           },
           {
             "field_name": "v_angle",
-            "offset": 4572
+            "offset": 4580
           },
           {
             "field_name": "v_anglePrevious",
-            "offset": 4584
+            "offset": 4592
           },
           {
             "field_name": "m_iHideHUD",
-            "offset": 4596
+            "offset": 4604
           },
           {
             "field_name": "m_skybox3d",
-            "offset": 4600
+            "offset": 4608
           },
           {
             "field_name": "m_flDeathTime",
-            "offset": 4744
+            "offset": 4752
           },
           {
             "field_name": "m_vecPredictionError",
-            "offset": 4748
+            "offset": 4756
           },
           {
             "field_name": "m_flPredictionErrorTime",
-            "offset": 4760
-          },
-          {
-            "field_name": "m_flFOVSensitivityAdjust",
-            "offset": 4764
-          },
-          {
-            "field_name": "m_flMouseSensitivity",
             "offset": 4768
           },
           {
-            "field_name": "m_vOldOrigin",
+            "field_name": "m_flFOVSensitivityAdjust",
             "offset": 4772
           },
           {
+            "field_name": "m_flMouseSensitivity",
+            "offset": 4776
+          },
+          {
+            "field_name": "m_vOldOrigin",
+            "offset": 4780
+          },
+          {
             "field_name": "m_flOldSimulationTime",
-            "offset": 4784
-          },
-          {
-            "field_name": "m_nLastExecutedCommandNumber",
-            "offset": 4788
-          },
-          {
-            "field_name": "m_nLastExecutedCommandTick",
             "offset": 4792
           },
           {
-            "field_name": "m_hController",
+            "field_name": "m_nLastExecutedCommandNumber",
             "offset": 4796
           },
           {
-            "field_name": "m_bIsSwappingToPredictableController",
+            "field_name": "m_nLastExecutedCommandTick",
             "offset": 4800
+          },
+          {
+            "field_name": "m_hController",
+            "offset": 4804
+          },
+          {
+            "field_name": "m_bIsSwappingToPredictableController",
+            "offset": 4808
           }
         ]
       },
@@ -64573,235 +64606,235 @@
         "offsets": [
           {
             "field_name": "m_flFireSequenceStartTime",
-            "offset": 5744
-          },
-          {
-            "field_name": "m_nFireSequenceStartTimeChange",
-            "offset": 5748
-          },
-          {
-            "field_name": "m_nFireSequenceStartTimeAck",
             "offset": 5752
           },
           {
-            "field_name": "m_bPlayerFireEventIsPrimary",
+            "field_name": "m_nFireSequenceStartTimeChange",
             "offset": 5756
           },
           {
-            "field_name": "m_seqIdle",
+            "field_name": "m_nFireSequenceStartTimeAck",
             "offset": 5760
           },
           {
-            "field_name": "m_seqFirePrimary",
+            "field_name": "m_bPlayerFireEventIsPrimary",
             "offset": 5764
           },
           {
-            "field_name": "m_seqFireSecondary",
+            "field_name": "m_seqIdle",
             "offset": 5768
           },
           {
+            "field_name": "m_seqFirePrimary",
+            "offset": 5772
+          },
+          {
+            "field_name": "m_seqFireSecondary",
+            "offset": 5776
+          },
+          {
             "field_name": "m_flCrosshairDistance",
-            "offset": 5792
-          },
-          {
-            "field_name": "m_iAmmoLastCheck",
-            "offset": 5796
-          },
-          {
-            "field_name": "m_iAlpha",
             "offset": 5800
           },
           {
-            "field_name": "m_iScopeTextureID",
+            "field_name": "m_iAmmoLastCheck",
             "offset": 5804
           },
           {
-            "field_name": "m_iCrosshairTextureID",
+            "field_name": "m_iAlpha",
             "offset": 5808
           },
           {
-            "field_name": "m_flGunAccuracyPosition",
+            "field_name": "m_iScopeTextureID",
             "offset": 5812
           },
           {
-            "field_name": "m_nViewModelIndex",
+            "field_name": "m_iCrosshairTextureID",
             "offset": 5816
           },
           {
-            "field_name": "m_bReloadsWithClips",
+            "field_name": "m_flGunAccuracyPosition",
             "offset": 5820
           },
           {
-            "field_name": "m_flTimeWeaponIdle",
+            "field_name": "m_nViewModelIndex",
             "offset": 5824
           },
           {
-            "field_name": "m_bFireOnEmpty",
+            "field_name": "m_bReloadsWithClips",
             "offset": 5828
           },
           {
-            "field_name": "m_OnPlayerPickup",
+            "field_name": "m_flTimeWeaponIdle",
             "offset": 5832
           },
           {
+            "field_name": "m_bFireOnEmpty",
+            "offset": 5836
+          },
+          {
+            "field_name": "m_OnPlayerPickup",
+            "offset": 5840
+          },
+          {
             "field_name": "m_weaponMode",
-            "offset": 5872
-          },
-          {
-            "field_name": "m_flTurningInaccuracyDelta",
-            "offset": 5876
-          },
-          {
-            "field_name": "m_vecTurningInaccuracyEyeDirLast",
             "offset": 5880
           },
           {
+            "field_name": "m_flTurningInaccuracyDelta",
+            "offset": 5884
+          },
+          {
+            "field_name": "m_vecTurningInaccuracyEyeDirLast",
+            "offset": 5888
+          },
+          {
             "field_name": "m_flTurningInaccuracy",
-            "offset": 5892
-          },
-          {
-            "field_name": "m_fAccuracyPenalty",
-            "offset": 5896
-          },
-          {
-            "field_name": "m_flLastAccuracyUpdateTime",
             "offset": 5900
           },
           {
-            "field_name": "m_fAccuracySmoothedForZoom",
+            "field_name": "m_fAccuracyPenalty",
             "offset": 5904
           },
           {
-            "field_name": "m_fScopeZoomEndTime",
+            "field_name": "m_flLastAccuracyUpdateTime",
             "offset": 5908
           },
           {
-            "field_name": "m_iRecoilIndex",
+            "field_name": "m_fAccuracySmoothedForZoom",
             "offset": 5912
           },
           {
-            "field_name": "m_flRecoilIndex",
+            "field_name": "m_fScopeZoomEndTime",
             "offset": 5916
           },
           {
-            "field_name": "m_bBurstMode",
+            "field_name": "m_iRecoilIndex",
             "offset": 5920
           },
           {
-            "field_name": "m_flPostponeFireReadyTime",
+            "field_name": "m_flRecoilIndex",
             "offset": 5924
           },
           {
-            "field_name": "m_bInReload",
+            "field_name": "m_bBurstMode",
             "offset": 5928
           },
           {
-            "field_name": "m_bReloadVisuallyComplete",
-            "offset": 5929
-          },
-          {
-            "field_name": "m_flDroppedAtTime",
+            "field_name": "m_flPostponeFireReadyTime",
             "offset": 5932
           },
           {
-            "field_name": "m_bIsHauledBack",
+            "field_name": "m_bInReload",
             "offset": 5936
           },
           {
-            "field_name": "m_bSilencerOn",
+            "field_name": "m_bReloadVisuallyComplete",
             "offset": 5937
           },
           {
-            "field_name": "m_flTimeSilencerSwitchComplete",
+            "field_name": "m_flDroppedAtTime",
             "offset": 5940
           },
           {
-            "field_name": "m_iOriginalTeamNumber",
+            "field_name": "m_bIsHauledBack",
             "offset": 5944
           },
           {
-            "field_name": "m_flNextAttackRenderTimeOffset",
+            "field_name": "m_bSilencerOn",
+            "offset": 5945
+          },
+          {
+            "field_name": "m_flTimeSilencerSwitchComplete",
             "offset": 5948
           },
           {
+            "field_name": "m_iOriginalTeamNumber",
+            "offset": 5952
+          },
+          {
+            "field_name": "m_flNextAttackRenderTimeOffset",
+            "offset": 5956
+          },
+          {
             "field_name": "m_bVisualsDataSet",
-            "offset": 6072
-          },
-          {
-            "field_name": "m_bOldFirstPersonSpectatedState",
-            "offset": 6073
-          },
-          {
-            "field_name": "m_hOurPing",
-            "offset": 6076
-          },
-          {
-            "field_name": "m_nOurPingIndex",
             "offset": 6080
           },
           {
-            "field_name": "m_vecOurPingPos",
+            "field_name": "m_bOldFirstPersonSpectatedState",
+            "offset": 6081
+          },
+          {
+            "field_name": "m_hOurPing",
             "offset": 6084
           },
           {
+            "field_name": "m_nOurPingIndex",
+            "offset": 6088
+          },
+          {
+            "field_name": "m_vecOurPingPos",
+            "offset": 6092
+          },
+          {
             "field_name": "m_bGlowForPing",
-            "offset": 6096
+            "offset": 6104
           },
           {
             "field_name": "m_bUIWeapon",
-            "offset": 6097
+            "offset": 6105
           },
           {
             "field_name": "m_hPrevOwner",
-            "offset": 6112
+            "offset": 6120
           },
           {
             "field_name": "m_donated",
-            "offset": 6148
-          },
-          {
-            "field_name": "m_fLastShotTime",
-            "offset": 6152
-          },
-          {
-            "field_name": "m_bWasOwnedByCT",
             "offset": 6156
           },
           {
-            "field_name": "m_bWasOwnedByTerrorist",
-            "offset": 6157
-          },
-          {
-            "field_name": "m_gunHeat",
+            "field_name": "m_fLastShotTime",
             "offset": 6160
           },
           {
-            "field_name": "m_smokeAttachments",
+            "field_name": "m_bWasOwnedByCT",
             "offset": 6164
           },
           {
-            "field_name": "m_lastSmokeTime",
+            "field_name": "m_bWasOwnedByTerrorist",
+            "offset": 6165
+          },
+          {
+            "field_name": "m_gunHeat",
             "offset": 6168
           },
           {
-            "field_name": "m_flLastClientFireBulletTime",
+            "field_name": "m_smokeAttachments",
             "offset": 6172
           },
           {
+            "field_name": "m_lastSmokeTime",
+            "offset": 6176
+          },
+          {
+            "field_name": "m_flLastClientFireBulletTime",
+            "offset": 6180
+          },
+          {
             "field_name": "m_IronSightController",
-            "offset": 6256
+            "offset": 6272
           },
           {
             "field_name": "m_iIronSightMode",
-            "offset": 6432
-          },
-          {
-            "field_name": "m_flLastLOSTraceFailureTime",
             "offset": 6448
           },
           {
+            "field_name": "m_flLastLOSTraceFailureTime",
+            "offset": 6464
+          },
+          {
             "field_name": "m_iNumEmptyAttacks",
-            "offset": 6452
+            "offset": 6468
           }
         ]
       },
@@ -64810,27 +64843,27 @@
         "offsets": [
           {
             "field_name": "m_zoomLevel",
-            "offset": 6480
+            "offset": 6512
           },
           {
             "field_name": "m_iBurstShotsRemaining",
-            "offset": 6484
+            "offset": 6516
           },
           {
             "field_name": "m_iSilencerBodygroup",
-            "offset": 6488
+            "offset": 6520
           },
           {
             "field_name": "m_silencedModelIndex",
-            "offset": 6504
+            "offset": 6536
           },
           {
             "field_name": "m_inPrecache",
-            "offset": 6508
+            "offset": 6540
           },
           {
             "field_name": "m_bNeedsBoltAction",
-            "offset": 6509
+            "offset": 6541
           }
         ]
       },
@@ -64839,51 +64872,51 @@
         "offsets": [
           {
             "field_name": "m_szScreenText",
-            "offset": 6480
-          },
-          {
-            "field_name": "m_bombdroppedlightParticleIndex",
             "offset": 6512
           },
           {
+            "field_name": "m_bombdroppedlightParticleIndex",
+            "offset": 6544
+          },
+          {
             "field_name": "m_bStartedArming",
-            "offset": 6516
+            "offset": 6548
           },
           {
             "field_name": "m_fArmedTime",
-            "offset": 6520
-          },
-          {
-            "field_name": "m_bBombPlacedAnimation",
-            "offset": 6524
-          },
-          {
-            "field_name": "m_bShowC4LED",
-            "offset": 6525
-          },
-          {
-            "field_name": "m_bIsPlantingViaUse",
-            "offset": 6526
-          },
-          {
-            "field_name": "m_entitySpottedState",
-            "offset": 6528
-          },
-          {
-            "field_name": "m_nSpotRules",
             "offset": 6552
           },
           {
-            "field_name": "m_bPlayedArmingBeeps",
+            "field_name": "m_bBombPlacedAnimation",
             "offset": 6556
           },
           {
+            "field_name": "m_bShowC4LED",
+            "offset": 6557
+          },
+          {
+            "field_name": "m_bIsPlantingViaUse",
+            "offset": 6558
+          },
+          {
+            "field_name": "m_entitySpottedState",
+            "offset": 6560
+          },
+          {
+            "field_name": "m_nSpotRules",
+            "offset": 6584
+          },
+          {
+            "field_name": "m_bPlayedArmingBeeps",
+            "offset": 6588
+          },
+          {
             "field_name": "m_bBombPlanted",
-            "offset": 6563
+            "offset": 6595
           },
           {
             "field_name": "m_bDroppedFromDeath",
-            "offset": 6564
+            "offset": 6596
           }
         ]
       },
@@ -64908,7 +64941,7 @@
         "offsets": [
           {
             "field_name": "m_fFireTime",
-            "offset": 6512
+            "offset": 6544
           }
         ]
       },
@@ -64929,7 +64962,7 @@
         "offsets": [
           {
             "field_name": "m_flThrowAt",
-            "offset": 6480
+            "offset": 6512
           }
         ]
       },
@@ -64938,11 +64971,11 @@
         "offsets": [
           {
             "field_name": "m_flPitchLocal",
-            "offset": 6512
+            "offset": 6544
           },
           {
             "field_name": "m_flLastTimeNotIdle",
-            "offset": 6516
+            "offset": 6548
           }
         ]
       },
@@ -64951,7 +64984,7 @@
         "offsets": [
           {
             "field_name": "m_flDisplayHealth",
-            "offset": 6512
+            "offset": 6544
           }
         ]
       },
@@ -64960,7 +64993,7 @@
         "offsets": [
           {
             "field_name": "m_bIsIncGrenade",
-            "offset": 4480
+            "offset": 4488
           }
         ]
       },
@@ -64969,7 +65002,7 @@
         "offsets": [
           {
             "field_name": "m_flTimeParticleEffectSpawn",
-            "offset": 4512
+            "offset": 4520
           }
         ]
       },
@@ -64978,35 +65011,35 @@
         "offsets": [
           {
             "field_name": "m_nSmokeEffectTickBegin",
-            "offset": 4488
-          },
-          {
-            "field_name": "m_bDidSmokeEffect",
-            "offset": 4492
-          },
-          {
-            "field_name": "m_nRandomSeed",
             "offset": 4496
           },
           {
-            "field_name": "m_vSmokeColor",
+            "field_name": "m_bDidSmokeEffect",
             "offset": 4500
           },
           {
+            "field_name": "m_nRandomSeed",
+            "offset": 4504
+          },
+          {
+            "field_name": "m_vSmokeColor",
+            "offset": 4508
+          },
+          {
             "field_name": "m_vSmokeDetonationPos",
-            "offset": 4512
+            "offset": 4520
           },
           {
             "field_name": "m_VoxelFrameData",
-            "offset": 4528
+            "offset": 4536
           },
           {
             "field_name": "m_bSmokeVolumeDataReceived",
-            "offset": 4552
+            "offset": 4560
           },
           {
             "field_name": "m_bSmokeEffectSpawned",
-            "offset": 4553
+            "offset": 4561
           }
         ]
       },
@@ -65015,39 +65048,39 @@
         "offsets": [
           {
             "field_name": "m_bRedraw",
-            "offset": 6512
+            "offset": 6544
           },
           {
             "field_name": "m_bIsHeldByPlayer",
-            "offset": 6513
+            "offset": 6545
           },
           {
             "field_name": "m_bPinPulled",
-            "offset": 6514
+            "offset": 6546
           },
           {
             "field_name": "m_bJumpThrow",
-            "offset": 6515
+            "offset": 6547
           },
           {
             "field_name": "m_eThrowStatus",
-            "offset": 6516
+            "offset": 6548
           },
           {
             "field_name": "m_fThrowTime",
-            "offset": 6520
+            "offset": 6552
           },
           {
             "field_name": "m_flThrowStrength",
-            "offset": 6524
+            "offset": 6556
           },
           {
             "field_name": "m_flThrowStrengthApproach",
-            "offset": 6528
+            "offset": 6560
           },
           {
             "field_name": "m_fDropTime",
-            "offset": 6532
+            "offset": 6564
           }
         ]
       },
@@ -65056,11 +65089,11 @@
         "offsets": [
           {
             "field_name": "m_SequenceCompleteTimer",
-            "offset": 6480
+            "offset": 6512
           },
           {
             "field_name": "m_bRedraw",
-            "offset": 6504
+            "offset": 6536
           }
         ]
       },
@@ -65069,11 +65102,11 @@
         "offsets": [
           {
             "field_name": "m_OwningPlayer",
-            "offset": 5880
+            "offset": 5888
           },
           {
             "field_name": "m_KillingPlayer",
-            "offset": 5884
+            "offset": 5892
           }
         ]
       },
@@ -65086,11 +65119,11 @@
         "offsets": [
           {
             "field_name": "m_bPlayingUninterruptableAct",
-            "offset": 6480
+            "offset": 6512
           },
           {
             "field_name": "m_nUninterruptableActivity",
-            "offset": 6484
+            "offset": 6516
           }
         ]
       },
@@ -65099,111 +65132,111 @@
         "offsets": [
           {
             "field_name": "m_flUpgradeExpirationTime",
-            "offset": 6488
+            "offset": 6520
           },
           {
             "field_name": "m_vecLocalHexFlags",
-            "offset": 6504
+            "offset": 6536
           },
           {
             "field_name": "m_nContractKillGridIndex",
-            "offset": 6672
+            "offset": 6704
           },
           {
             "field_name": "m_nContractKillGridHighResIndex",
-            "offset": 6676
-          },
-          {
-            "field_name": "m_bTabletReceptionIsBlocked",
-            "offset": 6680
-          },
-          {
-            "field_name": "m_flScanProgress",
-            "offset": 6684
-          },
-          {
-            "field_name": "m_flBootTime",
-            "offset": 6688
-          },
-          {
-            "field_name": "m_flShowMapTime",
-            "offset": 6692
-          },
-          {
-            "field_name": "m_vecNearestMetalCratePos",
-            "offset": 6696
-          },
-          {
-            "field_name": "m_skinState",
             "offset": 6708
           },
           {
-            "field_name": "m_vecNotificationIds",
+            "field_name": "m_bTabletReceptionIsBlocked",
             "offset": 6712
           },
           {
-            "field_name": "m_vecNotificationTimestamps",
+            "field_name": "m_flScanProgress",
+            "offset": 6716
+          },
+          {
+            "field_name": "m_flBootTime",
+            "offset": 6720
+          },
+          {
+            "field_name": "m_flShowMapTime",
+            "offset": 6724
+          },
+          {
+            "field_name": "m_vecNearestMetalCratePos",
+            "offset": 6728
+          },
+          {
+            "field_name": "m_skinState",
+            "offset": 6740
+          },
+          {
+            "field_name": "m_vecNotificationIds",
             "offset": 6744
           },
           {
-            "field_name": "m_nLastPurchaseIndex",
+            "field_name": "m_vecNotificationTimestamps",
             "offset": 6776
           },
           {
+            "field_name": "m_nLastPurchaseIndex",
+            "offset": 6808
+          },
+          {
             "field_name": "m_vecPlayerPositionHistory",
-            "offset": 6780
+            "offset": 6812
           },
           {
             "field_name": "m_vecLocalHexFlagsClientCopy",
-            "offset": 7068
+            "offset": 7100
           },
           {
             "field_name": "m_vecLastHexPlayerOccupancyChange",
-            "offset": 7236
+            "offset": 7268
           },
           {
             "field_name": "m_radarMaterial",
-            "offset": 8296
-          },
-          {
-            "field_name": "m_buildingMaterial",
-            "offset": 8304
-          },
-          {
-            "field_name": "m_hZoneOverlayMaterial",
-            "offset": 8312
-          },
-          {
-            "field_name": "m_flNoiseFadeAlpha",
-            "offset": 8320
-          },
-          {
-            "field_name": "m_WorkingColor",
-            "offset": 8324
-          },
-          {
-            "field_name": "m_vecLastCameraPos",
             "offset": 8328
           },
           {
-            "field_name": "m_angLastCameraAng",
-            "offset": 8340
+            "field_name": "m_buildingMaterial",
+            "offset": 8336
           },
           {
-            "field_name": "m_nDrawElementCount",
+            "field_name": "m_hZoneOverlayMaterial",
+            "offset": 8344
+          },
+          {
+            "field_name": "m_flNoiseFadeAlpha",
             "offset": 8352
           },
           {
-            "field_name": "m_flPrevScanProgress",
+            "field_name": "m_WorkingColor",
             "offset": 8356
           },
           {
-            "field_name": "m_nRenderTargetRes",
+            "field_name": "m_vecLastCameraPos",
             "offset": 8360
           },
           {
+            "field_name": "m_angLastCameraAng",
+            "offset": 8372
+          },
+          {
+            "field_name": "m_nDrawElementCount",
+            "offset": 8384
+          },
+          {
+            "field_name": "m_flPrevScanProgress",
+            "offset": 8388
+          },
+          {
+            "field_name": "m_nRenderTargetRes",
+            "offset": 8392
+          },
+          {
             "field_name": "m_flLastClosePoseParamVal",
-            "offset": 8364
+            "offset": 8396
           }
         ]
       },
@@ -65232,743 +65265,747 @@
         "offsets": [
           {
             "field_name": "m_pActionTrackingServices",
-            "offset": 4832
-          },
-          {
-            "field_name": "m_pPingServices",
             "offset": 4840
           },
           {
-            "field_name": "m_pViewModelServices",
+            "field_name": "m_pPingServices",
             "offset": 4848
           },
           {
-            "field_name": "m_fRenderingClipPlane",
+            "field_name": "m_pViewModelServices",
             "offset": 4856
           },
           {
+            "field_name": "m_fRenderingClipPlane",
+            "offset": 4864
+          },
+          {
             "field_name": "m_nLastClipPlaneSetupFrame",
-            "offset": 4872
+            "offset": 4880
           },
           {
             "field_name": "m_vecLastClipCameraPos",
-            "offset": 4876
+            "offset": 4884
           },
           {
             "field_name": "m_vecLastClipCameraForward",
-            "offset": 4888
+            "offset": 4896
           },
           {
             "field_name": "m_bClipHitStaticWorld",
-            "offset": 4900
+            "offset": 4908
           },
           {
             "field_name": "m_bCachedPlaneIsValid",
-            "offset": 4901
+            "offset": 4909
           },
           {
             "field_name": "m_pClippingWeapon",
-            "offset": 4904
-          },
-          {
-            "field_name": "m_bHasFemaleVoice",
             "offset": 4912
           },
           {
-            "field_name": "m_previousPlayerState",
-            "offset": 4916
-          },
-          {
-            "field_name": "m_flLastCollisionCeiling",
+            "field_name": "m_bHasFemaleVoice",
             "offset": 4920
           },
           {
-            "field_name": "m_flLastCollisionCeilingChangeTime",
+            "field_name": "m_previousPlayerState",
             "offset": 4924
           },
           {
+            "field_name": "m_flLastCollisionCeiling",
+            "offset": 4928
+          },
+          {
+            "field_name": "m_flLastCollisionCeilingChangeTime",
+            "offset": 4932
+          },
+          {
             "field_name": "m_bInLanding",
-            "offset": 5016
+            "offset": 4960
           },
           {
             "field_name": "m_flLandingTime",
-            "offset": 5020
+            "offset": 4964
           },
           {
             "field_name": "m_grenadeParameterStashTime",
-            "offset": 5024
+            "offset": 4968
           },
           {
             "field_name": "m_bGrenadeParametersStashed",
-            "offset": 5028
+            "offset": 4972
           },
           {
             "field_name": "m_angStashedShootAngles",
-            "offset": 5032
+            "offset": 4976
           },
           {
             "field_name": "m_vecStashedGrenadeThrowPosition",
-            "offset": 5044
+            "offset": 4988
           },
           {
             "field_name": "m_vecStashedVelocity",
-            "offset": 5056
+            "offset": 5000
           },
           {
             "field_name": "m_angShootAngleHistory",
-            "offset": 5068
+            "offset": 5012
           },
           {
             "field_name": "m_vecThrowPositionHistory",
-            "offset": 5092
+            "offset": 5036
           },
           {
             "field_name": "m_vecVelocityHistory",
-            "offset": 5116
+            "offset": 5060
           },
           {
             "field_name": "m_thirdPersonHeading",
-            "offset": 5144
+            "offset": 5088
           },
           {
             "field_name": "m_flSlopeDropOffset",
-            "offset": 5168
+            "offset": 5112
           },
           {
             "field_name": "m_flSlopeDropHeight",
-            "offset": 5184
+            "offset": 5128
           },
           {
             "field_name": "m_vHeadConstraintOffset",
-            "offset": 5200
+            "offset": 5144
           },
           {
             "field_name": "m_bClientTransparentImmunityAlphaEffectEnabled",
-            "offset": 5224
+            "offset": 5168
           },
           {
             "field_name": "m_bClientDeferDrawToImmunityAlphaPass",
-            "offset": 5225
+            "offset": 5169
           },
           {
             "field_name": "m_bIsScoped",
-            "offset": 5226
+            "offset": 5170
           },
           {
             "field_name": "m_bIsWalking",
-            "offset": 5227
+            "offset": 5171
           },
           {
             "field_name": "m_bResumeZoom",
-            "offset": 5228
+            "offset": 5172
           },
           {
             "field_name": "m_iPlayerState",
-            "offset": 5232
+            "offset": 5176
           },
           {
             "field_name": "m_bIsDefusing",
-            "offset": 5236
+            "offset": 5180
           },
           {
             "field_name": "m_bIsGrabbingHostage",
-            "offset": 5237
+            "offset": 5181
           },
           {
             "field_name": "m_iBlockingUseActionInProgress",
-            "offset": 5240
+            "offset": 5184
           },
           {
             "field_name": "m_bIsRescuing",
-            "offset": 5244
+            "offset": 5188
           },
           {
             "field_name": "m_fImmuneToGunGameDamageTime",
-            "offset": 5248
+            "offset": 5192
           },
           {
             "field_name": "m_fImmuneToGunGameDamageTimeLast",
-            "offset": 5252
+            "offset": 5196
           },
           {
             "field_name": "m_bGunGameImmunity",
-            "offset": 5256
+            "offset": 5200
           },
           {
             "field_name": "m_bHasMovedSinceSpawn",
-            "offset": 5257
+            "offset": 5201
           },
           {
             "field_name": "m_bMadeFinalGunGameProgressiveKill",
-            "offset": 5258
+            "offset": 5202
           },
           {
             "field_name": "m_iGunGameProgressiveWeaponIndex",
-            "offset": 5260
+            "offset": 5204
           },
           {
             "field_name": "m_iNumGunGameTRKillPoints",
-            "offset": 5264
+            "offset": 5208
           },
           {
             "field_name": "m_iNumGunGameKillsWithCurrentWeapon",
-            "offset": 5268
+            "offset": 5212
           },
           {
             "field_name": "m_unTotalRoundDamageDealt",
-            "offset": 5272
+            "offset": 5216
           },
           {
             "field_name": "m_fMolotovUseTime",
-            "offset": 5276
+            "offset": 5220
           },
           {
             "field_name": "m_fMolotovDamageTime",
-            "offset": 5280
+            "offset": 5224
           },
           {
             "field_name": "m_bInBombZone",
-            "offset": 5284
+            "offset": 5228
           },
           {
             "field_name": "m_nWhichBombZone",
-            "offset": 5288
+            "offset": 5232
           },
           {
             "field_name": "m_bInBuyZone",
-            "offset": 5292
+            "offset": 5236
           },
           {
             "field_name": "m_bInNoDefuseArea",
-            "offset": 5293
+            "offset": 5237
           },
           {
             "field_name": "m_iThrowGrenadeCounter",
-            "offset": 5296
+            "offset": 5240
           },
           {
             "field_name": "m_bWaitForNoAttack",
-            "offset": 5300
+            "offset": 5244
           },
           {
             "field_name": "m_flGuardianTooFarDistFrac",
-            "offset": 5304
+            "offset": 5248
           },
           {
             "field_name": "m_flDetectedByEnemySensorTime",
-            "offset": 5308
+            "offset": 5252
           },
           {
             "field_name": "m_flNextGuardianTooFarWarning",
-            "offset": 5312
+            "offset": 5256
           },
           {
             "field_name": "m_bSuppressGuardianTooFarWarningAudio",
-            "offset": 5316
+            "offset": 5260
           },
           {
             "field_name": "m_bKilledByTaser",
-            "offset": 5317
+            "offset": 5261
           },
           {
             "field_name": "m_iMoveState",
-            "offset": 5320
+            "offset": 5264
           },
           {
             "field_name": "m_bCanMoveDuringFreezePeriod",
-            "offset": 5324
+            "offset": 5268
           },
           {
             "field_name": "m_isCurrentGunGameLeader",
-            "offset": 5325
+            "offset": 5269
           },
           {
             "field_name": "m_isCurrentGunGameTeamLeader",
-            "offset": 5326
+            "offset": 5270
           },
           {
             "field_name": "m_flLowerBodyYawTarget",
-            "offset": 5328
+            "offset": 5272
           },
           {
             "field_name": "m_bStrafing",
-            "offset": 5332
+            "offset": 5276
           },
           {
             "field_name": "m_szLastPlaceName",
-            "offset": 5333
+            "offset": 5277
           },
           {
             "field_name": "m_flLastSpawnTimeIndex",
-            "offset": 5352
+            "offset": 5296
           },
           {
             "field_name": "m_flEmitSoundTime",
-            "offset": 5356
+            "offset": 5300
           },
           {
             "field_name": "m_iAddonBits",
-            "offset": 5360
+            "offset": 5304
           },
           {
             "field_name": "m_iPrimaryAddon",
-            "offset": 5364
+            "offset": 5308
           },
           {
             "field_name": "m_iSecondaryAddon",
-            "offset": 5368
+            "offset": 5312
           },
           {
             "field_name": "m_iProgressBarDuration",
-            "offset": 5372
+            "offset": 5316
           },
           {
             "field_name": "m_flProgressBarStartTime",
-            "offset": 5376
+            "offset": 5320
           },
           {
             "field_name": "m_flStamina",
-            "offset": 5380
+            "offset": 5324
           },
           {
             "field_name": "m_iDirection",
-            "offset": 5384
+            "offset": 5328
           },
           {
             "field_name": "m_iShotsFired",
-            "offset": 5388
+            "offset": 5332
           },
           {
             "field_name": "m_bNightVisionOn",
-            "offset": 5392
+            "offset": 5336
           },
           {
             "field_name": "m_bHasNightVision",
-            "offset": 5393
+            "offset": 5337
           },
           {
             "field_name": "m_flVelocityModifier",
-            "offset": 5396
+            "offset": 5340
+          },
+          {
+            "field_name": "m_flHitHeading",
+            "offset": 5344
+          },
+          {
+            "field_name": "m_nHitBodyPart",
+            "offset": 5348
           },
           {
             "field_name": "m_iStartAccount",
-            "offset": 5400
+            "offset": 5352
           },
           {
             "field_name": "m_bIsSpawnRappelling",
-            "offset": 5404
+            "offset": 5356
           },
           {
             "field_name": "m_vecSpawnRappellingRopeOrigin",
-            "offset": 5408
+            "offset": 5360
           },
           {
             "field_name": "m_flSpawnRappellingFadeOutForClientViewOffset",
-            "offset": 5420
+            "offset": 5372
           },
           {
             "field_name": "m_nSurvivalTeam",
-            "offset": 5424
+            "offset": 5376
           },
           {
             "field_name": "m_hSurvivalAssassinationTarget",
-            "offset": 5428
+            "offset": 5380
           },
           {
             "field_name": "m_flHealthShotBoostExpirationTime",
-            "offset": 5432
+            "offset": 5384
           },
           {
             "field_name": "m_flLastKnownParachuteScreenEffectAmount",
-            "offset": 5436
+            "offset": 5388
           },
           {
             "field_name": "m_vecIntroStartEyePosition",
-            "offset": 5440
+            "offset": 5392
           },
           {
             "field_name": "m_vecIntroStartPlayerForward",
-            "offset": 5452
+            "offset": 5404
           },
           {
             "field_name": "m_flClientDeathTime",
-            "offset": 5464
+            "offset": 5416
           },
           {
             "field_name": "m_flNightVisionAlpha",
-            "offset": 5476
+            "offset": 5428
           },
           {
             "field_name": "m_bScreenTearFrameCaptured",
-            "offset": 5480
+            "offset": 5432
           },
           {
             "field_name": "m_flFlashBangTime",
-            "offset": 5484
+            "offset": 5436
           },
           {
             "field_name": "m_flFlashScreenshotAlpha",
-            "offset": 5488
+            "offset": 5440
           },
           {
             "field_name": "m_flFlashOverlayAlpha",
-            "offset": 5492
+            "offset": 5444
           },
           {
             "field_name": "m_bFlashBuildUp",
-            "offset": 5496
+            "offset": 5448
           },
           {
             "field_name": "m_bFlashDspHasBeenCleared",
-            "offset": 5497
+            "offset": 5449
           },
           {
             "field_name": "m_bFlashScreenshotHasBeenGrabbed",
-            "offset": 5498
+            "offset": 5450
           },
           {
             "field_name": "m_flFlashMaxAlpha",
-            "offset": 5500
+            "offset": 5452
           },
           {
             "field_name": "m_flFlashDuration",
-            "offset": 5504
+            "offset": 5456
           },
           {
             "field_name": "m_flLastFiredWeaponTime",
-            "offset": 5508
+            "offset": 5460
           },
           {
             "field_name": "m_lastStandingPos",
-            "offset": 5512
+            "offset": 5464
           },
           {
             "field_name": "m_vecLastMuzzleFlashPos",
-            "offset": 5524
+            "offset": 5476
           },
           {
             "field_name": "m_angLastMuzzleFlashAngle",
-            "offset": 5536
+            "offset": 5488
           },
           {
             "field_name": "m_hMuzzleFlashShape",
-            "offset": 5548
+            "offset": 5500
           },
           {
             "field_name": "m_iHealthBarRenderMaskIndex",
-            "offset": 5552
+            "offset": 5504
           },
           {
             "field_name": "m_flHealthFadeValue",
-            "offset": 5556
+            "offset": 5508
           },
           {
             "field_name": "m_flHealthFadeAlpha",
-            "offset": 5560
+            "offset": 5512
           },
           {
             "field_name": "m_nMyCollisionGroup",
-            "offset": 5564
+            "offset": 5516
           },
           {
             "field_name": "m_ignoreLadderJumpTime",
-            "offset": 5568
+            "offset": 5520
           },
           {
             "field_name": "m_ladderSurpressionTimer",
-            "offset": 5576
+            "offset": 5528
           },
           {
             "field_name": "m_lastLadderNormal",
-            "offset": 5600
+            "offset": 5552
           },
           {
             "field_name": "m_lastLadderPos",
-            "offset": 5612
+            "offset": 5564
           },
           {
             "field_name": "m_flDeathCCWeight",
-            "offset": 5632
+            "offset": 5584
           },
           {
             "field_name": "m_bOldIsScoped",
-            "offset": 5636
+            "offset": 5588
           },
           {
             "field_name": "m_flPrevRoundEndTime",
-            "offset": 5640
+            "offset": 5592
           },
           {
             "field_name": "m_flPrevMatchEndTime",
-            "offset": 5644
+            "offset": 5596
           },
           {
             "field_name": "m_unCurrentEquipmentValue",
-            "offset": 5648
+            "offset": 5600
           },
           {
             "field_name": "m_unRoundStartEquipmentValue",
-            "offset": 5650
+            "offset": 5602
           },
           {
             "field_name": "m_unFreezetimeEndEquipmentValue",
-            "offset": 5652
+            "offset": 5604
           },
           {
             "field_name": "m_passiveItems",
-            "offset": 5654
+            "offset": 5606
           },
           {
             "field_name": "m_vecThirdPersonViewPositionOverride",
-            "offset": 5660
+            "offset": 5612
           },
           {
             "field_name": "m_nHeavyAssaultSuitCooldownRemaining",
-            "offset": 5672
+            "offset": 5624
           },
           {
             "field_name": "m_ArmorValue",
-            "offset": 5676
+            "offset": 5628
           },
           {
             "field_name": "m_angEyeAngles",
-            "offset": 5680
+            "offset": 5632
           },
           {
             "field_name": "m_bInHostageRescueZone",
-            "offset": 5704
+            "offset": 5656
           },
           {
             "field_name": "m_fNextThinkPushAway",
-            "offset": 5708
+            "offset": 5660
           },
           {
             "field_name": "m_bShouldAutobuyDMWeapons",
-            "offset": 5712
-          },
-          {
-            "field_name": "m_bTeamIntroActivated",
-            "offset": 5713
+            "offset": 5664
           },
           {
             "field_name": "m_bShouldAutobuyNow",
-            "offset": 5714
+            "offset": 5665
           },
           {
             "field_name": "m_bHud_MiniScoreHidden",
-            "offset": 5715
+            "offset": 5666
           },
           {
             "field_name": "m_bHud_RadarHidden",
-            "offset": 5716
+            "offset": 5667
           },
           {
             "field_name": "m_nLastKillerIndex",
-            "offset": 5720
+            "offset": 5668
           },
           {
             "field_name": "m_nLastConcurrentKilled",
-            "offset": 5724
+            "offset": 5672
           },
           {
             "field_name": "m_nDeathCamMusic",
-            "offset": 5728
+            "offset": 5676
           },
           {
             "field_name": "m_iIDEntIndex",
-            "offset": 5732
+            "offset": 5680
           },
           {
             "field_name": "m_delayTargetIDTimer",
-            "offset": 5736
+            "offset": 5688
           },
           {
             "field_name": "m_iTargetedWeaponEntIndex",
-            "offset": 5760
+            "offset": 5712
           },
           {
             "field_name": "m_iOldIDEntIndex",
-            "offset": 5764
+            "offset": 5716
           },
           {
             "field_name": "m_holdTargetIDTimer",
-            "offset": 5768
+            "offset": 5720
           },
           {
             "field_name": "m_flCurrentMusicStartTime",
-            "offset": 5868
+            "offset": 5820
           },
           {
             "field_name": "m_flMusicRoundStartTime",
-            "offset": 5872
+            "offset": 5824
           },
           {
             "field_name": "m_cycleLatch",
-            "offset": 5876
+            "offset": 5828
           },
           {
             "field_name": "m_serverIntendedCycle",
-            "offset": 5880
+            "offset": 5832
           },
           {
             "field_name": "m_vecPlayerPatchEconIndices",
-            "offset": 5884
+            "offset": 5836
           },
           {
             "field_name": "m_bHideTargetID",
-            "offset": 5912
+            "offset": 5864
           },
           {
             "field_name": "m_nextTaserShakeTime",
-            "offset": 5916
+            "offset": 5868
           },
           {
             "field_name": "m_firstTaserShakeTime",
-            "offset": 5920
+            "offset": 5872
           },
           {
             "field_name": "m_flLastSmokeOverlayAlpha",
-            "offset": 5924
+            "offset": 5876
           },
           {
             "field_name": "m_vLastSmokeOverlayColor",
-            "offset": 5928
+            "offset": 5880
           },
           {
             "field_name": "m_nPlayerSmokedFx",
-            "offset": 5940
+            "offset": 5892
           },
           {
             "field_name": "m_flNextMagDropTime",
-            "offset": 5944
+            "offset": 5896
           },
           {
             "field_name": "m_nLastMagDropAttachmentIndex",
-            "offset": 5948
+            "offset": 5900
           },
           {
             "field_name": "m_vecBulletHitModels",
-            "offset": 5952
+            "offset": 5904
           },
           {
             "field_name": "m_vecPickupModelSlerpers",
-            "offset": 5976
+            "offset": 5928
           },
           {
             "field_name": "m_vecLastAliveLocalVelocity",
-            "offset": 6000
+            "offset": 5952
           },
           {
             "field_name": "m_flLastNearbyItemHighlightCheck",
-            "offset": 6012
+            "offset": 5964
           },
           {
             "field_name": "m_bInSurvivalDangerZone",
-            "offset": 6016
+            "offset": 5968
           },
           {
             "field_name": "m_bNearDangerZone",
-            "offset": 6017
+            "offset": 5969
           },
           {
             "field_name": "m_entitySpottedState",
-            "offset": 6072
+            "offset": 6024
           },
           {
             "field_name": "m_flTimeOfLastInjury",
-            "offset": 6096
+            "offset": 6048
           },
           {
             "field_name": "m_nRelativeDirectionOfLastInjury",
-            "offset": 6100
+            "offset": 6052
           },
           {
             "field_name": "m_nSurvivalTeamNumber",
-            "offset": 6104
+            "offset": 6056
           },
           {
             "field_name": "m_flNextSprayDecalTime",
-            "offset": 6108
+            "offset": 6060
           },
           {
             "field_name": "m_bPreviouslyInBuyZone",
-            "offset": 6112
+            "offset": 6064
           },
           {
             "field_name": "m_unPreviousWeaponHash",
-            "offset": 6116
+            "offset": 6068
           },
           {
             "field_name": "m_unWeaponHash",
-            "offset": 6120
+            "offset": 6072
           },
           {
             "field_name": "m_bPrevDefuser",
-            "offset": 6124
+            "offset": 6076
           },
           {
             "field_name": "m_bPrevHelmet",
-            "offset": 6125
+            "offset": 6077
           },
           {
             "field_name": "m_nPrevArmorVal",
-            "offset": 6128
+            "offset": 6080
           },
           {
             "field_name": "m_nPrevGrenadeAmmoCount",
-            "offset": 6132
+            "offset": 6084
           },
           {
             "field_name": "m_bGuardianShouldSprayCustomXMark",
-            "offset": 6136
+            "offset": 6088
           },
           {
             "field_name": "m_aimPunchAngle",
-            "offset": 6140
+            "offset": 6092
           },
           {
             "field_name": "m_aimPunchAngleVel",
-            "offset": 6152
+            "offset": 6104
           },
           {
             "field_name": "m_aimPunchTickBase",
-            "offset": 6164
+            "offset": 6116
           },
           {
             "field_name": "m_aimPunchTickFraction",
-            "offset": 6168
+            "offset": 6120
           },
           {
             "field_name": "m_aimPunchCache",
-            "offset": 6176
+            "offset": 6128
           },
           {
             "field_name": "m_flOldFallVelocity",
-            "offset": 6208
+            "offset": 6160
           },
           {
             "field_name": "m_bHasDeathInfo",
-            "offset": 6212
+            "offset": 6164
           },
           {
             "field_name": "m_flDeathInfoTime",
-            "offset": 6216
+            "offset": 6168
           },
           {
             "field_name": "m_vecDeathInfoOrigin",
-            "offset": 6220
+            "offset": 6172
           },
           {
             "field_name": "m_bKilledByHeadshot",
-            "offset": 6232
+            "offset": 6184
           },
           {
             "field_name": "m_hOriginalController",
-            "offset": 6236
+            "offset": 6188
           },
           {
             "field_name": "m_flLandseconds",
-            "offset": 6256
+            "offset": 6208
           }
         ]
       },
@@ -65977,7 +66014,7 @@
         "offsets": [
           {
             "field_name": "m_hDetectParentChange",
-            "offset": 6280
+            "offset": 6248
           }
         ]
       },
@@ -65986,91 +66023,91 @@
         "offsets": [
           {
             "field_name": "m_pBulletServices",
-            "offset": 6280
+            "offset": 6248
           },
           {
             "field_name": "m_pHostageServices",
-            "offset": 6288
+            "offset": 6256
           },
           {
             "field_name": "m_pBuyServices",
-            "offset": 6296
+            "offset": 6264
           },
           {
             "field_name": "m_pGlowServices",
-            "offset": 6304
+            "offset": 6272
           },
           {
             "field_name": "m_bIsBuyMenuOpen",
-            "offset": 6312
+            "offset": 6280
           },
           {
             "field_name": "m_iRetakesOffering",
-            "offset": 6512
+            "offset": 6488
           },
           {
             "field_name": "m_iRetakesOfferingCard",
-            "offset": 6516
+            "offset": 6492
           },
           {
             "field_name": "m_bRetakesHasDefuseKit",
-            "offset": 6520
+            "offset": 6496
           },
           {
             "field_name": "m_bRetakesMVPLastRound",
-            "offset": 6521
+            "offset": 6497
           },
           {
             "field_name": "m_iRetakesMVPBoostItem",
-            "offset": 6524
+            "offset": 6500
           },
           {
             "field_name": "m_RetakesMVPBoostExtraUtility",
-            "offset": 6528
+            "offset": 6504
           },
           {
             "field_name": "m_bNeedToReApplyGloves",
-            "offset": 6560
+            "offset": 6536
           },
           {
             "field_name": "m_EconGloves",
-            "offset": 6568
+            "offset": 6544
           },
           {
             "field_name": "m_bMustSyncRagdollState",
-            "offset": 7664
+            "offset": 7640
           },
           {
             "field_name": "m_nRagdollDamageBone",
-            "offset": 7668
+            "offset": 7644
           },
           {
             "field_name": "m_vRagdollDamageForce",
-            "offset": 7672
+            "offset": 7648
           },
           {
             "field_name": "m_vRagdollDamagePosition",
-            "offset": 7684
+            "offset": 7660
           },
           {
             "field_name": "m_szRagdollDamageWeaponName",
-            "offset": 7696
+            "offset": 7672
           },
           {
             "field_name": "m_bRagdollDamageHeadshot",
-            "offset": 7760
+            "offset": 7736
           },
           {
             "field_name": "m_bLastHeadBoneTransformIsValid",
-            "offset": 8064
+            "offset": 9040
           },
           {
             "field_name": "m_qDeathEyeAngles",
-            "offset": 8092
+            "offset": 9068
           },
           {
             "field_name": "m_bSkipOneHeadConstraintUpdate",
-            "offset": 8104
+            "offset": 9080
           }
         ]
       },
@@ -66079,67 +66116,67 @@
         "offsets": [
           {
             "field_name": "m_entitySpottedState",
-            "offset": 4408
+            "offset": 4416
           },
           {
             "field_name": "m_leader",
-            "offset": 4432
+            "offset": 4440
           },
           {
             "field_name": "m_vel",
-            "offset": 4436
+            "offset": 4444
           },
           {
             "field_name": "m_isRescued",
-            "offset": 4448
-          },
-          {
-            "field_name": "m_jumpedThisFrame",
-            "offset": 4449
-          },
-          {
-            "field_name": "m_nHostageState",
-            "offset": 4452
-          },
-          {
-            "field_name": "m_flRescueStartTime",
             "offset": 4456
           },
           {
-            "field_name": "m_flGrabSuccessTime",
+            "field_name": "m_jumpedThisFrame",
+            "offset": 4457
+          },
+          {
+            "field_name": "m_nHostageState",
             "offset": 4460
           },
           {
-            "field_name": "m_flDropStartTime",
+            "field_name": "m_flRescueStartTime",
             "offset": 4464
           },
           {
-            "field_name": "m_flDeadOrRescuedTime",
+            "field_name": "m_flGrabSuccessTime",
             "offset": 4468
           },
           {
-            "field_name": "m_blinkTimer",
+            "field_name": "m_flDropStartTime",
             "offset": 4472
           },
           {
+            "field_name": "m_flDeadOrRescuedTime",
+            "offset": 4476
+          },
+          {
+            "field_name": "m_blinkTimer",
+            "offset": 4480
+          },
+          {
             "field_name": "m_lookAt",
-            "offset": 4496
+            "offset": 4504
           },
           {
             "field_name": "m_lookAroundTimer",
-            "offset": 4512
+            "offset": 4520
           },
           {
             "field_name": "m_isInit",
-            "offset": 4536
+            "offset": 4544
           },
           {
             "field_name": "m_eyeAttachment",
-            "offset": 4537
+            "offset": 4545
           },
           {
             "field_name": "m_chestAttachment",
-            "offset": 4538
+            "offset": 4546
           }
         ]
       },
@@ -66272,15 +66309,15 @@
         "offsets": [
           {
             "field_name": "m_animgraph",
-            "offset": 8112
+            "offset": 9088
           },
           {
             "field_name": "m_animgraphCharacterModeString",
-            "offset": 8120
+            "offset": 9096
           },
           {
             "field_name": "m_flInitialModelScale",
-            "offset": 8128
+            "offset": 9104
           }
         ]
       },
