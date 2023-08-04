@@ -3,6 +3,7 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
+use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
 use cs2::{CS2Handle, Module, EntityHandle, CS2Offsets, EntitySystem, offsets_manual, CS2Model, BoneFlags};
 use cs2_schema::offsets;
@@ -13,14 +14,49 @@ use view::ViewController;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::RefCell,
-    collections::{btree_map::Entry, BTreeMap},
-    fmt::Debug, sync::Arc, time::Instant, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
+    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
 use crate::settings::save_app_settings;
 
 mod view;
 mod settings;
+mod cache;
+
+#[derive(Debug)]
+pub struct BombDefuser {
+    /// Totoal time remaining for a successfull bomb defuse
+    pub time_remaining: f32,
+
+    /// The defusers player name
+    pub player_name: String,
+}
+
+#[derive(Debug)]
+pub enum BombState {
+    /// Bomb hasn't been planted
+    Unset,
+
+    /// Bomb is currently actively ticking
+    Active { 
+        /// Planted bomb site
+        /// 0 = A
+        /// 1 = B
+        bomb_site: u8,
+
+        /// Time remaining (in seconds) until detonation
+        time_detonation: f32,
+
+        /// Current bomb defuser
+        defuse: Option<BombDefuser>,
+    },
+
+    /// Bomb has detonated
+    Detonated,
+
+    /// Bomb has been defused
+    Defused,
+}
 
 struct PlayerInfo {
     local: bool,
@@ -34,38 +70,34 @@ struct PlayerInfo {
     bone_states: Vec<BoneStateData>,
 }
 
+#[repr(C)]
+#[derive(Debug, Default)]
+pub struct Globals {
+    // Some time which
+    pub time_1: f32,
+    pub frame_count_1: u32,
 
-struct CachedModel {
-    model: Arc<CS2Model>,
-    last_use: Instant,
-    flag_used: bool,
+    unknown_0: f32,
+    unknown_1: f32,
+    unknown_2: f32,
+    unknown_3: u32,
+    unknown_4: u32,
+    unknown_5: f32,
+
+    unknown_6: u64, // Some function
+    unknown_7: f32,
+    
+    pub time_2: f32,
+    pub time_3: f32,
+    
+    unknown_8: f32,
+    unknown_9: f32,
+    unknown_10: u32,
+    pub frame_count_2: u32,
+    pub two_tick_time: f32, // Assuming CS runs on 128 tick
 }
+const _: [u8; 0x48] = [0; std::mem::size_of::<Globals>()];
 
-impl CachedModel {
-    pub fn create(model: Arc<CS2Model>) -> Self {
-        Self {
-            model,
-            last_use: Instant::now(),
-            flag_used: false,
-        }
-    }
-
-    pub fn flag_use(&mut self) {
-        self.flag_used = true;
-    }
-
-    /// Commits the used flag.
-    /// Returns the seconds since last use.
-    pub fn commit_use(&mut self) -> u64 {
-        if self.flag_used {
-            self.flag_used = false;
-            self.last_use = Instant::now();
-            0
-        } else {
-            self.last_use.elapsed().as_secs()
-        }
-    }
-}
 
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -82,10 +114,13 @@ struct Application {
     cs2_entities: EntitySystem,
 
     settings_visible: bool,
-    model_cache: BTreeMap<u64, CachedModel>,
+    model_cache: EntryCache<u64, CS2Model>,
+    class_name_cache: EntryCache<u64, Option<String>>,
 
     players: Vec<PlayerInfo>,
     view_controller: ViewController,
+
+    bomb_state: BombState,
 
     settings: RefCell<AppSettings>,
     settings_dirty: bool,
@@ -109,6 +144,7 @@ impl Application {
     }
 
     pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
+        let settings = self.settings.borrow();
         if ui.is_key_pressed_no_repeat(imgui::Key::Keypad0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
@@ -126,12 +162,15 @@ impl Application {
         self.players.clear();
         self.players.reserve(16);
 
+        let globals = self.cs2.read::<Globals>(Module::Client, &[ self.cs2_offsets.globals, 0 ])
+            .with_context(|| obfstr!("failed to read globals").to_string())?;
+        
         let local_player_controller = self
             .cs2_entities
-            .get_local_player_controller(&self.cs2)?
+            .get_local_player_controller()?
             .with_context(|| obfstr!("missing local player controller").to_string())?;
 
-        for player_controller in self.cs2_entities.get_player_controllers(&self.cs2)? {
+        for player_controller in self.cs2_entities.get_player_controllers()? {
             let player_pawn_handle = self
                 .cs2
                 .read::<EntityHandle>(
@@ -157,7 +196,7 @@ impl Application {
 
             let player_pawn = self
                 .cs2_entities
-                .get_by_handle(&self.cs2, &player_pawn_handle)?
+                .get_by_handle(&player_pawn_handle)?
                 .with_context(|| obfstr!("missing player pawn for player controller").to_string())?;
 
             /* Will be an instance of CSkeletonInstance */
@@ -195,20 +234,7 @@ impl Application {
                 ],
             )?;
 
-            let model = match self.model_cache.entry(model) {
-                Entry::Occupied(value) => value.into_mut(),
-                Entry::Vacant(value) => {
-                    let model_name =
-                        self.cs2
-                            .read_string(Module::Absolute, &[model + 0x08, 0], Some(32))?;
-                    log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
-
-                    let model = CS2Model::read(&self.cs2, model)?;
-                    value.insert(CachedModel::create(Arc::new(model)))
-                }
-            };
-            model.flag_use();
-
+            let model = self.model_cache.lookup(model)?;
             let bone_states = self.cs2.read_vec::<BoneStateData>(
                 Module::Absolute,
                 &[
@@ -217,7 +243,7 @@ impl Application {
                     + offsets_manual::client::CModelState::BONE_STATE_DATA,
                     0, /* read the whole array */
                 ],
-                model.model.bones.len(),
+                model.bones.len(),
             )?;
 
             self.players.push(PlayerInfo {
@@ -229,8 +255,98 @@ impl Application {
                 debug_text: "".to_string(),
 
                 bone_states,
-                model: model.model.clone(),
+                model: model.clone(),
             });
+        }
+
+        self.bomb_state = BombState::Unset;
+        if settings.bomb_timer {
+            let entities = self.cs2_entities.all_identities()
+                .context("failed to read entity list")?;
+
+            for entity in entities.iter() {
+                let entity_vtable = self.cs2.read::<u64>(Module::Absolute, &[
+                    entity.entity_ptr + 0x00, // V-Table
+                ])?;
+
+                let class_name = self.class_name_cache.lookup(entity_vtable)?;
+                if !(*class_name).as_ref().map(|name| name == "C_PlantedC4").unwrap_or(false) {
+                    /* Entity isn't the bomb. */
+                    continue;
+                }
+
+                // TODO. Read the whole class at once (we know the class size from the schema)
+                //       This would require another schema structure thou...
+
+                let is_activated = self.cs2.read::<bool>(Module::Absolute, &[
+                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bC4Activated
+                ])?;
+                if !is_activated {
+                    /* This bomb hasn't been activated (yet) */
+                    continue;
+                }
+
+                let is_defused = self.cs2.read::<bool>(Module::Absolute, &[
+                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bBombDefused
+                ])?;
+                if is_defused {
+                    self.bomb_state = BombState::Defused;
+                    break;
+                }
+
+                let time_blow = self.cs2.read::<f32>(Module::Absolute, &[
+                    entity.entity_ptr + offsets::client::C_PlantedC4::m_flC4Blow
+                ])?;
+                let bomb_site = self.cs2.read::<u8>(Module::Absolute, &[
+                    entity.entity_ptr + offsets::client::C_PlantedC4::m_nBombSite
+                ])?;
+
+                if time_blow <= globals.time_2 {
+                    self.bomb_state = BombState::Detonated;
+                    break;
+                }
+
+                let is_defusing = self.cs2.read::<bool>(Module::Absolute, &[
+                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bBeingDefused
+                ])?;
+                let defusing = if is_defusing {
+                    let time_defuse = self.cs2.read::<f32>(Module::Absolute, &[
+                        entity.entity_ptr + offsets::client::C_PlantedC4::m_flDefuseCountDown
+                    ])?;
+
+                    let handle_defuser = self.cs2.read::<EntityHandle>(Module::Absolute, &[
+                        entity.entity_ptr + offsets::client::C_PlantedC4::m_hBombDefuser
+                    ])?;
+                    
+                    let defuser = self.cs2_entities.get_by_handle(&handle_defuser)?
+                        .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?;
+
+                    let handle_controller = self.cs2.read::<EntityHandle>(Module::Absolute, &[ 
+                        defuser + offsets::client::C_BasePlayerPawn::m_hController
+                    ])?;
+                    let controller = self.cs2_entities.get_by_handle(&handle_controller)?
+                        .with_context(|| obfstr!("missing pawn controller").to_string())?;
+                    
+                    let defuser_name = self.cs2.read_string(
+                        Module::Absolute,
+                        &[controller + offsets::client::CBasePlayerController::m_iszPlayerName],
+                        Some(128),
+                    )?;
+
+                    Some(BombDefuser{ 
+                        time_remaining: time_defuse - globals.time_2,
+                        player_name: defuser_name
+                    })
+                } else {
+                    None
+                };
+
+                self.bomb_state = BombState::Active { 
+                    bomb_site, time_detonation: time_blow - globals.time_2, 
+                    defuse: defusing
+                };
+                break;
+            }
         }
 
         Ok(())
@@ -425,7 +541,43 @@ impl Application {
                     &(entry.model.vhull_max + entry.position),
                     ImColor32::from_rgb(255, 0, 255),
                 );
-                //self.draw_box_3d(&draw, &(model.vview_min + entry.position), &(model.vview_max + entry.position), ImColor32::from_rgb(0, 0, 255));
+            }
+
+            if settings.bomb_timer {
+                let group = ui.begin_group();
+
+                let line_height = ui.text_line_height_with_spacing();
+                ui.set_cursor_pos([ 10.0, ui.window_size()[1] * 0.95 - line_height * 5.0 ]); // ui.frame_height() - line_height * 5.0 
+
+                match &self.bomb_state {
+                    BombState::Unset => {},
+                    BombState::Active { bomb_site, time_detonation, defuse } => {
+                        ui.text(&format!("Bomb planted on {}", if *bomb_site == 0 { "A" } else { "B" }));
+                        ui.text(&format!("Damage:"));
+                        ui.same_line();
+                        ui.text_colored([ 0.0, 0.0, 0.0, 0.0 ], "???");
+                        ui.text(&format!("Time: {:.3}", time_detonation));
+                        if let Some(defuse) = defuse.as_ref() {
+                            let color = if defuse.time_remaining > *time_detonation {
+                                [ 0.79, 0.11, 0.11, 1.0 ]
+                            } else {
+                                [ 0.11, 0.79, 0.26, 1.0 ]
+                            };
+
+                            ui.text_colored(color, &format!("Defused in {:.3} by {}", defuse.time_remaining, defuse.player_name));
+                        } else {
+                            ui.text("Not defusing");
+                        }
+                    },
+                    BombState::Defused => {
+                        ui.text("Bomb has been defused");
+                    },
+                    BombState::Detonated => {
+                        ui.text("Bomb has been detonated");
+                    }
+                }
+
+                group.end();
             }
         }
     }
@@ -442,6 +594,7 @@ impl Application {
                 ui.checkbox(obfstr!("Player Position Dots"), &mut settings.player_pos_dot);
                 ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
                 ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
+                ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
             });
     }
 }
@@ -542,20 +695,57 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let imgui_settings = settings.imgui.clone();
     let app = Application {
-        cs2,
-        cs2_entities: EntitySystem::new(cs2_offsets.clone()),
+        cs2: cs2.clone(),
+        cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
 
         settings_visible: false,
 
         players: Vec::with_capacity(16),
-        model_cache: Default::default(),
+        model_cache: EntryCache::new({
+            let cs2 = cs2.clone();
+            move |model| {
+                let model_name = cs2.read_string(Module::Absolute, &[*model as u64 + 0x08, 0], Some(32))?;
+                log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
+    
+                Ok(CS2Model::read(&cs2, *model as u64)?)
+            }
+        }),
+        class_name_cache: EntryCache::new({
+            let cs2 = cs2.clone();
+            move |vtable: &u64| {
+                let fn_get_class_schema = cs2.read::<u64>(Module::Absolute, &[
+                    *vtable + 0x00, // First entry in V-Table is GetClassSchema
+                ])?;
+
+                let schema_offset = cs2.read::<i32>(Module::Absolute, &[
+                    fn_get_class_schema + 0x03, // lea rcx, <class schema>
+                ])? as u64;
+
+                let class_schema = fn_get_class_schema
+                    .wrapping_add(schema_offset)
+                    .wrapping_add(0x07);
+
+                if !cs2.module_address(Module::Client, class_schema).is_some() {
+                    /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
+                    return Ok(None);
+                }
+
+                let class_name = cs2.read_string(Module::Absolute, &[
+                    class_schema + 0x08,
+                    0
+                ], Some(32))?;
+                Ok(Some(class_name))
+            }
+        }),
 
         view_controller: ViewController::new(cs2_offsets.clone()),
+        bomb_state: BombState::Unset,
 
         settings: RefCell::new(settings),
         settings_dirty: false,
     };
+
     let app = Rc::new(RefCell::new(app));
     
     let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;

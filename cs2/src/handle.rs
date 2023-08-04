@@ -87,6 +87,15 @@ impl CS2Handle {
         Ok(())
     }
 
+    pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
+        let module = module.get_base_offset(&self.module_info)?;
+        if (address as usize) < module.base_address || (address as usize) >= (module.base_address + module.module_size) {
+            None
+        } else {
+            Some(address - module.base_address as u64)
+        }
+    }
+
     pub fn memory_address(&self, module: Module, offset: u64) -> anyhow::Result<u64> {
         Ok(module
             .get_base_offset(&self.module_info)

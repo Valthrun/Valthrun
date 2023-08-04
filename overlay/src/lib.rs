@@ -97,7 +97,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     // scaling factor. Meaning, 13.0 pixels should look the same size
     // on two different screens, and thus we do not need to scale this
     // value (as the scaling is handled by winit)
-    let font_size = 13.0;
+    let font_size = 18.0;
 
     imgui.fonts().add_font(&[FontSource::TtfData {
         data: include_bytes!("../resources/Roboto-Regular.ttf"),

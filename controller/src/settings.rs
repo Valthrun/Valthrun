@@ -2,6 +2,7 @@ use std::{path::PathBuf, fs::File, io::{BufReader, BufWriter}};
 use serde::{ Deserialize, Serialize };
 use anyhow::Context;
 
+fn bool_true() -> bool { true }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
@@ -10,6 +11,9 @@ pub struct AppSettings {
     
     pub esp_skeleton: bool,
     pub esp_boxes: bool,
+
+    #[serde(default = "bool_true")]
+    pub bomb_timer: bool,
 
     pub imgui: Option<String>,
 }
@@ -22,6 +26,8 @@ impl Default for AppSettings {
             player_pos_dot: false, 
             esp_skeleton: true,
             esp_boxes: false,
+
+            bomb_timer: true,
 
             imgui: None,
         }

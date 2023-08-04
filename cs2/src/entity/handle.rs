@@ -33,7 +33,6 @@ impl EntityHandle {
 impl Debug for EntityHandle {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct(obfstr!("EntityHandle"))
-            .field("value", &self.value)
             .field(
                 "entity_index",
                 &format_args!("0x{:X}", &self.get_entity_index()),
