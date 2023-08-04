@@ -5,15 +5,15 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, EntityHandle, CS2Offsets, EntitySystem, offsets_manual, CS2Model, BoneFlags};
-use cs2_schema::offsets;
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals};
 use imgui::{Condition, ImColor32};
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use view::ViewController;
+use visuals::{BombState, PlayerInfo};
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
-    cell::RefCell,
+    cell::{RefCell, RefMut},
     fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
@@ -22,111 +22,36 @@ use crate::settings::save_app_settings;
 mod view;
 mod settings;
 mod cache;
+mod visuals;
 
-#[derive(Debug)]
-pub struct BombDefuser {
-    /// Totoal time remaining for a successfull bomb defuse
-    pub time_remaining: f32,
+pub struct Application {
+    pub cs2: Arc<CS2Handle>,
+    pub cs2_offsets: Arc<CS2Offsets>,
+    pub cs2_entities: EntitySystem,
+    pub cs2_globals: Globals,
 
-    /// The defusers player name
-    pub player_name: String,
-}
+    pub settings_visible: bool,
+    pub model_cache: EntryCache<u64, CS2Model>,
+    pub class_name_cache: EntryCache<u64, Option<String>>,
 
-#[derive(Debug)]
-pub enum BombState {
-    /// Bomb hasn't been planted
-    Unset,
+    pub players: Vec<PlayerInfo>,
+    pub view_controller: ViewController,
 
-    /// Bomb is currently actively ticking
-    Active { 
-        /// Planted bomb site
-        /// 0 = A
-        /// 1 = B
-        bomb_site: u8,
+    pub bomb_state: BombState,
 
-        /// Time remaining (in seconds) until detonation
-        time_detonation: f32,
-
-        /// Current bomb defuser
-        defuse: Option<BombDefuser>,
-    },
-
-    /// Bomb has detonated
-    Detonated,
-
-    /// Bomb has been defused
-    Defused,
-}
-
-struct PlayerInfo {
-    local: bool,
-    player_health: i32,
-    player_name: String,
-    position: nalgebra::Vector3<f32>,
-
-    debug_text: String,
-    
-    model: Arc<CS2Model>,
-    bone_states: Vec<BoneStateData>,
-}
-
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct Globals {
-    // Some time which
-    pub time_1: f32,
-    pub frame_count_1: u32,
-
-    unknown_0: f32,
-    unknown_1: f32,
-    unknown_2: f32,
-    unknown_3: u32,
-    unknown_4: u32,
-    unknown_5: f32,
-
-    unknown_6: u64, // Some function
-    unknown_7: f32,
-    
-    pub time_2: f32,
-    pub time_3: f32,
-    
-    unknown_8: f32,
-    unknown_9: f32,
-    unknown_10: u32,
-    pub frame_count_2: u32,
-    pub two_tick_time: f32, // Assuming CS runs on 128 tick
-}
-const _: [u8; 0x48] = [0; std::mem::size_of::<Globals>()];
-
-
-#[repr(C)]
-#[derive(Debug, Default)]
-pub struct BoneStateData {
-    pub position: nalgebra::Vector3<f32>,
-    pub scale: f32,
-    pub rotation: nalgebra::Vector4<f32>,
-}
-const _: [u8; 0x20] = [0; std::mem::size_of::<BoneStateData>()];
-
-struct Application {
-    cs2: Arc<CS2Handle>,
-    cs2_offsets: Arc<CS2Offsets>,
-    cs2_entities: EntitySystem,
-
-    settings_visible: bool,
-    model_cache: EntryCache<u64, CS2Model>,
-    class_name_cache: EntryCache<u64, Option<String>>,
-
-    players: Vec<PlayerInfo>,
-    view_controller: ViewController,
-
-    bomb_state: BombState,
-
-    settings: RefCell<AppSettings>,
-    settings_dirty: bool,
+    pub settings: RefCell<AppSettings>,
+    pub settings_dirty: bool,
 }
 
 impl Application {
+    pub fn settings(&self) -> std::cell::Ref<'_, AppSettings> {
+        self.settings.borrow()
+    }
+
+    pub fn settings_mut(&self) -> RefMut<'_, AppSettings> {
+        self.settings.borrow_mut()
+    }
+
     pub fn pre_update(&mut self, context: &mut imgui::Context) -> anyhow::Result<()> {
         if self.settings_dirty {
             self.settings_dirty = false;
@@ -144,7 +69,6 @@ impl Application {
     }
 
     pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
-        let settings = self.settings.borrow();
         if ui.is_key_pressed_no_repeat(imgui::Key::Keypad0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
@@ -159,194 +83,14 @@ impl Application {
         self.view_controller
             .update_view_matrix(&self.cs2)?;
 
-        self.players.clear();
-        self.players.reserve(16);
 
-        let globals = self.cs2.read::<Globals>(Module::Client, &[ self.cs2_offsets.globals, 0 ])
+        self.cs2_globals = self.cs2.read::<Globals>(Module::Client, &[ self.cs2_offsets.globals, 0 ])
             .with_context(|| obfstr!("failed to read globals").to_string())?;
+       
+        visuals::read_player_info(self)?;
         
-        let local_player_controller = self
-            .cs2_entities
-            .get_local_player_controller()?
-            .with_context(|| obfstr!("missing local player controller").to_string())?;
-
-        for player_controller in self.cs2_entities.get_player_controllers()? {
-            let player_pawn_handle = self
-                .cs2
-                .read::<EntityHandle>(
-                    Module::Absolute,
-                    &[player_controller + offsets::client::CCSPlayerController::m_hPlayerPawn],
-                )
-                .with_context(|| obfstr!("failed to read player pawn handle").to_string())?;
-
-            if !player_pawn_handle.is_valid() {
-                continue;
-            }
-
-            let player_health = self
-                .cs2
-                .read::<i32>(
-                    Module::Absolute,
-                    &[player_controller + offsets::client::CCSPlayerController::m_iPawnHealth],
-                )
-                .with_context(|| obfstr!("failed to read player controller pawn health").to_string())?;
-            if player_health <= 0 {
-                continue;
-            }
-
-            let player_pawn = self
-                .cs2_entities
-                .get_by_handle(&player_pawn_handle)?
-                .with_context(|| obfstr!("missing player pawn for player controller").to_string())?;
-
-            /* Will be an instance of CSkeletonInstance */
-            let game_sceen_node = self.cs2.read::<u64>(
-                Module::Absolute,
-                &[player_pawn + offsets::client::C_BaseEntity::m_pGameSceneNode],
-            )?;
-
-            let player_dormant = self.cs2.read::<bool>(
-                Module::Absolute,
-                &[game_sceen_node + offsets::client::CGameSceneNode::m_bDormant],
-            )?;
-            if player_dormant {
-                continue;
-            }
-
-            let player_name = self.cs2.read_string(
-                Module::Absolute,
-                &[player_controller + offsets::client::CBasePlayerController::m_iszPlayerName],
-                Some(128),
-            )?;
-
-            let position = self.cs2.read::<nalgebra::Vector3<f32>>(
-                Module::Absolute,
-                &[game_sceen_node + offsets::client::CGameSceneNode::m_vecAbsOrigin],
-            )?;
-
-            let model = self.cs2.read::<u64>(
-                Module::Absolute,
-                &[
-                    game_sceen_node
-                    + offsets::client::CSkeletonInstance::m_modelState /* model state */
-                    + offsets::client::CModelState::m_hModel, /* CModel* */
-                    0,
-                ],
-            )?;
-
-            let model = self.model_cache.lookup(model)?;
-            let bone_states = self.cs2.read_vec::<BoneStateData>(
-                Module::Absolute,
-                &[
-                    game_sceen_node
-                    + offsets::client::CSkeletonInstance::m_modelState /* model state */
-                    + offsets_manual::client::CModelState::BONE_STATE_DATA,
-                    0, /* read the whole array */
-                ],
-                model.bones.len(),
-            )?;
-
-            self.players.push(PlayerInfo {
-                local: player_controller == local_player_controller,
-                player_name,
-                player_health,
-                position,
-
-                debug_text: "".to_string(),
-
-                bone_states,
-                model: model.clone(),
-            });
-        }
-
-        self.bomb_state = BombState::Unset;
-        if settings.bomb_timer {
-            let entities = self.cs2_entities.all_identities()
-                .context("failed to read entity list")?;
-
-            for entity in entities.iter() {
-                let entity_vtable = self.cs2.read::<u64>(Module::Absolute, &[
-                    entity.entity_ptr + 0x00, // V-Table
-                ])?;
-
-                let class_name = self.class_name_cache.lookup(entity_vtable)?;
-                if !(*class_name).as_ref().map(|name| name == "C_PlantedC4").unwrap_or(false) {
-                    /* Entity isn't the bomb. */
-                    continue;
-                }
-
-                // TODO. Read the whole class at once (we know the class size from the schema)
-                //       This would require another schema structure thou...
-
-                let is_activated = self.cs2.read::<bool>(Module::Absolute, &[
-                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bC4Activated
-                ])?;
-                if !is_activated {
-                    /* This bomb hasn't been activated (yet) */
-                    continue;
-                }
-
-                let is_defused = self.cs2.read::<bool>(Module::Absolute, &[
-                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bBombDefused
-                ])?;
-                if is_defused {
-                    self.bomb_state = BombState::Defused;
-                    break;
-                }
-
-                let time_blow = self.cs2.read::<f32>(Module::Absolute, &[
-                    entity.entity_ptr + offsets::client::C_PlantedC4::m_flC4Blow
-                ])?;
-                let bomb_site = self.cs2.read::<u8>(Module::Absolute, &[
-                    entity.entity_ptr + offsets::client::C_PlantedC4::m_nBombSite
-                ])?;
-
-                if time_blow <= globals.time_2 {
-                    self.bomb_state = BombState::Detonated;
-                    break;
-                }
-
-                let is_defusing = self.cs2.read::<bool>(Module::Absolute, &[
-                    entity.entity_ptr + offsets::client::C_PlantedC4::m_bBeingDefused
-                ])?;
-                let defusing = if is_defusing {
-                    let time_defuse = self.cs2.read::<f32>(Module::Absolute, &[
-                        entity.entity_ptr + offsets::client::C_PlantedC4::m_flDefuseCountDown
-                    ])?;
-
-                    let handle_defuser = self.cs2.read::<EntityHandle>(Module::Absolute, &[
-                        entity.entity_ptr + offsets::client::C_PlantedC4::m_hBombDefuser
-                    ])?;
-                    
-                    let defuser = self.cs2_entities.get_by_handle(&handle_defuser)?
-                        .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?;
-
-                    let handle_controller = self.cs2.read::<EntityHandle>(Module::Absolute, &[ 
-                        defuser + offsets::client::C_BasePlayerPawn::m_hController
-                    ])?;
-                    let controller = self.cs2_entities.get_by_handle(&handle_controller)?
-                        .with_context(|| obfstr!("missing pawn controller").to_string())?;
-                    
-                    let defuser_name = self.cs2.read_string(
-                        Module::Absolute,
-                        &[controller + offsets::client::CBasePlayerController::m_iszPlayerName],
-                        Some(128),
-                    )?;
-
-                    Some(BombDefuser{ 
-                        time_remaining: time_defuse - globals.time_2,
-                        player_name: defuser_name
-                    })
-                } else {
-                    None
-                };
-
-                self.bomb_state = BombState::Active { 
-                    bomb_site, time_detonation: time_blow - globals.time_2, 
-                    defuse: defusing
-                };
-                break;
-            }
+        if self.settings().bomb_timer {
+            self.bomb_state = visuals::read_bomb_state(self)?;
         }
 
         Ok(())
@@ -363,79 +107,6 @@ impl Application {
 
         if self.settings_visible {
             self.render_settings(ui);
-        }
-    }
-
-    fn draw_box_3d(
-        &self,
-        draw: &imgui::DrawListMut,
-        vmin: &nalgebra::Vector3<f32>,
-        vmax: &nalgebra::Vector3<f32>,
-        color: ImColor32,
-    ) {
-        type Vec3 = nalgebra::Vector3<f32>;
-
-        let lines = [
-            /* bottom */
-            (
-                Vec3::new(vmin.x, vmin.y, vmin.z),
-                Vec3::new(vmax.x, vmin.y, vmin.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmin.y, vmin.z),
-                Vec3::new(vmax.x, vmin.y, vmax.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmin.y, vmax.z),
-                Vec3::new(vmin.x, vmin.y, vmax.z),
-            ),
-            (
-                Vec3::new(vmin.x, vmin.y, vmax.z),
-                Vec3::new(vmin.x, vmin.y, vmin.z),
-            ),
-            /* top */
-            (
-                Vec3::new(vmin.x, vmax.y, vmin.z),
-                Vec3::new(vmax.x, vmax.y, vmin.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmax.y, vmin.z),
-                Vec3::new(vmax.x, vmax.y, vmax.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmax.y, vmax.z),
-                Vec3::new(vmin.x, vmax.y, vmax.z),
-            ),
-            (
-                Vec3::new(vmin.x, vmax.y, vmax.z),
-                Vec3::new(vmin.x, vmax.y, vmin.z),
-            ),
-            /* corners */
-            (
-                Vec3::new(vmin.x, vmin.y, vmin.z),
-                Vec3::new(vmin.x, vmax.y, vmin.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmin.y, vmin.z),
-                Vec3::new(vmax.x, vmax.y, vmin.z),
-            ),
-            (
-                Vec3::new(vmax.x, vmin.y, vmax.z),
-                Vec3::new(vmax.x, vmax.y, vmax.z),
-            ),
-            (
-                Vec3::new(vmin.x, vmin.y, vmax.z),
-                Vec3::new(vmin.x, vmax.y, vmax.z),
-            ),
-        ];
-
-        for (start, end) in lines {
-            if let (Some(start), Some(end)) = (
-                self.view_controller.world_to_screen(&start, true),
-                self.view_controller.world_to_screen(&end, true),
-            ) {
-                draw.add_line(start, end, color).build();
-            }
         }
     }
 
@@ -535,11 +206,12 @@ impl Application {
             }
 
             if settings.esp_boxes {
-                self.draw_box_3d(
+                self.view_controller.draw_box_3d(
                     &draw,
                     &(entry.model.vhull_min + entry.position),
                     &(entry.model.vhull_max + entry.position),
                     ImColor32::from_rgb(255, 0, 255),
+                    7.0
                 );
             }
 
@@ -698,6 +370,7 @@ fn main_overlay() -> anyhow::Result<()> {
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
+        cs2_globals: Globals::default(),
 
         settings_visible: false,
 

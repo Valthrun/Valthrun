@@ -1,6 +1,7 @@
 use std::sync::Arc;
 
 use cs2::{CS2Offsets, CS2Handle, Module};
+use imgui::ImColor32;
 
 /// View controller which helps resolve in game
 /// coordinates into 2d screen coordinates.
@@ -57,5 +58,81 @@ impl ViewController {
         screen_pos.x = (screen_pos.x + 1.0) * self.screen_bounds.x / 2.0;
         screen_pos.y = (-screen_pos.y + 1.0) * self.screen_bounds.y / 2.0;
         Some(screen_pos)
+    }
+
+    pub fn draw_box_3d(
+        &self,
+        draw: &imgui::DrawListMut,
+        vmin: &nalgebra::Vector3<f32>,
+        vmax: &nalgebra::Vector3<f32>,
+        color: ImColor32,
+        thickness: f32,
+    ) {
+        type Vec3 = nalgebra::Vector3<f32>;
+
+        let lines = [
+            /* bottom */
+            (
+                Vec3::new(vmin.x, vmin.y, vmin.z),
+                Vec3::new(vmax.x, vmin.y, vmin.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmin.y, vmin.z),
+                Vec3::new(vmax.x, vmin.y, vmax.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmin.y, vmax.z),
+                Vec3::new(vmin.x, vmin.y, vmax.z),
+            ),
+            (
+                Vec3::new(vmin.x, vmin.y, vmax.z),
+                Vec3::new(vmin.x, vmin.y, vmin.z),
+            ),
+            /* top */
+            (
+                Vec3::new(vmin.x, vmax.y, vmin.z),
+                Vec3::new(vmax.x, vmax.y, vmin.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmax.y, vmin.z),
+                Vec3::new(vmax.x, vmax.y, vmax.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmax.y, vmax.z),
+                Vec3::new(vmin.x, vmax.y, vmax.z),
+            ),
+            (
+                Vec3::new(vmin.x, vmax.y, vmax.z),
+                Vec3::new(vmin.x, vmax.y, vmin.z),
+            ),
+            /* corners */
+            (
+                Vec3::new(vmin.x, vmin.y, vmin.z),
+                Vec3::new(vmin.x, vmax.y, vmin.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmin.y, vmin.z),
+                Vec3::new(vmax.x, vmax.y, vmin.z),
+            ),
+            (
+                Vec3::new(vmax.x, vmin.y, vmax.z),
+                Vec3::new(vmax.x, vmax.y, vmax.z),
+            ),
+            (
+                Vec3::new(vmin.x, vmin.y, vmax.z),
+                Vec3::new(vmin.x, vmax.y, vmax.z),
+            ),
+        ];
+
+        for (start, end) in lines {
+            if let (Some(start), Some(end)) = (
+                self.world_to_screen(&start, true),
+                self.world_to_screen(&end, true),
+            ) {
+                draw.add_line(start, end, color)
+                    .thickness(thickness)
+                    .build();
+            }
+        }
     }
 }
