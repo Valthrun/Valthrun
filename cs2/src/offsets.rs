@@ -25,7 +25,7 @@ impl CS2Offsets {
             globals: Self::find_globals(cs2)?,
             local_controller: Self::find_local_player_controller_ptr(cs2)?,
             global_entity_list: Self::find_entity_list(cs2)?,
-            view_matrix: Self::find_view_matrix(cs2)?
+            view_matrix: Self::find_view_matrix(cs2)?,
         })
     }
 

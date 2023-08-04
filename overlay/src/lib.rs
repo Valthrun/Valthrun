@@ -185,9 +185,9 @@ impl OverlayActiveTracker {
             let hwnd = HWND(window.hwnd());
             let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
             if window_active {
-                style &= !(WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize);
+                style &= !(WS_EX_NOACTIVATE.0 as isize);
             } else {
-                style |= WS_EX_NOACTIVATE.0 as isize | WS_EX_TRANSPARENT.0 as isize;
+                style |= WS_EX_NOACTIVATE.0 as isize;
             }
 
             //log::debug!("Set UI active: {window_active}");

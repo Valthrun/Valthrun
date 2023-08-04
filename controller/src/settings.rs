@@ -3,35 +3,35 @@ use serde::{ Deserialize, Serialize };
 use anyhow::Context;
 
 fn bool_true() -> bool { true }
+fn default_esp_color_team() -> [f32; 4] { [ 0.0,  1.0,  0.0,  0.75 ] }
+fn default_esp_color_enemy() -> [f32; 4] { [ 1.0,  0.0,  0.0,  0.75 ] }
+fn default_esp_skeleton_thickness() -> f32 { 3.0 }
+fn default_esp_boxes_thickness() -> f32 { 3.0 }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
-    pub player_list: bool,
-    pub player_pos_dot: bool,
-    
+    #[serde(default = "bool_true")]
     pub esp_skeleton: bool,
+
+    #[serde(default = "default_esp_skeleton_thickness")]
+    pub esp_skeleton_thickness: f32,
+
+    #[serde(default)]
     pub esp_boxes: bool,
+
+    #[serde(default = "default_esp_boxes_thickness")]
+    pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
+    #[serde(default = "default_esp_color_team")]
+    pub esp_color_team: [f32; 4],
+    #[serde(default = "default_esp_color_enemy")]
+    pub esp_color_enemy: [f32; 4],
+
+    #[serde(default)]
     pub imgui: Option<String>,
-}
-
-impl Default for AppSettings {
-    fn default() -> Self {
-        Self { 
-            player_list: false,
-
-            player_pos_dot: false, 
-            esp_skeleton: true,
-            esp_boxes: false,
-
-            bomb_timer: true,
-
-            imgui: None,
-        }
-    }
 }
 
 pub fn get_settings_path() -> anyhow::Result<PathBuf> {
@@ -48,7 +48,10 @@ pub fn load_app_settings() -> anyhow::Result<AppSettings> {
     if !config_path.is_file() {
         log::info!("App config file {} does not exist.", config_path.to_string_lossy());
         log::info!("Using default config.");
-        return Ok(AppSettings::default());
+        let config: AppSettings = serde_yaml::from_str("")
+            .context("failed to parse empty config")?;
+
+        return Ok(config);
     }
 
     let config = File::open(&config_path)

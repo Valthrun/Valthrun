@@ -4,13 +4,16 @@
 
 use anyhow::Context;
 use cache::EntryCache;
+use chrono::{NaiveDate, Days};
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, PtrCStr, EngineBuildInfo};
 use imgui::{Condition, ImColor32};
+use kinterface::ByteSequencePattern;
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
+use settings_ui::SettingsUI;
 use view::ViewController;
-use visuals::{BombState, PlayerInfo};
+use visuals::{BombState, PlayerInfo, TeamType};
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
@@ -21,6 +24,7 @@ use crate::settings::save_app_settings;
 
 mod view;
 mod settings;
+mod settings_ui;
 mod cache;
 mod visuals;
 
@@ -29,6 +33,7 @@ pub struct Application {
     pub cs2_offsets: Arc<CS2Offsets>,
     pub cs2_entities: EntitySystem,
     pub cs2_globals: Globals,
+    pub cs2_build_info: BuildInfo,
 
     pub settings_visible: bool,
     pub model_cache: EntryCache<u64, CS2Model>,
@@ -42,8 +47,9 @@ pub struct Application {
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,
 
-    pub settings: RefCell<AppSettings>,
+    pub settings: Rc<RefCell<AppSettings>>,
     pub settings_dirty: bool,
+    pub settings_ui: RefCell<SettingsUI>,
 }
 
 impl Application {
@@ -147,42 +153,17 @@ impl Application {
             ui.text(text)
         }
 
-        if settings.player_list {
-            ui.set_cursor_pos([10.0, 300.0]);
-            ui.text(format!("{} players alive", self.players.len()));
-            for entry in self.players.iter() {
-                ui.text(format!(
-                    "{} ({}) | {:?}",
-                    entry.player_name, entry.player_health, entry.position
-                ));
-            }
-        }
-
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
-            if entry.local {
+            if matches!(&entry.team_type, TeamType::Local) {
                 continue;
             }
 
-            let position = entry.position;
-
-            if settings.player_pos_dot {
-                if let Some(mut screen_position) =
-                    self.view_controller.world_to_screen(&position, false)
-                {
-                    draw.add_circle(screen_position, 8.0, ImColor32::from_rgb(255, 0, 0))
-                        .filled(true)
-                        .build();
-
-                    screen_position.y -= 10.0;
-                    draw.add_text(
-                        screen_position,
-                        ImColor32::from_rgb(0, 255, 0),
-                        &entry.debug_text,
-                    );
-                }
-            }
-
+            let esp_color = if entry.team_type == TeamType::Enemy {
+                &settings.esp_color_enemy
+            } else {
+                &settings.esp_color_team
+            };
             if settings.esp_skeleton {
                 let bones = entry.model.bones.iter()
                     .zip(entry.bone_states.iter());
@@ -214,9 +195,10 @@ impl Application {
                     draw.add_line(
                         parent_position,
                         bone_position,
-                        ImColor32::from_rgb(0, 255, 255),
+                        *esp_color,
                     )
-                    .build();
+                        .thickness(settings.esp_skeleton_thickness)
+                        .build();
                 }
             }
 
@@ -225,8 +207,8 @@ impl Application {
                     &draw,
                     &(entry.model.vhull_min + entry.position),
                     &(entry.model.vhull_max + entry.position),
-                    ImColor32::from_rgb(255, 0, 255),
-                    7.0
+                    (*esp_color).into(),
+                    settings.esp_boxes_thickness
                 );
             }
 
@@ -270,19 +252,8 @@ impl Application {
     }
 
     fn render_settings(&self, ui: &imgui::Ui) {
-        ui.window(obfstr!("Valthrun"))
-            .size([600.0, 300.0], Condition::FirstUseEver)
-            .build(|| {
-                ui.text(obfstr!("Valthrun an open source CS2 external read only kernel cheat."));
-                ui.separator();
-
-                let mut settings = self.settings.borrow_mut();
-                ui.checkbox(obfstr!("Player List"), &mut settings.player_list);
-                ui.checkbox(obfstr!("Player Position Dots"), &mut settings.player_pos_dot);
-                ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
-                ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
-                ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
-            });
+        let mut settings_ui = self.settings_ui.borrow_mut();
+        settings_ui.render(self, ui)
     }
 }
 
@@ -371,21 +342,59 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+#[derive(Debug)]
+pub struct BuildInfo {
+    revision: String,
+    build_datetime: String,
+}
+
+impl BuildInfo {
+    fn find_build_info_offset(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        let pattern =
+            ByteSequencePattern::parse(obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B")).unwrap();
+
+        let inst_address = cs2
+            .find_pattern(Module::Engine, &pattern)?
+            .with_context(|| obfstr!("failed to find build info pattern").to_string())?;
+
+        let address = inst_address + cs2.read::<i32>(Module::Engine, &[inst_address + 0x03])? as u64 + 0x07;
+        Ok(address)
+    }
+
+    pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
+        let offset = Self::find_build_info_offset(cs2)?;
+        let engine_build_info = cs2.read::<EngineBuildInfo>(Module::Engine, &[ offset ])?;
+        Ok(Self {
+            revision: engine_build_info.revision.read_string(&cs2)?,
+            build_datetime: format!("{} {}",
+                engine_build_info.build_date.read_string(&cs2)?,
+                engine_build_info.build_time.read_string(&cs2)?
+            )
+        })
+    }
+}
+
 fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
 
     let cs2 = Arc::new(CS2Handle::create()?);
+    let cs2_build_info = BuildInfo::read_build_info(&cs2)
+        .with_context(|| obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected").to_string())?;
+    log::info!("Found {}. Revision {} from {}.", obfstr!("Counter-Strike 2"), cs2_build_info.revision, cs2_build_info.build_datetime);
+
     let cs2_offsets = Arc::new(
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
     );
 
     let imgui_settings = settings.imgui.clone();
+    let settings = Rc::new(RefCell::new(settings));
     let app = Application {
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
         cs2_globals: Globals::default(),
+        cs2_build_info,
 
         settings_visible: false,
 
@@ -433,8 +442,9 @@ fn main_overlay() -> anyhow::Result<()> {
         last_total_read_calls: 0,
         frame_read_calls: 0,
 
-        settings: RefCell::new(settings),
+        settings: settings.clone(),
         settings_dirty: false,
+        settings_ui: RefCell::new(SettingsUI::new(settings)),
     };
 
     let app = Rc::new(RefCell::new(app));
@@ -444,6 +454,7 @@ fn main_overlay() -> anyhow::Result<()> {
         overlay.imgui.load_ini_settings(&imgui_settings);
     }
 
+    log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     overlay.main_loop(
         {
             let app = app.clone();

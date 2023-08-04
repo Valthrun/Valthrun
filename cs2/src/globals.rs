@@ -1,3 +1,5 @@
+use crate::PtrCStr;
+
 
 #[repr(C)]
 #[derive(Debug, Default)]
@@ -27,3 +29,11 @@ pub struct Globals {
 }
 const _: [u8; 0x48] = [0; std::mem::size_of::<Globals>()];
 
+#[repr(C)]
+pub struct EngineBuildInfo {
+    pub revision: PtrCStr,
+    pub build_date: PtrCStr,
+    pub build_time: PtrCStr,
+    unknown_zero: u64,
+    pub product_name: PtrCStr,
+}

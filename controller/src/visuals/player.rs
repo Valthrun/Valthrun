@@ -7,8 +7,16 @@ use obfstr::obfstr;
 
 use crate::Application;
 
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum TeamType {
+    Local,
+    Enemy,
+    Friendly
+}
+
 pub struct PlayerInfo {
-    pub local: bool,
+    pub team_type: TeamType,
+
     pub player_health: i32,
     pub player_name: String,
     pub position: nalgebra::Vector3<f32>,
@@ -37,6 +45,10 @@ pub fn read_player_info(ctx: &mut Application) -> anyhow::Result<()> {
         .get_local_player_controller()?
         .with_context(|| obfstr!("missing local player controller").to_string())?;
 
+    let local_team = ctx.cs2.read::<i32>(Module::Absolute, &[
+        local_player_controller + offsets::client::CCSPlayerController::m_iPendingTeamNum
+    ])?;
+
     for player_controller in ctx.cs2_entities.get_player_controllers()? {
         let player_pawn_handle = ctx
             .cs2
@@ -49,6 +61,10 @@ pub fn read_player_info(ctx: &mut Application) -> anyhow::Result<()> {
         if !player_pawn_handle.is_valid() {
             continue;
         }
+
+        let player_team = ctx.cs2.read::<i32>(Module::Absolute, &[
+            player_controller + offsets::client::CCSPlayerController::m_iPendingTeamNum
+        ])?;
 
         let player_health = ctx
             .cs2
@@ -113,8 +129,16 @@ pub fn read_player_info(ctx: &mut Application) -> anyhow::Result<()> {
             model.bones.len(),
         )?;
 
+        let team_type = if player_controller == local_player_controller { 
+            TeamType::Local 
+        } else if local_team == player_team {
+            TeamType::Friendly
+        } else {
+            TeamType::Enemy
+        };
+
         ctx.players.push(PlayerInfo {
-            local: player_controller == local_player_controller,
+            team_type,
             player_name,
             player_health,
             position,
