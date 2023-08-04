@@ -1,4 +1,4 @@
-use std::ffi::{c_void, CString};
+use std::{ffi::{c_void, CString}, sync::atomic::{AtomicUsize, Ordering}};
 
 use valthrun_driver_shared::{
     requests::{DriverRequest, RequestRead, ResponseRead},
@@ -18,6 +18,7 @@ use crate::{KInterfaceError, KResult, SearchPattern};
 /// Interface for our kernel driver
 pub struct KernelInterface {
     driver_handle: Foundation::HANDLE,
+    read_calls: AtomicUsize,
 }
 
 impl KernelInterface {
@@ -36,7 +37,14 @@ impl KernelInterface {
             .map_err(KInterfaceError::DeviceUnavailable)?
         };
 
-        Ok(Self { driver_handle })
+        Ok(Self {
+            driver_handle,
+            read_calls: AtomicUsize::new(0)
+        })
+    }
+
+    pub fn total_read_calls(&self) -> usize {
+        self.read_calls.load(Ordering::Relaxed)
     }
 
     pub fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
@@ -104,6 +112,7 @@ impl KernelInterface {
             });
         }
 
+        self.read_calls.fetch_add(1, Ordering::Relaxed);
         offset_buffer[0..offsets.len()].copy_from_slice(offsets);
         let result = self.execute_request::<RequestRead>(&RequestRead {
             process_id,

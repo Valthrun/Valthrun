@@ -38,6 +38,9 @@ pub struct Application {
     pub view_controller: ViewController,
 
     pub bomb_state: BombState,
+    
+    pub frame_read_calls: usize,
+    pub last_total_read_calls: usize,
 
     pub settings: RefCell<AppSettings>,
     pub settings_dirty: bool,
@@ -93,6 +96,10 @@ impl Application {
             self.bomb_state = visuals::read_bomb_state(self)?;
         }
 
+        let read_calls = self.cs2.ke_interface.total_read_calls();
+        self.frame_read_calls = read_calls - self.last_total_read_calls;
+        self.last_total_read_calls = read_calls;
+
         Ok(())
     }
 
@@ -128,6 +135,14 @@ impl Application {
             ui.set_cursor_pos([
                 ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
                 24.0,
+            ]);
+            ui.text(text)
+        }
+        {
+            let text = format!("{} Reads", self.frame_read_calls);
+            ui.set_cursor_pos([
+                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                38.0,
             ]);
             ui.text(text)
         }
@@ -414,6 +429,9 @@ fn main_overlay() -> anyhow::Result<()> {
 
         view_controller: ViewController::new(cs2_offsets.clone()),
         bomb_state: BombState::Unset,
+
+        last_total_read_calls: 0,
+        frame_read_calls: 0,
 
         settings: RefCell::new(settings),
         settings_dirty: false,
