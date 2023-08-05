@@ -1,6 +1,6 @@
 use std::{rc::Rc, cell::RefCell};
 
-use imgui::{Condition, StyleVar};
+use imgui::Condition;
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, Application};

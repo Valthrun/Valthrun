@@ -4,10 +4,9 @@
 
 use anyhow::Context;
 use cache::EntryCache;
-use chrono::{NaiveDate, Days};
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, PtrCStr, EngineBuildInfo};
-use imgui::{Condition, ImColor32};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, EngineBuildInfo};
+use imgui::Condition;
 use kinterface::ByteSequencePattern;
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
@@ -32,7 +31,7 @@ pub struct Application {
     pub cs2: Arc<CS2Handle>,
     pub cs2_offsets: Arc<CS2Offsets>,
     pub cs2_entities: EntitySystem,
-    pub cs2_globals: Globals,
+    pub cs2_globals: Option<Globals>,
     pub cs2_build_info: BuildInfo,
 
     pub settings_visible: bool,
@@ -93,8 +92,10 @@ impl Application {
             .update_view_matrix(&self.cs2)?;
 
 
-        self.cs2_globals = self.cs2.read::<Globals>(Module::Client, &[ self.cs2_offsets.globals, 0 ])
-            .with_context(|| obfstr!("failed to read globals").to_string())?;
+        self.cs2_globals = Some(
+            self.cs2.read_schema::<Globals>(&[ self.cs2.memory_address(Module::Client, self.cs2_offsets.globals)?, 0 ])
+                .with_context(|| obfstr!("failed to read globals").to_string())?
+        );
        
         visuals::read_player_info(self)?;
         
@@ -363,21 +364,22 @@ impl BuildInfo {
 
     pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
         let offset = Self::find_build_info_offset(cs2)?;
-        let engine_build_info = cs2.read::<EngineBuildInfo>(Module::Engine, &[ offset ])?;
+        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[ cs2.memory_address(Module::Engine, offset)? ])?;
         Ok(Self {
-            revision: engine_build_info.revision.read_string(&cs2)?,
+            revision: engine_build_info.revision()?.read_string(&cs2)?,
             build_datetime: format!("{} {}",
-                engine_build_info.build_date.read_string(&cs2)?,
-                engine_build_info.build_time.read_string(&cs2)?
+                engine_build_info.build_date()?.read_string(&cs2)?,
+                engine_build_info.build_time()?.read_string(&cs2)?
             )
         })
     }
 }
 
+
 fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
 
-    let cs2 = Arc::new(CS2Handle::create()?);
+    let cs2 = CS2Handle::create()?;
     let cs2_build_info = BuildInfo::read_build_info(&cs2)
         .with_context(|| obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected").to_string())?;
     log::info!("Found {}. Revision {} from {}.", obfstr!("Counter-Strike 2"), cs2_build_info.revision, cs2_build_info.build_datetime);
@@ -393,7 +395,7 @@ fn main_overlay() -> anyhow::Result<()> {
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
-        cs2_globals: Globals::default(),
+        cs2_globals: None,
         cs2_build_info,
 
         settings_visible: false,

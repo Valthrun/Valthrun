@@ -1,12 +1,50 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
+use cs2_schema::{MemoryHandle, SchemaValue};
 use obfstr::obfstr;
-use std::{ffi::CStr, fmt::Debug};
+use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any, mem::MaybeUninit};
 use kinterface::{
     requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle},
     CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern,
 };
+
+pub struct CSMemoryHandleCached {
+    cs2: Weak<CS2Handle>,
+    buffer: Vec<u8>,
+}
+
+impl MemoryHandle for CSMemoryHandleCached {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn read_slice(&self, offset: u64, slice: &mut [u8]) -> anyhow::Result<()> {
+        if (offset as usize) + slice.len() > self.buffer.len() {
+            anyhow::bail!("invalid offset")
+        }
+
+        let source = &self.buffer[offset as usize..(offset as usize + slice.len())];
+        slice.copy_from_slice(source);
+        Ok(())
+    }
+}
+
+pub struct CSMemoryHandleReference {
+    cs2: Weak<CS2Handle>,
+    address: u64
+}
+
+impl MemoryHandle for CSMemoryHandleReference {
+    fn as_any(&self) -> &dyn Any {
+        self
+    }
+
+    fn read_slice(&self, offset: u64, slice: &mut [u8]) -> anyhow::Result<()> {
+        let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
+        cs2.read_slice(Module::Absolute, &[ self.address + offset ], slice)
+    }
+}
 
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
@@ -35,12 +73,14 @@ impl Module {
 
 /// Handle to the CS2 process
 pub struct CS2Handle {
+    weak_self: Weak<Self>,
+
     pub ke_interface: KernelInterface,
     pub module_info: CS2ModuleInfo,
 }
 
 impl CS2Handle {
-    pub fn create() -> anyhow::Result<Self> {
+    pub fn create() -> anyhow::Result<Arc<Self>> {
         let interface = KernelInterface::create(obfstr!("\\\\.\\valthrun"))?;
 
         /*
@@ -75,10 +115,14 @@ impl CS2Handle {
             module_info.engine.module_size
         );
 
-        Ok(Self {
-            ke_interface: interface,
-            module_info,
-        })
+        Ok(Arc::new_cyclic(|weak_self| {
+            Self {
+                weak_self: weak_self.clone(),
+    
+                ke_interface: interface,
+                module_info,
+            }
+        }))
     }
 
     pub fn protect_process(&self) -> anyhow::Result<()> {
@@ -169,6 +213,42 @@ impl CS2Handle {
 
             expected_length += 8;
         }
+    }
+
+    /// Read the whole schema class and return a wrapper around the data.
+    pub fn read_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+        let mut memory = CSMemoryHandleCached{
+            cs2: self.weak_self.clone(),
+            buffer: Vec::with_capacity(T::value_size()),
+        };
+
+        unsafe { memory.buffer.set_len(T::value_size()) };
+        self.read_slice(Module::Absolute, offsets, &mut memory.buffer)?;
+        
+        let memory = Arc::new(memory) as Arc<(dyn MemoryHandle + 'static)>;
+        T::from_memory(&memory, 0x00)
+    }
+
+    /// Reference an address in memory and wrap the schema class around it.
+    /// Every member accessor will read the current bytes from the process memory.
+    /// 
+    /// This function should be used if a class is only accessed once or twice.
+    pub fn reference_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+        let address = if offsets.len() == 1 {
+            offsets[0]
+        } else {
+            let base = self.read::<u64>(Module::Absolute, &offsets[0..offsets.len() - 1])?;
+            base + offsets[offsets.len() - 1]
+        };
+    
+        let memory = Arc::new(CSMemoryHandleReference{
+            cs2: self.weak_self.clone(),
+            address
+        }) as Arc<(dyn MemoryHandle + 'static)>;
+        T::from_memory(
+            &memory,
+            0x00
+        )
     }
 
     pub fn find_pattern(

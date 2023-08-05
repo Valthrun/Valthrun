@@ -81,7 +81,8 @@ pub fn read_bomb_state(ctx: &Application) -> anyhow::Result<BombState> {
             entity.entity_ptr + offsets::client::C_PlantedC4::m_nBombSite
         ])?;
 
-        if time_blow <= ctx.cs2_globals.time_2 {
+        let globals = ctx.cs2_globals.as_ref().context("missing globals")?;
+        if time_blow <= globals.time_2()? {
             return Ok(BombState::Detonated);
         }
 
@@ -113,7 +114,7 @@ pub fn read_bomb_state(ctx: &Application) -> anyhow::Result<BombState> {
             )?;
 
             Some(BombDefuser{ 
-                time_remaining: time_defuse - ctx.cs2_globals.time_2,
+                time_remaining: time_defuse - globals.time_2()?,
                 player_name: defuser_name
             })
         } else {
@@ -121,7 +122,7 @@ pub fn read_bomb_state(ctx: &Application) -> anyhow::Result<BombState> {
         };
 
         return Ok(BombState::Active { 
-            bomb_site, time_detonation: time_blow - ctx.cs2_globals.time_2, 
+            bomb_site, time_detonation: time_blow - globals.time_2()?, 
             defuse: defusing
         });
     }
