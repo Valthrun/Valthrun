@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "kinterface",
     "controller",
-    "schema",
+    "cs2-schema",
     "cs2",
     "overlay",
 ]

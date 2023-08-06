@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
-use anyhow::Context;
-use cs2_schema::offsets;
+use anyhow::{Context, Ok};
+use cs2_schema::{EntityHandle, SchemaValue, Ptr, cs2::client::CCSPlayerController};
 use obfstr::obfstr;
 
-use crate::{CS2Offsets, CS2Handle, Module, EntityHandle, EntityIdentity};
+use crate::{CS2Offsets, CS2Handle, Module, CEntityIdentityEx};
+use cs2_schema::cs2::client::CEntityIdentity;
 
 /// Helper class for CS2 global entity system
 pub struct EntitySystem {
@@ -18,43 +19,64 @@ impl EntitySystem {
     }
 
     /* Returns a CSSPlayerController instance */
-    pub fn get_local_player_controller(&self) -> anyhow::Result<Option<u64>> {
-        let entity = self.cs2
-            .read::<u64>(Module::Client, &[self.offsets.local_controller])
-            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
-
-        if entity > 0 {
-            Ok(Some(entity))
-        } else {
-            Ok(None)
-        }
+    pub fn get_local_player_controller(&self) -> anyhow::Result<Ptr<CCSPlayerController>> {
+        self.cs2.read_schema::<Ptr<CCSPlayerController>>(&[
+            self.cs2.memory_address(Module::Client, self.offsets.local_controller)?
+        ])
     }
 
-    pub fn all_identities(&self) -> anyhow::Result<Vec<EntityIdentity>> {
+    pub fn all_identities(&self) -> anyhow::Result<Vec<CEntityIdentity>> {
         let mut result = Vec::new();
         result.reserve(512);
 
-        let base_identity = self.cs2.read::<EntityIdentity>(
-            Module::Client,
-            &[self.offsets.global_entity_list, 0, 0],
-        )?;
+        let base_identity = self.cs2.read_schema::<CEntityIdentity>(&[
+            self.cs2.memory_address(Module::Client, self.offsets.global_entity_list)?,
+            0,
+            0
+        ])?;
+
         result.push(base_identity.clone());
 
-        let mut prev_entity = base_identity.p_prev;
-        while prev_entity > 0 {
-            let entity = self.cs2
-                .read::<EntityIdentity>(Module::Absolute, &[prev_entity])
+        let mut prev_entity = base_identity.m_pPrev()?;
+        while !prev_entity.is_null()? {
+            let entity = prev_entity.read_schema()
                 .context(obfstr!("failed to read prev entity identity").to_string())?;
-            prev_entity = entity.p_prev;
+            prev_entity = entity.m_pPrev()?;
             result.push(entity);
         }
 
-        let mut next_entity = base_identity.p_next;
-        while next_entity > 0 {
-            let entity = self.cs2
-                .read::<EntityIdentity>(Module::Absolute, &[next_entity])
+        let mut next_entity = base_identity.m_pNext()?;
+        while !next_entity.is_null()? {
+            let entity = next_entity.read_schema()
                 .context(obfstr!("failed to read next entity identity").to_string())?;
-            next_entity = entity.p_next;
+
+            next_entity = entity.m_pNext()?;
+            result.push(entity);
+        }
+
+        Ok(result)
+    }
+
+    pub fn all_identities_of_class(&self, reference: &CEntityIdentity) -> anyhow::Result<Vec<CEntityIdentity>> {
+        let mut result = Vec::new();
+        result.reserve(512);
+
+        result.push(reference.clone());
+
+        let mut prev_entity = reference.m_pPrevByClass()?;
+        while !prev_entity.is_null()? {
+            let entity = prev_entity.read_schema()
+                .context(obfstr!("failed to read prev entity identity").to_string())?;
+            prev_entity = entity.m_pPrevByClass()?;
+            result.push(entity);
+        }
+
+        let mut next_entity = reference.m_pNextByClass()?;
+        while !next_entity.is_null()? {
+            let entity = next_entity.read_schema()
+                .context(obfstr!("failed to read next entity identity").to_string())?;
+
+            next_entity = entity.m_pNextByClass()?;
             result.push(entity);
         }
 
@@ -62,46 +84,35 @@ impl EntitySystem {
     }
 
     /// Returns the entity ptr
-    pub fn get_by_handle(
+    pub fn get_by_handle<T: SchemaValue>(
         &self,
-        handle: &EntityHandle,
-    ) -> anyhow::Result<Option<u64>> {
+        handle: &EntityHandle<T>,
+    ) -> anyhow::Result<Option<Ptr<T>>> {
         let (bulk, offset) = handle.entity_array_offsets();
-        let identity = self.cs2.read::<EntityIdentity>(
-            Module::Client,
-            &[self.offsets.global_entity_list, bulk * 0x08, offset * 120],
-        );
+        let identity = self.cs2.read_schema::<CEntityIdentity>(&[
+            self.cs2.memory_address(Module::Client, self.offsets.global_entity_list)?,
+            bulk * 0x08,
+            offset * CEntityIdentity::value_size().context("missing entity identity size")? as u64
+        ])?;
 
-        let identity = match identity {
-            Ok(identity) => identity,
-            Err(error) => {
-                return Err(error.context(format!(
-                    "{}: {:?}",
-                    obfstr!("failed to read global entity list entry for handle"),
-                    handle
-                )))
-            }
-        };
-
-        if identity.handle.get_entity_index() == handle.get_entity_index() {
-            Ok(Some(identity.entity_ptr))
+        if identity.handle::<T>()?.get_entity_index() == handle.get_entity_index() {
+            Ok(Some(identity.entity_ptr::<T>()?))
         } else {
             Ok(None)
         }
     }
 
-    /* Returns a Vec<CSSPlayerController*> */
-    pub fn get_player_controllers(&self) -> anyhow::Result<Vec<u64>> {
-        let local_controller_identity = self.cs2.read::<EntityIdentity>(Module::Client, &[
-            self.offsets.local_controller,
-            offsets::client::CEntityInstance::m_pEntity, /* read the entity identnity index  */
-            0, /* read everything */
-        ]).with_context(|| obfstr!("failed to read local player controller identity").to_string())?;
+    pub fn get_player_controllers(&self) -> anyhow::Result<Vec<Ptr<CCSPlayerController>>> {
+        let local_controller = self.get_local_player_controller()?
+            .reference_schema()
+            .context("missing local player controller")?;
 
-        Ok(local_controller_identity
-            .collect_all_of_class(&self.cs2)?
-            .into_iter()
-            .map(|identity| identity.entity_ptr)
-            .collect())
+        let local_controller_identitiy = local_controller.m_pEntity()?.read_schema()?;
+        let identities = self.all_identities_of_class(&local_controller_identitiy)?;
+        Ok(
+            identities.into_iter()
+                .map(|identity| identity.entity_ptr())
+                .try_collect()?
+        )
     }
 }

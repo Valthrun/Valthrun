@@ -1,14 +1,5 @@
 //! Manual defined offsets which can not be deducted by the CS2 schema.
 
-pub mod schemasystem {
-    pub const SYSTEM_SCOPE_SIZE: u64 = 0x190;
-    pub const SYSTEM_SCOPE_ARRAY: u64 = SYSTEM_SCOPE_SIZE + 0x08;
-
-    pub const SCOPE_CLASS_BINDINGS: u64 = 0x558;
-    
-    #[allow(unused)]
-    pub const SCOPE_ENUM_BINDINGS: u64 = 0x2DA0;
-}
 
 pub mod client {
     // Sig source: https://www.unknowncheats.me/forum/3725362-post1.html

@@ -461,6 +461,7 @@ name = "cs2-schema"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "nalgebra",
  "serde",
  "serde_json",
 ]

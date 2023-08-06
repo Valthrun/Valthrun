@@ -1,6 +1,8 @@
+use std::ffi::CStr;
+
 use anyhow::Context;
-use cs2::{Module, EntityHandle};
-use cs2_schema::offsets;
+use cs2::{Module, CEntityIdentityEx};
+use cs2_schema::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
 use crate::Application;
@@ -46,72 +48,50 @@ pub fn read_bomb_state(ctx: &Application) -> anyhow::Result<BombState> {
         .with_context(|| obfstr!("failed to read entity list").to_string())?;
 
     for entity in entities.iter() {
-        let entity_vtable = ctx.cs2.read::<u64>(Module::Absolute, &[
-            entity.entity_ptr + 0x00, // V-Table
-        ])?;
-
-        let class_name = ctx.class_name_cache.lookup(entity_vtable)?;
+        let vtable = entity.entity_vtable()?.read_schema()?.address()?;
+        let class_name = ctx.class_name_cache.lookup(vtable).context("class name")?;
         if !(*class_name).as_ref().map(|name| name == "C_PlantedC4").unwrap_or(false) {
             /* Entity isn't the bomb. */
             continue;
         }
 
-        // TODO. Read the whole class at once (we know the class size from the schema)
-        //       This would require another schema structure thou...
-
-        let is_activated = ctx.cs2.read::<bool>(Module::Absolute, &[
-            entity.entity_ptr + offsets::client::C_PlantedC4::m_bC4Activated
-        ])?;
-        if !is_activated {
+        let bomb = entity.entity_ptr::<C_PlantedC4>()?.read_schema().context("bomb schame")?;
+        if !bomb.m_bC4Activated()? {
             /* This bomb hasn't been activated (yet) */
             continue;
         }
 
-        let is_defused = ctx.cs2.read::<bool>(Module::Absolute, &[
-            entity.entity_ptr + offsets::client::C_PlantedC4::m_bBombDefused
-        ])?;
-        if is_defused {
+        if bomb.m_bBombDefused()? {
             return Ok(BombState::Defused);
         }
 
-        let time_blow = ctx.cs2.read::<f32>(Module::Absolute, &[
-            entity.entity_ptr + offsets::client::C_PlantedC4::m_flC4Blow
-        ])?;
-        let bomb_site = ctx.cs2.read::<u8>(Module::Absolute, &[
-            entity.entity_ptr + offsets::client::C_PlantedC4::m_nBombSite
-        ])?;
+        let time_blow = bomb.m_flC4Blow()?.m_Value()?;
+        let bomb_site = bomb.m_nBombSite()? as u8;
 
         let globals = ctx.cs2_globals.as_ref().context("missing globals")?;
         if time_blow <= globals.time_2()? {
             return Ok(BombState::Detonated);
         }
 
-        let is_defusing = ctx.cs2.read::<bool>(Module::Absolute, &[
-            entity.entity_ptr + offsets::client::C_PlantedC4::m_bBeingDefused
-        ])?;
+        let is_defusing = bomb.m_bBeingDefused()?;
         let defusing = if is_defusing {
-            let time_defuse = ctx.cs2.read::<f32>(Module::Absolute, &[
-                entity.entity_ptr + offsets::client::C_PlantedC4::m_flDefuseCountDown
-            ])?;
+            let time_defuse = bomb.m_flDefuseCountDown()?.m_Value()?;
 
-            let handle_defuser = ctx.cs2.read::<EntityHandle>(Module::Absolute, &[
-                entity.entity_ptr + offsets::client::C_PlantedC4::m_hBombDefuser
-            ])?;
-            
+            let handle_defuser = bomb.m_hBombDefuser()?;
             let defuser = ctx.cs2_entities.get_by_handle(&handle_defuser)?
-                .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?;
+                .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
+                .reference_schema()?;
 
-            let handle_controller = ctx.cs2.read::<EntityHandle>(Module::Absolute, &[ 
-                defuser + offsets::client::C_BasePlayerPawn::m_hController
-            ])?;
-            let controller = ctx.cs2_entities.get_by_handle(&handle_controller)?
-                .with_context(|| obfstr!("missing pawn controller").to_string())?;
-            
-            let defuser_name = ctx.cs2.read_string(
-                Module::Absolute,
-                &[controller + offsets::client::CBasePlayerController::m_iszPlayerName],
-                Some(128),
-            )?;
+            let defuser_controller = defuser.m_hController()?;
+            let defuser_controller = ctx.cs2_entities.get_by_handle(&defuser_controller)?
+                .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
+                .reference_schema()?;
+                
+            let defuser_name = CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
+                .ok()
+                .map(CStr::to_string_lossy)
+                .unwrap_or("Name Error".into())
+                .to_string();
 
             Some(BombDefuser{ 
                 time_remaining: time_defuse - globals.time_2()?,

@@ -1,0 +1,61 @@
+use std::{fmt::Debug, marker::PhantomData};
+
+use crate::{SchemaValue, MemoryHandle};
+
+/// CS2 32 bit entity handle packed with 
+/// the entity index and serial number.
+#[repr(C)]
+#[derive(Default, Clone)]
+pub struct EntityHandle<T> {
+    pub value: u32,
+    _data: PhantomData<T>,
+}
+
+impl<T> EntityHandle<T> {
+    pub fn get_entity_index(&self) -> u32 {
+        self.value & 0x7FFF
+    }
+
+    pub fn is_valid(&self) -> bool {
+        self.get_entity_index() < 0x7FF0
+    }
+
+    pub fn get_serial_number(&self) -> u32 {
+        self.value >> 15
+    }
+
+    pub fn entity_array_offsets(&self) -> (u64, u64) {
+        let entity_index = self.get_entity_index();
+        ((entity_index >> 9) as u64, (entity_index & 0x1FF) as u64)
+    }
+}
+
+impl<T> Debug for EntityHandle<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("EntityHandle")
+            .field(
+                "entity_index",
+                &format_args!("0x{:X}", &self.get_entity_index()),
+            )
+            .field(
+                "serial_number",
+                &format_args!("0x{:X}", &self.get_serial_number()),
+            )
+            .finish()
+    }
+}
+
+impl<T> SchemaValue for EntityHandle<T> {
+    fn value_size() -> Option<usize> {
+        Some(0x04)
+    }
+
+    fn from_memory(memory: &std::sync::Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+        Ok(Self {
+            value: SchemaValue::from_memory(memory, offset)?,
+            _data: Default::default()
+        })
+    }
+}
+
+pub type CEntityIndex = u32;

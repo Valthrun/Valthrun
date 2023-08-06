@@ -1,8 +1,8 @@
-use std::sync::Arc;
+use std::{sync::Arc, ffi::CStr};
 
 use anyhow::Context;
-use cs2::{EntityHandle, Module, offsets_manual, CS2Model};
-use cs2_schema::offsets;
+use cs2::{Module, CS2Model, PCStrEx};
+use cs2_schema::{cs2::client::{CSkeletonInstance, CModelState}, Ptr, SchemaValue, define_schema, MemoryHandle};
 use obfstr::obfstr;
 
 use crate::Application;
@@ -27,14 +27,43 @@ pub struct PlayerInfo {
     pub bone_states: Vec<BoneStateData>,
 }
 
-#[repr(C)]
-#[derive(Debug, Default)]
 pub struct BoneStateData {
     pub position: nalgebra::Vector3<f32>,
-    pub scale: f32,
-    pub rotation: nalgebra::Vector4<f32>,
 }
-const _: [u8; 0x20] = [0; std::mem::size_of::<BoneStateData>()];
+
+impl TryFrom<CBoneStateData> for BoneStateData {
+    type Error = anyhow::Error;
+
+    fn try_from(value: CBoneStateData) -> Result<Self, Self::Error> {
+        Ok(Self {
+            position: nalgebra::Vector3::from_row_slice(&value.position()?)
+        })
+    }
+}
+
+define_schema! {
+    pub struct CBoneStateData[0x20] {
+        pub position: [f32; 3] = 0x00,
+        pub scale: f32 = 0x0C,
+        pub rotation: [f32; 4] = 0x10,
+    }
+}
+
+trait CModelStateEx {
+    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
+    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>>;
+}
+
+impl CModelStateEx for CModelState {
+    #[allow(non_snake_case)]
+    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
+        SchemaValue::from_memory(&self.memory, self.offset + 160)
+    }
+
+    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>> {
+        SchemaValue::from_memory(&self.memory, self.offset + 0x80)
+    }
+}
 
 pub fn read_player_info(ctx: &mut Application) -> anyhow::Result<()> {
     ctx.players.clear();
@@ -43,93 +72,70 @@ pub fn read_player_info(ctx: &mut Application) -> anyhow::Result<()> {
     let local_player_controller = ctx
         .cs2_entities
         .get_local_player_controller()?
-        .with_context(|| obfstr!("missing local player controller").to_string())?;
+        .reference_schema()
+        .with_context(|| obfstr!("failed to read local player controller").to_string())?;
 
-    let local_team = ctx.cs2.read::<i32>(Module::Absolute, &[
-        local_player_controller + offsets::client::CCSPlayerController::m_iPendingTeamNum
-    ])?;
+    let local_team = local_player_controller.m_iPendingTeamNum()?;
 
-    for player_controller in ctx.cs2_entities.get_player_controllers()? {
-        let player_pawn_handle = ctx
-            .cs2
-            .read::<EntityHandle>(
-                Module::Absolute,
-                &[player_controller + offsets::client::CCSPlayerController::m_hPlayerPawn],
-            )
-            .with_context(|| obfstr!("failed to read player pawn handle").to_string())?;
-
-        if !player_pawn_handle.is_valid() {
+    let player_controllers = ctx.cs2_entities.get_player_controllers()?;
+    for player_controller in player_controllers {
+        let player_controller = player_controller.read_schema()?;
+        
+        let player_pawn = player_controller.m_hPlayerPawn()?;
+        if !player_pawn.is_valid() {
             continue;
         }
 
-        let player_team = ctx.cs2.read::<i32>(Module::Absolute, &[
-            player_controller + offsets::client::CCSPlayerController::m_iPendingTeamNum
-        ])?;
-
-        let player_health = ctx
-            .cs2
-            .read::<i32>(
-                Module::Absolute,
-                &[player_controller + offsets::client::CCSPlayerController::m_iPawnHealth],
-            )
-            .with_context(|| obfstr!("failed to read player controller pawn health").to_string())?;
+        let player_pawn = ctx.cs2_entities.get_by_handle(&player_pawn)?
+            .context("missing player pawn")?
+            .read_schema()?;
+        
+        let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
             continue;
         }
 
-        let player_pawn = ctx
-            .cs2_entities
-            .get_by_handle(&player_pawn_handle)?
-            .with_context(|| obfstr!("missing player pawn for player controller").to_string())?;
-
         /* Will be an instance of CSkeletonInstance */
-        let game_sceen_node = ctx.cs2.read::<u64>(
-            Module::Absolute,
-            &[player_pawn + offsets::client::C_BaseEntity::m_pGameSceneNode],
-        )?;
-
-        let player_dormant = ctx.cs2.read::<bool>(
-            Module::Absolute,
-            &[game_sceen_node + offsets::client::CGameSceneNode::m_bDormant],
-        )?;
-        if player_dormant {
+        let game_screen_node = player_pawn.m_pGameSceneNode()?
+            .cast::<CSkeletonInstance>()
+            .reference_schema()?;
+        if game_screen_node.m_bDormant()? {
             continue;
         }
 
-        let player_name = ctx.cs2.read_string(
-            Module::Absolute,
-            &[player_controller + offsets::client::CBasePlayerController::m_iszPlayerName],
-            Some(128),
-        )?;
+        let player_team = player_controller.m_iTeamNum()?;
+        let player_name = CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
+            .context("player name missing nul terminator")?
+            .to_str()
+            .context("invalid player name")?
+            .to_string();
+        
+        let position = nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
-        let position = ctx.cs2.read::<nalgebra::Vector3<f32>>(
-            Module::Absolute,
-            &[game_sceen_node + offsets::client::CGameSceneNode::m_vecAbsOrigin],
-        )?;
+        let model = game_screen_node.m_modelState()?
+            .m_hModel()?
+            .read_schema()?
+            .address()?;
 
-        let model = ctx.cs2.read::<u64>(
-            Module::Absolute,
-            &[
-                game_sceen_node
-                + offsets::client::CSkeletonInstance::m_modelState /* model state */
-                + offsets::client::CModelState::m_hModel, /* CModel* */
-                0,
-            ],
-        )?;
+        // let model = ctx.cs2.read::<u64>(
+        //     Module::Absolute,
+        //     &[
+        //         game_sceen_node
+        //         + offsets::client::CSkeletonInstance::m_modelState /* model state */
+        //         + offsets::client::CModelState::m_hModel, /* CModel* */
+        //         0,
+        //     ],
+        // )?;
 
         let model = ctx.model_cache.lookup(model)?;
-        let bone_states = ctx.cs2.read_vec::<BoneStateData>(
-            Module::Absolute,
-            &[
-                game_sceen_node
-                + offsets::client::CSkeletonInstance::m_modelState /* model state */
-                + offsets_manual::client::CModelState::BONE_STATE_DATA,
-                0, /* read the whole array */
-            ],
-            model.bones.len(),
-        )?;
+        let bone_states = game_screen_node.m_modelState()?
+            .bone_state_data()?
+            .read_entries(model.bones.len())?
+            .into_iter()
+            .map(|bone| bone.try_into())
+            .try_collect()?;
 
-        let team_type = if player_controller == local_player_controller { 
+        let team_type = if player_controller.m_bIsLocalPlayerController()? { 
             TeamType::Local 
         } else if local_team == player_team {
             TeamType::Friendly

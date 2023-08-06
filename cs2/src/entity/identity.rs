@@ -1,63 +1,23 @@
-use anyhow::Context;
-use obfstr::obfstr;
+use cs2_schema::{SchemaValue, Ptr, EntityHandle, cs2::client::CEntityIdentity};
 
-use crate::{EntityHandle, CS2Handle, Module};
-
-
-#[repr(C)]
-#[derive(Debug, Default, Clone)]
-pub struct EntityIdentity {
-    pub entity_ptr: u64,
-    ptr_2: u64,
-
-    pub handle: EntityHandle,
-    pub name_stringable_index: u32,
-    pub name: u64,
-
-    pub designer_name: u64,
-    pad_0: u64,
-
-    pub flags: u64,
-    pub world_group_id: u32,
-    pub data_object_types: u32,
-
-    pub path_index: u64,
-    pad_1: u64,
-
-    pad_2: u64,
-    pub p_prev: u64,
-
-    pub p_next: u64,
-    pub p_prev_by_class: u64,
-
-    pub p_next_by_class: u64,
+pub trait CEntityIdentityEx {
+    fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>>;
+    fn entity_vtable(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
+    fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>>; 
 }
-const _: [u8; 120] = [0; std::mem::size_of::<EntityIdentity>()];
 
-impl EntityIdentity {
-    pub fn collect_all_of_class(&self, cs2: &CS2Handle) -> anyhow::Result<Vec<EntityIdentity>> {
-        let mut result = Vec::new();
-        result.reserve(128);
-        result.push(self.clone());
+impl CEntityIdentityEx for CEntityIdentity {
+    fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>> {
+        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+    }
 
-        let mut prev_entity = self.p_prev_by_class;
-        while prev_entity > 0 {
-            let entity = cs2
-                .read::<EntityIdentity>(Module::Absolute, &[prev_entity])
-                .context(obfstr!("failed to read prev entity identity of class").to_string())?;
-            prev_entity = entity.p_prev_by_class;
-            result.push(entity);
-        }
+    /// Returns a ptr ptr to the entities vtable.
+    /// The first pointer might be null, if the entity identity is invalid.
+    fn entity_vtable(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
+        Ok(self.entity_ptr::<()>()?.cast::<Ptr<()>>())
+    }
 
-        let mut next_entity = self.p_next_by_class;
-        while next_entity > 0 {
-            let entity = cs2
-                .read::<EntityIdentity>(Module::Absolute, &[next_entity])
-                .context(obfstr!("failed to read next entity identity of class").to_string())?;
-            next_entity = entity.p_next_by_class;
-            result.push(entity);
-        }
-
-        Ok(result)
+    fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>> {
+        SchemaValue::from_memory(&self.memory, self.offset + 0x10)
     }
 }

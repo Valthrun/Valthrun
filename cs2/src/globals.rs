@@ -1,8 +1,5 @@
-use std::sync::Arc;
+use cs2_schema::{define_schema, PtrCStr};
 
-use cs2_schema::define_schema;
-
-use crate::PtrCStr;
 use cs2_schema::{ MemoryHandle, SchemaValue };
 
 define_schema! {
@@ -22,6 +19,6 @@ define_schema! {
         pub time_3: f32 = 0x30,
 
         pub frame_count_2: u32 = 0x40,
-        pub two_tick_time: f32 = 0x44
+        pub two_tick_time: f32 = 0x44,
     }
 }

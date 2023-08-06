@@ -3,7 +3,7 @@
 use anyhow::Context;
 use cs2_schema::{MemoryHandle, SchemaValue};
 use obfstr::obfstr;
-use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any, mem::MaybeUninit};
+use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any};
 use kinterface::{
     requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle},
     CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern,
@@ -28,6 +28,16 @@ impl MemoryHandle for CSMemoryHandleCached {
         slice.copy_from_slice(source);
         Ok(())
     }
+
+    fn reference_memory(&self, address: u64, length: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
+        cs2.reference_memory(address, length)
+    }
+
+    fn read_memory(&self, address: u64, length: usize) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
+        cs2.read_memory(&[ address ], length)
+    }
 }
 
 pub struct CSMemoryHandleReference {
@@ -43,6 +53,16 @@ impl MemoryHandle for CSMemoryHandleReference {
     fn read_slice(&self, offset: u64, slice: &mut [u8]) -> anyhow::Result<()> {
         let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
         cs2.read_slice(Module::Absolute, &[ self.address + offset ], slice)
+    }
+
+    fn reference_memory(&self, address: u64, length: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
+        cs2.reference_memory(address, length)
+    }
+
+    fn read_memory(&self, address: u64, length: usize) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
+        cs2.read_memory(&[ address ], length)
     }
 }
 
@@ -206,7 +226,9 @@ impl CS2Handle {
         // FIXME: Do cstring reading within the kernel driver!
         loop {
             buffer.resize(expected_length, 0u8);
-            self.read_slice(module, offsets, buffer.as_mut_slice())?;
+            self.read_slice(module, offsets, buffer.as_mut_slice())
+                .context("read_string")?;
+
             if let Ok(str) = CStr::from_bytes_until_nul(&buffer) {
                 return Ok(str.to_str().context("invalid string contents")?.to_string());
             }
@@ -215,17 +237,39 @@ impl CS2Handle {
         }
     }
 
-    /// Read the whole schema class and return a wrapper around the data.
-    pub fn read_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+    fn read_memory(&self, offsets: &[u64], size: usize) -> anyhow::Result<Arc<dyn MemoryHandle>> {
         let mut memory = CSMemoryHandleCached{
             cs2: self.weak_self.clone(),
-            buffer: Vec::with_capacity(T::value_size()),
+            buffer: Vec::with_capacity(size),
         };
 
-        unsafe { memory.buffer.set_len(T::value_size()) };
+        unsafe { memory.buffer.set_len(size) };
         self.read_slice(Module::Absolute, offsets, &mut memory.buffer)?;
         
         let memory = Arc::new(memory) as Arc<(dyn MemoryHandle + 'static)>;
+        Ok(memory)
+    }
+
+    fn reference_memory(&self, address: u64, size: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        if let Some(size) = &size {
+            if *size <= 0xFFFF {
+                /* Less then 64kb memory can just be read */
+                return self.read_memory(&[ address ], *size);
+            }
+        }
+
+        Ok(
+            Arc::new(CSMemoryHandleReference{
+                cs2: self.weak_self.clone(),
+                address
+            }) as Arc<(dyn MemoryHandle + 'static)>
+        )
+    }
+
+    /// Read the whole schema class and return a wrapper around the data.
+    pub fn read_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+        let schema_size = T::value_size().context("schema must have a size")?;
+        let memory = self.read_memory(offsets, schema_size)?;
         T::from_memory(&memory, 0x00)
     }
 
@@ -241,10 +285,7 @@ impl CS2Handle {
             base + offsets[offsets.len() - 1]
         };
     
-        let memory = Arc::new(CSMemoryHandleReference{
-            cs2: self.weak_self.clone(),
-            address
-        }) as Arc<(dyn MemoryHandle + 'static)>;
+        let memory = self.reference_memory(address, T::value_size())?;
         T::from_memory(
             &memory,
             0x00

@@ -5,7 +5,7 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, EngineBuildInfo};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, EngineBuildInfo, PCStrEx};
 use imgui::Condition;
 use kinterface::ByteSequencePattern;
 use obfstr::obfstr;
@@ -97,10 +97,12 @@ impl Application {
                 .with_context(|| obfstr!("failed to read globals").to_string())?
         );
        
-        visuals::read_player_info(self)?;
+        visuals::read_player_info(self)
+            .context("player info")?;
         
         if self.settings().bomb_timer {
-            self.bomb_state = visuals::read_bomb_state(self)?;
+            self.bomb_state = visuals::read_bomb_state(self)
+                .context("bomb state")?;
         }
 
         let read_calls = self.cs2.ke_interface.total_read_calls();
@@ -165,7 +167,7 @@ impl Application {
             } else {
                 &settings.esp_color_team
             };
-            if settings.esp_skeleton {
+            if settings.esp_skeleton && entry.team_type != TeamType::Local {
                 let bones = entry.model.bones.iter()
                     .zip(entry.bone_states.iter());
 
@@ -203,7 +205,7 @@ impl Application {
                 }
             }
 
-            if settings.esp_boxes {
+            if settings.esp_boxes && entry.team_type != TeamType::Local {
                 self.view_controller.draw_box_3d(
                     &draw,
                     &(entry.model.vhull_min + entry.position),
