@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 cs2 = { path = "../cs2" } 
-cs2-schema = { path = "../schema" }
+cs2-schema = { path = "../cs2-schema" }
 kinterface = { path = "../kinterface"}
 overlay = { path = "../overlay"}
 anyhow = "1.0.72"
