@@ -1,7 +1,7 @@
 use std::{sync::Arc, ffi::CStr};
 
 use anyhow::Context;
-use cs2::{Module, CS2Model, PCStrEx};
+use cs2::CS2Model;
 use cs2_schema::{cs2::client::{CSkeletonInstance, CModelState}, Ptr, SchemaValue, define_schema, MemoryHandle};
 use obfstr::obfstr;
 

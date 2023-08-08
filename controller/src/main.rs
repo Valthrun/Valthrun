@@ -6,17 +6,17 @@ use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
 use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, EngineBuildInfo, PCStrEx};
-use imgui::Condition;
-use kinterface::ByteSequencePattern;
+use imgui::{Condition, Key};
+use kinterface::{ByteSequencePattern, MouseState, KeyboardState};
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use settings_ui::SettingsUI;
 use view::ViewController;
-use visuals::{BombState, PlayerInfo, TeamType};
+use hacks::{BombState, PlayerInfo, TeamType, CrosshairTarget};
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
-    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
+    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf, time::Duration,
 };
 
 use crate::settings::save_app_settings;
@@ -25,7 +25,7 @@ mod view;
 mod settings;
 mod settings_ui;
 mod cache;
-mod visuals;
+mod hacks;
 
 pub struct Application {
     pub cs2: Arc<CS2Handle>,
@@ -42,6 +42,7 @@ pub struct Application {
     pub view_controller: ViewController,
 
     pub bomb_state: BombState,
+    pub crosshair_target: Option<CrosshairTarget>,
     
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,
@@ -87,6 +88,46 @@ impl Application {
             }
         }
 
+        if ui.is_key_pressed_no_repeat(Key::P) {
+            log::debug!("XX");
+            self.cs2.send_mouse_state(&[
+                MouseState{
+                    last_x: self.settings.borrow().mouse_360 as i32,
+                    ..Default::default()
+                },
+            ])?;
+        }
+
+        if ui.is_key_pressed_no_repeat(Key::O) {
+            log::debug!("Send message!");
+            let states = [
+                KeyboardState{ scane_code: 0x1C, down: true },
+                KeyboardState{ scane_code: 0x1C, down: false },
+                
+                KeyboardState{ scane_code: 0x23, down: true },
+                KeyboardState{ scane_code: 0x23, down: false },
+                
+                KeyboardState{ scane_code: 0x12, down: true },
+                KeyboardState{ scane_code: 0x12, down: false },
+
+                KeyboardState{ scane_code: 0x26, down: true },
+                KeyboardState{ scane_code: 0x26, down: false },
+
+                KeyboardState{ scane_code: 0x26, down: true },
+                KeyboardState{ scane_code: 0x26, down: false },
+
+                KeyboardState{ scane_code: 0x18, down: true },
+                KeyboardState{ scane_code: 0x18, down: false },
+                
+                KeyboardState{ scane_code: 0x1C, down: true },
+                KeyboardState{ scane_code: 0x1C, down: false },
+            ];
+            for state in states {
+                self.cs2.send_keyboard_state(&[ state ])?;
+                std::thread::sleep(Duration::from_millis(1));
+            }
+        }
+
         self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
         self.view_controller
             .update_view_matrix(&self.cs2)?;
@@ -97,11 +138,14 @@ impl Application {
                 .with_context(|| obfstr!("failed to read globals").to_string())?
         );
        
-        visuals::read_player_info(self)
+        hacks::read_player_info(self)
             .context("player info")?;
         
+        hacks::update_crosshair_target(self)
+            .context("trigger bot")?;
+
         if self.settings().bomb_timer {
-            self.bomb_state = visuals::read_bomb_state(self)
+            self.bomb_state = hacks::read_bomb_state(self)
                 .context("bomb state")?;
         }
 
@@ -442,6 +486,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
         view_controller: ViewController::new(cs2_offsets.clone()),
         bomb_state: BombState::Unset,
+        crosshair_target: None,
 
         last_total_read_calls: 0,
         frame_read_calls: 0,
@@ -459,6 +504,7 @@ fn main_overlay() -> anyhow::Result<()> {
     }
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
+    let mut update_fail_count = 0;
     overlay.main_loop(
         {
             let app = app.clone();
@@ -468,6 +514,7 @@ fn main_overlay() -> anyhow::Result<()> {
                     show_critical_error(&format!("{:#}", err));
                     false
                 } else {
+                    update_fail_count = 0;
                     true    
                 }            
             }
@@ -476,8 +523,12 @@ fn main_overlay() -> anyhow::Result<()> {
             let mut app = app.borrow_mut();
 
             if let Err(err) = app.update(ui) {
-                show_critical_error(&format!("{:#}", err));
-                return false;
+                if update_fail_count >= 10 {
+                    show_critical_error(&format!("{:#}", err));
+                    return false;
+                } else {
+                    update_fail_count += 1;
+                }
             }
 
             app.render(ui);

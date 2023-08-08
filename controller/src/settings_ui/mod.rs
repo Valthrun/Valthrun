@@ -53,6 +53,9 @@ impl SettingsUI {
                             .build();
                         ui.same_line();
                         ui.text("Team Color");
+
+                        ui.input_int("Mouse 360", &mut settings.mouse_360)
+                            .build();
                     }
                 }
             });

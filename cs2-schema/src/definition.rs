@@ -133,6 +133,7 @@ impl ClassDefinition {
             writeln!(output, "    pub struct {}[0x{:X}] {{", class_name, self.class_size)?;
         }
 
+        writeln!(output, "      pub vtable: Ptr<()> = 0x00,")?; // Every schema class has a vtable
         self.offsets.iter()
             .try_for_each(|offset| offset.emit(output))?;
 

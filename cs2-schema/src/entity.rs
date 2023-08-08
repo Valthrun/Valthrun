@@ -12,6 +12,10 @@ pub struct EntityHandle<T> {
 }
 
 impl<T> EntityHandle<T> {
+    pub fn from_index(index: u32) -> Self {
+        Self { value: index, _data: Default::default() }
+    }
+
     pub fn get_entity_index(&self) -> u32 {
         self.value & 0x7FFF
     }

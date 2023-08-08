@@ -17,6 +17,9 @@ pub struct CS2Offsets {
 
     /// Client offset for the global world to screen view matrix
     pub view_matrix: u64,
+
+    /// Offset for the crosshair entity id in C_CSPlayerPawn
+    pub offset_crosshair_id: u64
 }
 
 impl CS2Offsets {
@@ -26,6 +29,7 @@ impl CS2Offsets {
             local_controller: Self::find_local_player_controller_ptr(cs2)?,
             global_entity_list: Self::find_entity_list(cs2)?,
             view_matrix: Self::find_view_matrix(cs2)?,
+            offset_crosshair_id: Self::find_offset_crosshair_id(cs2)?
         })
     }
 
@@ -68,8 +72,7 @@ impl CS2Offsets {
     }
 
     fn find_view_matrix(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        let pattern_entity_list =
-            ByteSequencePattern::parse(obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06")).unwrap();
+        let pattern_entity_list = ByteSequencePattern::parse(obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06")).unwrap();
 
         let inst_address = cs2
             .find_pattern(Module::Client, &pattern_entity_list)?
@@ -79,5 +82,16 @@ impl CS2Offsets {
             inst_address + cs2.read::<i32>(Module::Client, &[inst_address + 0x03])? as u64 + 0x07;
         log::debug!("View Matrix {:X}", address);
         Ok(address)
+    }
+
+    fn find_offset_crosshair_id(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        // 41 89 86 ? ? ? ? 41 89 86
+        let pattern = ByteSequencePattern::parse(obfstr!("41 89 86 ? ? ? ? 41 89 86")).unwrap();
+        let address = cs2.find_pattern(Module::Client, &pattern)?
+            .with_context(|| obfstr!("failed to find crosshair id offset").to_string())?;
+
+        let offset = cs2.read::<u32>(Module::Client, &[ address + 0x03 ])? as u64;
+        log::debug!("Crosshair ID offset 0x{:X}", offset);
+        Ok(offset)
     }
 }

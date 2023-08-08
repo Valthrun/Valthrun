@@ -15,6 +15,8 @@ define_schema! {
         pub time_1: f32 = 0x00,
         pub frame_count_1: u32 = 0x04,
 
+        pub max_player_count: u32 = 0x10,
+
         pub time_2: f32 = 0x2C,
         pub time_3: f32 = 0x30,
 
