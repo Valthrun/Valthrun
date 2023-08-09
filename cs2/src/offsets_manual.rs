@@ -15,10 +15,4 @@ pub mod client {
         /* UC sig does not work. Offset is array of u16 */
         pub const BONE_PARENT: u64 = 0x178;
     }
-
-    #[allow(non_snake_case)]
-    pub mod CModelState {
-        /* Offset is array of BoneData */
-        pub const BONE_STATE_DATA: u64 = 0x80;
-    }
 }

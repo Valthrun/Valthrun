@@ -4,18 +4,17 @@
 <img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
 </a>
 </p>
+
 Valthrun an open source external Counter-Strike 2 read only kernel cheat.  
 That's a lot of descriptive words, but what does each of them mean?  
-- Valthrun; The name of this project
-- Open Source; This application is open source and for everbody to study
-- external; We do not inject any ddls into the target process
-- Counter-Strike 2; This cheat is created for Counter Strike 2
-- read only; We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory
-- kernel; We do not use any user level WinAPIs in order to get information from the CS2 process
+- `Valthrun` The name of this project
+- `Open Source` This application is open source and for everbody to study
+- `external` We do not inject any ddls into the target process
+- `Counter-Strike 2` This cheat is created for Counter Strike 2
+- `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory.
+- `kernel` We do not use any user level WinAPIs in order to get information from the CS2 process
   
-Note:  
-This project has been inspired by [GarHal_CSGO](https://github.com/WolverinDEV/GarHal_CSGO).  
-As GarHal this is a project for exploring the Windows Kernel with [Rust](https://www.rust-lang.org).
+This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and some game hacking :)
 
 # Overlay Features
 The basis for the overlay has been build but it's currently pretty limited in terms of functionality.  
@@ -33,6 +32,8 @@ Attention: Ensure you have `NUMLOCK` enabled!
   - Time 'till detonation
   - Time 'till defusal
   - Bomb location
+- Trigger Bot
+- Aim Bot
 - Spectator info
   - List of player currently watching you / the observer target
 - Player competitive ranks / wins
@@ -50,6 +51,7 @@ The following prerequisites must be fullfilled to build this project
 - Windows Kernel Development Kit
 
 ## 1. Kernel Driver
+Currently the kernel driver is private. Use the prebuild kernel driver.  
 ```ps1
 # Switch to the kernel driver directory
 cd kernel/driver
@@ -99,9 +101,10 @@ $env:RUST_LOG="trace"
 .\controller.exe
 ```
 
-# Updating offsets for Counter-Strike 2
-TODO: Create documentation on this one, as well where and what offsets are used!  
-May put this into a seperate file.
+# Updating signatures/offsets for Counter-Strike 2
+Many offsets are dynamically resolved through signatures.  
+But signatures may break with feature versions of the game and therefore need to be updated. Currently *most* signatures can be found [here](https://github.com/WolverinDEV/Valthrun/blob/master/cs2/src/offsets.rs).   
+Some time I may write a guide on how to find them, but right now you ether know how to do that, or just need to wait for somebody else to update them.
 
 # VAC
 The same considerations as mentioned in [this link](https://github.com/dretax/GarHal_CSGO#starting-driver) have been taken into account.  
