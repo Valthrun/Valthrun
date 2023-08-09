@@ -1,6 +1,6 @@
 ![Valthrun CS2 Logo](./logo.svg)
 <p align="right">
-<img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
+[<img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">](https://discord.gg/ecKbpAPW5T)
 </p>
 Valthrun an open source external Counter-Strike 2 read only kernel cheat.  
 That's a lot of descriptive words, but what does each of them mean?  
@@ -118,4 +118,4 @@ If you encounter an issue, please submit an issue detailing your Windows version
 
 # Help
 You can find help on the official Valthrun Discord server:  
-![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)  
+[![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)](https://discord.gg/ecKbpAPW5T)
