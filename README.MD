@@ -1,6 +1,6 @@
 ![Valthrun CS2 Logo](./logo.svg)
 <p align="right">
-[<img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">](https://discord.gg/ecKbpAPW5T)
+[![Discord Shield](https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield)](https://discord.gg/ecKbpAPW5T)
 </p>
 Valthrun an open source external Counter-Strike 2 read only kernel cheat.  
 That's a lot of descriptive words, but what does each of them mean?  
