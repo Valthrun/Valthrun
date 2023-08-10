@@ -5,27 +5,60 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, BoneFlags, Globals, EngineBuildInfo, PCStrEx};
-use imgui::{Condition, Key};
-use kinterface::{ByteSequencePattern, MouseState, KeyboardState};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, EngineBuildInfo, PCStrEx};
+use imgui::{Condition, Ui};
+use kinterface::ByteSequencePattern;
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use settings_ui::SettingsUI;
 use view::ViewController;
-use hacks::{BombState, PlayerInfo, TeamType, CrosshairTarget};
+use hacks::Hack;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
-    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf, time::Duration,
+    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
-use crate::settings::save_app_settings;
+use crate::{settings::save_app_settings, hacks::{PlayerESP, BombInfo, TriggerBot}, view::LocalCrosshair};
 
 mod view;
 mod settings;
 mod settings_ui;
 mod cache;
 mod hacks;
+
+pub trait UpdateInputState {
+    fn is_key_down(&self, key: imgui::Key) -> bool;
+    fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
+}
+
+impl UpdateInputState for imgui::Ui {
+    fn is_key_down(&self, key: imgui::Key) -> bool {
+        Ui::is_key_down(self, key)
+    }
+
+    fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool {
+        if repeating {
+            Ui::is_key_pressed(self, key)
+        } else {
+            Ui::is_key_pressed_no_repeat(self, key)
+        }
+    }
+}
+
+pub struct UpdateContext<'a> {
+    pub settings: &'a AppSettings,
+    pub input: &'a dyn UpdateInputState,
+
+    pub cs2: &'a Arc<CS2Handle>,
+    pub cs2_entities: &'a EntitySystem,
+    
+    pub model_cache: &'a EntryCache<u64, CS2Model>,
+    pub class_name_cache: &'a EntryCache<u64, Option<String>>,
+    pub view_controller: &'a ViewController,
+
+    pub globals: Globals,
+}
 
 pub struct Application {
     pub cs2: Arc<CS2Handle>,
@@ -34,20 +67,17 @@ pub struct Application {
     pub cs2_globals: Option<Globals>,
     pub cs2_build_info: BuildInfo,
 
-    pub settings_visible: bool,
     pub model_cache: EntryCache<u64, CS2Model>,
     pub class_name_cache: EntryCache<u64, Option<String>>,
-
-    pub players: Vec<PlayerInfo>,
     pub view_controller: ViewController,
 
-    pub bomb_state: BombState,
-    pub crosshair_target: Option<CrosshairTarget>,
-    
+    pub hacks: Vec<Rc<RefCell<dyn Hack>>>,
+
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,
 
     pub settings: Rc<RefCell<AppSettings>>,
+    pub settings_visible: bool,
     pub settings_dirty: bool,
     pub settings_ui: RefCell<SettingsUI>,
 }
@@ -78,7 +108,8 @@ impl Application {
     }
 
     pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
-        if ui.is_key_pressed_no_repeat(imgui::Key::Keypad0) {
+        let settings = self.settings.borrow();
+        if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
             
@@ -87,68 +118,32 @@ impl Application {
                 self.settings_dirty = true;
             }
         }
-
-        if ui.is_key_pressed_no_repeat(Key::P) {
-            log::debug!("XX");
-            self.cs2.send_mouse_state(&[
-                MouseState{
-                    last_x: self.settings.borrow().mouse_360 as i32,
-                    ..Default::default()
-                },
-            ])?;
-        }
-
-        if ui.is_key_pressed_no_repeat(Key::O) {
-            log::debug!("Send message!");
-            let states = [
-                KeyboardState{ scane_code: 0x1C, down: true },
-                KeyboardState{ scane_code: 0x1C, down: false },
-                
-                KeyboardState{ scane_code: 0x23, down: true },
-                KeyboardState{ scane_code: 0x23, down: false },
-                
-                KeyboardState{ scane_code: 0x12, down: true },
-                KeyboardState{ scane_code: 0x12, down: false },
-
-                KeyboardState{ scane_code: 0x26, down: true },
-                KeyboardState{ scane_code: 0x26, down: false },
-
-                KeyboardState{ scane_code: 0x26, down: true },
-                KeyboardState{ scane_code: 0x26, down: false },
-
-                KeyboardState{ scane_code: 0x18, down: true },
-                KeyboardState{ scane_code: 0x18, down: false },
-                
-                KeyboardState{ scane_code: 0x1C, down: true },
-                KeyboardState{ scane_code: 0x1C, down: false },
-            ];
-            for state in states {
-                self.cs2.send_keyboard_state(&[ state ])?;
-                std::thread::sleep(Duration::from_millis(1));
-            }
-        }
-
-        self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
-        self.view_controller
-            .update_view_matrix(&self.cs2)?;
-
-
-        self.cs2_globals = Some(
-            self.cs2.read_schema::<Globals>(&[ self.cs2.memory_address(Module::Client, self.cs2_offsets.globals)?, 0 ])
-                .with_context(|| obfstr!("failed to read globals").to_string())?
-        );
-       
-        hacks::read_player_info(self)
-            .context("player info")?;
         
-        hacks::update_crosshair_target(self)
-            .context("trigger bot")?;
+        self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
+        self.view_controller.update_view_matrix(&self.cs2)?;
 
-        if self.settings().bomb_timer {
-            self.bomb_state = hacks::read_bomb_state(self)
-                .context("bomb state")?;
+        let globals = self.cs2.read_schema::<Globals>(&[ self.cs2.memory_address(Module::Client, self.cs2_offsets.globals)?, 0 ])
+            .with_context(|| obfstr!("failed to read globals").to_string())?;
+
+        let update_context = UpdateContext {
+            cs2: &self.cs2,
+            cs2_entities: &self.cs2_entities,
+
+            settings: &*settings,
+            input: ui,
+
+            globals,
+            class_name_cache: &self.class_name_cache,
+            view_controller: &self.view_controller,
+            model_cache: &self.model_cache
+        };
+       
+        for hack in self.hacks.iter() {
+            let mut hack = hack.borrow_mut();
+            hack.update(&update_context)?;
         }
 
+        
         let read_calls = self.cs2.ke_interface.total_read_calls();
         self.frame_read_calls = read_calls - self.last_total_read_calls;
         self.last_total_read_calls = read_calls;
@@ -166,7 +161,8 @@ impl Application {
             .build(|| self.render_overlay(ui));
 
         if self.settings_visible {
-            self.render_settings(ui);
+            let mut settings_ui = self.settings_ui.borrow_mut();
+            settings_ui.render(self, ui)
         }
     }
 
@@ -200,107 +196,10 @@ impl Application {
             ui.text(text)
         }
 
-        let draw = ui.get_window_draw_list();
-        for entry in self.players.iter() {
-            if matches!(&entry.team_type, TeamType::Local) {
-                continue;
-            }
-
-            let esp_color = if entry.team_type == TeamType::Enemy {
-                &settings.esp_color_enemy
-            } else {
-                &settings.esp_color_team
-            };
-            if settings.esp_skeleton && entry.team_type != TeamType::Local {
-                let bones = entry.model.bones.iter()
-                    .zip(entry.bone_states.iter());
-
-                for (bone, state) in bones {
-                    if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
-                        continue;
-                    }
-
-                    let parent_index = if let Some(parent) = bone.parent {
-                        parent
-                    } else {
-                        continue;
-                    };
-
-                    let parent_position = match self
-                        .view_controller
-                        .world_to_screen(&entry.bone_states[parent_index].position, true)
-                    {
-                        Some(position) => position,
-                        None => continue,
-                    };
-                    let bone_position =
-                        match self.view_controller.world_to_screen(&state.position, true) {
-                            Some(position) => position,
-                            None => continue,
-                        };
-
-                    draw.add_line(
-                        parent_position,
-                        bone_position,
-                        *esp_color,
-                    )
-                        .thickness(settings.esp_skeleton_thickness)
-                        .build();
-                }
-            }
-
-            if settings.esp_boxes && entry.team_type != TeamType::Local {
-                self.view_controller.draw_box_3d(
-                    &draw,
-                    &(entry.model.vhull_min + entry.position),
-                    &(entry.model.vhull_max + entry.position),
-                    (*esp_color).into(),
-                    settings.esp_boxes_thickness
-                );
-            }
-
-            if settings.bomb_timer {
-                let group = ui.begin_group();
-
-                let line_height = ui.text_line_height_with_spacing();
-                ui.set_cursor_pos([ 10.0, ui.window_size()[1] * 0.95 - line_height * 5.0 ]); // ui.frame_height() - line_height * 5.0 
-
-                match &self.bomb_state {
-                    BombState::Unset => {},
-                    BombState::Active { bomb_site, time_detonation, defuse } => {
-                        ui.text(&format!("Bomb planted on {}", if *bomb_site == 0 { "A" } else { "B" }));
-                        ui.text(&format!("Damage:"));
-                        ui.same_line();
-                        ui.text_colored([ 0.0, 0.0, 0.0, 0.0 ], "???");
-                        ui.text(&format!("Time: {:.3}", time_detonation));
-                        if let Some(defuse) = defuse.as_ref() {
-                            let color = if defuse.time_remaining > *time_detonation {
-                                [ 0.79, 0.11, 0.11, 1.0 ]
-                            } else {
-                                [ 0.11, 0.79, 0.26, 1.0 ]
-                            };
-
-                            ui.text_colored(color, &format!("Defused in {:.3} by {}", defuse.time_remaining, defuse.player_name));
-                        } else {
-                            ui.text("Not defusing");
-                        }
-                    },
-                    BombState::Defused => {
-                        ui.text("Bomb has been defused");
-                    },
-                    BombState::Detonated => {
-                        ui.text("Bomb has been detonated");
-                    }
-                }
-
-                group.end();
-            }
+        for hack in self.hacks.iter() {
+            let hack = hack.borrow();
+            hack.render(&*settings, ui, &self.view_controller);
         }
-    }
-
-    fn render_settings(&self, ui: &imgui::Ui) {
-        let mut settings_ui = self.settings_ui.borrow_mut();
-        settings_ui.render(self, ui)
     }
 }
 
@@ -444,9 +343,6 @@ fn main_overlay() -> anyhow::Result<()> {
         cs2_globals: None,
         cs2_build_info,
 
-        settings_visible: false,
-
-        players: Vec::with_capacity(16),
         model_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |model| {
@@ -483,15 +379,19 @@ fn main_overlay() -> anyhow::Result<()> {
                 Ok(Some(class_name))
             }
         }),
-
         view_controller: ViewController::new(cs2_offsets.clone()),
-        bomb_state: BombState::Unset,
-        crosshair_target: None,
+
+        hacks: vec![
+            Rc::new(RefCell::new(PlayerESP::new())),
+            Rc::new(RefCell::new(BombInfo::new())),
+            Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(cs2_offsets.offset_crosshair_id)))),
+        ],
 
         last_total_read_calls: 0,
         frame_read_calls: 0,
 
         settings: settings.clone(),
+        settings_visible: false,
         settings_dirty: false,
         settings_ui: RefCell::new(SettingsUI::new(settings)),
     };
@@ -514,7 +414,6 @@ fn main_overlay() -> anyhow::Result<()> {
                     show_critical_error(&format!("{:#}", err));
                     false
                 } else {
-                    update_fail_count = 0;
                     true    
                 }            
             }
