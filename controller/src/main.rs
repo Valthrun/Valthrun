@@ -393,7 +393,7 @@ fn main_overlay() -> anyhow::Result<()> {
         settings: settings.clone(),
         settings_visible: false,
         settings_dirty: false,
-        settings_ui: RefCell::new(SettingsUI::new(settings)),
+        settings_ui: RefCell::new(SettingsUI::new(settings))
     };
 
     let app = Rc::new(RefCell::new(app));

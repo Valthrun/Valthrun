@@ -1,4 +1,4 @@
-use std::{rc::Rc, cell::RefCell};
+use std::{rc::Rc, cell::RefCell, time::Instant};
 
 use imgui::Condition;
 use obfstr::obfstr;
@@ -94,13 +94,15 @@ impl ImGuiKey for imgui::Ui {
 
 pub struct SettingsUI {
     settings: Rc<RefCell<AppSettings>>,
+    discord_link_copied: Option<Instant>
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 impl SettingsUI {
     pub fn new(settings: Rc<RefCell<AppSettings>>) -> Self {
         Self {
-            settings
+            settings,
+            discord_link_copied: None,
         }
     }
 
@@ -114,6 +116,30 @@ impl SettingsUI {
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel cheat."));
                         ui.text(&format!("Valthrun Version {}", VERSION));
                         ui.text(&format!("CS2 Version {} ({})", app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
+                        
+                        let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.5;
+                        ui.dummy([ 0.0, ydummy ]);
+                        ui.separator();
+
+                        ui.text("Join our discord:");
+                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], "https://discord.gg/ecKbpAPW5T");
+                        if ui.is_item_hovered() {
+                            ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
+                        }
+
+                        if ui.is_item_clicked() {
+                            self.discord_link_copied = Some(Instant::now());
+                            ui.set_clipboard_text("https://discord.gg/ecKbpAPW5T");
+                        }
+
+                        let show_copied = self.discord_link_copied.as_ref()
+                            .map(|time| time.elapsed().as_millis() < 3_000)
+                            .unwrap_or(false);
+                            
+                        if show_copied {
+                            ui.same_line();
+                            ui.text("(Copied)");
+                        }
                     }
 
                     if let Some(_) = ui.tab_item("Hotkeys") {
@@ -144,16 +170,11 @@ impl SettingsUI {
                             .build();
                         ui.same_line();
                         ui.text("Team Color");
-
-                        ui.input_int("Mouse X 360", &mut settings.mouse_x_360)
-                            .build();
-
-                        ui.input_int("Mouse Y 89", &mut settings.mouse_y_89)
-                            .build();
                     }
 
                     if let Some(_) = ui.tab_item("Aim Assist") {
                         ui.button_key_optional("Trigger Bot", &mut settings.key_trigger_bot, [150.0, 0.0]);
+                        ui.checkbox("Team Check", &mut settings.trigger_bot_team_check);
                     }
                 }
             });

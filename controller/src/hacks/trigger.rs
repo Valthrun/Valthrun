@@ -37,19 +37,21 @@ impl TriggerBot {
             return Ok(false);
         }
     
-        let crosshair_entity = ctx.cs2_entities.get_by_handle(
-            &EntityHandle::<C_CSPlayerPawn>::from_index(target.entity_id)
-        )?
-            .context("missing crosshair player pawn")?
-            .read_schema()?;
-    
-        let local_player_controller = ctx.cs2_entities.get_local_player_controller()?
-            .try_reference_schema()?
-            .context("missing local player controller")?;
-    
-        let target_player = crosshair_entity.as_schema::<C_CSPlayerPawn>()?;
-        if target_player.m_iTeamNum()? == local_player_controller.m_iTeamNum()? {
-            return Ok(false);
+        if ctx.settings.trigger_bot_team_check {
+            let crosshair_entity = ctx.cs2_entities.get_by_handle(
+                &EntityHandle::<C_CSPlayerPawn>::from_index(target.entity_id)
+            )?
+                .context("missing crosshair player pawn")?
+                .read_schema()?;
+        
+            let local_player_controller = ctx.cs2_entities.get_local_player_controller()?
+                .try_reference_schema()?
+                .context("missing local player controller")?;
+        
+            let target_player = crosshair_entity.as_schema::<C_CSPlayerPawn>()?;
+            if target_player.m_iTeamNum()? == local_player_controller.m_iTeamNum()? {
+                return Ok(false);
+            }
         }
 
         Ok(true)

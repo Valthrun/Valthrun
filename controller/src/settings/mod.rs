@@ -46,11 +46,11 @@ pub struct AppSettings {
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
 
-    #[serde(default = "default_i32::<4046>")]
-    pub mouse_y_89: i32,
-
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,
+
+    #[serde(default = "bool_true")]
+    pub trigger_bot_team_check: bool,
 
     #[serde(default)]
     pub imgui: Option<String>,
