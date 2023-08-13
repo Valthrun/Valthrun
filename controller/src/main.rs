@@ -5,9 +5,8 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, EngineBuildInfo, PCStrEx};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, EngineBuildInfo, PCStrEx, Signature};
 use imgui::{Condition, Ui};
-use kinterface::ByteSequencePattern;
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use settings_ui::SettingsUI;
@@ -122,7 +121,7 @@ impl Application {
         self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
         self.view_controller.update_view_matrix(&self.cs2)?;
 
-        let globals = self.cs2.read_schema::<Globals>(&[ self.cs2.memory_address(Module::Client, self.cs2_offsets.globals)?, 0 ])
+        let globals = self.cs2.read_schema::<Globals>(&[ self.cs2_offsets.globals, 0 ])
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
         let update_context = UpdateContext {
@@ -295,21 +294,17 @@ pub struct BuildInfo {
 }
 
 impl BuildInfo {
-    fn find_build_info_offset(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        let pattern =
-            ByteSequencePattern::parse(obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B")).unwrap();
-
-        let inst_address = cs2
-            .find_pattern(Module::Engine, &pattern)?
-            .with_context(|| obfstr!("failed to find build info pattern").to_string())?;
-
-        let address = inst_address + cs2.read::<i32>(Module::Engine, &[inst_address + 0x03])? as u64 + 0x07;
-        Ok(address)
+    fn find_build_info(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        cs2.resolve_signature(Module::Engine, &Signature::relative_address(
+            obfstr!("client build info"),
+            obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"), 
+            0x03, 0x07
+        ))
     }
 
     pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
-        let offset = Self::find_build_info_offset(cs2)?;
-        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[ cs2.memory_address(Module::Engine, offset)? ])?;
+        let address = Self::find_build_info(cs2)?;
+        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[ address ])?;
         Ok(Self {
             revision: engine_build_info.revision()?.read_string(&cs2)?,
             build_datetime: format!("{} {}",

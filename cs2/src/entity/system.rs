@@ -20,9 +20,7 @@ impl EntitySystem {
 
     /* Returns a CSSPlayerController instance */
     pub fn get_local_player_controller(&self) -> anyhow::Result<Ptr<CCSPlayerController>> {
-        self.cs2.read_schema::<Ptr<CCSPlayerController>>(&[
-            self.cs2.memory_address(Module::Client, self.offsets.local_controller)?
-        ])
+        self.cs2.read_schema::<Ptr<CCSPlayerController>>(&[ self.offsets.local_controller ])
     }
 
     pub fn all_identities(&self) -> anyhow::Result<Vec<CEntityIdentity>> {
@@ -30,7 +28,7 @@ impl EntitySystem {
         result.reserve(512);
 
         let base_identity = self.cs2.read_schema::<CEntityIdentity>(&[
-            self.cs2.memory_address(Module::Client, self.offsets.global_entity_list)?,
+            self.offsets.global_entity_list,
             0,
             0
         ])?;
@@ -90,7 +88,7 @@ impl EntitySystem {
     ) -> anyhow::Result<Option<Ptr<T>>> {
         let (bulk, offset) = handle.entity_array_offsets();
         let identity = self.cs2.read_schema::<CEntityIdentity>(&[
-            self.cs2.memory_address(Module::Client, self.offsets.global_entity_list)?,
+            self.offsets.global_entity_list,
             bulk * 0x08,
             offset * CEntityIdentity::value_size().context("missing entity identity size")? as u64
         ])?;

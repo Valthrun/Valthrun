@@ -6,8 +6,10 @@ use obfstr::obfstr;
 use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any};
 use kinterface::{
     requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle, RequestMouseMove, RequestKeyboardState},
-    CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern, MouseState, KeyboardState,
+    CS2ModuleInfo, KernelInterface, ModuleInfo, MouseState, KeyboardState,
 };
+
+use crate::{Signature, SignatureType};
 
 pub struct CSMemoryHandleCached {
     cs2: Weak<CS2Handle>,
@@ -311,20 +313,33 @@ impl CS2Handle {
         )
     }
 
-    pub fn find_pattern(
+    pub fn resolve_signature(
         &self,
         module: Module,
-        pattern: &dyn SearchPattern,
-    ) -> anyhow::Result<Option<u64>> {
-        let module = module
+        signature: &Signature
+    ) -> anyhow::Result<u64> {
+        log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
+        let module_info = module
             .get_base_offset(&self.module_info)
             .context("invalid module")?;
-        let address = self.ke_interface.find_pattern(
+
+        let inst_offset = self.ke_interface.find_pattern(
             self.module_info.process_id,
-            module.base_address as u64,
-            module.module_size,
-            pattern,
-        )?;
-        Ok(address.map(|addr| addr.wrapping_sub(module.base_address as u64)))
+            module_info.base_address as u64,
+            module_info.module_size,
+            &*signature.pattern,
+        )?.context("failed to find pattern")?;
+
+        let value = self.read::<u32>(Module::Absolute, &[ inst_offset + signature.offset ])? as u64;
+        let value = match &signature.value_type {
+            SignatureType::Offset => value,
+            SignatureType::RelativeAddress { inst_length } => inst_offset + value + inst_length
+        };
+
+        match &signature.value_type {
+            SignatureType::Offset => log::trace!(" => {:X}", value),
+            SignatureType::RelativeAddress { .. } => log::trace!("  => {:X} ({:X})", value, self.module_address(module, value).unwrap_or(u64::MAX)),
+        }
+        Ok(value)
     }
 }

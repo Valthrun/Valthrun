@@ -4,24 +4,16 @@ use anyhow::Context;
 use cs2_schema_cutl::{CUtlVector, CUtlTSHash};
 use cs2_schema_declaration::{define_schema, Ptr, FixedCString, PtrCStr};
 use cs2_schema_generated::definition::{Metadata, mod_name_from_schema_name, EnumDefinition, EnumMember, ClassDefinition, ClassField, SchemaScope};
-use kinterface::ByteSequencePattern;
-use crate::{CS2Handle, Module, PCStrEx};
+use obfstr::obfstr;
+use crate::{CS2Handle, Module, PCStrEx, Signature};
 
 // Returns SchemaSystem_001
 fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
-    let load_address = cs2
-        .find_pattern(
-            Module::Schemasystem,
-            &ByteSequencePattern::parse("48 89 05 ? ? ? ? 4C 8D 45").unwrap(),
-        )?
-        .context("could not find schema system by signature")?;
-
-    log::trace!(
-        "Schema sig resolved to {:X} ({:X})",
-        cs2.module_info.schemasystem.base_address as u64 + load_address,
-        load_address
-    );
-    Ok(load_address + cs2.read::<u32>(Module::Schemasystem, &[load_address + 0x03])? as u64 + 0x07)
+    cs2.resolve_signature(Module::Schemasystem, &Signature::relative_address(
+        obfstr!("schema system instance"),
+        obfstr!("48 89 05 ? ? ? ? 4C 8D 45"), 
+        0x03, 0x07
+    ))
 }
 
 define_schema! {
@@ -403,17 +395,15 @@ fn read_class_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaClassBinding>) -
 }
 
 pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
-    let schema_system_offset = find_schema_system(cs2)?;
-    let schema_system = cs2.reference_schema::<CSchemaSystem>(&[
-        cs2.memory_address(Module::Schemasystem, schema_system_offset)?
-    ])?;
+    let schema_system_address = find_schema_system(cs2)?;
+    let schema_system = cs2.reference_schema::<CSchemaSystem>(&[ schema_system_address ])?;
 
     let scopes = schema_system.scopes()?;
     let scope_size = scopes.element_count()? as usize;
     log::debug!(
         "Schema system located at 0x{:X} (0x{:X}) containing 0x{:X} scopes",
-        cs2.memory_address(Module::Schemasystem, schema_system_offset)?,
-        schema_system_offset,
+        schema_system_address,
+        cs2.module_address(Module::Schemasystem, schema_system_address).context("invalid schema system address")?,
         scope_size
     );
 

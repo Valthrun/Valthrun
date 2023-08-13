@@ -6,7 +6,7 @@ use imgui::ImColor32;
 /// View controller which helps resolve in game
 /// coordinates into 2d screen coordinates.
 pub struct ViewController {
-    cs2_view_matrix_offset: u64,
+    cs2_view_matrix: u64,
     view_matrix: nalgebra::Matrix4<f32>,
     screen_bounds: mint::Vector2<f32>,
 }
@@ -14,7 +14,7 @@ pub struct ViewController {
 impl ViewController {
     pub fn new(offsets: Arc<CS2Offsets>) -> Self {
         Self {
-            cs2_view_matrix_offset: offsets.view_matrix,
+            cs2_view_matrix: offsets.view_matrix,
             view_matrix: Default::default(),
             screen_bounds: mint::Vector2 { x: 0.0, y: 0.0 },
         }
@@ -25,7 +25,7 @@ impl ViewController {
     }
 
     pub fn update_view_matrix(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.view_matrix = cs2.read(Module::Client, &[self.cs2_view_matrix_offset])?;
+        self.view_matrix = cs2.read(Module::Absolute, &[self.cs2_view_matrix])?;
         Ok(())
     }
 
