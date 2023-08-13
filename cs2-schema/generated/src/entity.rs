@@ -50,13 +50,13 @@ impl<T> Debug for EntityHandle<T> {
 }
 
 impl<T> SchemaValue for EntityHandle<T> {
-    fn value_size() -> Option<usize> {
+    fn value_size() -> Option<u64> {
         Some(0x04)
     }
 
-    fn from_memory(memory: &std::sync::Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            value: SchemaValue::from_memory(memory, offset)?,
+            value: SchemaValue::from_memory(memory)?,
             _data: Default::default()
         })
     }

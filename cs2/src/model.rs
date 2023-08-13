@@ -1,3 +1,4 @@
+use cs2_schema_declaration::Ptr;
 use obfstr::obfstr;
 
 use crate::{CS2Handle, offsets_manual};
@@ -59,9 +60,9 @@ impl CS2Model {
 
             self.vview_min,
             self.vview_max,
-        ] = cs2.read::<[ nalgebra::Vector3<f32>; 4 ]>(&[ address + 0x18 ])?;
+        ] = cs2.read_sized::<[ nalgebra::Vector3<f32>; 4 ]>(&[ address + 0x18 ])?;
 
-        let bone_count = cs2.read::<u64>(&[
+        let bone_count = cs2.reference_schema::<u64>(&[
             address + offsets_manual::client::CModel::BONE_NAME - 0x08
         ])? as usize;
         if bone_count > 1000 {
@@ -69,21 +70,11 @@ impl CS2Model {
         }
 
         log::trace!("Reading {} bones", bone_count);
-        let model_bone_flags = cs2.read_vec::<u32>(
-            &[
-                address + offsets_manual::client::CModel::BONE_FLAGS,
-                0, /* read the whole array */
-            ],
-            bone_count,
-        )?;
+        let model_bone_flags = cs2.reference_schema::<Ptr<[u32]>>(&[ address + offsets_manual::client::CModel::BONE_FLAGS ])?
+            .read_entries(bone_count)?;
 
-        let model_bone_parent_index = cs2.read_vec::<u16>(
-            &[
-                address + offsets_manual::client::CModel::BONE_PARENT,
-                0, /* read the whole array */
-            ],
-            bone_count,
-        )?;
+        let model_bone_parent_index = cs2.reference_schema::<Ptr<[u16]>>(&[ address + offsets_manual::client::CModel::BONE_PARENT ])?
+            .read_entries(bone_count)?;
 
         self.bones.clear();
         self.bones.reserve(bone_count);

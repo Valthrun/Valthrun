@@ -25,7 +25,7 @@ impl ViewController {
     }
 
     pub fn update_view_matrix(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.view_matrix = cs2.read(&[self.cs2_view_matrix])?;
+        self.view_matrix = cs2.read_sized(&[self.cs2_view_matrix])?;
         Ok(())
     }
 

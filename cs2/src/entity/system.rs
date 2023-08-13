@@ -20,7 +20,7 @@ impl EntitySystem {
 
     /* Returns a CSSPlayerController instance */
     pub fn get_local_player_controller(&self) -> anyhow::Result<Ptr<CCSPlayerController>> {
-        self.cs2.read_schema::<Ptr<CCSPlayerController>>(&[ self.offsets.local_controller ])
+        self.cs2.reference_schema::<Ptr<CCSPlayerController>>(&[ self.offsets.local_controller ])
     }
 
     pub fn all_identities(&self) -> anyhow::Result<Vec<CEntityIdentity>> {

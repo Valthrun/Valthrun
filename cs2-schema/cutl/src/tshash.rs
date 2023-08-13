@@ -2,7 +2,7 @@ use std::{sync::Arc, marker::PhantomData};
 
 use anyhow::Context;
 
-use cs2_schema_declaration::{MemoryHandle, SchemaValue, define_schema, Ptr};
+use cs2_schema_declaration::{MemoryDriver, SchemaValue, define_schema, Ptr, MemoryHandle};
 
 define_schema! {
     pub struct CUtlMemoryPool[0x18] {
@@ -19,94 +19,85 @@ define_schema! {
 }
 
 pub struct HashBucketData<K, V> {
-    memory: Arc<dyn MemoryHandle>,
-    offset: u64,
-
+    memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
 
 impl<K: SchemaValue, V: SchemaValue> HashBucketData<K, V> {
     pub fn value(&self) -> anyhow::Result<V> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+        self.memory.reference_schema(0x00)
     }
 
     pub fn key(&self) -> anyhow::Result<K> {
-        SchemaValue::from_memory(&self.memory, self.offset + V::value_size().context("value must have a size")? as u64 + 0x08)
+        self.memory.reference_schema(
+            V::value_size().context("value must have a size")? + 0x08
+        )
     }
 }
 
 impl<K: SchemaValue, V: SchemaValue> SchemaValue for HashBucketData<K, V> {
-    fn value_size() -> Option<usize> {
+    fn value_size() -> Option<u64> {
         Some(K::value_size()? + V::value_size()? + 0x08)
     }
 
-    fn from_memory(memory: &Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            memory: memory.clone(),
-            offset,
-
+            memory: memory,
             _data: Default::default()
         })
     }
 }
 
 pub  struct HashUnallocatedData<K, V> {
-    memory: Arc<dyn MemoryHandle>,
-    offset: u64,
-
+    memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
 
 
 impl<K: SchemaValue, V: SchemaValue> HashUnallocatedData<K, V> {
     pub fn next_data(&self) -> anyhow::Result<Ptr<HashUnallocatedData<K, V>>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+        self.memory.reference_schema(0x00)
     }
 
-    pub fn bucket_entry(&self, index: usize) -> anyhow::Result<HashBucketData<K, V>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x20 + (HashBucketData::<K, V>::value_size().context("hash bucket must have a size")? * index) as u64)
+    pub fn bucket_entry(&self, index: u64) -> anyhow::Result<HashBucketData<K, V>> {
+        self.memory.reference_schema(0x20 + (HashBucketData::<K, V>::value_size().context("hash bucket must have a size")? * index) as u64)
     }
 }
 
 impl<K: SchemaValue, V: SchemaValue> SchemaValue for HashUnallocatedData<K, V> {
-    fn value_size() -> Option<usize> {
+    fn value_size() -> Option<u64> {
         // FIXME: HashunallocatedData length is determined by m_blocks_per_blob_!
         //        Pass as template parameter and not define this here.
         Some(0x20 + HashBucketData::<K, V>::value_size()? * 256)
     }
 
-    fn from_memory(memory: &Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            memory: memory.clone(),
-            offset,
-
+            memory: memory,
             _data: Default::default()
         })
     }
 }
 
 pub  struct HashBucket<K, V> {
-    memory: Arc<dyn MemoryHandle>,
-    offset: u64,
-
+    memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
 
 impl<K: SchemaValue, V: SchemaValue> HashBucket<K, V> {
     pub fn unallocated_data(&self) -> anyhow::Result<Ptr<HashUnallocatedData<K, V>>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x18)
+        self.memory.reference_schema(0x18)
     }
 }
 
 impl<K, V> SchemaValue for HashBucket<K, V> {
-    fn value_size() -> Option<usize> {
+    fn value_size() -> Option<u64> {
         Some(0x20)
     }
 
-    fn from_memory(memory: &Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            memory: memory.clone(),
-            offset: offset,
+            memory,
             _data: Default::default()
         })
     }
@@ -118,20 +109,20 @@ impl<K, V> SchemaValue for HashBucket<K, V> {
 ///     buckets: [HashBucket<K, V>, N] // 0x18
 /// }
 pub struct CUtlTSHash<K, V, const N: usize = 1> {
-    memory: Arc<dyn MemoryHandle>,
-    offset: u64,
-
     pub memory_pool: CUtlMemoryPool,
+    memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
 
 impl<K: SchemaValue, V: SchemaValue, const N: usize> CUtlTSHash<K, V, N> {
     pub fn bucket_count(&self) -> usize { N }
 
-    pub fn bucket(&self, index: usize) -> anyhow::Result<HashBucket<K, V>> {
+    pub fn bucket(&self, index: u64) -> anyhow::Result<HashBucket<K, V>> {
         let memory_bool_size = CUtlMemoryPool::value_size().context("memory pool must have a size")?;
         let bucket_size = HashBucket::<K, V>::value_size().context("hash bucket must have a size")?;
-        SchemaValue::from_memory(&self.memory, self.offset + (memory_bool_size + index * bucket_size) as u64)
+        self.memory.reference_schema(
+            (memory_bool_size + index * bucket_size) as u64
+        )
     }
 
     pub fn read_values(&self) -> anyhow::Result<Vec<V>> {
@@ -144,7 +135,7 @@ impl<K: SchemaValue, V: SchemaValue, const N: usize> CUtlTSHash<K, V, N> {
             let data_array = current_data.read_schema()?;
             let data_array_elements = (self.memory_pool.blocks_per_blob()? as usize).min(num_entries_remaining);
             for data_index in 0..data_array_elements {
-                let value = data_array.bucket_entry(data_index)?.value()?;
+                let value = data_array.bucket_entry(data_index as u64)?.value()?;
                 result.push(value);
             }
     
@@ -161,17 +152,15 @@ impl<K: SchemaValue, V: SchemaValue, const N: usize> CUtlTSHash<K, V, N> {
 }
 
 impl<K: SchemaValue, V: SchemaValue, const N: usize> SchemaValue for CUtlTSHash<K, V, N> {
-    fn value_size() -> Option<usize> {
-        Some(CUtlMemoryPool::value_size()? + N * HashBucket::<K, V>::value_size()?)
+    fn value_size() -> Option<u64> {
+        Some(CUtlMemoryPool::value_size()? + (N as u64) * HashBucket::<K, V>::value_size()?)
     }
 
-    fn from_memory(memory: &Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            memory_pool: SchemaValue::from_memory(memory, offset + 0x00)?,
-
-            offset,
-            memory: memory.clone(),
-
+            memory_pool: SchemaValue::from_memory(memory.clone())?,
+            
+            memory,
             _data: Default::default()
         })
     }

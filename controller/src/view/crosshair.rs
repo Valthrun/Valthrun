@@ -36,7 +36,7 @@ impl LocalCrosshair {
             None => return Ok(None)
         };
     
-        let entity_id = ctx.cs2.read::<u32>(&[
+        let entity_id = ctx.cs2.reference_schema::<u32>(&[
             local_pawn_ptr.address()? + self.offset_crosshair_id
         ])?;
         if entity_id != 0xFFFFFFFF {

@@ -1,25 +1,23 @@
-use std::{sync::Arc, marker::PhantomData};
+use std::marker::PhantomData;
 
-use cs2_schema_declaration::{MemoryHandle, SchemaValue, Ptr};
+use cs2_schema_declaration::{SchemaValue, Ptr, MemoryHandle};
 
 /// struct CUtlVector<T> {
 ///     pub size: u32, // 0x00
 ///     pub data: *const T // 0x08
 /// }
 pub struct CUtlVector<T> {
-    memory: Arc<dyn MemoryHandle>,
-    offset: u64,
-
+    memory: MemoryHandle,
     _dummy: PhantomData<T>,
 }
 
 impl<T> CUtlVector<T> {
     pub fn element_count(&self) -> anyhow::Result<i32> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+        self.memory.reference_schema(0x00)
     }
 
     pub fn elements(&self) -> anyhow::Result<Ptr<[T]>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x08)
+        self.memory.reference_schema(0x08)
     }
 }
 
@@ -40,14 +38,13 @@ impl<T: SchemaValue> CUtlVector<T> {
 }
 
 impl<T> SchemaValue for CUtlVector<T> {
-    fn value_size() -> Option<usize> {
+    fn value_size() -> Option<u64> {
         Some(0x10)
     }
 
-    fn from_memory(memory: &Arc<dyn MemoryHandle>, offset: u64) -> anyhow::Result<Self> {
+    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
-            memory: memory.clone(),
-            offset,
+            memory,
             _dummy: Default::default(),
         })
     }

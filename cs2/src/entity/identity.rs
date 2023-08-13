@@ -1,4 +1,4 @@
-use cs2_schema_declaration::{Ptr, SchemaValue};
+use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::{EntityHandle, cs2::client::{CEntityIdentity, CEntityInstance}};
 
 pub trait CEntityIdentityEx {
@@ -9,7 +9,7 @@ pub trait CEntityIdentityEx {
 
 impl CEntityIdentityEx for CEntityIdentity {
     fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+        self.memory.reference_schema(0x00)
     }
 
     /// Returns a ptr ptr to the entities vtable.
@@ -19,7 +19,7 @@ impl CEntityIdentityEx for CEntityIdentity {
     }
 
     fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x10)
+        self.memory.reference_schema(0x10)
     }
 }
 
@@ -29,6 +29,6 @@ pub trait CEntityInstanceEx {
 
 impl CEntityInstanceEx for CEntityInstance {
     fn vtable(&self) -> anyhow::Result<Ptr<()>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
+        self.memory.reference_schema(0x00)
     }
 }

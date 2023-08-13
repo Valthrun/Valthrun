@@ -2,7 +2,7 @@ use std::{sync::Arc, ffi::CStr};
 
 use anyhow::Context;
 use cs2::{CS2Model, BoneFlags};
-use cs2_schema_declaration::{define_schema, Ptr, SchemaValue};
+use cs2_schema_declaration::{define_schema, Ptr};
 use cs2_schema_generated::cs2::client::{CSkeletonInstance, CModelState};
 use obfstr::obfstr;
 
@@ -24,8 +24,6 @@ pub struct PlayerInfo {
     pub player_name: String,
     pub position: nalgebra::Vector3<f32>,
  
-    pub debug_text: String,
-
     pub model: Arc<CS2Model>,
     pub bone_states: Vec<BoneStateData>,
 }
@@ -61,11 +59,11 @@ trait CModelStateEx {
 impl CModelStateEx for CModelState {
     #[allow(non_snake_case)]
     fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 160)
+        self.memory.reference_schema(0xA0)
     }
 
     fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>> {
-        SchemaValue::from_memory(&self.memory, self.offset + 0x80)
+        self.memory.reference_schema(0x80)
     }
 }
 
@@ -82,6 +80,10 @@ impl PlayerESP {
 impl Hack for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
+        if !ctx.settings.esp_boxes && !ctx.settings.esp_skeleton {
+            return Ok(());
+        }
+
         self.players.reserve(16);
     
         let local_player_controller = ctx
@@ -113,7 +115,7 @@ impl Hack for PlayerESP {
             /* Will be an instance of CSkeletonInstance */
             let game_screen_node = player_pawn.m_pGameSceneNode()?
                 .cast::<CSkeletonInstance>()
-                .reference_schema()?;
+                .read_schema()?;
             if game_screen_node.m_bDormant()? {
                 continue;
             }
@@ -153,8 +155,6 @@ impl Hack for PlayerESP {
                 player_name,
                 player_health,
                 position,
-    
-                debug_text: "".to_string(),
     
                 bone_states,
                 model: model.clone(),

@@ -121,7 +121,8 @@ impl Application {
         self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
         self.view_controller.update_view_matrix(&self.cs2)?;
 
-        let globals = self.cs2.read_schema::<Globals>(&[ self.cs2_offsets.globals, 0 ])
+        let globals = self.cs2.reference_schema::<Globals>(&[ self.cs2_offsets.globals, 0 ])?
+            .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
         let update_context = UpdateContext {
@@ -350,11 +351,11 @@ fn main_overlay() -> anyhow::Result<()> {
         class_name_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |vtable: &u64| {
-                let fn_get_class_schema = cs2.read::<u64>(&[
-                    *vtable + 0x00, // First entry in V-Table is GetClassSchema
+                let fn_get_class_schema = cs2.reference_schema::<u64>(&[
+                    *vtable + 0x00 // First entry in V-Table is GetClassSchema
                 ])?;
 
-                let schema_offset = cs2.read::<i32>(&[
+                let schema_offset = cs2.reference_schema::<i32>(&[
                     fn_get_class_schema + 0x03, // lea rcx, <class schema>
                 ])? as u64;
 

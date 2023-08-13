@@ -78,6 +78,7 @@ impl Hack for TriggerBot {
         let mut state = MouseState{ ..Default::default() };
         state.buttons[0] = Some(self.active);
         ctx.cs2.send_mouse_state(&[ state ])?;
+        log::trace!("Setting shoot state to {}", self.active);
         Ok(())
     }
 
