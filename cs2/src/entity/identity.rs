@@ -1,4 +1,5 @@
-use cs2_schema::{SchemaValue, Ptr, EntityHandle, cs2::client::{CEntityIdentity, CEntityInstance}};
+use cs2_schema_declaration::{Ptr, SchemaValue};
+use cs2_schema_generated::{EntityHandle, cs2::client::{CEntityIdentity, CEntityInstance}};
 
 pub trait CEntityIdentityEx {
     fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>>;

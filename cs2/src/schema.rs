@@ -1,9 +1,10 @@
 use std::collections::{BTreeMap, btree_map::Entry};
 
 use anyhow::Context;
-use cs2_schema::{definition::{SchemaScope, Metadata, EnumDefinition, EnumMember, ClassDefinition, ClassField, mod_name_from_schema_name}, define_schema, cutl::{CUtlVector, CUtlTSHash}, Ptr, FixedCString, PtrCStr};
+use cs2_schema_cutl::{CUtlVector, CUtlTSHash};
+use cs2_schema_declaration::{define_schema, Ptr, FixedCString, PtrCStr};
+use cs2_schema_generated::definition::{Metadata, mod_name_from_schema_name, EnumDefinition, EnumMember, ClassDefinition, ClassField, SchemaScope};
 use kinterface::ByteSequencePattern;
-use cs2_schema::{ MemoryHandle, SchemaValue };
 use crate::{CS2Handle, Module, PCStrEx};
 
 // Returns SchemaSystem_001

@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
-use cs2_schema::{MemoryHandle, SchemaValue};
+use cs2_schema_declaration::{MemoryHandle, SchemaValue};
 use obfstr::obfstr;
 use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any};
 use kinterface::{

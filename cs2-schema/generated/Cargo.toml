@@ -1,5 +1,5 @@
 [package]
-name = "cs2-schema"
+name = "cs2-schema-generated"
 version = "0.1.0"
 edition = "2021"
 
@@ -7,6 +7,8 @@ edition = "2021"
 anyhow = "1.0.72"
 nalgebra = "0.32.3"
 serde = { version = "1.0.178", features = ["derive"] }
+cs2-schema-declaration = { path = "../declaration" }
+cs2-schema-cutl = { path = "../cutl" }
 
 [build-dependencies]
 anyhow = "1.0.72" 

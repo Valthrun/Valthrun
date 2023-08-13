@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use cs2_schema::{cs2::client::CEntityInstance, EntityHandle};
+use cs2_schema_generated::{EntityHandle, cs2::client::CEntityInstance};
 
 use crate::{UpdateContext, hacks::CrosshairTarget};
 

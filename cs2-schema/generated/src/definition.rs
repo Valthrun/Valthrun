@@ -34,7 +34,8 @@ impl SchemaScope {
 
         writeln!(output, "  use super::*;")?;
         writeln!(output, "  use crate::*;")?;
-        writeln!(output, "  use crate::cutl::*;")?;
+        writeln!(output, "  use cs2_schema_cutl::*;")?;
+        writeln!(output, "  use cs2_schema_declaration::*;")?;
 
         self.enums.iter()
             .try_for_each(|definition| definition.emit(output))?;

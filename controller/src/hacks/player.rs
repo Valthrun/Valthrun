@@ -2,7 +2,8 @@ use std::{sync::Arc, ffi::CStr};
 
 use anyhow::Context;
 use cs2::{CS2Model, BoneFlags};
-use cs2_schema::{cs2::client::{CSkeletonInstance, CModelState}, Ptr, SchemaValue, define_schema, MemoryHandle};
+use cs2_schema_declaration::{define_schema, Ptr, SchemaValue};
+use cs2_schema_generated::cs2::client::{CSkeletonInstance, CModelState};
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};

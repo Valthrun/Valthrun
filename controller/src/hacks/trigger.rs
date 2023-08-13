@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use cs2_schema::{EntityHandle, cs2::client::C_CSPlayerPawn};
+use cs2_schema_generated::{cs2::client::C_CSPlayerPawn, EntityHandle};
 use kinterface::MouseState;
 
 use crate::{view::{LocalCrosshair, ViewController}, UpdateContext, settings::AppSettings};

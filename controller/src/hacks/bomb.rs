@@ -2,7 +2,7 @@ use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema::cs2::client::C_PlantedC4;
+use cs2_schema_generated::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
 use crate::UpdateContext;

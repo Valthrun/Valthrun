@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use anyhow::{Context, Ok};
-use cs2_schema::{EntityHandle, SchemaValue, Ptr, cs2::client::CCSPlayerController};
+use cs2_schema_declaration::{Ptr, SchemaValue};
+use cs2_schema_generated::{cs2::client::{CCSPlayerController, CEntityIdentity}, EntityHandle};
 use obfstr::obfstr;
 
 use crate::{CS2Offsets, CS2Handle, Module, CEntityIdentityEx};
-use cs2_schema::cs2::client::CEntityIdentity;
 
 /// Helper class for CS2 global entity system
 pub struct EntitySystem {

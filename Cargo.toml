@@ -1,9 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
+    "cs2-schema/declaration",
+    "cs2-schema/cutl",
+    "cs2-schema/generated",
     "kinterface",
     "controller",
-    "cs2-schema",
     "cs2",
     "overlay",
 ]
