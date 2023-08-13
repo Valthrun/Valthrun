@@ -63,7 +63,7 @@ macro_rules! define_schema {
                     use anyhow::Context;
         
                     cs2_schema_declaration::SchemaValue::from_memory(&self.memory, self.offset + $var_offset)
-                        .context(concat!(stringify!($cname), "::", stringify!($var_name)))
+                        .context(concat!(stringify!($name), "::", stringify!($var_name)))
                 }
             )*
 
