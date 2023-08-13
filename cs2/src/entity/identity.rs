@@ -1,4 +1,5 @@
-use cs2_schema::{SchemaValue, Ptr, EntityHandle, cs2::client::CEntityIdentity};
+use cs2_schema_declaration::{Ptr, SchemaValue};
+use cs2_schema_generated::{EntityHandle, cs2::client::{CEntityIdentity, CEntityInstance}};
 
 pub trait CEntityIdentityEx {
     fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>>;
@@ -19,5 +20,15 @@ impl CEntityIdentityEx for CEntityIdentity {
 
     fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>> {
         SchemaValue::from_memory(&self.memory, self.offset + 0x10)
+    }
+}
+
+pub trait CEntityInstanceEx {
+    fn vtable(&self) -> anyhow::Result<Ptr<()>>;
+}
+
+impl CEntityInstanceEx for CEntityInstance {
+    fn vtable(&self) -> anyhow::Result<Ptr<()>> {
+        SchemaValue::from_memory(&self.memory, self.offset + 0x00)
     }
 }

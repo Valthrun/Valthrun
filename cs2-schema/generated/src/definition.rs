@@ -34,7 +34,8 @@ impl SchemaScope {
 
         writeln!(output, "  use super::*;")?;
         writeln!(output, "  use crate::*;")?;
-        writeln!(output, "  use crate::cutl::*;")?;
+        writeln!(output, "  use cs2_schema_cutl::*;")?;
+        writeln!(output, "  use cs2_schema_declaration::*;")?;
 
         self.enums.iter()
             .try_for_each(|definition| definition.emit(output))?;
@@ -133,6 +134,7 @@ impl ClassDefinition {
             writeln!(output, "    pub struct {}[0x{:X}] {{", class_name, self.class_size)?;
         }
 
+        writeln!(output, "      pub vtable: Ptr<()> = 0x00,")?; // Every schema class has a vtable
         self.offsets.iter()
             .try_for_each(|offset| offset.emit(output))?;
 

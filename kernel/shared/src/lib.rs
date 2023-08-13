@@ -24,3 +24,19 @@ pub struct CS2ModuleInfo {
     pub engine: ModuleInfo,
     pub schemasystem: ModuleInfo,
 }
+
+#[derive(Debug, Default)]
+pub struct MouseState {
+    pub buttons: [Option<bool>; 0x05],
+    pub hwheel: bool,
+    pub wheel: bool,
+
+    pub last_x: i32,
+    pub last_y: i32,
+}
+
+#[derive(Debug, Default)]
+pub struct KeyboardState {
+    pub scane_code: u16,
+    pub down: bool,
+}

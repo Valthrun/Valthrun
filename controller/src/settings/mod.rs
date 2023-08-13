@@ -1,6 +1,10 @@
 use std::{path::PathBuf, fs::File, io::{BufReader, BufWriter}};
+use imgui::Key;
 use serde::{ Deserialize, Serialize };
 use anyhow::Context;
+
+mod hotkey;
+pub use hotkey::*;
 
 fn bool_true() -> bool { true }
 fn default_esp_color_team() -> [f32; 4] { [ 0.0,  1.0,  0.0,  0.75 ] }
@@ -8,8 +12,17 @@ fn default_esp_color_enemy() -> [f32; 4] { [ 1.0,  0.0,  0.0,  0.75 ] }
 fn default_esp_skeleton_thickness() -> f32 { 3.0 }
 fn default_esp_boxes_thickness() -> f32 { 3.0 }
 
+fn default_u32<const V: u32>() -> u32 { V }
+fn default_i32<const V: i32>() -> i32 { V }
+
+fn default_key_settings() -> HotKey { Key::Pause.into() }
+fn default_key_trigger_bot() -> Option<HotKey> { Some(Key::MouseMiddle.into()) }
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
+    #[serde(default = "default_key_settings")]
+    pub key_settings: HotKey,
+
     #[serde(default = "bool_true")]
     pub esp_skeleton: bool,
 
@@ -29,6 +42,15 @@ pub struct AppSettings {
     pub esp_color_team: [f32; 4],
     #[serde(default = "default_esp_color_enemy")]
     pub esp_color_enemy: [f32; 4],
+
+    #[serde(default = "default_i32::<16364>")]
+    pub mouse_x_360: i32,
+
+    #[serde(default = "default_key_trigger_bot")]
+    pub key_trigger_bot: Option<HotKey>,
+
+    #[serde(default = "bool_true")]
+    pub trigger_bot_team_check: bool,
 
     #[serde(default)]
     pub imgui: Option<String>,

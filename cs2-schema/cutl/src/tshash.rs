@@ -2,8 +2,7 @@ use std::{sync::Arc, marker::PhantomData};
 
 use anyhow::Context;
 
-use crate::{define_schema, MemoryHandle, SchemaValue, Ptr};
-
+use cs2_schema_declaration::{MemoryHandle, SchemaValue, define_schema, Ptr};
 
 define_schema! {
     pub struct CUtlMemoryPool[0x18] {

@@ -1,12 +1,12 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
-use cs2_schema::{MemoryHandle, SchemaValue};
+use cs2_schema_declaration::{MemoryHandle, SchemaValue};
 use obfstr::obfstr;
 use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any};
 use kinterface::{
-    requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle},
-    CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern,
+    requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle, RequestMouseMove, RequestKeyboardState},
+    CS2ModuleInfo, KernelInterface, ModuleInfo, SearchPattern, MouseState, KeyboardState,
 };
 
 pub struct CSMemoryHandleCached {
@@ -151,6 +151,24 @@ impl CS2Handle {
         Ok(())
     }
 
+    pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> anyhow::Result<()> {
+        self.ke_interface.execute_request(&RequestKeyboardState {
+            buffer: states.as_ptr(),
+            state_count: states.len()
+        })?;
+
+        Ok(())
+    }
+
+    pub fn send_mouse_state(&self, states: &[MouseState]) -> anyhow::Result<()> {
+        self.ke_interface.execute_request(&RequestMouseMove {
+            buffer: states.as_ptr(),
+            state_count: states.len()
+        })?;
+
+        Ok(())
+    }
+
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
         let module = module.get_base_offset(&self.module_info)?;
         if (address as usize) < module.base_address || (address as usize) >= (module.base_address + module.module_size) {
@@ -250,13 +268,14 @@ impl CS2Handle {
         Ok(memory)
     }
 
-    fn reference_memory(&self, address: u64, size: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
-        if let Some(size) = &size {
-            if *size <= 0xFFFF {
-                /* Less then 64kb memory can just be read */
-                return self.read_memory(&[ address ], *size);
-            }
-        }
+    fn reference_memory(&self, address: u64, _size: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
+        // Can't be done as as_schema might alter to target size
+        // if let Some(size) = &size {
+        //     if *size <= 0xFFFF {
+        //         /* Less then 64kb memory can just be read */
+        //         return self.read_memory(&[ address ], *size);
+        //     }
+        // }
 
         Ok(
             Arc::new(CSMemoryHandleReference{

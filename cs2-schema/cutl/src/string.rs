@@ -1,4 +1,4 @@
-use crate::{ define_schema, SchemaValue, MemoryHandle };
+use cs2_schema_declaration::define_schema;
 
 use super::CUtlMemory;
 

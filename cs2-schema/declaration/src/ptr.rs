@@ -60,6 +60,29 @@ impl<T: SchemaValue> Ptr<T> {
         let size = T::value_size().context("could not read a dynamic sized schema")?;
         T::from_memory(&self.memory.read_memory(self.address()?, size)?, 0x00)
     }
+    
+    pub fn try_reference_schema(&self) -> anyhow::Result<Option<T>> {
+        let address = self.address()?;
+        if address > 0 {
+            Ok(Some(
+                T::from_memory(&self.memory.reference_memory(address, T::value_size())?, 0x00)?
+            ))
+        } else {
+            Ok(None)
+        }
+    }
+
+    pub fn try_read_schema(&self) -> anyhow::Result<Option<T>> {
+        let size = T::value_size().context("could not read a dynamic sized schema")?;
+        let address = self.address()?;
+        if address > 0 {
+            Ok(Some(
+                T::from_memory(&self.memory.read_memory(address, size)?, 0x00)?
+            ))
+        } else {
+            Ok(None)
+        }
+    }
 }
 
 /// Unbound array implementation

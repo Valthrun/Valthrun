@@ -1,4 +1,4 @@
-use crate::{CS2ModuleInfo, IO_MAX_DEREF_COUNT};
+use crate::{CS2ModuleInfo, IO_MAX_DEREF_COUNT, MouseState, KeyboardState};
 
 pub trait DriverRequest: Sized {
     type Result: Sized + Default;
@@ -94,5 +94,35 @@ impl DriverRequest for RequestProtectionToggle {
 
     fn function_code() -> u16 {
         0x04
+    }
+}
+
+pub struct RequestMouseMove {
+    pub buffer: *const MouseState,
+    pub state_count: usize
+}
+#[derive(Default)]
+pub struct ResponseMouseMove;
+
+impl DriverRequest for RequestMouseMove {
+    type Result = ResponseMouseMove;
+
+    fn function_code() -> u16 {
+        0x05
+    }
+}
+
+pub struct RequestKeyboardState {
+    pub buffer: *const KeyboardState,
+    pub state_count: usize
+}
+#[derive(Default)]
+pub struct ResponseKeyboardState;
+
+impl DriverRequest for RequestKeyboardState {
+    type Result = ResponseKeyboardState;
+
+    fn function_code() -> u16 {
+        0x06
     }
 }

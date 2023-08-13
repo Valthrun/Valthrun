@@ -1,6 +1,6 @@
 use std::{sync::Arc, marker::PhantomData};
 
-use crate::{MemoryHandle, SchemaValue, Ptr};
+use cs2_schema_declaration::{MemoryHandle, SchemaValue, Ptr};
 
 /// struct CUtlVector<T> {
 ///     pub size: u32, // 0x00

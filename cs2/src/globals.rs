@@ -1,6 +1,4 @@
-use cs2_schema::{define_schema, PtrCStr};
-
-use cs2_schema::{ MemoryHandle, SchemaValue };
+use cs2_schema_declaration::{define_schema, PtrCStr};
 
 define_schema! {
     pub struct EngineBuildInfo[0x28] {
@@ -14,6 +12,8 @@ define_schema! {
     pub struct Globals[0x48] {
         pub time_1: f32 = 0x00,
         pub frame_count_1: u32 = 0x04,
+
+        pub max_player_count: u32 = 0x10,
 
         pub time_2: f32 = 0x2C,
         pub time_3: f32 = 0x30,

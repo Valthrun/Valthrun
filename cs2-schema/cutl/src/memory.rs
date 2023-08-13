@@ -1,6 +1,6 @@
 use std::{sync::Arc, marker::PhantomData};
 
-use crate::{Ptr, MemoryHandle, SchemaValue};
+use cs2_schema_declaration::{MemoryHandle, SchemaValue, Ptr};
 
 pub struct CUtlMemory<T> {
     memory: Arc<dyn MemoryHandle>,

@@ -1,6 +1,6 @@
 use std::{fmt::Debug, marker::PhantomData};
 
-use crate::{SchemaValue, MemoryHandle};
+use cs2_schema_declaration::{SchemaValue, MemoryHandle};
 
 /// CS2 32 bit entity handle packed with 
 /// the entity index and serial number.
@@ -12,6 +12,10 @@ pub struct EntityHandle<T> {
 }
 
 impl<T> EntityHandle<T> {
+    pub fn from_index(index: u32) -> Self {
+        Self { value: index, _data: Default::default() }
+    }
+
     pub fn get_entity_index(&self) -> u32 {
         self.value & 0x7FFF
     }

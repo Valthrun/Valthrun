@@ -6,6 +6,10 @@ members = [
 ]
 
 [profile.dev]
+# Opt-Level of 1 is required to keep stack size small.
+# Important as we only got 8k stack size and allocating all structs
+# on the stack even with Box::new() is expensive.
+opt-level = 1
 panic = "abort"
 lto = true
 

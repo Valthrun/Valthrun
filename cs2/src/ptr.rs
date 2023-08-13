@@ -1,4 +1,4 @@
-use cs2_schema::PtrCStr;
+use cs2_schema_declaration::PtrCStr;
 
 use crate::{CS2Handle, Module};
 
