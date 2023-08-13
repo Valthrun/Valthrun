@@ -341,7 +341,7 @@ fn main_overlay() -> anyhow::Result<()> {
         model_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |model| {
-                let model_name = cs2.read_string(Module::Absolute, &[*model as u64 + 0x08, 0], Some(32))?;
+                let model_name = cs2.read_string(&[*model as u64 + 0x08, 0], Some(32))?;
                 log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
     
                 Ok(CS2Model::read(&cs2, *model as u64)?)
@@ -350,11 +350,11 @@ fn main_overlay() -> anyhow::Result<()> {
         class_name_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |vtable: &u64| {
-                let fn_get_class_schema = cs2.read::<u64>(Module::Absolute, &[
+                let fn_get_class_schema = cs2.read::<u64>(&[
                     *vtable + 0x00, // First entry in V-Table is GetClassSchema
                 ])?;
 
-                let schema_offset = cs2.read::<i32>(Module::Absolute, &[
+                let schema_offset = cs2.read::<i32>(&[
                     fn_get_class_schema + 0x03, // lea rcx, <class schema>
                 ])? as u64;
 
@@ -367,7 +367,7 @@ fn main_overlay() -> anyhow::Result<()> {
                     return Ok(None);
                 }
 
-                let class_name = cs2.read_string(Module::Absolute, &[
+                let class_name = cs2.read_string(&[
                     class_schema + 0x08,
                     0
                 ], Some(32))?;

@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use cs2::{CS2Offsets, CS2Handle, Module};
+use cs2::{CS2Offsets, CS2Handle};
 use imgui::ImColor32;
 
 /// View controller which helps resolve in game
@@ -25,7 +25,7 @@ impl ViewController {
     }
 
     pub fn update_view_matrix(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.view_matrix = cs2.read(Module::Absolute, &[self.cs2_view_matrix])?;
+        self.view_matrix = cs2.read(&[self.cs2_view_matrix])?;
         Ok(())
     }
 

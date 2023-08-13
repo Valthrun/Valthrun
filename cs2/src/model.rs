@@ -1,6 +1,6 @@
 use obfstr::obfstr;
 
-use crate::{CS2Handle, Module, offsets_manual};
+use crate::{CS2Handle, offsets_manual};
 
 pub enum BoneFlags {
     FlagNoBoneFlags = 0x0,
@@ -59,19 +59,17 @@ impl CS2Model {
 
             self.vview_min,
             self.vview_max,
-        ] = cs2.read::<[ nalgebra::Vector3<f32>; 4 ]>(Module::Absolute, &[ address + 0x18 ])?;
+        ] = cs2.read::<[ nalgebra::Vector3<f32>; 4 ]>(&[ address + 0x18 ])?;
 
-        let bone_count = cs2.read::<u64>(
-            Module::Absolute,
-            &[address + offsets_manual::client::CModel::BONE_NAME - 0x08],
-        )? as usize;
+        let bone_count = cs2.read::<u64>(&[
+            address + offsets_manual::client::CModel::BONE_NAME - 0x08
+        ])? as usize;
         if bone_count > 1000 {
             anyhow::bail!(obfstr!("model contains too many bones ({bone_count})").to_string());
         }
 
         log::trace!("Reading {} bones", bone_count);
         let model_bone_flags = cs2.read_vec::<u32>(
-            Module::Absolute,
             &[
                 address + offsets_manual::client::CModel::BONE_FLAGS,
                 0, /* read the whole array */
@@ -80,7 +78,6 @@ impl CS2Model {
         )?;
 
         let model_bone_parent_index = cs2.read_vec::<u16>(
-            Module::Absolute,
             &[
                 address + offsets_manual::client::CModel::BONE_PARENT,
                 0, /* read the whole array */
@@ -92,7 +89,6 @@ impl CS2Model {
         self.bones.reserve(bone_count);
         for bone_index in 0..bone_count {
             let name = cs2.read_string(
-                Module::Absolute,
                 &[
                     address + offsets_manual::client::CModel::BONE_NAME,
                     0x08 * bone_index as u64,

@@ -5,7 +5,7 @@ use cs2_schema_declaration::{Ptr, SchemaValue};
 use cs2_schema_generated::{cs2::client::{CCSPlayerController, CEntityIdentity}, EntityHandle};
 use obfstr::obfstr;
 
-use crate::{CS2Offsets, CS2Handle, Module, CEntityIdentityEx};
+use crate::{CS2Offsets, CS2Handle, CEntityIdentityEx};
 
 /// Helper class for CS2 global entity system
 pub struct EntitySystem {

@@ -54,7 +54,7 @@ impl MemoryHandle for CSMemoryHandleReference {
 
     fn read_slice(&self, offset: u64, slice: &mut [u8]) -> anyhow::Result<()> {
         let cs2 = self.cs2.upgrade().context("cs2 handle has been dropped")?;
-        cs2.read_slice(Module::Absolute, &[ self.address + offset ], slice)
+        cs2.read_slice(&[ self.address + offset ], slice)
     }
 
     fn reference_memory(&self, address: u64, length: Option<usize>) -> anyhow::Result<Arc<dyn MemoryHandle>> {
@@ -70,9 +70,6 @@ impl MemoryHandle for CSMemoryHandleReference {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Module {
-    /// Read the absolute address in memory
-    Absolute,
-
     Client,
     Engine,
     Schemasystem,
@@ -85,7 +82,6 @@ static EMPTY_MODULE_INFO: ModuleInfo = ModuleInfo {
 impl Module {
     pub fn get_base_offset<'a>(&self, module_info: &'a CS2ModuleInfo) -> Option<&'a ModuleInfo> {
         Some(match self {
-            Module::Absolute => &EMPTY_MODULE_INFO,
             Module::Client => &module_info.client,
             Module::Engine => &module_info.engine,
             Module::Schemasystem => &module_info.schemasystem,
@@ -188,55 +184,34 @@ impl CS2Handle {
             + offset)
     }
 
-    pub fn read<T>(&self, module: Module, offsets: &[u64]) -> anyhow::Result<T> {
-        let mut offsets = offsets.to_vec();
-        offsets[0] += module
-            .get_base_offset(&self.module_info)
-            .context("invalid module")?
-            .base_address as u64;
-
+    pub fn read<T>(&self, offsets: &[u64]) -> anyhow::Result<T> {
         Ok(self
             .ke_interface
-            .read(self.module_info.process_id, offsets.as_slice())?)
+            .read(self.module_info.process_id, offsets)?)
     }
 
     pub fn read_slice<T: Sized>(
         &self,
-        module: Module,
         offsets: &[u64],
         buffer: &mut [T],
     ) -> anyhow::Result<()> {
-        let mut offsets = offsets.to_vec();
-        offsets[0] += module
-            .get_base_offset(&self.module_info)
-            .context("invalid module")?
-            .base_address as u64;
-
         Ok(self
             .ke_interface
-            .read_slice(self.module_info.process_id, offsets.as_slice(), buffer)?)
+            .read_slice(self.module_info.process_id, offsets, buffer)?)
     }
 
     pub fn read_vec<T: Sized>(
         &self,
-        module: Module,
         offsets: &[u64],
         length: usize,
     ) -> anyhow::Result<Vec<T>> {
-        let mut offsets = offsets.to_vec();
-        offsets[0] += module
-            .get_base_offset(&self.module_info)
-            .context("invalid module")?
-            .base_address as u64;
-
         Ok(self
             .ke_interface
-            .read_vec(self.module_info.process_id, offsets.as_slice(), length)?)
+            .read_vec(self.module_info.process_id, offsets, length)?)
     }
 
     pub fn read_string(
         &self,
-        module: Module,
         offsets: &[u64],
         expected_length: Option<usize>,
     ) -> anyhow::Result<String> {
@@ -246,7 +221,7 @@ impl CS2Handle {
         // FIXME: Do cstring reading within the kernel driver!
         loop {
             buffer.resize(expected_length, 0u8);
-            self.read_slice(module, offsets, buffer.as_mut_slice())
+            self.read_slice(offsets, buffer.as_mut_slice())
                 .context("read_string")?;
 
             if let Ok(str) = CStr::from_bytes_until_nul(&buffer) {
@@ -264,7 +239,7 @@ impl CS2Handle {
         };
 
         unsafe { memory.buffer.set_len(size) };
-        self.read_slice(Module::Absolute, offsets, &mut memory.buffer)?;
+        self.read_slice(offsets, &mut memory.buffer)?;
         
         let memory = Arc::new(memory) as Arc<(dyn MemoryHandle + 'static)>;
         Ok(memory)
@@ -302,7 +277,7 @@ impl CS2Handle {
         let address = if offsets.len() == 1 {
             offsets[0]
         } else {
-            let base = self.read::<u64>(Module::Absolute, &offsets[0..offsets.len() - 1])?;
+            let base = self.read::<u64>(&offsets[0..offsets.len() - 1])?;
             base + offsets[offsets.len() - 1]
         };
     
@@ -330,7 +305,7 @@ impl CS2Handle {
             &*signature.pattern,
         )?.context("failed to find pattern")?;
 
-        let value = self.read::<u32>(Module::Absolute, &[ inst_offset + signature.offset ])? as u64;
+        let value = self.read::<u32>(&[ inst_offset + signature.offset ])? as u64;
         let value = match &signature.value_type {
             SignatureType::Offset => value,
             SignatureType::RelativeAddress { inst_length } => inst_offset + value + inst_length
