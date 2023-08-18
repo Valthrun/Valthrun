@@ -113,23 +113,23 @@ impl SettingsUI {
                 let mut settings = self.settings.borrow_mut();
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
-                        ui.text(obfstr!("Valthrun an open source CS2 external read only kernel cheat."));
-                        ui.text(&format!("Valthrun Version {}", VERSION));
-                        ui.text(&format!("CS2 Version {} ({})", app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
+                        ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
+                        ui.text(&format!("{} Version {}", obfstr!("Valthrun"), VERSION));
+                        ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
                         
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.5;
                         ui.dummy([ 0.0, ydummy ]);
                         ui.separator();
 
                         ui.text("Join our discord:");
-                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], "https://discord.gg/ecKbpAPW5T");
+                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], obfstr!("https://discord.gg/ecKbpAPW5T"));
                         if ui.is_item_hovered() {
                             ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                         }
 
                         if ui.is_item_clicked() {
                             self.discord_link_copied = Some(Instant::now());
-                            ui.set_clipboard_text("https://discord.gg/ecKbpAPW5T");
+                            ui.set_clipboard_text(obfstr!("https://discord.gg/ecKbpAPW5T"));
                         }
 
                         let show_copied = self.discord_link_copied.as_ref()

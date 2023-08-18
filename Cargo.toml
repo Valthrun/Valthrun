@@ -9,6 +9,9 @@ members = [
     "cs2",
     "overlay",
 ]
+exclude = [
+    "kernel/driver"
+]
 
 [profile.dev]
 incremental = true

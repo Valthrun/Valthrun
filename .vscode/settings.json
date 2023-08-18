@@ -1,6 +1,6 @@
 {
     "rust-analyzer.linkedProjects": [
-        ".\\kernel\\Cargo.toml",
+        ".\\kernel\\driver\\Cargo.toml",
         ".\\Cargo.toml"
     ]
 }
