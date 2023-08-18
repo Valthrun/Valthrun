@@ -355,16 +355,22 @@ fn main_overlay() -> anyhow::Result<()> {
                     *vtable + 0x00 // First entry in V-Table is GetClassSchema
                 ])?;
 
-                let schema_offset = cs2.reference_schema::<i32>(&[
-                    fn_get_class_schema + 0x03, // lea rcx, <class schema>
-                ])? as u64;
+                let mut asm_buffer = [0u8; 0x7];
+                cs2.read_slice(&[ fn_get_class_schema ], &mut asm_buffer)?;
 
+                // lea rcx, <class schema>
+                if asm_buffer[0] != 0x48 || asm_buffer[1] != 0x8D || asm_buffer[2] != 0x0D {
+                    /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
+                    return Ok(None);
+                }
+
+                let schema_offset = i32::from_le_bytes(asm_buffer[3..7].try_into()?) as u64;
                 let class_schema = fn_get_class_schema
                     .wrapping_add(schema_offset)
                     .wrapping_add(0x07);
 
                 if !cs2.module_address(Module::Client, class_schema).is_some() {
-                    /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
+                    log::warn!("GetClassSchema lea points to invalid target address for {:X}", *vtable);
                     return Ok(None);
                 }
 

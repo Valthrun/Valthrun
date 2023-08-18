@@ -66,11 +66,10 @@ impl LocalCrosshair {
                 .reference_schema()?;
         
             let target_type = ctx.class_name_cache.lookup(crosshair_entity.vtable()?.address()?)?;
-            let target_type = (*target_type).as_ref().context("crosshair entity name")?;
         
             self.current_target = Some(CrosshairTarget {
                 entity_id: crosshair_entity_handle.get_entity_index(),
-                entity_type: target_type.to_string(),
+                entity_type: (*target_type).clone(),
                 timestamp: Instant::now()
             });
         }

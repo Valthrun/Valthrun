@@ -10,7 +10,7 @@ use super::Hack;
 
 pub struct CrosshairTarget {
     pub entity_id: u32,
-    pub entity_type: String,
+    pub entity_type: Option<String>,
     pub timestamp: Instant
 }
 
@@ -33,7 +33,7 @@ impl TriggerBot {
             None => return Ok(false)
         };
     
-        if target.entity_type != "C_CSPlayerPawn" {
+        if !target.entity_type.as_ref().map(|t| t == "C_CSPlayerPawn").unwrap_or(false) {
             return Ok(false);
         }
     
