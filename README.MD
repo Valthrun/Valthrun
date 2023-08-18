@@ -5,20 +5,20 @@
 </a>
 </p>
 
-Valthrun an open source external Counter-Strike 2 read only kernel cheat.  
+Valthrun an open source external Counter-Strike 2 read only kernel gameplay enhancer.  
 That's a lot of descriptive words, but what does each of them mean?  
 - `Valthrun` The name of this project
 - `Open Source` This application is open source and for everbody to study
 - `external` We do not inject any ddls into the target process
-- `Counter-Strike 2` This cheat is created for Counter Strike 2
+- `Counter-Strike 2` The game we're enhancing
 - `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory.
 - `kernel` We do not use any user level WinAPIs in order to get information from the CS2 process
   
-This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and some game hacking :)
+This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and exploring the world of game enhancements :)
 
 # Features
 Valthrun provides a variety of external tools to enchant your gameplay experience.  
-As of now, Valthrun is a read only external cheat. This implies some limitations as which features could be provided.  
+As of now, Valthrun only reads memory and never writes anything. This implies some limitations as which features could be provided.  
 An example would be a skin changer which is not be possible without actively modifying the CS2 game state (e.g. writing into it's memory).  
   
 Regardless of this limitation, Valthrun supports the following features:  
@@ -45,30 +45,38 @@ Mess around:
 https://www.unknowncheats.me/forum/anti-cheat-bypass/347320-communication-via-callbacks.html
 - Invoking Shellcode within CS (send text message, change player name etc.)
 
+# Installation
+Valthrun does not need to be installed.  
+In order to run Valthrun you only need the kernel driver (`valthrun-driver.sys`) and the controller (`controller.exe`).  
+  
+Both can be accquired by downloading the precompiled release from GitHub.  
+Click here: TODO!  
+  
+Once downloaded read [How to use](#how-to-use) to get started!
+
 # How to use
 The following steps need to be done for starting/activating the overlay.
-1. Load the kernel driver
-The overlay requires the kernel driver for all memory reads and writes.
-Therefore we need to load the driver before we can continue.  
-  
-There are two options to load the kernel driver:
-1. Setting Windows into test-signing mode
-TODO: Explain how to set Windows into test signing
-Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
+1. Load the kernel driver  
+   The overlay requires the kernel driver for all memory reads and writes.
+   Therefore we need to load the driver before we can start the overlay. It's not strictly required to load the driver before starting CS2 but logically it makes sense to start with the driver.
+     
+   There are two common options to load the kernel driver:
+   1. Manually map the driver using a vulnerable driver
+      The Valthrun kernel driver fully supports manual driver mapping using a any   vulnerable driver. In order to detect the manual mapping the second driver entry argument (the   registry patch) must be a null ptr.  
+      The kernel driver will automatically allocate a new driver for io communication.  
 
-2. Manually map the driver using a vulnerable driver
-The Valthrun kernel driver fully supports manual driver mapping using a any vulnerable driver.  
-In order to detect the manual mapping the second driver entry argument (the registry patch) must be a null ptr.  
-The kernel driver will automatically allocate a new driver for io communication.  
-  
-In order to manually map the Valthrun driver you can use tools like  
-- [kdmapper](https://github.com/TheCruZ/kdmapper)
-- [KDU](https://github.com/hfiref0x/KDU)
-  
-1. Start Counter-Strike 2
-After loading the driver you can start Counter-Strike 2.
+   2. Setting Windows into test-signing mode  
+      TODO: Explain how to set Windows into test signing
+      Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
 
-1. Start Overlay
+      In order to manually map the Valthrun driver you can use tools like  
+      - [kdmapper](https://github.com/TheCruZ/kdmapper)
+      - [KDU](https://github.com/hfiref0x/KDU)
+   
+2. Start Counter-Strike 2  
+After loading the driver you can start Counter-Strike 2 as usual.  
+
+3. Start Overlay  
 With an open instance of Counter-Strike 2 you can start the overlay.  
 Attention: You *must* start the overlay as administrator!  
   
