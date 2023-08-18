@@ -50,7 +50,7 @@ Valthrun does not need to be installed.
 In order to run Valthrun you only need the kernel driver (`valthrun-driver.sys`) and the controller (`controller.exe`).  
   
 Both can be accquired by downloading the precompiled release from GitHub.  
-Click here: TODO!  
+Click [here](https://github.com/WolverinDEV/Valthrun/releases) to view all releases.
   
 Once downloaded read [How to use](#how-to-use) to get started!
 
