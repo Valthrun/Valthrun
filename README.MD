@@ -104,8 +104,8 @@ All recent windows versions should be supported as all functions / struct offset
 If you encounter an issue, please submit an issue detailing your Windows version and which error you encounter.  
   
 # Screenshots
-![](https://img.did.science/2023_07_30_17_28_23.png)
-![](https://img.did.science/2023_07_31_01_38_46.png)
+![](./img/showcase_01.png)
+![](./img/showcase_02.png)
 
 # Help
 You can find help on the official Valthrun Discord server:  
