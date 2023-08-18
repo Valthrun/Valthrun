@@ -16,95 +16,73 @@ That's a lot of descriptive words, but what does each of them mean?
   
 This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and some game hacking :)
 
-# Overlay Features
-The basis for the overlay has been build but it's currently pretty limited in terms of functionality.  
-Currently supported features are such as drawing player skeletons and their collision box.  
+# Features
+Valthrun provides a variety of external tools to enchant your gameplay experience.  
+As of now, Valthrun is a read only external cheat. This implies some limitations as which features could be provided.  
+An example would be a skin changer which is not be possible without actively modifying the CS2 game state (e.g. writing into it's memory).  
   
-To access Valthruns settings overlay press `NUM 0` (the zero on the numpad).  
-Attention: Ensure you have `NUMLOCK` enabled!  
+Regardless of this limitation, Valthrun supports the following features:  
+- Player ESP
+  Two modes are supported: `Skeleton` and `Boxes`
+  - Configurable colors to distinguish between enemy and team players
+- Bomb Info
+  - Time until the bomb detonation
+  - Defuser info such as how long until the defuse has succeeded
+  - Bomb site where the bomb is located
+- Trigger Bot
+
+To access Valthruns settings overlay press `PAUSE`.
 
 ## Planned Features
-- Improved PlayerESP
-  - Different teammate / opponent colors
-  - Weapon name
-  - Player health
-- Bomb Info
-  - Time 'till detonation
-  - Time 'till defusal
-  - Bomb location
-- Trigger Bot
 - Aim Bot
 - Spectator info
   - List of player currently watching you / the observer target
 - Player competitive ranks / wins
+  (I don't have access to the closed beta... so this has to wait a little)
 
 Mess around:
 - `KeUserModeCallback`
 https://www.unknowncheats.me/forum/anti-cheat-bypass/347320-communication-via-callbacks.html
 - Invoking Shellcode within CS (send text message, change player name etc.)
 
-# Build
-## 0. Prerequiresits
-The following prerequisites must be fullfilled to build this project
-- Visual Studio 2022 (located at `%ProgramFiles%\Microsoft Visual Studio\2022\Community`)
-- Rust
-- Windows Kernel Development Kit
-
-## 1. Kernel Driver
-Currently the kernel driver is private. Use the prebuild kernel driver.  
-```ps1
-# Switch to the kernel driver directory
-cd kernel/driver
-
-# Create a release build.
-# The result will be located at "../target/x86_64-pc-windows-msvc/release/valthrun-driver.sys"
-cargo make --profile production sign
-```
-
-## 2. Overlay
-```ps1
-# Create a release overlay build
-# The result will be located at "target/release/controller"
-cargo build --release
-```
-    
-#### Attention  
-As long as https://github.com/rust-lang/rust/issues/111540 has not been finalized,  
-the controller build file will contain `valthrun` as well as the workspace path in the final executable.  
-As far as I'm conserned VAC does not actively checks for certain strings so this should not be an issue.
-But if you want to these traces anyways you need to set the RUSTFLAGS remap path prefix flags accordingly.
-```ps1
-$WorkspaceCargo=$(cargo locate-project --workspace --message-format=plain)
-$env:RUSTFLAGS="-Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
-```
-Build the overlay afterwards and `valthrun` not the build path (which might include the word `valthrun`) should be contained within the binary.  
-
-
-# Starting Overlay
+# How to use
 The following steps need to be done for starting/activating the overlay.
 1. Load the kernel driver
 The overlay requires the kernel driver for all memory reads and writes.
-Therefore we need to load the driver before we can continue.
-TODO!  
-Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
+Therefore we need to load the driver before we can continue.  
   
-2. Start Counter-Strike 2
+There are two options to load the kernel driver:
+1. Setting Windows into test-signing mode
+TODO: Explain how to set Windows into test signing
+Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
+
+2. Manually map the driver using a vulnerable driver
+The Valthrun kernel driver fully supports manual driver mapping using a any vulnerable driver.  
+In order to detect the manual mapping the second driver entry argument (the registry patch) must be a null ptr.  
+The kernel driver will automatically allocate a new driver for io communication.  
+  
+In order to manually map the Valthrun driver you can use tools like  
+- [kdmapper](https://github.com/TheCruZ/kdmapper)
+- [KDU](https://github.com/hfiref0x/KDU)
+  
+1. Start Counter-Strike 2
 After loading the driver you can start Counter-Strike 2.
 
-3. Start Overlay
+1. Start Overlay
 With an open instance of Counter-Strike 2 you can start the overlay.  
+Attention: You *must* start the overlay as administrator!  
   
+To explore all command line options of the controller, start the controller from the terminal and pass `-h` to display the command line interface:
+```ps1
+.\controller.exe -h
+```
+
 When you want extra/verbose output, start the overlay from the terminal and previously set the `RUST_LOG` environment variable.  
 Example for executing the overlay with trace output:  
 ```ps1
 $env:RUST_LOG="trace"
 .\controller.exe
 ```
-
-# Updating signatures/offsets for Counter-Strike 2
-Many offsets are dynamically resolved through signatures.  
-But signatures may break with feature versions of the game and therefore need to be updated. Currently *most* signatures can be found [here](https://github.com/WolverinDEV/Valthrun/blob/master/cs2/src/offsets.rs).   
-Some time I may write a guide on how to find them, but right now you ether know how to do that, or just need to wait for somebody else to update them.
 
 # VAC
 The same considerations as mentioned in [this link](https://github.com/dretax/GarHal_CSGO#starting-driver) have been taken into account.  

@@ -1,8 +1,8 @@
-use std::{sync::Arc, marker::PhantomData};
+use std::{marker::PhantomData};
 
 use anyhow::Context;
 
-use cs2_schema_declaration::{MemoryDriver, SchemaValue, define_schema, Ptr, MemoryHandle};
+use cs2_schema_declaration::{SchemaValue, define_schema, Ptr, MemoryHandle};
 
 define_schema! {
     pub struct CUtlMemoryPool[0x18] {

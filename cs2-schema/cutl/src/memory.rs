@@ -1,6 +1,6 @@
-use std::{sync::Arc, marker::PhantomData};
+use std::marker::PhantomData;
 
-use cs2_schema_declaration::{MemoryDriver, SchemaValue, Ptr, MemoryHandle};
+use cs2_schema_declaration::{SchemaValue, Ptr, MemoryHandle};
 
 pub struct CUtlMemory<T> {
     memory: MemoryHandle,
