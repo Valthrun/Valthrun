@@ -11,20 +11,20 @@ use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
 use settings_ui::SettingsUI;
 use view::ViewController;
-use hacks::Hack;
+use enhancements::Enhancement;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
     fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
-use crate::{settings::save_app_settings, hacks::{PlayerESP, BombInfo, TriggerBot}, view::LocalCrosshair};
+use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot}, view::LocalCrosshair};
 
 mod view;
 mod settings;
 mod settings_ui;
 mod cache;
-mod hacks;
+mod enhancements;
 
 pub trait UpdateInputState {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -70,7 +70,7 @@ pub struct Application {
     pub class_name_cache: EntryCache<u64, Option<String>>,
     pub view_controller: ViewController,
 
-    pub hacks: Vec<Rc<RefCell<dyn Hack>>>,
+    pub hacks: Vec<Rc<RefCell<dyn Enhancement>>>,
 
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,

@@ -1,6 +1,6 @@
 use crate::settings::AppSettings;
 
-pub trait Hack {
+pub trait Enhancement {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController);
     fn render_debug_window(&mut self, _settings: &mut AppSettings, _ui: &imgui::Ui) {}

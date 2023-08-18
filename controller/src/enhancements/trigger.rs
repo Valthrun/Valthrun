@@ -6,7 +6,7 @@ use kinterface::MouseState;
 
 use crate::{view::{LocalCrosshair, ViewController}, UpdateContext, settings::AppSettings};
 
-use super::Hack;
+use super::Enhancement;
 
 pub struct CrosshairTarget {
     pub entity_id: u32,
@@ -58,7 +58,7 @@ impl TriggerBot {
     }
 }
 
-impl Hack for TriggerBot {
+impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
         let should_be_active = if let Some(key) = &ctx.settings.key_trigger_bot {
             if ctx.input.is_key_down(key.0) {

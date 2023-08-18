@@ -3,7 +3,7 @@ use std::time::Instant;
 use anyhow::Context;
 use cs2_schema_generated::{EntityHandle, cs2::client::CEntityInstance};
 
-use crate::{UpdateContext, hacks::CrosshairTarget};
+use crate::{UpdateContext, enhancements::CrosshairTarget};
 
 pub struct LocalCrosshair {
     offset_crosshair_id: u64,

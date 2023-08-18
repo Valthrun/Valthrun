@@ -8,7 +8,7 @@ use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};
 
-use super::Hack;
+use super::Enhancement;
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum TeamType {
@@ -77,7 +77,7 @@ impl PlayerESP {
     }
 }
 
-impl Hack for PlayerESP {
+impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
         if !ctx.settings.esp_boxes && !ctx.settings.esp_skeleton {

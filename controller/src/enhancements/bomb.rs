@@ -7,7 +7,7 @@ use obfstr::obfstr;
 
 use crate::UpdateContext;
 
-use super::Hack;
+use super::Enhancement;
 
 
 #[derive(Debug)]
@@ -121,7 +121,7 @@ impl BombInfo {
     }
 }
 
-impl Hack for BombInfo {
+impl Enhancement for BombInfo {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         if !ctx.settings.bomb_timer {
             return Ok(());
