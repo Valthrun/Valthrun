@@ -175,6 +175,7 @@ impl SettingsUI {
                     if let Some(_) = ui.tab_item("Aim Assist") {
                         ui.button_key_optional("Trigger Bot", &mut settings.key_trigger_bot, [150.0, 0.0]);
                         ui.checkbox("Team Check", &mut settings.trigger_bot_team_check);
+                        ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
                 }
             });

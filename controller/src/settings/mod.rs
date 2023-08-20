@@ -7,6 +7,7 @@ mod hotkey;
 pub use hotkey::*;
 
 fn bool_true() -> bool { true }
+fn bool_false() -> bool { false }
 fn default_esp_color_team() -> [f32; 4] { [ 0.0,  1.0,  0.0,  0.75 ] }
 fn default_esp_color_enemy() -> [f32; 4] { [ 1.0,  0.0,  0.0,  0.75 ] }
 fn default_esp_skeleton_thickness() -> f32 { 3.0 }
@@ -51,6 +52,9 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,
+
+    #[serde(default = "bool_false")]
+    pub aim_assist_recoil: bool,
 
     #[serde(default)]
     pub imgui: Option<String>,

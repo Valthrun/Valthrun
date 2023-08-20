@@ -18,7 +18,7 @@ use std::{
     fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
 };
 
-use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot}, view::LocalCrosshair};
+use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot, AntiAimPunsh}, view::LocalCrosshair};
 
 mod view;
 mod settings;
@@ -70,7 +70,7 @@ pub struct Application {
     pub class_name_cache: EntryCache<u64, Option<String>>,
     pub view_controller: ViewController,
 
-    pub hacks: Vec<Rc<RefCell<dyn Enhancement>>>,
+    pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
 
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,
@@ -138,7 +138,7 @@ impl Application {
             model_cache: &self.model_cache
         };
        
-        for hack in self.hacks.iter() {
+        for hack in self.enhancements.iter() {
             let mut hack = hack.borrow_mut();
             hack.update(&update_context)?;
         }
@@ -196,7 +196,7 @@ impl Application {
             ui.text(text)
         }
 
-        for hack in self.hacks.iter() {
+        for hack in self.enhancements.iter() {
             let hack = hack.borrow();
             hack.render(&*settings, ui, &self.view_controller);
         }
@@ -383,10 +383,11 @@ fn main_overlay() -> anyhow::Result<()> {
         }),
         view_controller: ViewController::new(cs2_offsets.clone()),
 
-        hacks: vec![
+        enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),
             Rc::new(RefCell::new(BombInfo::new())),
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(cs2_offsets.offset_crosshair_id)))),
+            Rc::new(RefCell::new(AntiAimPunsh::new())),
         ],
 
         last_total_read_calls: 0,

@@ -15,4 +15,7 @@ pub use player::*;
 mod trigger;
 pub use trigger::*;
 
+mod aim;
+pub use aim::*;
+
 use crate::{UpdateContext, view::ViewController};
