@@ -70,8 +70,8 @@ The following steps need to be done for starting/activating the overlay.
       Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
 
       In order to manually map the Valthrun driver you can use tools like  
-      - [kdmapper](https://github.com/TheCruZ/kdmapper)
       - [KDU](https://github.com/hfiref0x/KDU)
+      - [kdmapper](https://github.com/TheCruZ/kdmapper)
    
 2. Start Counter-Strike 2  
 After loading the driver you can start Counter-Strike 2 as usual.  
@@ -101,7 +101,7 @@ but I assume it should work similarly well.
 
 # Supported Windows Versions
 All recent windows versions should be supported as all functions / struct offsets are resolved dynamically.  
-If you encounter an issue, please submit an issue detailing your Windows version and which error you encounter.  
+If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
   
 # Screenshots
 ![](./img/showcase_01.png)

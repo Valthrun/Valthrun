@@ -54,7 +54,7 @@ Most likely you'll be good to go and ready for the next update of CS2.
 If the Valthrun still behaves badly or generates an error, it might be an indication that some of the hard-coded offsets have changed.
 If that's the case you either track down the issue (by analyzing and debugging the source code) and resolve the new offset but digging into CS2 memory or just wait for somebody else to do the work for you :)  
 (PS: You may buy him a coffee tough :P)
-
+  
 [^1]: Please note that the crosshair entity id was a shared variable in CSGO but isn't in CS2!
 [^2]: or the developer was just too lazy at that moment to implement a pattern...
 [^3]: The kernel driver only provides basic memory read functionality and does not need to know anything about the target application.
