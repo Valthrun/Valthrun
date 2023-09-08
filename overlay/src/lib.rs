@@ -62,17 +62,9 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let context = glutin::ContextBuilder::new()
         .with_vsync(false);
 
-    /* TODO: Replace with target which ether is a monitor or a window! */
-    let target_monitor = event_loop
-        .primary_monitor()
-        .or_else(|| event_loop.available_monitors().next())
-        .ok_or(OverlayError::NoMonitorAvailable)?;
-
     let builder = WindowBuilder::new()
         .with_resizable(false)
         .with_title(title.to_owned())
-        .with_inner_size(target_monitor.size())
-        .with_position(target_monitor.position())
         .with_visible(false);
 
     let display = Display::new(builder, context, &event_loop)
@@ -172,7 +164,7 @@ struct OverlayActiveTracker {
 
 impl OverlayActiveTracker {
     pub fn new() -> Self {
-        Self { currently_active: false }
+        Self { currently_active: true }
     }
 
     pub fn update(&mut self, window: &Window, io: &Io) {
