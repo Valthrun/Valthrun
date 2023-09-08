@@ -401,6 +401,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let app = Rc::new(RefCell::new(app));
     
+    log::debug!("Initialize overlay");
     let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
     if let Some(imgui_settings) = imgui_settings {
         overlay.imgui.load_ini_settings(&imgui_settings);

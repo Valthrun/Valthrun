@@ -1,5 +1,4 @@
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::C_WeaponCSBase;
 use kinterface::MouseState;
 
 use super::Enhancement;

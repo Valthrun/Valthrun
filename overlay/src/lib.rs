@@ -59,7 +59,8 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let window_tracker = WindowTracker::new(target_window)?;
 
     let event_loop = EventLoop::new();
-    let context = glutin::ContextBuilder::new().with_vsync(false);
+    let context = glutin::ContextBuilder::new()
+        .with_vsync(false);
 
     /* TODO: Replace with target which ether is a monitor or a window! */
     let target_monitor = event_loop
