@@ -16,6 +16,11 @@ That's a lot of descriptive words, but what does each of them mean?
   
 This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and exploring the world of game enhancements :)
 
+# WARNING
+Valthrun is currently **not** a pnp (plug 'n play) application.  
+Please read [How to use](#how-to-use) carefully and try troubleshooting issues on your own.  
+The goal is to reach maximum stelth to avoid anti cheat detection.  
+  
 # Features
 Valthrun provides a variety of external tools to enchant your gameplay experience.  
 As of now, Valthrun only reads memory and never writes anything. This implies some limitations as which features could be provided.  
