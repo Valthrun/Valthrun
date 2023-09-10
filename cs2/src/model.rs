@@ -65,8 +65,8 @@ impl CS2Model {
         let bone_count = cs2.reference_schema::<u64>(&[
             address + offsets_manual::client::CModel::BONE_NAME - 0x08
         ])? as usize;
-        if bone_count > 1000 {
-            anyhow::bail!(obfstr!("model contains too many bones ({bone_count})").to_string());
+        if bone_count > 6000 {
+            anyhow::bail!("{} ({})", obfstr!("model contains too many bones"), bone_count);
         }
 
         log::trace!("Reading {} bones", bone_count);
