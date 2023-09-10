@@ -44,9 +44,13 @@ impl TriggerBot {
                 .context("missing crosshair player pawn")?
                 .read_schema()?;
         
-            let local_player_controller = ctx.cs2_entities.get_local_player_controller()?
-                .try_reference_schema()?
-                .context("missing local player controller")?;
+            let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;
+            if local_player_controller.is_null()? {
+                return Ok(false);
+            }
+
+            let local_player_controller = local_player_controller
+                .reference_schema()?;
         
             let target_player = crosshair_entity.as_schema::<C_CSPlayerPawn>()?;
             if target_player.m_iTeamNum()? == local_player_controller.m_iTeamNum()? {

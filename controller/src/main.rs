@@ -15,7 +15,7 @@ use enhancements::Enhancement;
 use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
-    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf,
+    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf, time::{Instant, Duration},
 };
 
 use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot, AntiAimPunsh}, view::LocalCrosshair};
@@ -409,6 +409,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
+    let mut update_timeout: Option<(Instant, Duration)> = None;
     overlay.main_loop(
         {
             let app = app.clone();
@@ -425,10 +426,23 @@ fn main_overlay() -> anyhow::Result<()> {
         move |ui| {
             let mut app = app.borrow_mut();
 
+            if let Some((timeout, target)) = &update_timeout {
+                if timeout.elapsed() > *target {
+                    update_timeout = None;
+                } else {
+                    /* Not updating. On timeout... */
+                    return true;
+                }
+            }
+
             if let Err(err) = app.update(ui) {
                 if update_fail_count >= 10 {
-                    show_critical_error(&format!("{:#}", err));
-                    return false;
+                    log::error!("Over 10 errors occurred. Waiting 1s and try again.");
+                    log::error!("Last error: {:#}", err);
+
+                    update_timeout = Some((Instant::now(), Duration::from_millis(1000)));
+                    update_fail_count = 0;
+                    return true;
                 } else {
                     update_fail_count += 1;
                 }
