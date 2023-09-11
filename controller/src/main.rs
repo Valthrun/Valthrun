@@ -27,6 +27,7 @@ use std::{
 };
 
 use anyhow::Context;
+use build::BuildInfo;
 use cache::EntryCache;
 use clap::{
     Args,
@@ -65,7 +66,6 @@ use windows::Win32::{
 };
 
 use crate::{
-    build::BuildInfo,
     enhancements::{
         AntiAimPunsh,
         BombInfo,
@@ -74,6 +74,7 @@ use crate::{
     },
     settings::save_app_settings,
     view::LocalCrosshair,
+    winver::version_info,
 };
 
 mod build;
@@ -84,6 +85,7 @@ mod settings;
 mod utils;
 mod view;
 mod weapon;
+mod winver;
 
 pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -407,6 +409,13 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
 }
 
 fn main_overlay() -> anyhow::Result<()> {
+    let build_info = version_info()?;
+    log::info!(
+        "Valthrun v{}. Windows build {}.",
+        env!("CARGO_PKG_VERSION"),
+        build_info.dwBuildNumber
+    );
+
     let settings = load_app_settings()?;
 
     let cs2 = match CS2Handle::create() {
