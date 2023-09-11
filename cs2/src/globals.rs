@@ -1,14 +1,6 @@
-use cs2_schema_declaration::{define_schema, PtrCStr};
+use cs2_schema_declaration::define_schema;
 
 define_schema! {
-    pub struct EngineBuildInfo[0x28] {
-        pub revision: PtrCStr = 0x00,
-        pub build_date: PtrCStr = 0x08,
-        pub build_time: PtrCStr = 0x10,
-        /* pub unknown_zero: u64 */
-        pub product_name: PtrCStr = 0x20,
-    }
-
     pub struct Globals[0x48] {
         pub time_1: f32 = 0x00,
         pub frame_count_1: u32 = 0x04,

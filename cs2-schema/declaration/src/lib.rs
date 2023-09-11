@@ -1,4 +1,5 @@
 #![feature(array_try_from_fn)]
+#![feature(sync_unsafe_cell)]
 
 mod memory;
 pub use memory::*;
@@ -8,6 +9,9 @@ pub use ptr::*;
 
 mod basics;
 pub use basics::*;
+
+mod offset;
+pub use offset::*;
 
 pub trait SchemaValue : Sized {
     fn value_size() -> Option<u64>;
@@ -44,7 +48,7 @@ macro_rules! define_schema {
     
     (
         pub struct $name:ident[$size:literal] $(: $parent:ty)? {
-            $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:literal, )*
+            $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:expr, )*
         } $($next:tt)*
     ) => {
         #[derive(Clone)]
@@ -58,8 +62,15 @@ macro_rules! define_schema {
                 $(#[$var_meta])*
                 pub fn $var_name(&self) -> anyhow::Result<$var_type> {
                     use anyhow::Context;
-        
-                    self.memory.reference_schema($var_offset)
+                    use cs2_schema_declaration::{ CachedOffset, LazyOffset };
+
+                    static OFFSET: CachedOffset = CachedOffset::new();
+                    fn offset_resolver() -> impl LazyOffset {
+                        $var_offset
+                    }
+                
+                    let offset = OFFSET.resolve(offset_resolver)?;
+                    self.memory.reference_schema(offset)
                         .context(concat!(stringify!($name), "::", stringify!($var_name)))
                 }
             )*

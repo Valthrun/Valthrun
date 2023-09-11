@@ -5,7 +5,8 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, EngineBuildInfo, PCStrEx, Signature};
+use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, BuildInfo};
+use cs2_schema_generated::{definition::SchemaScope, RuntimeOffsetProvider, RuntimeOffset};
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
 use settings::{AppSettings, load_app_settings};
@@ -274,7 +275,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create()?;
-    let schema = cs2::dump_schema(&cs2)?;
+    let schema = cs2::dump_schema(&cs2, false)?;
 
     let output = File::options()
         .create(true)
@@ -288,34 +289,40 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-#[derive(Debug)]
-pub struct BuildInfo {
-    revision: String,
-    build_datetime: String,
+struct CS2RuntimeOffsets {
+    schema: Vec<SchemaScope>,
 }
 
-impl BuildInfo {
-    fn find_build_info(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(Module::Engine, &Signature::relative_address(
-            obfstr!("client build info"),
-            obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"), 
-            0x03, 0x07
-        ))
-    }
+impl RuntimeOffsetProvider for CS2RuntimeOffsets {
+    fn resolve(&self, offset: &RuntimeOffset) -> anyhow::Result<u64> {
+        log::trace!("Try resolve {:?}", offset);
 
-    pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
-        let address = Self::find_build_info(cs2)?;
-        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[ address ])?;
-        Ok(Self {
-            revision: engine_build_info.revision()?.read_string(&cs2)?,
-            build_datetime: format!("{} {}",
-                engine_build_info.build_date()?.read_string(&cs2)?,
-                engine_build_info.build_time()?.read_string(&cs2)?
-            )
+        let schema = self.schema.iter()
+            .find(|schema| schema.schema_name == offset.module)
+            .context("unknown module")?;
+
+        let class = schema.classes.iter()
+            .find(|class| offset.class == class.class_name)
+            .context("unknown class")?;
+
+        let offset = class.offsets.iter()
+            .find(|member| member.field_name == offset.member)
+            .context("unknown class member")?;
+
+        log::trace!(" -> {:X}", offset.offset);
+        Ok(offset.offset)
+    }
+}
+
+fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
+    let schema = cs2::dump_schema(&cs2, true)?;
+    cs2_schema_generated::setup_runtime_offset_provider(
+        Box::new(CS2RuntimeOffsets {
+            schema
         })
-    }
+    );
+    Ok(())
 }
-
 
 fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
@@ -329,6 +336,8 @@ fn main_overlay() -> anyhow::Result<()> {
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
     );
+
+    setup_runtime_offset_provider(&cs2)?;
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
