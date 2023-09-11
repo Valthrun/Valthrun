@@ -19,13 +19,14 @@ use std::{
     fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf, time::{Instant, Duration},
 };
 
-use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot, AntiAimPunsh}, view::LocalCrosshair};
+use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot, AntiAimPunsh}, view::LocalCrosshair, winver::version_info};
 
 mod view;
 mod settings;
 mod settings_ui;
 mod cache;
 mod enhancements;
+mod winver;
 
 pub trait UpdateInputState {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -325,6 +326,9 @@ fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
 }
 
 fn main_overlay() -> anyhow::Result<()> {
+    let build_info = version_info()?;
+    log::info!("Valthrun v{}. Windows build {}.", env!("CARGO_PKG_VERSION"), build_info.dwBuildNumber);
+    
     let settings = load_app_settings()?;
 
     let cs2 = CS2Handle::create()?;
