@@ -1,3 +1,4 @@
+use anyhow::Context;
 use obfstr::obfstr;
 
 use crate::{CS2Handle, Module, Signature};
@@ -24,11 +25,11 @@ pub struct CS2Offsets {
 impl CS2Offsets {
     pub fn resolve_offsets(cs2: &CS2Handle) -> anyhow::Result<Self> {
         Ok(Self {
-            globals: Self::find_globals(cs2)?,
-            local_controller: Self::find_local_player_controller_ptr(cs2)?,
-            global_entity_list: Self::find_entity_list(cs2)?,
-            view_matrix: Self::find_view_matrix(cs2)?,
-            offset_crosshair_id: Self::find_offset_crosshair_id(cs2)?
+            globals: Self::find_globals(cs2).with_context(|| obfstr!("cs2 globals").to_string())?,
+            local_controller: Self::find_local_player_controller_ptr(cs2).with_context(|| obfstr!("local player controller ptr").to_string())?,
+            global_entity_list: Self::find_entity_list(cs2).with_context(|| obfstr!("global entity list").to_string())?,
+            view_matrix: Self::find_view_matrix(cs2).with_context(|| obfstr!("view matrix").to_string())?,
+            offset_crosshair_id: Self::find_offset_crosshair_id(cs2).with_context(|| obfstr!("crosshair id").to_string())?
         })
     }
 
@@ -69,8 +70,8 @@ impl CS2Offsets {
     fn find_offset_crosshair_id(cs2: &CS2Handle) -> anyhow::Result<u64> {
         cs2.resolve_signature(Module::Client, &Signature::offset(
             obfstr!("C_CSPlayerPawn crosshair id"),
-            obfstr!("41 89 86 ? ? ? ? 41 89 86"), 
-            0x03
+            obfstr!("89 86 ? ? ? ? 89 86 ? ? ? ? E8"), 
+            0x02
         ))
     }
 }

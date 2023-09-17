@@ -8,6 +8,7 @@ use crate::{view::{LocalCrosshair, ViewController}, UpdateContext, settings::App
 
 use super::Enhancement;
 
+#[derive(Debug)]
 pub struct CrosshairTarget {
     pub entity_id: u32,
     pub entity_type: Option<String>,

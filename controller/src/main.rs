@@ -355,19 +355,20 @@ fn main_overlay() -> anyhow::Result<()> {
                     *vtable + 0x00 // First entry in V-Table is GetClassSchema
                 ])?;
 
-                let mut asm_buffer = [0u8; 0x7];
+                let mut asm_buffer = [0u8; 0x10];
                 cs2.read_slice(&[ fn_get_class_schema ], &mut asm_buffer)?;
 
                 // lea rcx, <class schema>
-                if asm_buffer[0] != 0x48 || asm_buffer[1] != 0x8D || asm_buffer[2] != 0x0D {
+                if asm_buffer[9] != 0x48 || asm_buffer[10] != 0x8D || asm_buffer[11] != 0x15 {
                     /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
+                    log::trace!("{:X} isn't a client schema class. Returning none.", vtable);
                     return Ok(None);
                 }
 
-                let schema_offset = i32::from_le_bytes(asm_buffer[3..7].try_into()?) as u64;
+                let schema_offset = i32::from_le_bytes(asm_buffer[12..16].try_into()?) as u64;
                 let class_schema = fn_get_class_schema
                     .wrapping_add(schema_offset)
-                    .wrapping_add(0x07);
+                    .wrapping_add(0x10);
 
                 if !cs2.module_address(Module::Client, class_schema).is_some() {
                     log::warn!("GetClassSchema lea points to invalid target address for {:X}", *vtable);
@@ -378,6 +379,7 @@ fn main_overlay() -> anyhow::Result<()> {
                     class_schema + 0x08,
                     0
                 ], Some(32))?;
+                log::trace!("Resolved vtable class name {:X} to {}", vtable, class_name);
                 Ok(Some(class_name))
             }
         }),

@@ -238,7 +238,7 @@ impl CS2Handle {
         };
 
         match &signature.value_type {
-            SignatureType::Offset => log::trace!(" => {:X}", value),
+            SignatureType::Offset => log::trace!(" => {:X} (inst at {:X})", value, self.module_address(module, inst_offset).unwrap_or(u64::MAX)),
             SignatureType::RelativeAddress { .. } => log::trace!("  => {:X} ({:X})", value, self.module_address(module, value).unwrap_or(u64::MAX)),
         }
         Ok(value)

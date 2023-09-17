@@ -33,7 +33,7 @@ macro_rules! define_schema {
                 let value: $ordinal_type = cs2_schema_declaration::SchemaValue::from_memory(memory)?;
                 let result = match value {
                     $($ordinal => Self::$vname,)*
-                    value => anyhow::bail!("unknown $name {}", value)
+                    value => anyhow::bail!("unknown enum ordinal {} {}", stringify!($name), value)
                 };
                 Ok(result)
             }

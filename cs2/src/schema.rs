@@ -23,7 +23,8 @@ define_schema! {
         CollectionOfT = 2,
         TT = 3,
         I = 4,
-        None = 5,
+        Unknown = 5,
+        None = 6,
     }
 
     pub enum TypeCategory : u8 {
@@ -43,8 +44,8 @@ define_schema! {
 
     pub struct CSchemaSystemTypeScope[0x2F00] {
         pub scope_name: FixedCString<0x100> = 0x08,
-        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x558,
-        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DA0,
+        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x0588,
+        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DD0,
     }
 
     pub struct CSchemaType[0x20] {
