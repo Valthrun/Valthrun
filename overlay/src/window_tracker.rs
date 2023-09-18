@@ -4,7 +4,7 @@ use glium::glutin::{window::Window, platform::windows::WindowExtWindows};
 use windows::{
     core::PCSTR,
     Win32::{
-        Foundation::{HWND, POINT, RECT},
+        Foundation::{HWND, POINT, RECT, GetLastError, ERROR_INVALID_HANDLE, ERROR_INVALID_WINDOW_HANDLE},
         Graphics::Gdi::ClientToScreen,
         UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow},
     },
@@ -39,11 +39,17 @@ impl WindowTracker {
         })
     }
 
-    pub fn update(&mut self, overlay: &Window) {
+    pub fn update(&mut self, overlay: &Window) -> bool {
         let mut rect: RECT = Default::default();
         let success = unsafe { GetClientRect(self.cs2_hwnd, &mut rect) };
         if !success.as_bool() {
-            return;
+            let error = unsafe { GetLastError() };
+            if error == ERROR_INVALID_WINDOW_HANDLE {
+                return false;
+            }
+
+            log::warn!("GetClientRect failed for tracked window: {:?}", error);
+            return true;
         }
 
         unsafe {
@@ -52,7 +58,7 @@ impl WindowTracker {
         }
 
         if rect == self.current_bounds {
-            return;
+            return true;
         }
 
         self.current_bounds = rect;
@@ -68,5 +74,7 @@ impl WindowTracker {
                 true,
             );
         }
+
+        true
     }
 }

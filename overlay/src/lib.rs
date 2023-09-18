@@ -230,7 +230,11 @@ impl System {
                 let window = gl_window.window();
                 input_system.update(window, imgui.io_mut());
                 active_tracker.update(window, imgui.io());
-                window_tracker.update(window);
+                if !window_tracker.update(window) {
+                    log::info!("Target window has been closed. Exiting overlay.");
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
 
                 if !update(&mut imgui) {
                     *control_flow = ControlFlow::Exit;
