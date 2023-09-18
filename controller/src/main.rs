@@ -107,6 +107,16 @@ impl Application {
     }
 
     pub fn update(&mut self, ui: &imgui::Ui) -> anyhow::Result<()> {
+        {
+            let mut settings = self.settings.borrow_mut();
+            for enhancement in self.enhancements.iter() {
+                let mut hack = enhancement.borrow_mut();
+                if hack.update_settings(ui, &mut *settings)? {
+                    self.settings_dirty = true;
+                }
+            }
+        }
+
         let settings = self.settings.borrow();
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
@@ -138,8 +148,8 @@ impl Application {
             model_cache: &self.model_cache
         };
        
-        for hack in self.enhancements.iter() {
-            let mut hack = hack.borrow_mut();
+        for enhancement in self.enhancements.iter() {
+            let mut hack = enhancement.borrow_mut();
             hack.update(&update_context)?;
         }
 

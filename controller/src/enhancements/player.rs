@@ -6,7 +6,7 @@ use cs2_schema_declaration::{define_schema, Ptr};
 use cs2_schema_generated::cs2::client::{CSkeletonInstance, CModelState, CCSPlayerController};
 use obfstr::obfstr;
 
-use crate::{settings::AppSettings, view::ViewController};
+use crate::{settings::AppSettings, view::ViewController, UpdateInputState};
 
 use super::Enhancement;
 
@@ -144,9 +144,24 @@ impl PlayerESP {
 }
 
 impl Enhancement for PlayerESP {
+    fn update_settings(&mut self, ui: &imgui::Ui, settings: &mut AppSettings) -> anyhow::Result<bool> {
+        let mut updated = false;
+
+        if let Some(hotkey) = &settings.esp_toogle {
+            if ui.is_key_pressed_no_repeat(hotkey.0) {
+                log::debug!("Toggle player ESP");
+                settings.esp = !settings.esp;
+                updated = true;
+            }
+        }
+
+        Ok(updated)
+    }
+
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
-        if !ctx.settings.esp_boxes && !ctx.settings.esp_skeleton {
+
+        if !ctx.settings.esp || !(ctx.settings.esp_boxes || ctx.settings.esp_skeleton) {
             return Ok(());
         }
 

@@ -18,11 +18,18 @@ fn default_i32<const V: i32>() -> i32 { V }
 
 fn default_key_settings() -> HotKey { Key::Pause.into() }
 fn default_key_trigger_bot() -> Option<HotKey> { Some(Key::MouseMiddle.into()) }
+fn default_key_none() -> Option<HotKey> { None }
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
     #[serde(default = "default_key_settings")]
     pub key_settings: HotKey,
+
+    #[serde(default = "bool_true")]
+    pub esp: bool,
+
+    #[serde(default = "default_key_none")]
+    pub esp_toogle: Option<HotKey>,
 
     #[serde(default = "bool_true")]
     pub esp_skeleton: bool,

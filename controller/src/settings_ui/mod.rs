@@ -144,15 +144,22 @@ impl SettingsUI {
 
                     if let Some(_) = ui.tab_item("Hotkeys") {
                         ui.button_key("Toggle Settings", &mut settings.key_settings, [150.0, 0.0]);
+                        ui.button_key_optional("ESP toggle", &mut settings.esp_toogle, [ 150.0, 0.0 ]);
                     }
 
                     if let Some(_tab) = ui.tab_item("Visuals") {
-                        ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
-                        ui.slider_config("Box Thickness", 0.1, 10.0)
-                            .build(&mut settings.esp_boxes_thickness);
-                        ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
-                        ui.slider_config("Skeleton Thickness", 0.1, 10.0)
-                            .build(&mut settings.esp_skeleton_thickness);
+                        ui.checkbox(obfstr!("ESP"), &mut settings.esp);
+
+                        if settings.esp {
+                            ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
+                            ui.slider_config("Box Thickness", 0.1, 10.0)
+                                .build(&mut settings.esp_boxes_thickness);
+                            ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
+                            ui.slider_config("Skeleton Thickness", 0.1, 10.0)
+                                .build(&mut settings.esp_skeleton_thickness);
+                            ui.separator();
+                        }
+
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
 
                         ui.color_edit4_config("Team Color", &mut settings.esp_color_team)
@@ -169,7 +176,7 @@ impl SettingsUI {
                             .label(false)
                             .build();
                         ui.same_line();
-                        ui.text("Team Color");
+                        ui.text("Enemy Color");
                     }
 
                     if let Some(_) = ui.tab_item("Aim Assist") {
