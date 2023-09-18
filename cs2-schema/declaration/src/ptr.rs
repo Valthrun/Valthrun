@@ -1,8 +1,8 @@
-use std::{marker::PhantomData, fmt::Debug, ffi::CStr, sync::Arc};
+use std::{ffi::CStr, fmt::Debug, marker::PhantomData, sync::Arc};
 
 use anyhow::Context;
 
-use crate::{SchemaValue, MemoryHandle, MemoryDriver};
+use crate::{MemoryDriver, MemoryHandle, SchemaValue};
 
 pub struct Ptr<T: ?Sized> {
     driver: Arc<dyn MemoryDriver>,
@@ -23,7 +23,7 @@ impl<T: ?Sized> Ptr<T> {
         Ptr::<V> {
             driver: self.driver,
             address: self.address,
-            _data: Default::default()
+            _data: Default::default(),
         }
     }
 }
@@ -62,7 +62,7 @@ impl<T: SchemaValue> Ptr<T> {
         memory.cache(size as usize)?;
         T::from_memory(memory)
     }
-    
+
     pub fn try_reference_schema(&self) -> anyhow::Result<Option<T>> {
         let address = self.address()?;
         if address > 0 {
@@ -89,7 +89,8 @@ impl<T: SchemaValue> Ptr<T> {
 /// Unbound array implementation
 impl<T: SchemaValue> Ptr<[T]> {
     pub fn reference_element(&self, index: usize) -> anyhow::Result<T> {
-        let size = T::value_size().context("could not read an array entry for a dynamic sized schema")?;
+        let size =
+            T::value_size().context("could not read an array entry for a dynamic sized schema")?;
         let element_address = self.address()? + size * (index as u64);
 
         let memory = MemoryHandle::from_driver(&self.driver, element_address);
@@ -97,7 +98,8 @@ impl<T: SchemaValue> Ptr<[T]> {
     }
 
     pub fn read_element(&self, index: usize) -> anyhow::Result<T> {
-        let size = T::value_size().context("could not read an array entry for a dynamic sized schema")?;
+        let size =
+            T::value_size().context("could not read an array entry for a dynamic sized schema")?;
         let element_address = self.address()? + size * (index as u64);
 
         let memory = MemoryHandle::from_driver(&self.driver, element_address);
@@ -105,18 +107,18 @@ impl<T: SchemaValue> Ptr<[T]> {
     }
 
     pub fn read_entries(&self, length: usize) -> anyhow::Result<Vec<T>> {
-        let element_size = T::value_size().context("could not read an array entry for a dynamic sized schema")? as usize;
+        let element_size = T::value_size()
+            .context("could not read an array entry for a dynamic sized schema")?
+            as usize;
 
         let mut memory = MemoryHandle::from_driver(&self.driver, self.address()?);
         memory.cache(element_size * length)?;
 
         let mut result = Vec::<T>::with_capacity(length);
         for index in 0..length {
-            result.push(
-                SchemaValue::from_memory(
-                    memory.clone().with_offset((index * element_size) as u64)?
-                )?
-            );
+            result.push(SchemaValue::from_memory(
+                memory.clone().with_offset((index * element_size) as u64)?,
+            )?);
         }
 
         Ok(result)
@@ -145,8 +147,6 @@ impl<const SIZE: usize> SchemaValue for FixedCString<SIZE> {
     }
 
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
-        Ok(Self {
-            memory,
-        })
+        Ok(Self { memory })
     }
 }

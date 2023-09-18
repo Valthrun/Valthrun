@@ -1,20 +1,20 @@
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
-use error::{Result, OverlayError};
+use error::{OverlayError, Result};
 use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
 use glium::glutin::event_loop::{ControlFlow, EventLoop};
 use glium::glutin::platform::windows::WindowExtWindows;
-use glium::glutin::window::{WindowBuilder, Window};
+use glium::glutin::window::{Window, WindowBuilder};
 use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use input::InputSystem;
-use window_tracker::WindowTracker;
-use windows::core::PCSTR;
 use std::ffi::CString;
 use std::time::Instant;
+use window_tracker::WindowTracker;
+use windows::core::PCSTR;
 use windows::Win32::Foundation::{BOOL, HWND};
 use windows::Win32::Graphics::Dwm::{
     DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
@@ -22,9 +22,10 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::CreateRectRgn;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos,
-    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, WS_CLIPSIBLINGS,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK, ShowWindow, SW_SHOW,
+    GetWindowLongPtrA, MessageBoxA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
+    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW,
+    WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
+    WS_POPUP, WS_VISIBLE,
 };
 
 mod clipboard;
@@ -37,10 +38,10 @@ pub fn show_error_message(title: &str, message: &str) {
     let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
     unsafe {
         MessageBoxA(
-            HWND::default(), 
-            PCSTR::from_raw(message.as_ptr() as *const u8), 
+            HWND::default(),
+            PCSTR::from_raw(message.as_ptr() as *const u8),
             PCSTR::from_raw(title.as_ptr() as *const u8),
-            MB_ICONERROR | MB_OK
+            MB_ICONERROR | MB_OK,
         );
     }
 }
@@ -59,16 +60,15 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let window_tracker = WindowTracker::new(target_window)?;
 
     let event_loop = EventLoop::new();
-    let context = glutin::ContextBuilder::new()
-        .with_vsync(false);
+    let context = glutin::ContextBuilder::new().with_vsync(false);
 
     let builder = WindowBuilder::new()
         .with_resizable(false)
         .with_title(title.to_owned())
         .with_visible(false);
 
-    let display = Display::new(builder, context, &event_loop)
-        .map_err(OverlayError::DisplayError)?;
+    let display =
+        Display::new(builder, context, &event_loop).map_err(OverlayError::DisplayError)?;
 
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
@@ -142,8 +142,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         }
     }
 
-    let renderer = Renderer::init(&mut imgui, &display)
-        .map_err(OverlayError::RenderError)?;
+    let renderer = Renderer::init(&mut imgui, &display).map_err(OverlayError::RenderError)?;
 
     Ok(System {
         event_loop,
@@ -159,12 +158,14 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 /// Toggles the overlay noactive and transparent state
 /// according to whenever ImGui wants mouse/cursor grab.
 struct OverlayActiveTracker {
-    currently_active: bool
+    currently_active: bool,
 }
 
 impl OverlayActiveTracker {
     pub fn new() -> Self {
-        Self { currently_active: true }
+        Self {
+            currently_active: true,
+        }
     }
 
     pub fn update(&mut self, window: &Window, io: &Io) {
@@ -262,7 +263,7 @@ impl System {
                     log::error!("Failed to swap render buffers: {}", error);
                     run = false;
                 }
-                
+
                 if !run {
                     *control_flow = ControlFlow::Exit;
                 }
@@ -272,7 +273,9 @@ impl System {
                     // Note:
                     // We can not use `gl_window.window().set_visible(true)` as this will prevent the overlay
                     // to be click trough...
-                    unsafe { ShowWindow(HWND(gl_window.window().hwnd() as isize), SW_SHOW); }
+                    unsafe {
+                        ShowWindow(HWND(gl_window.window().hwnd() as isize), SW_SHOW);
+                    }
                 }
             }
             Event::WindowEvent {

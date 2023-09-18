@@ -2,7 +2,7 @@ use std::{any::Any, sync::Arc};
 
 use crate::SchemaValue;
 
-pub trait MemoryDriver : Any  {
+pub trait MemoryDriver: Any {
     fn as_any(&self) -> &dyn Any;
 
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()>;
@@ -28,7 +28,7 @@ impl MemoryHandle {
             driver: driver.clone(),
             address,
 
-            cache: None
+            cache: None,
         }
     }
 
@@ -36,7 +36,7 @@ impl MemoryHandle {
         Ok(Self {
             driver: self.driver,
             address: self.address + offset,
-            cache: self.cache
+            cache: self.cache,
         })
     }
 
@@ -50,7 +50,7 @@ impl MemoryHandle {
 
         self.cache = Some(Arc::new(MemoryCached {
             address: self.address,
-            buffer
+            buffer,
         }));
         Ok(())
     }
@@ -63,7 +63,10 @@ impl MemoryHandle {
                 anyhow::bail!("invalid target memory address")
             }
 
-            slice.copy_from_slice(&cache.buffer[(cache_offset + offset as usize)..(cache_offset + offset as usize + slice.len())]);
+            slice.copy_from_slice(
+                &cache.buffer[(cache_offset + offset as usize)
+                    ..(cache_offset + offset as usize + slice.len())],
+            );
             Ok(())
         } else {
             self.driver.read_slice(self.address + offset, slice)
@@ -71,8 +74,6 @@ impl MemoryHandle {
     }
 
     pub fn reference_schema<T: SchemaValue>(&self, offset: u64) -> anyhow::Result<T> {
-        T::from_memory(
-            self.clone().with_offset(offset)?
-        )
+        T::from_memory(self.clone().with_offset(offset)?)
     }
 }

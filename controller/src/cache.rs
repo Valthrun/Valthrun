@@ -1,4 +1,9 @@
-use std::{cell::RefCell, collections::{BTreeMap, btree_map::Entry}, time::Instant, sync::Arc};
+use std::{
+    cell::RefCell,
+    collections::{btree_map::Entry, BTreeMap},
+    sync::Arc,
+    time::Instant,
+};
 
 struct CacheEntry<T> {
     value: Arc<T>,
@@ -41,7 +46,7 @@ impl<K: Ord, V> EntryCache<K, V> {
     pub fn new(loader: impl Fn(&K) -> anyhow::Result<V> + 'static) -> Self {
         Self {
             loader: Box::new(loader),
-            cache: Default::default()
+            cache: Default::default(),
         }
     }
 
@@ -59,7 +64,5 @@ impl<K: Ord, V> EntryCache<K, V> {
         Ok(entry.value.clone())
     }
 
-    pub fn cleanup(&self) {
-
-    }
+    pub fn cleanup(&self) {}
 }

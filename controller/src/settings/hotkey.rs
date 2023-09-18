@@ -1,4 +1,4 @@
-use serde::{Serialize, Deserialize, de::Visitor};
+use serde::{de::Visitor, Deserialize, Serialize};
 
 #[derive(Clone, Debug)]
 pub struct HotKey(pub imgui::Key);
@@ -12,7 +12,8 @@ impl From<imgui::Key> for HotKey {
 impl Serialize for HotKey {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: serde::Serializer {
+        S: serde::Serializer,
+    {
         serializer.serialize_str(&format!("{:?}", self.0))
     }
 }
@@ -27,9 +28,9 @@ impl<'de> Visitor<'de> for HotKeyVisitor {
     }
 
     fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
-        where
-            E: serde::de::Error, {
-        
+    where
+        E: serde::de::Error,
+    {
         for key in imgui::Key::VARIANTS.iter() {
             if format!("{:?}", key) == v {
                 return Ok(HotKey(key.clone()));
@@ -43,7 +44,8 @@ impl<'de> Visitor<'de> for HotKeyVisitor {
 impl<'de> Deserialize<'de> for HotKey {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where
-        D: serde::Deserializer<'de> {
+        D: serde::Deserializer<'de>,
+    {
         deserializer.deserialize_str(HotKeyVisitor)
     }
 }

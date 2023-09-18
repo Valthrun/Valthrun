@@ -1,15 +1,15 @@
 use std::ffi::CString;
 
-use glium::glutin::{window::Window, platform::windows::WindowExtWindows};
+use crate::error::{OverlayError, Result};
+use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
     core::PCSTR,
     Win32::{
-        Foundation::{HWND, POINT, RECT, GetLastError, ERROR_INVALID_HANDLE, ERROR_INVALID_WINDOW_HANDLE},
+        Foundation::{GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, POINT, RECT},
         Graphics::Gdi::ClientToScreen,
         UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow},
     },
 };
-use crate::error::{OverlayError, Result};
 
 /// Track the CS2 window and adjust overlay accordingly.
 /// This is only required when playing in windowed mode.
@@ -20,15 +20,10 @@ pub struct WindowTracker {
 
 impl WindowTracker {
     pub fn new(target: &str) -> Result<Self> {
-        let target = CString::new(target)
-            .map_err(OverlayError::WindowInvalidName)?;
+        let target = CString::new(target).map_err(OverlayError::WindowInvalidName)?;
 
-        let cs2_hwnd = unsafe {
-            FindWindowA(
-                PCSTR::null(),
-                PCSTR::from_raw(target.as_ptr() as *const u8),
-            )
-        };
+        let cs2_hwnd =
+            unsafe { FindWindowA(PCSTR::null(), PCSTR::from_raw(target.as_ptr() as *const u8)) };
         if cs2_hwnd.0 == 0 {
             return Err(OverlayError::WindowNotFound);
         }

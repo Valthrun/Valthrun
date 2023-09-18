@@ -4,27 +4,40 @@
 
 use anyhow::Context;
 use cache::EntryCache;
-use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, EngineBuildInfo, PCStrEx, Signature};
+use clap::{Args, Parser, Subcommand};
+use cs2::{
+    CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module, PCStrEx,
+    Signature,
+};
+use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
-use settings::{AppSettings, load_app_settings};
+use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
-use view::ViewController;
-use enhancements::Enhancement;
-use windows::Win32::System::Console::GetConsoleProcessList;
 use std::{
     cell::{RefCell, RefMut},
-    fmt::Debug, sync::Arc, rc::Rc, io::BufWriter, fs::File, path::PathBuf, time::{Instant, Duration},
+    fmt::Debug,
+    fs::File,
+    io::BufWriter,
+    path::PathBuf,
+    rc::Rc,
+    sync::Arc,
+    time::{Duration, Instant},
+};
+use view::ViewController;
+use windows::Win32::System::Console::GetConsoleProcessList;
+
+use crate::{
+    enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
+    settings::save_app_settings,
+    view::LocalCrosshair,
 };
 
-use crate::{settings::save_app_settings, enhancements::{PlayerESP, BombInfo, TriggerBot, AntiAimPunsh}, view::LocalCrosshair};
-
-mod view;
-mod settings;
-mod settings_ui;
 mod cache;
 mod enhancements;
+mod settings;
+mod settings_ui;
+mod view;
 
 pub trait UpdateInputState {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -51,7 +64,7 @@ pub struct UpdateContext<'a> {
 
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,
-    
+
     pub model_cache: &'a EntryCache<u64, CS2Model>,
     pub class_name_cache: &'a EntryCache<u64, Option<String>>,
     pub view_controller: &'a ViewController,
@@ -121,17 +134,20 @@ impl Application {
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
-            
+
             if !self.settings_visible {
                 /* overlay has just been closed */
                 self.settings_dirty = true;
             }
         }
-        
-        self.view_controller.update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
+
+        self.view_controller
+            .update_screen_bounds(mint::Vector2::from_slice(&ui.io().display_size));
         self.view_controller.update_view_matrix(&self.cs2)?;
 
-        let globals = self.cs2.reference_schema::<Globals>(&[ self.cs2_offsets.globals, 0 ])?
+        let globals = self
+            .cs2
+            .reference_schema::<Globals>(&[self.cs2_offsets.globals, 0])?
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
@@ -145,15 +161,14 @@ impl Application {
             globals,
             class_name_cache: &self.class_name_cache,
             view_controller: &self.view_controller,
-            model_cache: &self.model_cache
+            model_cache: &self.model_cache,
         };
-       
+
         for enhancement in self.enhancements.iter() {
             let mut hack = enhancement.borrow_mut();
             hack.update(&update_context)?;
         }
 
-        
         let read_calls = self.cs2.ke_interface.total_read_calls();
         self.frame_read_calls = read_calls - self.last_total_read_calls;
         self.last_total_read_calls = read_calls;
@@ -182,7 +197,7 @@ impl Application {
         {
             let text_buf;
             let text = obfstr!(text_buf = "Valthrun Overlay");
-            
+
             ui.set_cursor_pos([
                 ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
                 10.0,
@@ -231,16 +246,20 @@ fn main() {
     };
 
     env_logger::builder()
-        .filter_level(if args.verbose { log::LevelFilter::Trace } else { log::LevelFilter::Info })
+        .filter_level(if args.verbose {
+            log::LevelFilter::Trace
+        } else {
+            log::LevelFilter::Info
+        })
         .parse_default_env()
         .init();
 
     let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
-        AppCommand::Overlay => main_overlay()
+        AppCommand::Overlay => main_overlay(),
     };
-    
+
     if let Err(error) = result {
         show_critical_error(&format!("{:#}", error));
     }
@@ -254,7 +273,7 @@ struct AppArgs {
     verbose: bool,
 
     #[clap(subcommand)]
-    command: Option<AppCommand>
+    command: Option<AppCommand>,
 }
 
 #[derive(Debug, Subcommand)]
@@ -263,7 +282,7 @@ enum AppCommand {
     Overlay,
 
     /// Create a schema dump
-    DumpSchema(SchemaDumpArgs)
+    DumpSchema(SchemaDumpArgs),
 }
 
 #[derive(Debug, Args)]
@@ -272,7 +291,7 @@ struct SchemaDumpArgs {
 }
 
 fn is_console_invoked() -> bool {
-    let console_count = unsafe { 
+    let console_count = unsafe {
         let mut result = [0u32; 128];
         GetConsoleProcessList(&mut result)
     };
@@ -306,38 +325,49 @@ pub struct BuildInfo {
 
 impl BuildInfo {
     fn find_build_info(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(Module::Engine, &Signature::relative_address(
-            obfstr!("client build info"),
-            obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"), 
-            0x03, 0x07
-        ))
+        cs2.resolve_signature(
+            Module::Engine,
+            &Signature::relative_address(
+                obfstr!("client build info"),
+                obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"),
+                0x03,
+                0x07,
+            ),
+        )
     }
 
     pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
         let address = Self::find_build_info(cs2)?;
-        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[ address ])?;
+        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[address])?;
         Ok(Self {
             revision: engine_build_info.revision()?.read_string(&cs2)?,
-            build_datetime: format!("{} {}",
+            build_datetime: format!(
+                "{} {}",
                 engine_build_info.build_date()?.read_string(&cs2)?,
                 engine_build_info.build_time()?.read_string(&cs2)?
-            )
+            ),
         })
     }
 }
-
 
 fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
 
     let cs2 = CS2Handle::create()?;
-    let cs2_build_info = BuildInfo::read_build_info(&cs2)
-        .with_context(|| obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected").to_string())?;
-    log::info!("Found {}. Revision {} from {}.", obfstr!("Counter-Strike 2"), cs2_build_info.revision, cs2_build_info.build_datetime);
+    let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
+        obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
+            .to_string()
+    })?;
+    log::info!(
+        "Found {}. Revision {} from {}.",
+        obfstr!("Counter-Strike 2"),
+        cs2_build_info.revision,
+        cs2_build_info.build_datetime
+    );
 
     let cs2_offsets = Arc::new(
         CS2Offsets::resolve_offsets(&cs2)
-            .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?
+            .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?,
     );
 
     let imgui_settings = settings.imgui.clone();
@@ -353,8 +383,12 @@ fn main_overlay() -> anyhow::Result<()> {
             let cs2 = cs2.clone();
             move |model| {
                 let model_name = cs2.read_string(&[*model as u64 + 0x08, 0], Some(32))?;
-                log::debug!("{} {}. Caching.", obfstr!("Discovered new player model"), model_name);
-    
+                log::debug!(
+                    "{} {}. Caching.",
+                    obfstr!("Discovered new player model"),
+                    model_name
+                );
+
                 Ok(CS2Model::read(&cs2, *model as u64)?)
             }
         }),
@@ -362,11 +396,11 @@ fn main_overlay() -> anyhow::Result<()> {
             let cs2 = cs2.clone();
             move |vtable: &u64| {
                 let fn_get_class_schema = cs2.reference_schema::<u64>(&[
-                    *vtable + 0x00 // First entry in V-Table is GetClassSchema
+                    *vtable + 0x00, // First entry in V-Table is GetClassSchema
                 ])?;
 
                 let mut asm_buffer = [0u8; 0x10];
-                cs2.read_slice(&[ fn_get_class_schema ], &mut asm_buffer)?;
+                cs2.read_slice(&[fn_get_class_schema], &mut asm_buffer)?;
 
                 // lea rcx, <class schema>
                 if asm_buffer[9] != 0x48 || asm_buffer[10] != 0x8D || asm_buffer[11] != 0x15 {
@@ -381,14 +415,14 @@ fn main_overlay() -> anyhow::Result<()> {
                     .wrapping_add(0x10);
 
                 if !cs2.module_address(Module::Client, class_schema).is_some() {
-                    log::warn!("GetClassSchema lea points to invalid target address for {:X}", *vtable);
+                    log::warn!(
+                        "GetClassSchema lea points to invalid target address for {:X}",
+                        *vtable
+                    );
                     return Ok(None);
                 }
 
-                let class_name = cs2.read_string(&[
-                    class_schema + 0x08,
-                    0
-                ], Some(32))?;
+                let class_name = cs2.read_string(&[class_schema + 0x08, 0], Some(32))?;
                 log::trace!("Resolved vtable class name {:X} to {}", vtable, class_name);
                 Ok(Some(class_name))
             }
@@ -398,7 +432,9 @@ fn main_overlay() -> anyhow::Result<()> {
         enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),
             Rc::new(RefCell::new(BombInfo::new())),
-            Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(cs2_offsets.offset_crosshair_id)))),
+            Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
+                cs2_offsets.offset_crosshair_id,
+            )))),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
         ],
 
@@ -408,11 +444,11 @@ fn main_overlay() -> anyhow::Result<()> {
         settings: settings.clone(),
         settings_visible: false,
         settings_dirty: false,
-        settings_ui: RefCell::new(SettingsUI::new(settings))
+        settings_ui: RefCell::new(SettingsUI::new(settings)),
     };
 
     let app = Rc::new(RefCell::new(app));
-    
+
     log::debug!("Initialize overlay");
     let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
     if let Some(imgui_settings) = imgui_settings {
@@ -431,8 +467,8 @@ fn main_overlay() -> anyhow::Result<()> {
                     show_critical_error(&format!("{:#}", err));
                     false
                 } else {
-                    true    
-                }            
+                    true
+                }
             }
         },
         move |ui| {
@@ -462,6 +498,6 @@ fn main_overlay() -> anyhow::Result<()> {
 
             app.render(ui);
             true
-        }
+        },
     )
 }

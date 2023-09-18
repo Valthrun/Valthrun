@@ -1,12 +1,11 @@
 use std::marker::PhantomData;
 
-use cs2_schema_declaration::{SchemaValue, Ptr, MemoryHandle};
+use cs2_schema_declaration::{MemoryHandle, Ptr, SchemaValue};
 
 pub struct CUtlMemory<T> {
     memory: MemoryHandle,
     _data: PhantomData<T>,
 }
-
 
 impl<T: SchemaValue> CUtlMemory<T> {
     pub fn buffer(&self) -> anyhow::Result<Ptr<[T]>> {
@@ -30,7 +29,7 @@ impl<T: SchemaValue> SchemaValue for CUtlMemory<T> {
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             memory: memory,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }

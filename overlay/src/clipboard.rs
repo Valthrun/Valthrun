@@ -1,7 +1,6 @@
 use copypasta::{ClipboardContext, ClipboardProvider};
 use imgui::ClipboardBackend;
 
-
 pub struct ClipboardSupport(pub ClipboardContext);
 impl ClipboardBackend for ClipboardSupport {
     fn get(&mut self) -> Option<String> {

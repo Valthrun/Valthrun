@@ -1,4 +1,7 @@
-use std::{ffi::{c_void, CString}, sync::atomic::{AtomicUsize, Ordering}};
+use std::{
+    ffi::{c_void, CString},
+    sync::atomic::{AtomicUsize, Ordering},
+};
 
 use valthrun_driver_shared::{
     requests::{DriverRequest, RequestRead, ResponseRead},
@@ -39,7 +42,7 @@ impl KernelInterface {
 
         Ok(Self {
             driver_handle,
-            read_calls: AtomicUsize::new(0)
+            read_calls: AtomicUsize::new(0),
         })
     }
 

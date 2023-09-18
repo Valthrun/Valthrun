@@ -1,9 +1,12 @@
-use std::{rc::Rc, cell::RefCell, time::Instant};
+use std::{cell::RefCell, rc::Rc, time::Instant};
 
 use imgui::Condition;
 use obfstr::obfstr;
 
-use crate::{settings::{AppSettings, HotKey}, Application};
+use crate::{
+    settings::{AppSettings, HotKey},
+    Application,
+};
 
 pub trait ImGuiKey {
     fn button_key(&self, label: &str, key: &mut HotKey, size: [f32; 2]) -> bool;
@@ -15,7 +18,13 @@ mod hotkey {
 
     use crate::settings::HotKey;
 
-    pub fn render_button_key(ui: &imgui::Ui, label: &str, key: &mut Option<HotKey>, size: [f32; 2], optional: bool) -> bool {
+    pub fn render_button_key(
+        ui: &imgui::Ui,
+        label: &str,
+        key: &mut Option<HotKey>,
+        size: [f32; 2],
+        optional: bool,
+    ) -> bool {
         let _container = ui.push_id(label);
 
         let button_label = if let Some(key) = &key {
@@ -31,14 +40,14 @@ mod hotkey {
 
         let mut updated = false;
         if optional {
-            if ui.button_with_size(&button_label, [ size[0] - 35.0, size[1] ]) {
+            if ui.button_with_size(&button_label, [size[0] - 35.0, size[1]]) {
                 ui.open_popup(label);
             }
 
             ui.same_line_with_spacing(0.0, 10.0);
 
             ui.disabled(key.is_none(), || {
-                if ui.button_with_size("X", [ 25.0, 0.0 ]) {
+                if ui.button_with_size("X", [25.0, 0.0]) {
                     updated = true;
                     *key = None;
                 }
@@ -94,7 +103,7 @@ impl ImGuiKey for imgui::Ui {
 
 pub struct SettingsUI {
     settings: Rc<RefCell<AppSettings>>,
-    discord_link_copied: Option<Instant>
+    discord_link_copied: Option<Instant>,
 }
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -116,7 +125,7 @@ impl SettingsUI {
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
                         ui.text(&format!("{} Version {}", obfstr!("Valthrun"), VERSION));
                         ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
-                        
+
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.5;
                         ui.dummy([ 0.0, ydummy ]);
                         ui.separator();
@@ -135,7 +144,7 @@ impl SettingsUI {
                         let show_copied = self.discord_link_copied.as_ref()
                             .map(|time| time.elapsed().as_millis() < 3_000)
                             .unwrap_or(false);
-                            
+
                         if show_copied {
                             ui.same_line();
                             ui.text("(Copied)");

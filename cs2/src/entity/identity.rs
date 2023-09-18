@@ -1,10 +1,13 @@
 use cs2_schema_declaration::Ptr;
-use cs2_schema_generated::{EntityHandle, cs2::client::{CEntityIdentity, CEntityInstance}};
+use cs2_schema_generated::{
+    cs2::client::{CEntityIdentity, CEntityInstance},
+    EntityHandle,
+};
 
 pub trait CEntityIdentityEx {
     fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>>;
     fn entity_vtable(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
-    fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>>; 
+    fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>>;
 }
 
 impl CEntityIdentityEx for CEntityIdentity {

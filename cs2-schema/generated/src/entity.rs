@@ -1,8 +1,8 @@
 use std::{fmt::Debug, marker::PhantomData};
 
-use cs2_schema_declaration::{SchemaValue, MemoryHandle};
+use cs2_schema_declaration::{MemoryHandle, SchemaValue};
 
-/// CS2 32 bit entity handle packed with 
+/// CS2 32 bit entity handle packed with
 /// the entity index and serial number.
 #[repr(C)]
 #[derive(Default, Clone)]
@@ -13,7 +13,10 @@ pub struct EntityHandle<T> {
 
 impl<T> EntityHandle<T> {
     pub fn from_index(index: u32) -> Self {
-        Self { value: index, _data: Default::default() }
+        Self {
+            value: index,
+            _data: Default::default(),
+        }
     }
 
     pub fn get_entity_index(&self) -> u32 {
@@ -57,7 +60,7 @@ impl<T> SchemaValue for EntityHandle<T> {
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             value: SchemaValue::from_memory(memory)?,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }

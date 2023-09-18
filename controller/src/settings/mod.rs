@@ -1,24 +1,50 @@
-use std::{path::PathBuf, fs::File, io::{BufReader, BufWriter}};
-use imgui::Key;
-use serde::{ Deserialize, Serialize };
 use anyhow::Context;
+use imgui::Key;
+use serde::{Deserialize, Serialize};
+use std::{
+    fs::File,
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+};
 
 mod hotkey;
 pub use hotkey::*;
 
-fn bool_true() -> bool { true }
-fn bool_false() -> bool { false }
-fn default_esp_color_team() -> [f32; 4] { [ 0.0,  1.0,  0.0,  0.75 ] }
-fn default_esp_color_enemy() -> [f32; 4] { [ 1.0,  0.0,  0.0,  0.75 ] }
-fn default_esp_skeleton_thickness() -> f32 { 3.0 }
-fn default_esp_boxes_thickness() -> f32 { 3.0 }
+fn bool_true() -> bool {
+    true
+}
+fn bool_false() -> bool {
+    false
+}
+fn default_esp_color_team() -> [f32; 4] {
+    [0.0, 1.0, 0.0, 0.75]
+}
+fn default_esp_color_enemy() -> [f32; 4] {
+    [1.0, 0.0, 0.0, 0.75]
+}
+fn default_esp_skeleton_thickness() -> f32 {
+    3.0
+}
+fn default_esp_boxes_thickness() -> f32 {
+    3.0
+}
 
-fn default_u32<const V: u32>() -> u32 { V }
-fn default_i32<const V: i32>() -> i32 { V }
+fn default_u32<const V: u32>() -> u32 {
+    V
+}
+fn default_i32<const V: i32>() -> i32 {
+    V
+}
 
-fn default_key_settings() -> HotKey { Key::Pause.into() }
-fn default_key_trigger_bot() -> Option<HotKey> { Some(Key::MouseMiddle.into()) }
-fn default_key_none() -> Option<HotKey> { None }
+fn default_key_settings() -> HotKey {
+    Key::Pause.into()
+}
+fn default_key_trigger_bot() -> Option<HotKey> {
+    Some(Key::MouseMiddle.into())
+}
+fn default_key_none() -> Option<HotKey> {
+    None
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
@@ -68,10 +94,8 @@ pub struct AppSettings {
 }
 
 pub fn get_settings_path() -> anyhow::Result<PathBuf> {
-    let exe_file = std::env::current_exe()
-        .context("missing current exe path")?;
-    let base_dir = exe_file.parent()
-        .context("could not get exe directory")?;
+    let exe_file = std::env::current_exe().context("missing current exe path")?;
+    let base_dir = exe_file.parent().context("could not get exe directory")?;
 
     Ok(base_dir.join("config.yaml"))
 }
@@ -79,20 +103,27 @@ pub fn get_settings_path() -> anyhow::Result<PathBuf> {
 pub fn load_app_settings() -> anyhow::Result<AppSettings> {
     let config_path = get_settings_path()?;
     if !config_path.is_file() {
-        log::info!("App config file {} does not exist.", config_path.to_string_lossy());
+        log::info!(
+            "App config file {} does not exist.",
+            config_path.to_string_lossy()
+        );
         log::info!("Using default config.");
-        let config: AppSettings = serde_yaml::from_str("")
-            .context("failed to parse empty config")?;
+        let config: AppSettings =
+            serde_yaml::from_str("").context("failed to parse empty config")?;
 
         return Ok(config);
     }
 
-    let config = File::open(&config_path)
-        .with_context(|| format!("failed to open app config at {}", config_path.to_string_lossy()))?;
+    let config = File::open(&config_path).with_context(|| {
+        format!(
+            "failed to open app config at {}",
+            config_path.to_string_lossy()
+        )
+    })?;
     let mut config = BufReader::new(config);
 
-    let config: AppSettings = serde_yaml::from_reader(&mut config)
-        .context("failed to parse app config")?;
+    let config: AppSettings =
+        serde_yaml::from_reader(&mut config).context("failed to parse app config")?;
 
     log::info!("Loaded app config from {}", config_path.to_string_lossy());
     Ok(config)
@@ -105,11 +136,15 @@ pub fn save_app_settings(settings: &AppSettings) -> anyhow::Result<()> {
         .truncate(true)
         .write(true)
         .open(&config_path)
-        .with_context(|| format!("failed to open app config at {}", config_path.to_string_lossy()))?;
+        .with_context(|| {
+            format!(
+                "failed to open app config at {}",
+                config_path.to_string_lossy()
+            )
+        })?;
     let mut config = BufWriter::new(config);
 
-    serde_yaml::to_writer(&mut config, settings)
-        .context("failed to serialize config")?;
+    serde_yaml::to_writer(&mut config, settings).context("failed to serialize config")?;
 
     log::debug!("Saved app config.");
     Ok(())

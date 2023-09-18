@@ -9,7 +9,7 @@ pub use ptr::*;
 mod basics;
 pub use basics::*;
 
-pub trait SchemaValue : Sized {
+pub trait SchemaValue: Sized {
     fn value_size() -> Option<u64>;
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self>;
 }
@@ -37,11 +37,11 @@ macro_rules! define_schema {
                 };
                 Ok(result)
             }
-        } 
-        
+        }
+
         define_schema!($($next)*);
     };
-    
+
     (
         pub struct $name:ident[$size:literal] $(: $parent:ty)? {
             $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:literal, )*
@@ -58,7 +58,7 @@ macro_rules! define_schema {
                 $(#[$var_meta])*
                 pub fn $var_name(&self) -> anyhow::Result<$var_type> {
                     use anyhow::Context;
-        
+
                     self.memory.reference_schema($var_offset)
                         .context(concat!(stringify!($name), "::", stringify!($var_name)))
                 }
@@ -66,7 +66,7 @@ macro_rules! define_schema {
 
             pub fn cached(self) -> anyhow::Result<Self> {
                 use cs2_schema_declaration::SchemaValue;
-                
+
                 if $size <= 0 {
                     anyhow::bail!("can not cache a schema with zero size");
                 }
@@ -111,7 +111,7 @@ macro_rules! define_schema {
                 }
             }
         )*
-        
+
         define_schema!($($next)*);
     };
 }
