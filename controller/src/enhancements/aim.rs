@@ -1,5 +1,5 @@
 use anyhow::Context;
-use kinterface::MouseState;
+use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 

@@ -2,7 +2,7 @@
 
 use anyhow::Context;
 use cs2_schema_declaration::{MemoryDriver, MemoryHandle, SchemaValue};
-use kinterface::{
+use valthrun_kernel_interface::{
     requests::{
         RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
         ResponseCsModule,

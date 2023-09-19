@@ -9,7 +9,7 @@ edition = "2021"
 cs2 = { path = "../cs2" } 
 cs2-schema-generated = { path = "../cs2-schema/generated" }
 cs2-schema-declaration = { path = "../cs2-schema/declaration" }
-kinterface = { path = "../kinterface"}
+valthrun-kernel-interface = { path = "../kernel/interface"}
 overlay = { path = "../overlay"}
 anyhow = "1.0.72"
 log = "0.4.19"
