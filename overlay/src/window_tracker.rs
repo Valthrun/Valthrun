@@ -5,9 +5,9 @@ use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
     core::PCSTR,
     Win32::{
-        Foundation::{GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, POINT, RECT},
+        Foundation::{GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, POINT, RECT, WPARAM, LPARAM},
         Graphics::Gdi::ClientToScreen,
-        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow},
+        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, WM_PAINT, SendMessageA},
     },
 };
 
@@ -32,6 +32,10 @@ impl WindowTracker {
             cs2_hwnd,
             current_bounds: Default::default(),
         })
+    }
+
+    pub fn mark_force_update(&mut self) {
+        self.current_bounds = Default::default();
     }
 
     pub fn update(&mut self, overlay: &Window) -> bool {
@@ -66,8 +70,11 @@ impl WindowTracker {
                 rect.top,
                 rect.right - rect.left,
                 rect.bottom - rect.top,
-                true,
+                false, // Don't do a complete repaint (may flicker)
             );
+
+            // Request repaint, so we acknoledge the new bounds
+            SendMessageA(overlay_hwnd, WM_PAINT, WPARAM::default(), LPARAM::default());
         }
 
         true

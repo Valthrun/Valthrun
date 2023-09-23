@@ -1356,6 +1356,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "copypasta",
+ "env_logger",
  "glium",
  "imgui",
  "imgui-glium-renderer",

@@ -10,7 +10,7 @@ use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use input::InputSystem;
+use input::MouseInputSystem;
 use obfstr::obfstr;
 use std::ffi::CString;
 use std::time::Instant;
@@ -64,12 +64,11 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let context = glutin::ContextBuilder::new().with_vsync(false);
 
     let builder = WindowBuilder::new()
-        .with_resizable(false)
         .with_title(title.to_owned())
         .with_visible(false);
 
-    let display =
-        Display::new(builder, context, &event_loop).map_err(OverlayError::DisplayError)?;
+    let display = Display::new(builder, context, &event_loop)
+        .map_err(OverlayError::DisplayError)?;
 
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
@@ -114,8 +113,8 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         let window = display.gl_window();
         let window = window.window();
 
-        window.set_decorations(false);
-        window.set_undecorated_shadow(false);
+        // window.set_decorations(false);
+        // window.set_undecorated_shadow(false);
 
         let hwnd = HWND(window.hwnd());
         unsafe {
@@ -128,7 +127,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
             SetWindowLongPtrA(
                 hwnd,
                 GWL_EXSTYLE,
-                (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE).0
+                (WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0
                     as isize,
             );
 
@@ -185,12 +184,12 @@ impl OverlayActiveTracker {
             let hwnd = HWND(window.hwnd());
             let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
             if window_active {
-                style &= !(WS_EX_NOACTIVATE.0 as isize);
+                style &= !((WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize);
             } else {
-                style |= WS_EX_NOACTIVATE.0 as isize;
+                style |= (WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize;
             }
 
-            //log::debug!("Set UI active: {window_active}");
+            log::trace!("Set UI active: {window_active}");
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
             if window_active {
                 SetActiveWindow(hwnd);
@@ -217,7 +216,7 @@ impl System {
         let mut last_frame = Instant::now();
 
         let mut active_tracker = OverlayActiveTracker::new();
-        let mut input_system = InputSystem::new();
+        let mut mouse_input_system = MouseInputSystem::new();
         let mut initial_render = true;
 
         event_loop.run(move |event, _, control_flow| match event {
@@ -235,7 +234,7 @@ impl System {
                 }
 
                 let window = gl_window.window();
-                input_system.update(window, imgui.io_mut());
+                mouse_input_system.update(window, imgui.io_mut());
                 active_tracker.update(window, imgui.io());
                 if !window_tracker.update(window) {
                     log::info!("Target window has been closed. Exiting overlay.");
@@ -280,8 +279,11 @@ impl System {
                     // We can not use `gl_window.window().set_visible(true)` as this will prevent the overlay
                     // to be click trough...
                     unsafe {
-                        ShowWindow(HWND(gl_window.window().hwnd() as isize), SW_SHOW);
+                        let hwnd = HWND(gl_window.window().hwnd() as isize);
+                        ShowWindow(hwnd, SW_SHOW);
                     }
+
+                    window_tracker.mark_force_update();
                 }
             }
             Event::WindowEvent {
