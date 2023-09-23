@@ -19,7 +19,7 @@ jobs:
     - name: Use rust nightly
       run: rustup update nightly && rustup default nightly
     - name: Check fmt
-      run: cargo fmt --check
+      run: rustup component add rustfmt && cargo fmt --check
     - name: Build
       run: cargo build --verbose
     # Right now there are no tests specified
