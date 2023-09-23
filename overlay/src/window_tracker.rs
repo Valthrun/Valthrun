@@ -5,9 +5,11 @@ use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
     core::PCSTR,
     Win32::{
-        Foundation::{GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, POINT, RECT, WPARAM, LPARAM},
+        Foundation::{
+            GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, LPARAM, POINT, RECT, WPARAM,
+        },
         Graphics::Gdi::ClientToScreen,
-        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, WM_PAINT, SendMessageA},
+        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
     },
 };
 

@@ -8,9 +8,7 @@ fn main() -> anyhow::Result<()> {
     let overlay = overlay::init("Task Manager Overlay", "Task Manager")?;
     let mut text_input = Default::default();
     overlay.main_loop(
-        |ctx| {
-            true
-        },
+        |ctx| true,
         move |ui| {
             ui.window("Dummy Window")
                 .resizable(true)
@@ -18,8 +16,7 @@ fn main() -> anyhow::Result<()> {
                 .build(|| {
                     ui.text("Taskmanager Overlay!");
                     ui.text(format!("FPS: {:.2}", ui.io().framerate));
-                    ui.input_text("Test-Input", &mut text_input)
-                        .build();
+                    ui.input_text("Test-Input", &mut text_input).build();
                 });
             true
         },

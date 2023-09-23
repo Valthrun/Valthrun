@@ -2,19 +2,19 @@
 
 use anyhow::Context;
 use cs2_schema_declaration::{MemoryDriver, MemoryHandle, SchemaValue};
-use valthrun_kernel_interface::{
-    requests::{
-        RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
-        ResponseCsModule,
-    },
-    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState,
-};
 use obfstr::obfstr;
 use std::{
     any::Any,
     ffi::CStr,
     fmt::Debug,
     sync::{Arc, Weak},
+};
+use valthrun_kernel_interface::{
+    requests::{
+        RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
+        ResponseCsModule,
+    },
+    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState,
 };
 
 use crate::{Signature, SignatureType};

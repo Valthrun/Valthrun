@@ -16,7 +16,7 @@ const VK_KEY_MAX: usize = 256;
 pub struct MouseInputSystem;
 impl MouseInputSystem {
     pub fn new() -> Self {
-        Self { }
+        Self {}
     }
 
     pub fn update(&mut self, window: &glutin::window::Window, io: &mut imgui::Io) {

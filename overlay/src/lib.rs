@@ -23,10 +23,10 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::CreateRectRgn;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, MessageBoxA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
-    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW,
-    WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
-    WS_POPUP, WS_VISIBLE, SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE,
+    GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
+    SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
+    SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WDA_EXCLUDEFROMCAPTURE, WS_CLIPSIBLINGS, WS_EX_LAYERED,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
 };
 
 mod clipboard;
@@ -67,8 +67,8 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         .with_title(title.to_owned())
         .with_visible(false);
 
-    let display = Display::new(builder, context, &event_loop)
-        .map_err(OverlayError::DisplayError)?;
+    let display =
+        Display::new(builder, context, &event_loop).map_err(OverlayError::DisplayError)?;
 
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
@@ -142,7 +142,10 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 
             // Hide overlay from screencapture
             if !SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE).as_bool() {
-                log::warn!("{}", obfstr!("Failed to change overlay display affinity to 'exclude from capture'."));
+                log::warn!(
+                    "{}",
+                    obfstr!("Failed to change overlay display affinity to 'exclude from capture'.")
+                );
             }
         }
     }
