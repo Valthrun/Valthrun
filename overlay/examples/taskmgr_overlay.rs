@@ -8,6 +8,7 @@ fn main() -> anyhow::Result<()> {
         move |ui| {
             ui.window("Dummy Window").build(|| {
                 ui.text("Taskmanager Overlay!");
+                ui.text(format!("FPS: {:.2}", ui.io().framerate));
             });
             true
         },
