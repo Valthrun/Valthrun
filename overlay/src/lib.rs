@@ -11,6 +11,7 @@ use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
 use input::InputSystem;
+use obfstr::obfstr;
 use std::ffi::CString;
 use std::time::Instant;
 use window_tracker::WindowTracker;
@@ -25,7 +26,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrA, MessageBoxA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow,
     GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK, SWP_NOMOVE, SWP_NOSIZE, SW_SHOW,
     WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
-    WS_POPUP, WS_VISIBLE,
+    WS_POPUP, WS_VISIBLE, SetWindowDisplayAffinity, WDA_EXCLUDEFROMCAPTURE,
 };
 
 mod clipboard;
@@ -139,6 +140,11 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 
             // Move the window to the top
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+            // Hide overlay from screencapture
+            if !SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE).as_bool() {
+                log::warn!("{}", obfstr!("Failed to change overlay display affinity to 'exclude from capture'."));
+            }
         }
     }
 

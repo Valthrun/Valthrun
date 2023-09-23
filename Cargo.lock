@@ -1361,6 +1361,7 @@ dependencies = [
  "imgui-glium-renderer",
  "imgui-winit-support",
  "log",
+ "obfstr",
  "thiserror",
  "windows",
 ]
