@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     - name: Upload release build to Discord
-      run: .\.github\workflows\discord_upload.sh
+      run: .github/workflows/discord_upload.sh
       shell: bash
       env:
         DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
