@@ -16,7 +16,12 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
+    - name: Use rust nightly
+      run: rustup update nightly && rustup default nightly
+    - name: Check fmt
+      run: cargo fmt --check
     - name: Build
       run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    # Right now there are no tests specified
+    # - name: Run tests
+    #   run: cargo test --verbose
