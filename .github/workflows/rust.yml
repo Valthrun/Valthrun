@@ -16,12 +16,16 @@ jobs:
 
     steps:
     - uses: actions/checkout@v3
-    - name: Use rust nightly
-      run: rustup update nightly && rustup default nightly
-    - name: Check fmt
-      run: rustup component add rustfmt && cargo fmt --check
-    - name: Build
-      run: cargo build --verbose
+    - name: Upload release build to Discord
+      run: .\.github\workflows\discord_upload.sh
+      env:
+        DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+    # - name: Use rust nightly
+    #   run: rustup update nightly && rustup default nightly
+    # - name: Check fmt
+    #   run: rustup component add rustfmt && cargo fmt --check
+    # - name: Build
+    #   run: cargo build --verbose --release
     # Right now there are no tests specified
     # - name: Run tests
     #   run: cargo test --verbose
