@@ -1,20 +1,21 @@
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
-use error::{Result, OverlayError};
+use error::{OverlayError, Result};
 use glium::glutin;
 use glium::glutin::event::{Event, WindowEvent};
 use glium::glutin::event_loop::{ControlFlow, EventLoop};
 use glium::glutin::platform::windows::WindowExtWindows;
-use glium::glutin::window::{WindowBuilder, Window};
+use glium::glutin::window::{Window, WindowBuilder};
 use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use input::InputSystem;
-use window_tracker::WindowTracker;
-use windows::core::PCSTR;
+use input::MouseInputSystem;
+use obfstr::obfstr;
 use std::ffi::CString;
 use std::time::Instant;
+use window_tracker::WindowTracker;
+use windows::core::PCSTR;
 use windows::Win32::Foundation::{BOOL, HWND};
 use windows::Win32::Graphics::Dwm::{
     DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
@@ -22,9 +23,10 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::CreateRectRgn;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, SetWindowLongA, SetWindowLongPtrA, SetWindowPos,
-    GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, SWP_NOMOVE, SWP_NOSIZE, WS_CLIPSIBLINGS,
-    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, MessageBoxA, MB_ICONERROR, MB_OK, ShowWindow, SW_SHOW,
+    GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
+    SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
+    SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WDA_EXCLUDEFROMCAPTURE, WS_CLIPSIBLINGS, WS_EX_LAYERED,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
 };
 
 mod clipboard;
@@ -37,10 +39,10 @@ pub fn show_error_message(title: &str, message: &str) {
     let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
     unsafe {
         MessageBoxA(
-            HWND::default(), 
-            PCSTR::from_raw(message.as_ptr() as *const u8), 
+            HWND::default(),
+            PCSTR::from_raw(message.as_ptr() as *const u8),
             PCSTR::from_raw(title.as_ptr() as *const u8),
-            MB_ICONERROR | MB_OK
+            MB_ICONERROR | MB_OK,
         );
     }
 }
@@ -59,16 +61,14 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let window_tracker = WindowTracker::new(target_window)?;
 
     let event_loop = EventLoop::new();
-    let context = glutin::ContextBuilder::new()
-        .with_vsync(false);
+    let context = glutin::ContextBuilder::new().with_vsync(false);
 
     let builder = WindowBuilder::new()
-        .with_resizable(false)
         .with_title(title.to_owned())
         .with_visible(false);
 
-    let display = Display::new(builder, context, &event_loop)
-        .map_err(OverlayError::DisplayError)?;
+    let display =
+        Display::new(builder, context, &event_loop).map_err(OverlayError::DisplayError)?;
 
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
@@ -113,8 +113,8 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         let window = display.gl_window();
         let window = window.window();
 
-        window.set_decorations(false);
-        window.set_undecorated_shadow(false);
+        // window.set_decorations(false);
+        // window.set_undecorated_shadow(false);
 
         let hwnd = HWND(window.hwnd());
         unsafe {
@@ -127,7 +127,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
             SetWindowLongPtrA(
                 hwnd,
                 GWL_EXSTYLE,
-                (WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE).0
+                (WS_EX_LAYERED | WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0
                     as isize,
             );
 
@@ -139,11 +139,18 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 
             // Move the window to the top
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
+            // Hide overlay from screencapture
+            if !SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE).as_bool() {
+                log::warn!(
+                    "{}",
+                    obfstr!("Failed to change overlay display affinity to 'exclude from capture'.")
+                );
+            }
         }
     }
 
-    let renderer = Renderer::init(&mut imgui, &display)
-        .map_err(OverlayError::RenderError)?;
+    let renderer = Renderer::init(&mut imgui, &display).map_err(OverlayError::RenderError)?;
 
     Ok(System {
         event_loop,
@@ -159,12 +166,14 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 /// Toggles the overlay noactive and transparent state
 /// according to whenever ImGui wants mouse/cursor grab.
 struct OverlayActiveTracker {
-    currently_active: bool
+    currently_active: bool,
 }
 
 impl OverlayActiveTracker {
     pub fn new() -> Self {
-        Self { currently_active: true }
+        Self {
+            currently_active: true,
+        }
     }
 
     pub fn update(&mut self, window: &Window, io: &Io) {
@@ -178,12 +187,12 @@ impl OverlayActiveTracker {
             let hwnd = HWND(window.hwnd());
             let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
             if window_active {
-                style &= !(WS_EX_NOACTIVATE.0 as isize);
+                style &= !((WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize);
             } else {
-                style |= WS_EX_NOACTIVATE.0 as isize;
+                style |= (WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize;
             }
 
-            //log::debug!("Set UI active: {window_active}");
+            log::trace!("Set UI active: {window_active}");
             SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
             if window_active {
                 SetActiveWindow(hwnd);
@@ -210,7 +219,7 @@ impl System {
         let mut last_frame = Instant::now();
 
         let mut active_tracker = OverlayActiveTracker::new();
-        let mut input_system = InputSystem::new();
+        let mut mouse_input_system = MouseInputSystem::new();
         let mut initial_render = true;
 
         event_loop.run(move |event, _, control_flow| match event {
@@ -228,9 +237,13 @@ impl System {
                 }
 
                 let window = gl_window.window();
-                input_system.update(window, imgui.io_mut());
+                mouse_input_system.update(window, imgui.io_mut());
                 active_tracker.update(window, imgui.io());
-                window_tracker.update(window);
+                if !window_tracker.update(window) {
+                    log::info!("Target window has been closed. Exiting overlay.");
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
 
                 if !update(&mut imgui) {
                     *control_flow = ControlFlow::Exit;
@@ -258,7 +271,7 @@ impl System {
                     log::error!("Failed to swap render buffers: {}", error);
                     run = false;
                 }
-                
+
                 if !run {
                     *control_flow = ControlFlow::Exit;
                 }
@@ -268,7 +281,12 @@ impl System {
                     // Note:
                     // We can not use `gl_window.window().set_visible(true)` as this will prevent the overlay
                     // to be click trough...
-                    unsafe { ShowWindow(HWND(gl_window.window().hwnd() as isize), SW_SHOW); }
+                    unsafe {
+                        let hwnd = HWND(gl_window.window().hwnd() as isize);
+                        ShowWindow(hwnd, SW_SHOW);
+                    }
+
+                    window_tracker.mark_force_update();
                 }
             }
             Event::WindowEvent {

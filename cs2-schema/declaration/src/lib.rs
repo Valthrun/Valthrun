@@ -37,15 +37,15 @@ macro_rules! define_schema {
                 let value: $ordinal_type = cs2_schema_declaration::SchemaValue::from_memory(memory)?;
                 let result = match value {
                     $($ordinal => Self::$vname,)*
-                    value => anyhow::bail!("unknown $name {}", value)
+                    value => anyhow::bail!("unknown enum ordinal {} {}", stringify!($name), value)
                 };
                 Ok(result)
             }
-        } 
-        
+        }
+
         define_schema!($($next)*);
     };
-    
+
     (
         pub struct $name:ident[$size:literal] $(: $parent:ty)? {
             $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:expr, )*
@@ -77,7 +77,7 @@ macro_rules! define_schema {
 
             pub fn cached(self) -> anyhow::Result<Self> {
                 use cs2_schema_declaration::SchemaValue;
-                
+
                 if $size <= 0 {
                     anyhow::bail!("can not cache a schema with zero size");
                 }
@@ -122,7 +122,7 @@ macro_rules! define_schema {
                 }
             }
         )*
-        
+
         define_schema!($($next)*);
     };
 }

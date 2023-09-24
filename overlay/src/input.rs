@@ -4,22 +4,44 @@ use imgui::{Key, MouseButton};
 use windows::Win32::Foundation::{HWND, POINT};
 use windows::Win32::Graphics::Gdi::ScreenToClient;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, VIRTUAL_KEY, VK_CONTROL, VK_LBUTTON, VK_LCONTROL, VK_LMENU,
-    VK_LSHIFT, VK_LWIN, VK_MBUTTON, VK_MENU, VK_RBUTTON, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_XBUTTON1,
+    GetAsyncKeyState, VIRTUAL_KEY, VK_CONTROL, VK_LBUTTON, VK_LCONTROL, VK_LMENU, VK_LSHIFT,
+    VK_LWIN, VK_MBUTTON, VK_MENU, VK_RBUTTON, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_XBUTTON1,
     VK_XBUTTON2,
 };
 use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
 
 const VK_KEY_MAX: usize = 256;
 
+#[derive(Debug, Default)]
+pub struct MouseInputSystem;
+impl MouseInputSystem {
+    pub fn new() -> Self {
+        Self {}
+    }
+
+    pub fn update(&mut self, window: &glutin::window::Window, io: &mut imgui::Io) {
+        let mut point: POINT = Default::default();
+        unsafe {
+            GetCursorPos(&mut point);
+            ScreenToClient(HWND(window.hwnd()), &mut point);
+        };
+        io.add_mouse_pos_event([
+            (point.x as f64 / window.scale_factor()) as f32,
+            (point.y as f64 / window.scale_factor()) as f32,
+        ]);
+    }
+}
+
 /// Simple input system using the global mouse / keyboard state.
 /// This does not require the need to process window messages or the imgui overlay to be active.
 #[derive(Debug, Default)]
-pub struct InputSystem {
+#[allow(unused)]
+pub struct KeyboardInputSystem {
     key_states: Vec<bool>,
 }
 
-impl InputSystem {
+#[allow(unused)]
+impl KeyboardInputSystem {
     pub fn new() -> Self {
         Self {
             key_states: vec![false; VK_KEY_MAX],
@@ -56,16 +78,6 @@ impl InputSystem {
                 log::trace!("Missing ImGui key for {:?}", vkey);
             }
         }
-
-        let mut point: POINT = Default::default();
-        unsafe {
-            GetCursorPos(&mut point);
-            ScreenToClient(HWND(window.hwnd()), &mut point);
-        };
-        io.add_mouse_pos_event([
-            (point.x as f64 / window.scale_factor()) as f32,
-            (point.y as f64 / window.scale_factor()) as f32,
-        ]);
     }
 }
 

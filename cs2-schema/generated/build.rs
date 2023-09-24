@@ -3,7 +3,7 @@ use std::{env, fs::File, io::BufWriter, path::Path};
 
 use anyhow::Context;
 
-#[path = "src/definition.rs"] 
+#[path = "src/definition.rs"]
 mod schema;
 
 fn main() -> anyhow::Result<()> {
@@ -25,7 +25,7 @@ fn main() -> anyhow::Result<()> {
     for scope in schema_scopes {
         scope.emit_rust_definition(&mut writer)?;
     }
-    
+
     println!("cargo:rerun-if-changed=cs2_schema.json");
     Ok(())
 }

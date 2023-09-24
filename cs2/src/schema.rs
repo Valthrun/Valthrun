@@ -1,19 +1,26 @@
-use std::collections::{BTreeMap, btree_map::Entry};
+use std::collections::{btree_map::Entry, BTreeMap};
 
-use anyhow::Context;
-use cs2_schema_cutl::{CUtlVector, CUtlTSHash};
-use cs2_schema_declaration::{define_schema, Ptr, FixedCString, PtrCStr};
-use cs2_schema_generated::definition::{Metadata, mod_name_from_schema_name, EnumDefinition, EnumMember, ClassDefinition, ClassField, SchemaScope};
-use obfstr::obfstr;
 use crate::{CS2Handle, Module, PCStrEx, Signature};
+use anyhow::Context;
+use cs2_schema_cutl::{CUtlTSHash, CUtlVector};
+use cs2_schema_declaration::{define_schema, FixedCString, Ptr, PtrCStr};
+use cs2_schema_generated::definition::{
+    mod_name_from_schema_name, ClassDefinition, ClassField, EnumDefinition, EnumMember, Metadata,
+    SchemaScope,
+};
+use obfstr::obfstr;
 
 // Returns SchemaSystem_001
 fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
-    cs2.resolve_signature(Module::Schemasystem, &Signature::relative_address(
-        obfstr!("schema system instance"),
-        obfstr!("48 89 05 ? ? ? ? 4C 8D 45"), 
-        0x03, 0x07
-    ))
+    cs2.resolve_signature(
+        Module::Schemasystem,
+        &Signature::relative_address(
+            obfstr!("schema system instance"),
+            obfstr!("48 89 05 ? ? ? ? 4C 8D 45"),
+            0x03,
+            0x07,
+        ),
+    )
 }
 
 define_schema! {
@@ -23,7 +30,8 @@ define_schema! {
         CollectionOfT = 2,
         TT = 3,
         I = 4,
-        None = 5,
+        Unknown = 5,
+        None = 6,
     }
 
     pub enum TypeCategory : u8 {
@@ -43,8 +51,8 @@ define_schema! {
 
     pub struct CSchemaSystemTypeScope[0x2F00] {
         pub scope_name: FixedCString<0x100> = 0x08,
-        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x558,
-        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DA0,
+        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x0588,
+        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DD0,
     }
 
     pub struct CSchemaType[0x20] {
@@ -145,7 +153,7 @@ define_schema! {
         pub size: u8 = 0x18, // Size of own struct
         pub member_count: u16 = 0x1C,
         pub flags: u16 = 0x1E,
-        
+
         pub members: Ptr<[CSchemaEnumMember]> = 0x20,
         pub type_scope: Ptr<CSchemaSystemTypeScope> = 0x30,
     }
@@ -163,24 +171,26 @@ fn parse_metadata(cs2: &CS2Handle, metadata: &CSchemaMetadataEntry) -> anyhow::R
         "MNetworkEnable" => Metadata::NetworkEnable,
         "MNetworkDisable" => Metadata::NetworkDisable,
         "MNetworkChangeCallback" => {
-            let name = metadata.metadata_value()?
+            let name = metadata
+                .metadata_value()?
                 .cast::<PtrCStr>()
                 .read_schema()?
                 .read_string(cs2)?;
 
             Metadata::NetworkChangeCallback { name }
-        },
+        }
         "MNetworkVarNames" => {
-            let meta_value = metadata.metadata_value()?
+            let meta_value = metadata
+                .metadata_value()?
                 .cast::<CSchemaMetadataVarNames>()
                 .read_schema()?;
 
-            Metadata::NetworkVarNames { 
-                var_name: meta_value.var_name()?.read_string(cs2)?, 
+            Metadata::NetworkVarNames {
+                var_name: meta_value.var_name()?.read_string(cs2)?,
                 var_type: meta_value.var_type()?.read_string(cs2)?,
             }
-        },
-        _ => Metadata::Unknown { name }
+        }
+        _ => Metadata::Unknown { name },
     };
 
     Ok(meta)
@@ -209,56 +219,62 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                 "float32" => "f32",
                 "float64" => "f64",
 
-                var_type => anyhow::bail!("Unknown build in type {}", var_type) 
-            }.to_string();
+                var_type => anyhow::bail!("Unknown build in type {}", var_type),
+            }
+            .to_string();
 
             Some(rust_type)
-        },
+        }
         TypeCategory::FixedArray => {
             let fixed_array = schema_type.as_schema::<CSchemaTypeFixedArray>()?;
             let length = fixed_array.array_length()?; // FIXME: This value is invalid!
             let base_type = fixed_array.base_type()?.reference_schema()?;
-            let base_type = parse_type(cs2, &base_type).context("failed to generate array base type")?;
+            let base_type =
+                parse_type(cs2, &base_type).context("failed to generate array base type")?;
 
             base_type.map(|base_type| format!("[{};0x{:X}]", base_type, length))
-        },
+        }
         TypeCategory::Ptr => {
             let schema_ptr = schema_type.as_schema::<CSchemaTypePtr>()?;
             let base_type = schema_ptr.base_type()?.reference_schema()?;
             let base_type = parse_type(cs2, &base_type)?;
-            
+
             base_type.map(|base_type| format!("Ptr<{}>", base_type))
-        },
+        }
         TypeCategory::Atomic => {
             match schema_type.atomic_category()? {
                 AtomicCategory::Basic => {
                     let value = schema_type.var_type()?.read_string(cs2)?;
-                    Some(match value.as_str() {
-                        "CEntityIndex" => "CEntityIndex",
+                    Some(
+                        match value.as_str() {
+                            "CEntityIndex" => "CEntityIndex",
 
-                        "CUtlStringToken" => "CUtlStringToken",
-                        "CUtlSymbolLarge" => "PtrCStr",
-                        "CUtlString" => "CUtlString",
-                        "Vector" => "[f32; 0x03]",
-                        "QAngle" => "[f32; 0x04]",
+                            "CUtlStringToken" => "CUtlStringToken",
+                            "CUtlSymbolLarge" => "PtrCStr",
+                            "CUtlString" => "CUtlString",
+                            "Vector" => "[f32; 0x03]",
+                            "QAngle" => "[f32; 0x04]",
 
-                        "Color" => "Color", // TODO: What is this (3x or 4x f32?)?
+                            "Color" => "Color", // TODO: What is this (3x or 4x f32?)?
 
-                        _ => return Ok(None),
-                    }.to_string())
-                },
+                            _ => return Ok(None),
+                        }
+                        .to_string(),
+                    )
+                }
                 AtomicCategory::CollectionOfT => {
                     let value = schema_type.var_type()?.read_string(cs2)?;
                     if !value.starts_with("CUtlVector<") {
                         return Ok(None);
                     }
 
-                    let atomic_collection = schema_type.as_schema::<CSchemaTypeAtomicCollectionOfT>()?;
+                    let atomic_collection =
+                        schema_type.as_schema::<CSchemaTypeAtomicCollectionOfT>()?;
                     let inner_type = atomic_collection.inner_type()?.reference_schema()?;
                     let inner_type = parse_type(cs2, &inner_type)?;
 
                     inner_type.map(|inner_type| format!("CUtlVector<{}>", inner_type))
-                },
+                }
                 AtomicCategory::T => {
                     let value = schema_type.var_type()?.read_string(cs2)?;
                     if !value.starts_with("CHandle<") {
@@ -270,35 +286,54 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                     let inner_type = parse_type(cs2, &inner_type)?;
 
                     inner_type.map(|inner_type| format!("EntityHandle<{}>", inner_type))
-                },
+                }
                 _ => return Ok(None),
             }
-        },
+        }
         TypeCategory::DeclaredClass => {
             let type_class = schema_type.as_schema::<CSchemaTypeDeclaredClass>()?;
             let type_class = type_class.declaration()?.read_schema()?;
 
             //let module_name = type_class.module_name()?.read_string(cs2)?;
-            let module_name = type_class.type_scope()?.read_schema()?.scope_name()?.to_string_lossy()?;
+            let module_name = type_class
+                .type_scope()?
+                .read_schema()?
+                .scope_name()?
+                .to_string_lossy()?;
             let class_name = type_class.name()?.read_string(cs2)?.replace(":", "_");
-            Some(format!("{}::{}", mod_name_from_schema_name(&module_name), class_name))
-        },
+            Some(format!(
+                "{}::{}",
+                mod_name_from_schema_name(&module_name),
+                class_name
+            ))
+        }
         TypeCategory::DeclaredEnum => {
             let enum_binding = schema_type.as_schema::<CSchemaTypeDeclaredEnum>()?;
             let enum_binding = enum_binding.declaration()?.read_schema()?;
 
             //let module_name = enum_binding.module_name()?.read_string(cs2)?;
-            let module_name = enum_binding.type_scope()?.read_schema()?.scope_name()?.to_string_lossy()?;
+            let module_name = enum_binding
+                .type_scope()?
+                .read_schema()?
+                .scope_name()?
+                .to_string_lossy()?;
             let enum_name = enum_binding.name()?.read_string(cs2)?.replace(":", "_");
-            Some(format!("{}::{}", mod_name_from_schema_name(&module_name), enum_name))
-        },
+            Some(format!(
+                "{}::{}",
+                mod_name_from_schema_name(&module_name),
+                enum_name
+            ))
+        }
         _ => return Ok(None),
     };
 
     Ok(result)
 }
 
-fn read_enum_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaEnumBinding>) -> anyhow::Result<(String, EnumDefinition)> {
+fn read_enum_binding(
+    cs2: &CS2Handle,
+    binding_ptr: &Ptr<CSchemaEnumBinding>,
+) -> anyhow::Result<(String, EnumDefinition)> {
     let binding = binding_ptr.read_schema()?;
     let mut definition: EnumDefinition = Default::default();
 
@@ -306,26 +341,44 @@ fn read_enum_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaEnumBinding>) -> 
     definition.enum_name = binding.name()?.read_string(cs2)?;
 
     log::debug!("   {:X} {}", binding_ptr.address()?, definition.enum_name);
-    definition.memebers.reserve(binding.member_count()? as usize);
+    definition
+        .memebers
+        .reserve(binding.member_count()? as usize);
     for index in 0..binding.member_count()? as usize {
         let member = binding.members()?.reference_element(index)?;
         let member_name = member.name()?.read_string(cs2)?;
         let member_value = member.value()?;
         definition.memebers.push(EnumMember {
             name: member_name,
-            value: member_value
+            value: member_value,
         });
     }
-    
+
     Ok((
-        binding.type_scope()?.reference_schema()?.scope_name()?.to_string_lossy()?,
-        definition
+        binding
+            .type_scope()?
+            .reference_schema()?
+            .scope_name()?
+            .to_string_lossy()?,
+        definition,
     ))
 }
 
-fn read_class_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaClassBinding>) -> anyhow::Result<(String, ClassDefinition)> {
+fn read_class_binding(
+    cs2: &CS2Handle,
+    binding_ptr: &Ptr<CSchemaClassBinding>,
+) -> anyhow::Result<(String, ClassDefinition)> {
     let binding = binding_ptr.read_schema()?;
-    log::debug!("   {:X} {} -> {}", binding_ptr.address()?, binding.name()?.read_string(cs2)?, binding.type_scope()?.read_schema()?.scope_name()?.to_string_lossy()?);
+    log::debug!(
+        "   {:X} {} -> {}",
+        binding_ptr.address()?,
+        binding.name()?.read_string(cs2)?,
+        binding
+            .type_scope()?
+            .read_schema()?
+            .scope_name()?
+            .to_string_lossy()?
+    );
 
     let mut definition: ClassDefinition = Default::default();
     definition.class_name = binding.name()?.read_string(cs2)?;
@@ -334,10 +387,18 @@ fn read_class_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaClassBinding>) -
 
     let base_class = binding.base_class()?;
     if !base_class.is_null()? {
-        let base_class = base_class.reference_schema()?.class_binding()?.read_schema()?;
+        let base_class = base_class
+            .reference_schema()?
+            .class_binding()?
+            .read_schema()?;
 
-        let class_module = base_class.type_scope()?.reference_schema()?.scope_name()?.to_string_lossy()?;
-        let base_class = format!("{}::{}",
+        let class_module = base_class
+            .type_scope()?
+            .reference_schema()?
+            .scope_name()?
+            .to_string_lossy()?;
+        let base_class = format!(
+            "{}::{}",
             mod_name_from_schema_name(&class_module),
             base_class.name()?.read_string(cs2)?.replace(":", "_")
         );
@@ -375,36 +436,43 @@ fn read_class_binding(cs2: &CS2Handle, binding_ptr: &Ptr<CSchemaClassBinding>) -
 
             field_type: rust_type,
             field_ctype: c_type,
-            
+
             offset: field.offset()? as u64,
-            metadata
+            metadata,
         });
     }
 
-    definition.metadata.reserve(binding.metadata_size()? as usize);
+    definition
+        .metadata
+        .reserve(binding.metadata_size()? as usize);
     for index in 0..binding.metadata_size()? as usize {
         let metadata = &binding.metadata()?.read_element(index)?;
-        definition.metadata.push(
-            parse_metadata(cs2, metadata).context("metadata parse")?
-        );
+        definition
+            .metadata
+            .push(parse_metadata(cs2, metadata).context("metadata parse")?);
     }
 
     Ok((
-        binding.type_scope()?.reference_schema()?.scope_name()?.to_string_lossy()?,
-        definition
+        binding
+            .type_scope()?
+            .reference_schema()?
+            .scope_name()?
+            .to_string_lossy()?,
+        definition,
     ))
 }
 
 pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<SchemaScope>> {
     let schema_system_address = find_schema_system(cs2)?;
-    let schema_system = cs2.reference_schema::<CSchemaSystem>(&[ schema_system_address ])?;
+    let schema_system = cs2.reference_schema::<CSchemaSystem>(&[schema_system_address])?;
 
     let scopes = schema_system.scopes()?;
     let scope_size = scopes.element_count()? as usize;
     log::debug!(
         "Schema system located at 0x{:X} (0x{:X}) containing 0x{:X} scopes",
         schema_system_address,
-        cs2.module_address(Module::Schemasystem, schema_system_address).context("invalid schema system address")?,
+        cs2.module_address(Module::Schemasystem, schema_system_address)
+            .context("invalid schema system address")?,
         scope_size
     );
 
@@ -427,8 +495,10 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
         let enum_bindings = scope.enum_bindings()?.read_values()?;
         log::debug!(
             " {:X} {} ({} classes, {} enums)",
-            scope_ptr.address()?, scope_name,
-            class_bindings.len(), enum_bindings.len(),
+            scope_ptr.address()?,
+            scope_name,
+            class_bindings.len(),
+            enum_bindings.len(),
         );
         for schema_class in class_bindings {
             let (scope_name, definition) = read_class_binding(cs2, &schema_class)?;
@@ -439,11 +509,11 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
                     entry.insert(SchemaScope {
                         schema_name,
                         classes: Default::default(),
-                        enums: Default::default()
+                        enums: Default::default(),
                     })
                 }
             };
-           
+
             schema_scope.classes.push(definition);
         }
 
@@ -456,7 +526,7 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
                     entry.insert(SchemaScope {
                         schema_name,
                         classes: Default::default(),
-                        enums: Default::default()
+                        enums: Default::default(),
                     })
                 }
             };

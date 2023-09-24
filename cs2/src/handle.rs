@@ -1,12 +1,20 @@
 #![allow(dead_code)]
 
 use anyhow::Context;
-use cs2_schema_declaration::{MemoryDriver, SchemaValue, MemoryHandle};
+use cs2_schema_declaration::{MemoryDriver, MemoryHandle, SchemaValue};
 use obfstr::obfstr;
-use std::{ffi::CStr, fmt::Debug, sync::{Weak, Arc}, any::Any};
-use kinterface::{
-    requests::{RequestCSModule, ResponseCsModule, RequestProtectionToggle, RequestMouseMove, RequestKeyboardState},
-    CS2ModuleInfo, KernelInterface, ModuleInfo, MouseState, KeyboardState,
+use std::{
+    any::Any,
+    ffi::CStr,
+    fmt::Debug,
+    sync::{Arc, Weak},
+};
+use valthrun_kernel_interface::{
+    requests::{
+        RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
+        ResponseCsModule,
+    },
+    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState,
 };
 
 use crate::{Signature, SignatureType};
@@ -19,7 +27,7 @@ impl MemoryDriver for CSMemoryDriver {
 
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()> {
         let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
-        cs2.read_slice(&[ address ], slice)
+        cs2.read_slice(&[address], slice)
     }
 }
 
@@ -62,8 +70,8 @@ impl CS2Handle {
          *
          * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
          */
-        interface.execute_request(&RequestProtectionToggle{ enabled: true })?;
-        
+        interface.execute_request(&RequestProtectionToggle { enabled: true })?;
+
         let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule {})?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
@@ -88,13 +96,11 @@ impl CS2Handle {
             module_info.engine.module_size
         );
 
-        Ok(Arc::new_cyclic(|weak_self| {
-            Self {
-                weak_self: weak_self.clone(),
-    
-                ke_interface: interface,
-                module_info,
-            }
+        Ok(Arc::new_cyclic(|weak_self| Self {
+            weak_self: weak_self.clone(),
+
+            ke_interface: interface,
+            module_info,
         }))
     }
 
@@ -107,7 +113,7 @@ impl CS2Handle {
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> anyhow::Result<()> {
         self.ke_interface.execute_request(&RequestKeyboardState {
             buffer: states.as_ptr(),
-            state_count: states.len()
+            state_count: states.len(),
         })?;
 
         Ok(())
@@ -116,7 +122,7 @@ impl CS2Handle {
     pub fn send_mouse_state(&self, states: &[MouseState]) -> anyhow::Result<()> {
         self.ke_interface.execute_request(&RequestMouseMove {
             buffer: states.as_ptr(),
-            state_count: states.len()
+            state_count: states.len(),
         })?;
 
         Ok(())
@@ -124,7 +130,9 @@ impl CS2Handle {
 
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
         let module = module.get_base_offset(&self.module_info)?;
-        if (address as usize) < module.base_address || (address as usize) >= (module.base_address + module.module_size) {
+        if (address as usize) < module.base_address
+            || (address as usize) >= (module.base_address + module.module_size)
+        {
             None
         } else {
             Some(address - module.base_address as u64)
@@ -145,11 +153,7 @@ impl CS2Handle {
             .read(self.module_info.process_id, offsets)?)
     }
 
-    pub fn read_slice<T: Sized>(
-        &self,
-        offsets: &[u64],
-        buffer: &mut [T],
-    ) -> anyhow::Result<()> {
+    pub fn read_slice<T: Sized>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
         Ok(self
             .ke_interface
             .read_slice(self.module_info.process_id, offsets, buffer)?)
@@ -199,7 +203,7 @@ impl CS2Handle {
 
     /// Reference an address in memory and wrap the schema class around it.
     /// Every member accessor will read the current bytes from the process memory.
-    /// 
+    ///
     /// This function should be used if a class is only accessed once or twice.
     pub fn reference_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
         let address = if offsets.len() == 1 {
@@ -208,38 +212,46 @@ impl CS2Handle {
             let base = self.read_sized::<u64>(&offsets[0..offsets.len() - 1])?;
             base + offsets[offsets.len() - 1]
         };
-    
-        T::from_memory(
-            MemoryHandle::from_driver(&self.create_memory_driver(), address)
-        )
+
+        T::from_memory(MemoryHandle::from_driver(
+            &self.create_memory_driver(),
+            address,
+        ))
     }
 
-    pub fn resolve_signature(
-        &self,
-        module: Module,
-        signature: &Signature
-    ) -> anyhow::Result<u64> {
+    pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
         log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
         let module_info = module
             .get_base_offset(&self.module_info)
             .context("invalid module")?;
 
-        let inst_offset = self.ke_interface.find_pattern(
-            self.module_info.process_id,
-            module_info.base_address as u64,
-            module_info.module_size,
-            &*signature.pattern,
-        )?.context("failed to find pattern")?;
+        let inst_offset = self
+            .ke_interface
+            .find_pattern(
+                self.module_info.process_id,
+                module_info.base_address as u64,
+                module_info.module_size,
+                &*signature.pattern,
+            )?
+            .context("failed to find pattern")?;
 
-        let value = self.reference_schema::<u32>(&[ inst_offset + signature.offset ])? as u64;
+        let value = self.reference_schema::<u32>(&[inst_offset + signature.offset])? as u64;
         let value = match &signature.value_type {
             SignatureType::Offset => value,
-            SignatureType::RelativeAddress { inst_length } => inst_offset + value + inst_length
+            SignatureType::RelativeAddress { inst_length } => inst_offset + value + inst_length,
         };
 
         match &signature.value_type {
-            SignatureType::Offset => log::trace!(" => {:X}", value),
-            SignatureType::RelativeAddress { .. } => log::trace!("  => {:X} ({:X})", value, self.module_address(module, value).unwrap_or(u64::MAX)),
+            SignatureType::Offset => log::trace!(
+                " => {:X} (inst at {:X})",
+                value,
+                self.module_address(module, inst_offset).unwrap_or(u64::MAX)
+            ),
+            SignatureType::RelativeAddress { .. } => log::trace!(
+                "  => {:X} ({:X})",
+                value,
+                self.module_address(module, value).unwrap_or(u64::MAX)
+            ),
         }
         Ok(value)
     }

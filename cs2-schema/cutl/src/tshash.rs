@@ -1,8 +1,8 @@
-use std::{marker::PhantomData};
+use std::marker::PhantomData;
 
 use anyhow::Context;
 
-use cs2_schema_declaration::{SchemaValue, define_schema, Ptr, MemoryHandle};
+use cs2_schema_declaration::{define_schema, MemoryHandle, Ptr, SchemaValue};
 
 define_schema! {
     pub struct CUtlMemoryPool[0x18] {
@@ -29,9 +29,8 @@ impl<K: SchemaValue, V: SchemaValue> HashBucketData<K, V> {
     }
 
     pub fn key(&self) -> anyhow::Result<K> {
-        self.memory.reference_schema(
-            V::value_size().context("value must have a size")? + 0x08
-        )
+        self.memory
+            .reference_schema(V::value_size().context("value must have a size")? + 0x08)
     }
 }
 
@@ -43,16 +42,15 @@ impl<K: SchemaValue, V: SchemaValue> SchemaValue for HashBucketData<K, V> {
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             memory: memory,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }
 
-pub  struct HashUnallocatedData<K, V> {
+pub struct HashUnallocatedData<K, V> {
     memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
-
 
 impl<K: SchemaValue, V: SchemaValue> HashUnallocatedData<K, V> {
     pub fn next_data(&self) -> anyhow::Result<Ptr<HashUnallocatedData<K, V>>> {
@@ -60,7 +58,10 @@ impl<K: SchemaValue, V: SchemaValue> HashUnallocatedData<K, V> {
     }
 
     pub fn bucket_entry(&self, index: u64) -> anyhow::Result<HashBucketData<K, V>> {
-        self.memory.reference_schema(0x20 + (HashBucketData::<K, V>::value_size().context("hash bucket must have a size")? * index) as u64)
+        self.memory.reference_schema(
+            0x20 + (HashBucketData::<K, V>::value_size().context("hash bucket must have a size")?
+                * index) as u64,
+        )
     }
 }
 
@@ -74,12 +75,12 @@ impl<K: SchemaValue, V: SchemaValue> SchemaValue for HashUnallocatedData<K, V> {
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             memory: memory,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }
 
-pub  struct HashBucket<K, V> {
+pub struct HashBucket<K, V> {
     memory: MemoryHandle,
     _data: PhantomData<(K, V)>,
 }
@@ -98,7 +99,7 @@ impl<K, V> SchemaValue for HashBucket<K, V> {
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             memory,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }
@@ -115,14 +116,17 @@ pub struct CUtlTSHash<K, V, const N: usize = 1> {
 }
 
 impl<K: SchemaValue, V: SchemaValue, const N: usize> CUtlTSHash<K, V, N> {
-    pub fn bucket_count(&self) -> usize { N }
+    pub fn bucket_count(&self) -> usize {
+        N
+    }
 
     pub fn bucket(&self, index: u64) -> anyhow::Result<HashBucket<K, V>> {
-        let memory_bool_size = CUtlMemoryPool::value_size().context("memory pool must have a size")?;
-        let bucket_size = HashBucket::<K, V>::value_size().context("hash bucket must have a size")?;
-        self.memory.reference_schema(
-            (memory_bool_size + index * bucket_size) as u64
-        )
+        let memory_bool_size =
+            CUtlMemoryPool::value_size().context("memory pool must have a size")?;
+        let bucket_size =
+            HashBucket::<K, V>::value_size().context("hash bucket must have a size")?;
+        self.memory
+            .reference_schema((memory_bool_size + index * bucket_size) as u64)
     }
 
     pub fn read_values(&self) -> anyhow::Result<Vec<V>> {
@@ -133,20 +137,21 @@ impl<K: SchemaValue, V: SchemaValue, const N: usize> CUtlTSHash<K, V, N> {
         let mut current_data = self.bucket(0)?.unallocated_data()?;
         while current_data.address()? > 0 && num_entries_remaining > 0 {
             let data_array = current_data.read_schema()?;
-            let data_array_elements = (self.memory_pool.blocks_per_blob()? as usize).min(num_entries_remaining);
+            let data_array_elements =
+                (self.memory_pool.blocks_per_blob()? as usize).min(num_entries_remaining);
             for data_index in 0..data_array_elements {
                 let value = data_array.bucket_entry(data_index as u64)?.value()?;
                 result.push(value);
             }
-    
+
             num_entries_remaining -= data_array_elements;
             current_data = data_array.next_data()?;
         }
-    
+
         if num_entries_remaining != 0 {
             anyhow::bail!("failed to read all elements")
         }
-    
+
         Ok(result)
     }
 }
@@ -159,9 +164,9 @@ impl<K: SchemaValue, V: SchemaValue, const N: usize> SchemaValue for CUtlTSHash<
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
         Ok(Self {
             memory_pool: SchemaValue::from_memory(memory.clone())?,
-            
+
             memory,
-            _data: Default::default()
+            _data: Default::default(),
         })
     }
 }

@@ -22,6 +22,6 @@ As far as I'm conserned VAC does not actively checks for certain strings so this
 But if you want to these traces anyways you need to set the RUSTFLAGS remap path prefix flags accordingly.
 ```ps1
 $WorkspaceCargo=$(cargo locate-project --workspace --message-format=plain)
-$env:RUSTFLAGS="-Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
+$env:RUSTFLAGS="-Ctarget-feature=+crt-static -Clink-arg=/PDBALTPATH:C:\build\application.pdb --remap-path-prefix=$($WorkspaceCargo.TrimEnd("Cargo.toml"))=[src] --remap-path-prefix=$env:CARGO_HOME\registry\src\=[crates.io]"
 ```
 Build the overlay afterwards and `valthrun` not the build path (which might include the word `valthrun`) should be contained within the binary.  

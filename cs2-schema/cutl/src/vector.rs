@@ -1,6 +1,6 @@
 use std::marker::PhantomData;
 
-use cs2_schema_declaration::{SchemaValue, Ptr, MemoryHandle};
+use cs2_schema_declaration::{MemoryHandle, Ptr, SchemaValue};
 
 /// struct CUtlVector<T> {
 ///     pub size: u32, // 0x00

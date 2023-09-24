@@ -1,4 +1,4 @@
-use kinterface::{SearchPattern, ByteSequencePattern};
+use valthrun_kernel_interface::{ByteSequencePattern, SearchPattern};
 
 pub enum SignatureType {
     /// The value is an address relative to the current instruction.
@@ -22,29 +22,30 @@ pub struct Signature {
 impl Signature {
     /// Create a new relative address signature from a byte sequence pattern.
     /// Note: If the pattern is invalid this will panic!
-    pub fn relative_address(debug_name: impl Into<String>, pattern: &str, offset: u64, inst_length: u64) -> Self {
-        let pattern = Box::new(
-            ByteSequencePattern::parse(pattern).expect("to be a valid pattern")
-        );
+    pub fn relative_address(
+        debug_name: impl Into<String>,
+        pattern: &str,
+        offset: u64,
+        inst_length: u64,
+    ) -> Self {
+        let pattern = Box::new(ByteSequencePattern::parse(pattern).expect("to be a valid pattern"));
 
         Self {
             debug_name: debug_name.into(),
             pattern,
             offset,
-            value_type: SignatureType::RelativeAddress { inst_length }
+            value_type: SignatureType::RelativeAddress { inst_length },
         }
     }
 
     pub fn offset(debug_name: impl Into<String>, pattern: &str, offset: u64) -> Self {
-        let pattern = Box::new(
-            ByteSequencePattern::parse(pattern).expect("to be a valid pattern")
-        );
+        let pattern = Box::new(ByteSequencePattern::parse(pattern).expect("to be a valid pattern"));
 
         Self {
             debug_name: debug_name.into(),
             pattern,
             offset,
-            value_type: SignatureType::Offset
+            value_type: SignatureType::Offset,
         }
     }
 }

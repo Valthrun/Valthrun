@@ -1,9 +1,9 @@
-use std::{sync::Arc, ffi::CStr};
+use std::{ffi::CStr, sync::Arc};
 
 use anyhow::Context;
-use cs2::{CS2Model, BoneFlags};
+use cs2::{BoneFlags, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::client::{CSkeletonInstance, CModelState, CCSPlayerController};
+use cs2_schema_generated::cs2::client::{CCSPlayerController, CModelState, CSkeletonInstance};
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};
@@ -14,7 +14,7 @@ use super::Enhancement;
 pub enum TeamType {
     Local,
     Enemy,
-    Friendly
+    Friendly,
 }
 
 pub struct PlayerInfo {
@@ -23,7 +23,7 @@ pub struct PlayerInfo {
     pub player_health: i32,
     pub player_name: String,
     pub position: nalgebra::Vector3<f32>,
- 
+
     pub model: Arc<CS2Model>,
     pub bone_states: Vec<BoneStateData>,
 }
@@ -37,7 +37,7 @@ impl TryFrom<CBoneStateData> for BoneStateData {
 
     fn try_from(value: CBoneStateData) -> Result<Self, Self::Error> {
         Ok(Self {
-            position: nalgebra::Vector3::from_row_slice(&value.position()?)
+            position: nalgebra::Vector3::from_row_slice(&value.position()?),
         })
     }
 }
@@ -68,33 +68,43 @@ impl CModelStateEx for CModelState {
 }
 
 pub struct PlayerESP {
-    players: Vec<PlayerInfo>
+    players: Vec<PlayerInfo>,
 }
 
 impl PlayerESP {
     pub fn new() -> Self {
-        PlayerESP { players: Default::default() }
+        PlayerESP {
+            players: Default::default(),
+        }
     }
 
-    fn generate_player_info(&self, ctx: &crate::UpdateContext, local_team: u8, player_controller: &Ptr<CCSPlayerController>) -> anyhow::Result<Option<PlayerInfo>> {
+    fn generate_player_info(
+        &self,
+        ctx: &crate::UpdateContext,
+        local_team: u8,
+        player_controller: &Ptr<CCSPlayerController>,
+    ) -> anyhow::Result<Option<PlayerInfo>> {
         let player_controller = player_controller.read_schema()?;
-            
+
         let player_pawn = player_controller.m_hPlayerPawn()?;
         if !player_pawn.is_valid() {
             return Ok(None);
         }
 
-        let player_pawn = ctx.cs2_entities.get_by_handle(&player_pawn)?
+        let player_pawn = ctx
+            .cs2_entities
+            .get_by_handle(&player_pawn)?
             .context("missing player pawn")?
             .read_schema()?;
-        
+
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
             return Ok(None);
         }
 
         /* Will be an instance of CSkeletonInstance */
-        let game_screen_node = player_pawn.m_pGameSceneNode()?
+        let game_screen_node = player_pawn
+            .m_pGameSceneNode()?
             .cast::<CSkeletonInstance>()
             .read_schema()?;
         if game_screen_node.m_bDormant()? {
@@ -107,24 +117,27 @@ impl PlayerESP {
             .to_str()
             .context("invalid player name")?
             .to_string();
-        
-        let position = nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
-        let model = game_screen_node.m_modelState()?
+        let position =
+            nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
+
+        let model = game_screen_node
+            .m_modelState()?
             .m_hModel()?
             .read_schema()?
             .address()?;
 
         let model = ctx.model_cache.lookup(model)?;
-        let bone_states = game_screen_node.m_modelState()?
+        let bone_states = game_screen_node
+            .m_modelState()?
             .bone_state_data()?
             .read_entries(model.bones.len())?
             .into_iter()
             .map(|bone| bone.try_into())
             .try_collect()?;
 
-        let team_type = if player_controller.m_bIsLocalPlayerController()? { 
-            TeamType::Local 
+        let team_type = if player_controller.m_bIsLocalPlayerController()? {
+            TeamType::Local
         } else if local_team == player_team {
             TeamType::Friendly
         } else {
@@ -144,17 +157,34 @@ impl PlayerESP {
 }
 
 impl Enhancement for PlayerESP {
+    fn update_settings(
+        &mut self,
+        ui: &imgui::Ui,
+        settings: &mut AppSettings,
+    ) -> anyhow::Result<bool> {
+        let mut updated = false;
+
+        if let Some(hotkey) = &settings.esp_toogle {
+            if ui.is_key_pressed_no_repeat(hotkey.0) {
+                log::debug!("Toggle player ESP");
+                settings.esp = !settings.esp;
+                updated = true;
+            }
+        }
+
+        Ok(updated)
+    }
+
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
-        if !ctx.settings.esp_boxes && !ctx.settings.esp_skeleton {
+
+        if !ctx.settings.esp || !(ctx.settings.esp_boxes || ctx.settings.esp_skeleton) {
             return Ok(());
         }
 
         self.players.reserve(16);
-    
-        let local_player_controller = ctx
-            .cs2_entities
-            .get_local_player_controller()?;
+
+        let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;
 
         if local_player_controller.is_null()? {
             /* We're currently not connected */
@@ -164,20 +194,24 @@ impl Enhancement for PlayerESP {
         let local_player_controller = local_player_controller
             .reference_schema()
             .with_context(|| obfstr!("failed to read local player controller").to_string())?;
-    
+
         let local_team = local_player_controller.m_iPendingTeamNum()?;
-    
+
         let player_controllers = ctx.cs2_entities.get_player_controllers()?;
         for player_controller in player_controllers {
             match self.generate_player_info(ctx, local_team, &player_controller) {
                 Ok(Some(info)) => self.players.push(info),
-                Ok(None) => {},
+                Ok(None) => {}
                 Err(error) => {
-                    log::warn!("Failed to generate player ESP info for {:X}: {:#}", player_controller.address()?, error);
+                    log::warn!(
+                        "Failed to generate player ESP info for {:X}: {:#}",
+                        player_controller.address()?,
+                        error
+                    );
                 }
             }
         }
-    
+
         Ok(())
     }
 
@@ -194,8 +228,7 @@ impl Enhancement for PlayerESP {
                 &settings.esp_color_team
             };
             if settings.esp_skeleton && entry.team_type != TeamType::Local {
-                let bones = entry.model.bones.iter()
-                    .zip(entry.bone_states.iter());
+                let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 
                 for (bone, state) in bones {
                     if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
@@ -208,22 +241,18 @@ impl Enhancement for PlayerESP {
                         continue;
                     };
 
-                    let parent_position = match view.world_to_screen(&entry.bone_states[parent_index].position, true)
+                    let parent_position = match view
+                        .world_to_screen(&entry.bone_states[parent_index].position, true)
                     {
                         Some(position) => position,
                         None => continue,
                     };
-                    let bone_position =
-                        match view.world_to_screen(&state.position, true) {
-                            Some(position) => position,
-                            None => continue,
-                        };
+                    let bone_position = match view.world_to_screen(&state.position, true) {
+                        Some(position) => position,
+                        None => continue,
+                    };
 
-                    draw.add_line(
-                        parent_position,
-                        bone_position,
-                        *esp_color,
-                    )
+                    draw.add_line(parent_position, bone_position, *esp_color)
                         .thickness(settings.esp_skeleton_thickness)
                         .build();
                 }
@@ -235,7 +264,7 @@ impl Enhancement for PlayerESP {
                     &(entry.model.vhull_min + entry.position),
                     &(entry.model.vhull_max + entry.position),
                     (*esp_color).into(),
-                    settings.esp_boxes_thickness
+                    settings.esp_boxes_thickness,
                 );
             }
         }

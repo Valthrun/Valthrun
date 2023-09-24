@@ -1,6 +1,6 @@
-use std::io::{Result, Write, Error, self};
+use std::io::{self, Error, Result, Write};
 
-use serde::{ Deserialize, Serialize };
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct SchemaScope {
@@ -37,10 +37,12 @@ impl SchemaScope {
         writeln!(output, "  use cs2_schema_cutl::*;")?;
         writeln!(output, "  use cs2_schema_declaration::*;")?;
 
-        self.enums.iter()
+        self.enums
+            .iter()
             .try_for_each(|definition| definition.emit(output))?;
 
-        self.classes.iter()
+        self.classes
+            .iter()
             .try_for_each(|definition| definition.emit(&self.schema_name, output))?;
 
         writeln!(output, "}}")?;
@@ -56,7 +58,7 @@ pub struct EnumDefinition {
 
     /// Byte size of the enum
     pub enum_size: usize,
-    
+
     #[serde(skip_serializing_if = "Vec::is_empty")]
     #[serde(default)]
     pub metadata: Vec<Metadata>,
@@ -73,14 +75,20 @@ impl EnumDefinition {
             2 => ("u16", 0xFFFF),
             4 => ("u32", 0xFFFFFFFF),
             8 => ("u64", 0xFFFFFFFFFFFFFFFF),
-            _ => return Err(Error::new(io::ErrorKind::Other, format!("invalid enum size {}", self.enum_size))),
+            _ => {
+                return Err(Error::new(
+                    io::ErrorKind::Other,
+                    format!("invalid enum size {}", self.enum_size),
+                ))
+            }
         };
 
         writeln!(output, "  /* enum {} ({}) */", enum_name, self.enum_name)?;
         writeln!(output, "  define_schema! {{")?;
         writeln!(output, "    pub enum {} : {} {{", enum_name, enum_type)?;
 
-        self.memebers.iter()
+        self.memebers
+            .iter()
             .try_for_each(|offset| offset.emit(output, value_mask))?;
 
         writeln!(output, "    }}")?;
@@ -103,7 +111,8 @@ impl EnumMember {
         writeln!(
             output,
             "      {} = 0x{:X},",
-            self.name, self.value & value_mask
+            self.name,
+            self.value & value_mask
         )?;
         Ok(())
     }
@@ -129,13 +138,22 @@ impl ClassDefinition {
         writeln!(output, "  /* class {} ({}) */", class_name, self.class_name)?;
         writeln!(output, "  define_schema! {{")?;
         if let Some(base_class) = &self.inherits {
-            writeln!(output, "    pub struct {}[0x{:X}] : {} {{", class_name, self.class_size, base_class)?;
+            writeln!(
+                output,
+                "    pub struct {}[0x{:X}] : {} {{",
+                class_name, self.class_size, base_class
+            )?;
         } else {
-            writeln!(output, "    pub struct {}[0x{:X}] {{", class_name, self.class_size)?;
+            writeln!(
+                output,
+                "    pub struct {}[0x{:X}] {{",
+                class_name, self.class_size
+            )?;
         }
 
         writeln!(output, "      pub vtable: Ptr<()> = 0x00,")?; // Every schema class has a vtable
-        self.offsets.iter()
+        self.offsets
+            .iter()
             .try_for_each(|offset| offset.emit(mod_name, &self.class_name, output))?;
 
         writeln!(output, "    }}")?;
@@ -165,7 +183,11 @@ pub struct ClassField {
 impl ClassField {
     fn emit(&self, mod_name: &str, class_name: &str, output: &mut dyn std::io::Write) -> Result<()> {
         if let Some(field_type) = &self.field_type {
-            writeln!(output, "      /// Var: {} {}  ", self.field_ctype, self.field_name)?;
+            writeln!(
+                output,
+                "      /// Var: {} {}  ",
+                self.field_ctype, self.field_name
+            )?;
             writeln!(output, "      /// Offset: 0x{:X}  ", self.offset)?;
             writeln!(
                 output,
@@ -173,7 +195,11 @@ impl ClassField {
                 self.field_name, field_type, mod_name, class_name, self.field_name
             )?;
         } else {
-            writeln!(output, "      // Var: {} {}  ", self.field_ctype, self.field_name)?;
+            writeln!(
+                output,
+                "      // Var: {} {}  ",
+                self.field_ctype, self.field_name
+            )?;
             writeln!(output, "      // Offset: 0x{:X}  ", self.offset)?;
             writeln!(
                 output,
@@ -181,7 +207,6 @@ impl ClassField {
                 self.field_name, self.field_ctype, self.offset
             )?;
         }
-        
 
         Ok(())
     }

@@ -1,15 +1,17 @@
 use std::ffi::CString;
 
-use glium::glutin::{window::Window, platform::windows::WindowExtWindows};
+use crate::error::{OverlayError, Result};
+use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
     core::PCSTR,
     Win32::{
-        Foundation::{HWND, POINT, RECT},
+        Foundation::{
+            GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, LPARAM, POINT, RECT, WPARAM,
+        },
         Graphics::Gdi::ClientToScreen,
-        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow},
+        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
     },
 };
-use crate::error::{OverlayError, Result};
 
 /// Track the CS2 window and adjust overlay accordingly.
 /// This is only required when playing in windowed mode.
@@ -20,15 +22,10 @@ pub struct WindowTracker {
 
 impl WindowTracker {
     pub fn new(target: &str) -> Result<Self> {
-        let target = CString::new(target)
-            .map_err(OverlayError::WindowInvalidName)?;
+        let target = CString::new(target).map_err(OverlayError::WindowInvalidName)?;
 
-        let cs2_hwnd = unsafe {
-            FindWindowA(
-                PCSTR::null(),
-                PCSTR::from_raw(target.as_ptr() as *const u8),
-            )
-        };
+        let cs2_hwnd =
+            unsafe { FindWindowA(PCSTR::null(), PCSTR::from_raw(target.as_ptr() as *const u8)) };
         if cs2_hwnd.0 == 0 {
             return Err(OverlayError::WindowNotFound);
         }
@@ -39,11 +36,21 @@ impl WindowTracker {
         })
     }
 
-    pub fn update(&mut self, overlay: &Window) {
+    pub fn mark_force_update(&mut self) {
+        self.current_bounds = Default::default();
+    }
+
+    pub fn update(&mut self, overlay: &Window) -> bool {
         let mut rect: RECT = Default::default();
         let success = unsafe { GetClientRect(self.cs2_hwnd, &mut rect) };
         if !success.as_bool() {
-            return;
+            let error = unsafe { GetLastError() };
+            if error == ERROR_INVALID_WINDOW_HANDLE {
+                return false;
+            }
+
+            log::warn!("GetClientRect failed for tracked window: {:?}", error);
+            return true;
         }
 
         unsafe {
@@ -52,7 +59,7 @@ impl WindowTracker {
         }
 
         if rect == self.current_bounds {
-            return;
+            return true;
         }
 
         self.current_bounds = rect;
@@ -65,8 +72,13 @@ impl WindowTracker {
                 rect.top,
                 rect.right - rect.left,
                 rect.bottom - rect.top,
-                true,
+                false, // Don't do a complete repaint (may flicker)
             );
+
+            // Request repaint, so we acknoledge the new bounds
+            SendMessageA(overlay_hwnd, WM_PAINT, WPARAM::default(), LPARAM::default());
         }
+
+        true
     }
 }

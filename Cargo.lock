@@ -92,9 +92,9 @@ dependencies = [
 
 [[package]]
 name = "anyhow"
-version = "1.0.72"
+version = "1.0.75"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "3b13c32d80ecc7ab747b80c3784bce54ee8a7a0cc4fbda9bf4cda2cf6fe90854"
+checksum = "a4668cab20f66d8d020e1fbc0ebe47217433c1b6c8f2040faf858554e394ace6"
 
 [[package]]
 name = "approx"
@@ -336,7 +336,6 @@ dependencies = [
  "cs2-schema-generated",
  "env_logger",
  "imgui",
- "kinterface",
  "log",
  "mint",
  "nalgebra",
@@ -345,6 +344,7 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "valthrun-kernel-interface",
  "windows",
  "winres",
 ]
@@ -455,11 +455,11 @@ dependencies = [
  "cs2-schema-cutl",
  "cs2-schema-declaration",
  "cs2-schema-generated",
- "kinterface",
  "log",
  "nalgebra",
  "obfstr",
  "serde_json",
+ "valthrun-kernel-interface",
 ]
 
 [[package]]
@@ -975,16 +975,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e2db585e1d738fc771bf08a151420d3ed193d9d895a36df7f6f8a9456b911ddc"
 
 [[package]]
-name = "kinterface"
-version = "0.1.0"
-dependencies = [
- "log",
- "thiserror",
- "valthrun-driver-shared",
- "windows",
-]
-
-[[package]]
 name = "lazy-bytes-cast"
 version = "5.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1364,12 +1354,15 @@ dependencies = [
 name = "overlay"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "copypasta",
+ "env_logger",
  "glium",
  "imgui",
  "imgui-glium-renderer",
  "imgui-winit-support",
  "log",
+ "obfstr",
  "thiserror",
  "windows",
 ]
@@ -1872,6 +1865,17 @@ checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 [[package]]
 name = "valthrun-driver-shared"
 version = "0.1.0"
+
+[[package]]
+name = "valthrun-kernel-interface"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "log",
+ "thiserror",
+ "valthrun-driver-shared",
+ "windows",
+]
 
 [[package]]
 name = "vec_map"

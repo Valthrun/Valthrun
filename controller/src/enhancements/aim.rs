@@ -1,5 +1,5 @@
 use anyhow::Context;
-use kinterface::MouseState;
+use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 
@@ -28,7 +28,7 @@ impl AntiAimPunsh {
 impl Enhancement for AntiAimPunsh {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         if !ctx.settings.aim_assist_recoil {
-            return Ok(())
+            return Ok(());
         }
 
         let local_controller = ctx.cs2_entities.get_local_player_controller()?;
@@ -36,26 +36,26 @@ impl Enhancement for AntiAimPunsh {
             return Ok(());
         }
 
-        let local_pawn = ctx.cs2_entities.get_by_handle(
-            &local_controller.reference_schema()?
-                .m_hPlayerPawn()?
-        )?.context("missing local player pawn")?.read_schema()?;
+        let local_pawn = ctx
+            .cs2_entities
+            .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
+            .context("missing local player pawn")?
+            .read_schema()?;
 
         if local_pawn.m_iShotsFired()? <= 1 {
-            return Ok(())
+            return Ok(());
         }
 
         let current_tick = ctx.globals.frame_count_2()?;
-        
+
         let punch_angle = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngle()?);
         let punch_vel = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngleVel()?);
-       
+
         let mut punch_base = local_pawn.m_aimPunchTickBase()? as u32;
         if punch_base > current_tick {
             punch_base = current_tick;
         }
         let punch_elapsed = (current_tick - punch_base) as f32;
-
 
         let ltime = 20.0;
         let xpunch_elapsed = punch_elapsed;
@@ -75,13 +75,11 @@ impl Enhancement for AntiAimPunsh {
         self.mouse_adjustment_x = target_mouse_x;
 
         if delta_mouse_y != 0 || delta_mouse_x != 0 {
-            ctx.cs2.send_mouse_state(&[
-                MouseState {
-                    last_y: delta_mouse_y,
-                    last_x: delta_mouse_x,
-                    ..Default::default()
-                }
-            ])?;
+            ctx.cs2.send_mouse_state(&[MouseState {
+                last_y: delta_mouse_y,
+                last_x: delta_mouse_x,
+                ..Default::default()
+            }])?;
         }
 
         // self.last_tick_base = punch_base;
@@ -89,5 +87,11 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(&self, _settings: &crate::settings::AppSettings, _ui: &imgui::Ui, _view: &crate::view::ViewController) { }
+    fn render(
+        &self,
+        _settings: &crate::settings::AppSettings,
+        _ui: &imgui::Ui,
+        _view: &crate::view::ViewController,
+    ) {
+    }
 }

@@ -1,6 +1,5 @@
 //! Manual defined offsets which can not be deducted by the CS2 schema.
 
-
 pub mod client {
     // Sig source: https://www.unknowncheats.me/forum/3725362-post1.html
     // https://www.unknowncheats.me/forum/3713485-post262.html

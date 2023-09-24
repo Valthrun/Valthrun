@@ -1,7 +1,7 @@
 use cs2_schema_declaration::Ptr;
 use obfstr::obfstr;
 
-use crate::{CS2Handle, offsets_manual};
+use crate::{offsets_manual, CS2Handle};
 
 pub enum BoneFlags {
     FlagNoBoneFlags = 0x0,
@@ -32,16 +32,16 @@ pub enum BoneFlags {
 pub struct Bone {
     pub name: String,
     pub flags: u32,
-    pub parent: Option<usize>
+    pub parent: Option<usize>,
 }
 
 #[derive(Debug, Default)]
 pub struct CS2Model {
     pub bones: Vec<Bone>,
-     
+
     pub vhull_min: nalgebra::Vector3<f32>,
     pub vhull_max: nalgebra::Vector3<f32>,
- 
+
     pub vview_min: nalgebra::Vector3<f32>,
     pub vview_max: nalgebra::Vector3<f32>,
 }
@@ -57,23 +57,32 @@ impl CS2Model {
         [
             self.vhull_min,
             self.vhull_max,
-
             self.vview_min,
             self.vview_max,
-        ] = cs2.read_sized::<[ nalgebra::Vector3<f32>; 4 ]>(&[ address + 0x18 ])?;
+        ] = cs2.read_sized::<[nalgebra::Vector3<f32>; 4]>(&[address + 0x18])?;
 
-        let bone_count = cs2.reference_schema::<u64>(&[
-            address + offsets_manual::client::CModel::BONE_NAME - 0x08
-        ])? as usize;
+        let bone_count = cs2.reference_schema::<u64>(&[address
+            + offsets_manual::client::CModel::BONE_NAME
+            - 0x08])? as usize;
         if bone_count > 6000 {
-            anyhow::bail!("{} ({})", obfstr!("model contains too many bones"), bone_count);
+            anyhow::bail!(
+                "{} ({})",
+                obfstr!("model contains too many bones"),
+                bone_count
+            );
         }
 
         log::trace!("Reading {} bones", bone_count);
-        let model_bone_flags = cs2.reference_schema::<Ptr<[u32]>>(&[ address + offsets_manual::client::CModel::BONE_FLAGS ])?
+        let model_bone_flags = cs2
+            .reference_schema::<Ptr<[u32]>>(
+                &[address + offsets_manual::client::CModel::BONE_FLAGS],
+            )?
             .read_entries(bone_count)?;
 
-        let model_bone_parent_index = cs2.reference_schema::<Ptr<[u16]>>(&[ address + offsets_manual::client::CModel::BONE_PARENT ])?
+        let model_bone_parent_index = cs2
+            .reference_schema::<Ptr<[u16]>>(&[
+                address + offsets_manual::client::CModel::BONE_PARENT
+            ])?
             .read_entries(bone_count)?;
 
         self.bones.clear();
