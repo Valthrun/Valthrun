@@ -181,7 +181,12 @@ pub struct ClassField {
 }
 
 impl ClassField {
-    fn emit(&self, mod_name: &str, class_name: &str, output: &mut dyn std::io::Write) -> Result<()> {
+    fn emit(
+        &self,
+        mod_name: &str,
+        class_name: &str,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
         if let Some(field_type) = &self.field_type {
             writeln!(
                 output,

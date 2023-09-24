@@ -1,6 +1,9 @@
 use anyhow::{bail, Result};
-use windows::Win32::{Foundation::{NTSTATUS, STATUS_SUCCESS}, System::SystemInformation::OSVERSIONINFOEXW};
 use std::mem;
+use windows::Win32::{
+    Foundation::{NTSTATUS, STATUS_SUCCESS},
+    System::SystemInformation::OSVERSIONINFOEXW,
+};
 
 type OSVERSIONINFOEX = OSVERSIONINFOEXW;
 

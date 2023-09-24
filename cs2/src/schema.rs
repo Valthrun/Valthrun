@@ -422,8 +422,9 @@ fn read_class_binding(
         let rust_type = parse_type(cs2, &field_type)?;
         if rust_type.is_none() {
             /* Use debug here as warn will spam the log */
-            log::debug!("   Could not generate field type {} ({:?} / {:?}) for {}", 
-                &c_type, 
+            log::debug!(
+                "   Could not generate field type {} ({:?} / {:?}) for {}",
+                &c_type,
                 field_type.type_category()?,
                 field_type.atomic_category()?,
                 field.name()?.read_string(cs2)?,

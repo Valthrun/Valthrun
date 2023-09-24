@@ -13,7 +13,7 @@ pub use basics::*;
 mod offset;
 pub use offset::*;
 
-pub trait SchemaValue : Sized {
+pub trait SchemaValue: Sized {
     fn value_size() -> Option<u64>;
     fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self>;
 }
@@ -68,7 +68,7 @@ macro_rules! define_schema {
                     fn offset_resolver() -> impl LazyOffset {
                         $var_offset
                     }
-                
+
                     let offset = OFFSET.resolve(offset_resolver)?;
                     self.memory.reference_schema(offset)
                         .context(concat!(stringify!($name), "::", stringify!($var_name)))

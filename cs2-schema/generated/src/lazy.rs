@@ -15,16 +15,17 @@ impl RuntimeOffset {
         Self {
             module,
             class,
-            member
+            member,
         }
     }
 }
 
-pub trait RuntimeOffsetProvider : Sync {
+pub trait RuntimeOffsetProvider: Sync {
     fn resolve(&self, offset: &RuntimeOffset) -> anyhow::Result<u64>;
 }
 
-static OFFSET_PROVIDER: SyncUnsafeCell<Option<Box<dyn RuntimeOffsetProvider>>> = SyncUnsafeCell::new(None);
+static OFFSET_PROVIDER: SyncUnsafeCell<Option<Box<dyn RuntimeOffsetProvider>>> =
+    SyncUnsafeCell::new(None);
 pub fn setup_runtime_offset_provider(provider: Box<dyn RuntimeOffsetProvider>) {
     let container = unsafe { &mut *OFFSET_PROVIDER.get() };
     *container = Some(provider);

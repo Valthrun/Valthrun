@@ -4,9 +4,9 @@
 
 use anyhow::Context;
 use cache::EntryCache;
-use clap::{Parser, Args, Subcommand};
-use cs2::{CS2Handle, Module, CS2Offsets, EntitySystem, CS2Model, Globals, BuildInfo};
-use cs2_schema_generated::{definition::SchemaScope, RuntimeOffsetProvider, RuntimeOffset};
+use clap::{Args, Parser, Subcommand};
+use cs2::{BuildInfo, CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals, Module};
+use cs2_schema_generated::{definition::SchemaScope, RuntimeOffset, RuntimeOffsetProvider};
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
@@ -28,14 +28,15 @@ use windows::Win32::System::Console::GetConsoleProcessList;
 use crate::{
     enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
     settings::save_app_settings,
-    view::LocalCrosshair, winver::version_info,
+    view::LocalCrosshair,
+    winver::version_info,
 };
 
-mod view;
-mod settings;
-mod settings_ui;
 mod cache;
 mod enhancements;
+mod settings;
+mod settings_ui;
+mod view;
 mod winver;
 
 pub trait UpdateInputState {
@@ -324,15 +325,21 @@ impl RuntimeOffsetProvider for CS2RuntimeOffsets {
     fn resolve(&self, offset: &RuntimeOffset) -> anyhow::Result<u64> {
         log::trace!("Try resolve {:?}", offset);
 
-        let schema = self.schema.iter()
+        let schema = self
+            .schema
+            .iter()
             .find(|schema| schema.schema_name == offset.module)
             .context("unknown module")?;
 
-        let class = schema.classes.iter()
+        let class = schema
+            .classes
+            .iter()
             .find(|class| offset.class == class.class_name)
             .context("unknown class")?;
 
-        let offset = class.offsets.iter()
+        let offset = class
+            .offsets
+            .iter()
             .find(|member| member.field_name == offset.member)
             .context("unknown class member")?;
 
@@ -343,18 +350,18 @@ impl RuntimeOffsetProvider for CS2RuntimeOffsets {
 
 fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
     let schema = cs2::dump_schema(&cs2, true)?;
-    cs2_schema_generated::setup_runtime_offset_provider(
-        Box::new(CS2RuntimeOffsets {
-            schema
-        })
-    );
+    cs2_schema_generated::setup_runtime_offset_provider(Box::new(CS2RuntimeOffsets { schema }));
     Ok(())
 }
 
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
-    log::info!("Valthrun v{}. Windows build {}.", env!("CARGO_PKG_VERSION"), build_info.dwBuildNumber);
-    
+    log::info!(
+        "Valthrun v{}. Windows build {}.",
+        env!("CARGO_PKG_VERSION"),
+        build_info.dwBuildNumber
+    );
+
     let settings = load_app_settings()?;
 
     let cs2 = CS2Handle::create()?;
