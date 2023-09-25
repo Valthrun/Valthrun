@@ -10,7 +10,7 @@ use glium::{Display, Surface};
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_glium_renderer::Renderer;
 use imgui_winit_support::{HiDpiMode, WinitPlatform};
-use input::MouseInputSystem;
+use input::{MouseInputSystem, KeyboardInputSystem};
 use obfstr::obfstr;
 use std::ffi::CString;
 use std::time::Instant;
@@ -26,7 +26,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
     SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
     SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WDA_EXCLUDEFROMCAPTURE, WS_CLIPSIBLINGS, WS_EX_LAYERED,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, SetLayeredWindowAttributes, LWA_ALPHA, LWA_COLORKEY,
 };
 
 mod clipboard;
@@ -220,6 +220,7 @@ impl System {
 
         let mut active_tracker = OverlayActiveTracker::new();
         let mut mouse_input_system = MouseInputSystem::new();
+        let mut key_input_system = KeyboardInputSystem::new();
         let mut initial_render = true;
 
         event_loop.run(move |event, _, control_flow| match event {
@@ -238,6 +239,7 @@ impl System {
 
                 let window = gl_window.window();
                 mouse_input_system.update(window, imgui.io_mut());
+                key_input_system.update(window, imgui.io_mut());
                 active_tracker.update(window, imgui.io());
                 if !window_tracker.update(window) {
                     log::info!("Target window has been closed. Exiting overlay.");
