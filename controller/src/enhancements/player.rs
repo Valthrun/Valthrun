@@ -91,11 +91,20 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let player_pawn = ctx
-            .cs2_entities
-            .get_by_handle(&player_pawn)?
-            .context("missing player pawn")?
-            .read_schema()?;
+        let player_pawn = match {
+            ctx.cs2_entities
+                .get_by_handle(&player_pawn)?
+        } {
+            Some(pawn) => pawn.read_schema()?,
+            None => {
+                /*
+                 * I'm not sure in what exact occasions this happens, but I would guess when the player is spectating or something.
+                 * May check with m_bPawnIsAlive? 
+                 */
+                return Ok(None);
+            }
+        };
+            
 
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {

@@ -411,9 +411,10 @@ fn main_overlay() -> anyhow::Result<()> {
             move |model| {
                 let model_name = cs2.read_string(&[*model as u64 + 0x08, 0], Some(32))?;
                 log::debug!(
-                    "{} {}. Caching.",
+                    "{} {} at {:X}. Caching.",
                     obfstr!("Discovered new player model"),
-                    model_name
+                    model_name,
+                    model
                 );
 
                 Ok(CS2Model::read(&cs2, *model as u64)?)
