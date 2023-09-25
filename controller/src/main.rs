@@ -14,6 +14,7 @@ use imgui::{Condition, Ui};
 use obfstr::obfstr;
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
+use valthrun_kernel_interface::KInterfaceError;
 use std::{
     cell::{RefCell, RefMut},
     fmt::Debug,
@@ -25,7 +26,7 @@ use std::{
     time::{Duration, Instant},
 };
 use view::ViewController;
-use windows::Win32::System::Console::GetConsoleProcessList;
+use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
 
 use crate::{
     enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
@@ -229,7 +230,9 @@ impl Application {
 }
 
 fn show_critical_error(message: &str) {
-    log::error!("{}", message);
+    for line in message.lines() {
+        log::error!("{}", line);
+    }
 
     if !is_console_invoked() {
         overlay::show_error_message(obfstr!("Valthrun Controller"), message);
@@ -353,7 +356,31 @@ impl BuildInfo {
 fn main_overlay() -> anyhow::Result<()> {
     let settings = load_app_settings()?;
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = match CS2Handle::create() {
+        Ok(handle) => handle,
+        Err(err) => {
+            if let Some(err) = err.downcast_ref::<KInterfaceError>() {
+                if let KInterfaceError::DeviceUnavailable(_) = &err {
+                    if !unsafe { IsUserAnAdmin().as_bool() } {
+                        if !is_console_invoked() {
+                            /* If we don't have a console, show the message box and abort execution. */
+                            show_critical_error("Please re-run this application as administrator!");
+                            return Ok(());
+                        }
+
+                        /* Just print this warning message and return the actual error.  */
+                        log::warn!("Application run without administrator privileges.");
+                        log::warn!("Please re-run with administrator privileges!");
+                    }
+                } else if let KInterfaceError::ProcessDoesNotExists = &err {
+                    show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
+                    return Ok(());
+                }
+            }
+
+            return Err(err);
+        }
+    };
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()

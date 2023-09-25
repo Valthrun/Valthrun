@@ -14,7 +14,7 @@ use valthrun_kernel_interface::{
         RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
         ResponseCsModule,
     },
-    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState,
+    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState, KInterfaceError,
 };
 
 use crate::{Signature, SignatureType};
@@ -75,6 +75,7 @@ impl CS2Handle {
         let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule {})?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
+            ResponseCsModule::NoProcess => return Err(KInterfaceError::ProcessDoesNotExists.into()),
             error => anyhow::bail!("failed to load module info: {:?}", error),
         };
 
