@@ -166,6 +166,7 @@ impl SettingsUI {
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
                             ui.slider_config("Skeleton Thickness", 0.1, 10.0)
                                 .build(&mut settings.esp_skeleton_thickness);
+                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_health);
                             ui.separator();
                         }
 

@@ -272,6 +272,16 @@ impl Enhancement for PlayerESP {
                     settings.esp_boxes_thickness,
                 );
             }
+
+            if settings.esp_health {
+                if let Some(pos) = view.world_to_screen(&entry.position, false) {
+                    draw.add_text(
+                        pos,
+                        esp_color.clone(),
+                        format!("{} HP", entry.player_health),
+                    );
+                }
+            }
         }
     }
 }

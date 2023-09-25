@@ -69,6 +69,9 @@ pub struct AppSettings {
     #[serde(default = "default_esp_boxes_thickness")]
     pub esp_boxes_thickness: f32,
 
+    #[serde(default = "bool_false")]
+    pub esp_health: bool,
+
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
