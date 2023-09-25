@@ -14,7 +14,6 @@ use imgui::{Condition, Ui};
 use obfstr::obfstr;
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
-use valthrun_kernel_interface::KInterfaceError;
 use std::{
     cell::{RefCell, RefMut},
     fmt::Debug,
@@ -25,6 +24,7 @@ use std::{
     sync::Arc,
     time::{Duration, Instant},
 };
+use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
 use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
 

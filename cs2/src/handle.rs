@@ -14,7 +14,7 @@ use valthrun_kernel_interface::{
         RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
         ResponseCsModule,
     },
-    CS2ModuleInfo, KernelInterface, KeyboardState, ModuleInfo, MouseState, KInterfaceError,
+    CS2ModuleInfo, KInterfaceError, KernelInterface, KeyboardState, ModuleInfo, MouseState,
 };
 
 use crate::{Signature, SignatureType};
