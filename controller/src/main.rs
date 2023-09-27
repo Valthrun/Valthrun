@@ -22,7 +22,10 @@ use std::{
     io::BufWriter,
     path::PathBuf,
     rc::Rc,
-    sync::{Arc, atomic::{AtomicBool, Ordering}},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
 use valthrun_kernel_interface::KInterfaceError;
@@ -120,10 +123,16 @@ impl Application {
             };
         }
 
-        if self.settings_screen_capture_changed.swap(false, Ordering::Relaxed) {
+        if self
+            .settings_screen_capture_changed
+            .swap(false, Ordering::Relaxed)
+        {
             let settings = self.settings.borrow();
             controller.toggle_screen_capture_visibility(!settings.hide_overlay_from_screen_capture);
-            log::debug!("Updating screen capture visibility to {}", !settings.hide_overlay_from_screen_capture);
+            log::debug!(
+                "Updating screen capture visibility to {}",
+                !settings.hide_overlay_from_screen_capture
+            );
         }
 
         Ok(())

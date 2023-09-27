@@ -240,7 +240,7 @@ impl Enhancement for PlayerESP {
                     }
 
                     &settings.esp_color_enemy
-                },
+                }
                 TeamType::Friendly => {
                     if !settings.esp_enabled_team {
                         continue;
@@ -249,7 +249,7 @@ impl Enhancement for PlayerESP {
                     &settings.esp_color_team
                 }
             };
-            
+
             if settings.esp_skeleton && entry.team_type != TeamType::Local {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 

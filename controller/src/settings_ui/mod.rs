@@ -1,4 +1,4 @@
-use std::{cell::RefCell, rc::Rc, time::Instant, sync::atomic::Ordering};
+use std::{cell::RefCell, rc::Rc, sync::atomic::Ordering, time::Instant};
 
 use imgui::Condition;
 use obfstr::obfstr;
@@ -195,7 +195,7 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
-                        
+
                         if ui.checkbox("Hide overlay from screen capture", &mut settings.hide_overlay_from_screen_capture) {
                             app.settings_screen_capture_changed.store(true, Ordering::Relaxed);
                         }

@@ -23,10 +23,11 @@ use windows::Win32::Graphics::Dwm::{
 use windows::Win32::Graphics::Gdi::CreateRectRgn;
 use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
-    SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
-    SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WDA_EXCLUDEFROMCAPTURE, WS_CLIPSIBLINGS, WS_EX_LAYERED,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, WDA_NONE,
+    GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity,
+    SetWindowLongA, SetWindowLongPtrA, SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE,
+    HWND_TOPMOST, MB_ICONERROR, MB_OK, SWP_NOACTIVATE, SWP_NOMOVE,
+    SWP_NOSIZE, SW_SHOWNOACTIVATE, WDA_EXCLUDEFROMCAPTURE, WDA_NONE, WS_CLIPSIBLINGS,
+    WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
 };
 
 mod clipboard;
@@ -138,7 +139,15 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
             DwmEnableBlurBehindWindow(hwnd, &bb)?;
 
             // Move the window to the top
-            SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+            SetWindowPos(
+                hwnd,
+                HWND_TOPMOST,
+                0,
+                0,
+                0,
+                0,
+                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE,
+            );
         }
     }
 
@@ -225,12 +234,17 @@ impl System {
         event_loop.run(move |event, _, control_flow| match event {
             Event::NewEvents(_) => {
                 let now = Instant::now();
-                runtime_controller.imgui.io_mut().update_delta_time(now - last_frame);
+                runtime_controller
+                    .imgui
+                    .io_mut()
+                    .update_delta_time(now - last_frame);
                 last_frame = now;
             }
             Event::MainEventsCleared => {
                 let gl_window = display.gl_window();
-                if let Err(error) = platform.prepare_frame(runtime_controller.imgui.io_mut(), gl_window.window()) {
+                if let Err(error) =
+                    platform.prepare_frame(runtime_controller.imgui.io_mut(), gl_window.window())
+                {
                     *control_flow = ControlFlow::ExitWithCode(1);
                     log::error!("Platform implementation prepare_frame failed: {}", error);
                     return;
@@ -282,7 +296,11 @@ impl System {
             } => *control_flow = ControlFlow::Exit,
             event => {
                 let gl_window = display.gl_window();
-                platform.handle_event(runtime_controller.imgui.io_mut(), gl_window.window(), &event);
+                platform.handle_event(
+                    runtime_controller.imgui.io_mut(),
+                    gl_window.window(),
+                    &event,
+                );
             }
         })
     }
@@ -319,7 +337,7 @@ impl SystemRuntimeController {
         self.frame_count += 1;
         if self.frame_count == 1 {
             /* initial frame */
-            unsafe { ShowWindow(self.hwnd, SW_SHOW) };
+            unsafe { ShowWindow(self.hwnd, SW_SHOWNOACTIVATE) };
 
             self.window_tracker.mark_force_update();
         }
