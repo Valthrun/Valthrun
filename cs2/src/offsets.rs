@@ -92,8 +92,8 @@ impl CS2Offsets {
             Module::Client,
             &Signature::offset(
                 obfstr!("C_CSPlayerPawn crosshair id"),
-                obfstr!("89 86 ? ? ? ? 89 86 ? ? ? ? E8"),
-                0x02,
+                obfstr!("41 89 86 ? ? ? ? 41 89 86"),
+                0x03,
             ),
         )
     }
