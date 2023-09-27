@@ -168,21 +168,29 @@ impl SettingsUI {
                                 .build(&mut settings.esp_skeleton_thickness);
                             ui.checkbox(obfstr!("Display player health"), &mut settings.esp_health);
 
-                            ui.color_edit4_config("Team Color", &mut settings.esp_color_team)
-                                .alpha_bar(true)
-                                .inputs(false)
-                                .label(false)
-                                .build();
-                            ui.same_line();
-                            ui.text("Team Color");
+                            ui.checkbox("ESP Team", &mut settings.esp_enabled_team);
+                            if settings.esp_enabled_team {
+                                ui.same_line();
+                                ui.color_edit4_config("Team Color", &mut settings.esp_color_team)
+                                    .alpha_bar(true)
+                                    .inputs(false)
+                                    .label(false)
+                                    .build();
+                                ui.same_line();
+                                ui.text("Team Color");
+                            }
 
-                            ui.color_edit4_config("Enemy Color", &mut settings.esp_color_enemy)
-                                .alpha_bar(true)
-                                .inputs(false)
-                                .label(false)
-                                .build();
-                            ui.same_line();
-                            ui.text("Enemy Color");
+                            ui.checkbox("ESP Enemy", &mut settings.esp_enabled_enemy);
+                            if settings.esp_enabled_enemy {
+                                ui.same_line();
+                                ui.color_edit4_config("Enemy Color", &mut settings.esp_color_enemy)
+                                    .alpha_bar(true)
+                                    .inputs(false)
+                                    .label(false)
+                                    .build();
+                                ui.same_line();
+                                ui.text("Enemy Color");
+                            }
                             ui.separator();
                         }
 

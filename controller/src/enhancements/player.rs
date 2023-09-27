@@ -232,15 +232,24 @@ impl Enhancement for PlayerESP {
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
-            if matches!(&entry.team_type, TeamType::Local) {
-                continue;
-            }
+            let esp_color = match &entry.team_type {
+                TeamType::Local => continue,
+                TeamType::Enemy => {
+                    if !settings.esp_enabled_enemy {
+                        continue;
+                    }
 
-            let esp_color = if entry.team_type == TeamType::Enemy {
-                &settings.esp_color_enemy
-            } else {
-                &settings.esp_color_team
+                    &settings.esp_color_enemy
+                },
+                TeamType::Friendly => {
+                    if !settings.esp_enabled_team {
+                        continue;
+                    }
+
+                    &settings.esp_color_team
+                }
             };
+            
             if settings.esp_skeleton && entry.team_type != TeamType::Local {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 

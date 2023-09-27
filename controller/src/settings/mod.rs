@@ -77,8 +77,15 @@ pub struct AppSettings {
 
     #[serde(default = "default_esp_color_team")]
     pub esp_color_team: [f32; 4],
+
+    #[serde(default = "bool_true")]
+    pub esp_enabled_team: bool,
+
     #[serde(default = "default_esp_color_enemy")]
     pub esp_color_enemy: [f32; 4],
+
+    #[serde(default = "bool_true")]
+    pub esp_enabled_enemy: bool,
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
