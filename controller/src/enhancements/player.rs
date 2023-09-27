@@ -28,6 +28,15 @@ pub struct PlayerInfo {
     pub bone_states: Vec<BoneStateData>,
 }
 
+impl PlayerInfo {
+    pub fn calculate_screen_height(&self, view: &ViewController) -> Option<f32> {
+        let entry_lower = view.world_to_screen(&(self.model.vhull_min + self.position), true)?;
+        let entry_upper = view.world_to_screen(&(self.model.vhull_max + self.position), true)?;
+
+        Some((entry_lower.y - entry_upper.y).abs())
+    }
+}
+
 pub struct BoneStateData {
     pub position: nalgebra::Vector3<f32>,
 }
@@ -274,12 +283,21 @@ impl Enhancement for PlayerESP {
             }
 
             if settings.esp_health {
-                if let Some(pos) = view.world_to_screen(&entry.position, false) {
+                if let Some(mut pos) = view.world_to_screen(&entry.position, false) {
+                    let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
+                    let target_scale = entry_height * 15.0 / view.screen_bounds.y;
+                    let target_scale = target_scale.clamp(0.5, 1.25);
+                    ui.set_window_font_scale(target_scale);
+
+                    let text = format!("{} HP", entry.player_health);
+                    let [text_width, _] = ui.calc_text_size(&text);
+                    pos.x -= text_width / 2.0;
                     draw.add_text(
                         pos,
                         esp_color.clone(),
                         format!("{} HP", entry.player_health),
                     );
+                    ui.set_window_font_scale(1.0);
                 }
             }
         }
