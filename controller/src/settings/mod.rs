@@ -108,6 +108,9 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub aim_assist_recoil: bool,
 
+    #[serde(default = "bool_true")]
+    pub hide_overlay_from_screen_capture: bool,
+
     #[serde(default)]
     pub imgui: Option<String>,
 }

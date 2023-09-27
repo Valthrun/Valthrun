@@ -12,6 +12,7 @@ use cs2::{
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
+use overlay::SystemRuntimeController;
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
 use std::{
@@ -21,7 +22,7 @@ use std::{
     io::BufWriter,
     path::PathBuf,
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, atomic::{AtomicBool, Ordering}},
     time::{Duration, Instant},
 };
 use valthrun_kernel_interface::KInterfaceError;
@@ -93,6 +94,7 @@ pub struct Application {
     pub settings_visible: bool,
     pub settings_dirty: bool,
     pub settings_ui: RefCell<SettingsUI>,
+    pub settings_screen_capture_changed: AtomicBool,
 }
 
 impl Application {
@@ -104,19 +106,26 @@ impl Application {
         self.settings.borrow_mut()
     }
 
-    pub fn pre_update(&mut self, context: &mut imgui::Context) -> anyhow::Result<()> {
+    pub fn pre_update(&mut self, controller: &mut SystemRuntimeController) -> anyhow::Result<()> {
         if self.settings_dirty {
             self.settings_dirty = false;
             let mut settings = self.settings.borrow_mut();
 
             let mut imgui_settings = String::new();
-            context.save_ini_settings(&mut imgui_settings);
+            controller.imgui.save_ini_settings(&mut imgui_settings);
             settings.imgui = Some(imgui_settings);
 
             if let Err(error) = save_app_settings(&*settings) {
                 log::warn!("Failed to save user settings: {}", error);
             };
         }
+
+        if self.settings_screen_capture_changed.swap(false, Ordering::Relaxed) {
+            let settings = self.settings.borrow();
+            controller.toggle_screen_capture_visibility(!settings.hide_overlay_from_screen_capture);
+            log::debug!("Updating screen capture visibility to {}", !settings.hide_overlay_from_screen_capture);
+        }
+
         Ok(())
     }
 
@@ -473,6 +482,8 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_visible: false,
         settings_dirty: false,
         settings_ui: RefCell::new(SettingsUI::new(settings)),
+        /* set the screen capture visibility at the beginning of the first update */
+        settings_screen_capture_changed: AtomicBool::new(true),
     };
 
     let app = Rc::new(RefCell::new(app));
@@ -489,9 +500,9 @@ fn main_overlay() -> anyhow::Result<()> {
     overlay.main_loop(
         {
             let app = app.clone();
-            move |context| {
+            move |controller| {
                 let mut app = app.borrow_mut();
-                if let Err(err) = app.pre_update(context) {
+                if let Err(err) = app.pre_update(controller) {
                     show_critical_error(&format!("{:#}", err));
                     false
                 } else {

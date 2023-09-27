@@ -26,7 +26,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
     GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
     SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
     SWP_NOMOVE, SWP_NOSIZE, SW_SHOW, WDA_EXCLUDEFROMCAPTURE, WS_CLIPSIBLINGS, WS_EX_LAYERED,
-    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE,
+    WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT, WS_POPUP, WS_VISIBLE, WDA_NONE,
 };
 
 mod clipboard;
@@ -139,14 +139,6 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
 
             // Move the window to the top
             SetWindowPos(hwnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-
-            // Hide overlay from screencapture
-            if !SetWindowDisplayAffinity(hwnd, WDA_EXCLUDEFROMCAPTURE).as_bool() {
-                log::warn!(
-                    "{}",
-                    obfstr!("Failed to change overlay display affinity to 'exclude from capture'.")
-                );
-            }
         }
     }
 
@@ -204,50 +196,54 @@ impl OverlayActiveTracker {
 impl System {
     pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
     where
-        U: FnMut(&mut imgui::Context) -> bool + 'static,
+        U: FnMut(&mut SystemRuntimeController) -> bool + 'static,
         R: FnMut(&mut imgui::Ui) -> bool + 'static,
     {
         let System {
             event_loop,
             display,
-            mut imgui,
+            imgui,
             mut platform,
             mut renderer,
-            mut window_tracker,
+            window_tracker,
             ..
         } = self;
         let mut last_frame = Instant::now();
 
-        let mut active_tracker = OverlayActiveTracker::new();
-        let mut mouse_input_system = MouseInputSystem::new();
-        let mut key_input_system = KeyboardInputSystem::new();
-        let mut initial_render = true;
+        let mut runtime_controller = SystemRuntimeController {
+            hwnd: HWND(display.gl_window().window().hwnd() as isize),
+            imgui,
+
+            active_tracker: OverlayActiveTracker::new(),
+            key_input_system: KeyboardInputSystem::new(),
+            mouse_input_system: MouseInputSystem::new(),
+            window_tracker,
+
+            frame_count: 0,
+        };
 
         event_loop.run(move |event, _, control_flow| match event {
             Event::NewEvents(_) => {
                 let now = Instant::now();
-                imgui.io_mut().update_delta_time(now - last_frame);
+                runtime_controller.imgui.io_mut().update_delta_time(now - last_frame);
                 last_frame = now;
             }
             Event::MainEventsCleared => {
                 let gl_window = display.gl_window();
-                if let Err(error) = platform.prepare_frame(imgui.io_mut(), gl_window.window()) {
+                if let Err(error) = platform.prepare_frame(runtime_controller.imgui.io_mut(), gl_window.window()) {
                     *control_flow = ControlFlow::ExitWithCode(1);
                     log::error!("Platform implementation prepare_frame failed: {}", error);
                     return;
                 }
 
                 let window = gl_window.window();
-                mouse_input_system.update(window, imgui.io_mut());
-                key_input_system.update(window, imgui.io_mut());
-                active_tracker.update(window, imgui.io());
-                if !window_tracker.update(window) {
+                if !runtime_controller.update_state(window) {
                     log::info!("Target window has been closed. Exiting overlay.");
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
 
-                if !update(&mut imgui) {
+                if !update(&mut runtime_controller) {
                     *control_flow = ControlFlow::Exit;
                     return;
                 }
@@ -256,7 +252,7 @@ impl System {
             }
             Event::RedrawRequested(_) => {
                 let gl_window = display.gl_window();
-                let ui = imgui.frame();
+                let ui = runtime_controller.imgui.frame();
 
                 let mut run = render(ui);
 
@@ -264,7 +260,7 @@ impl System {
                 target.clear_all((0.0, 0.0, 0.0, 0.0), 0.0, 0);
                 platform.prepare_render(ui, gl_window.window());
 
-                let draw_data = imgui.render();
+                let draw_data = runtime_controller.imgui.render();
 
                 if let Err(error) = renderer.render(&mut target, draw_data) {
                     log::error!("Failed to render ImGui draw data: {}", error);
@@ -278,18 +274,7 @@ impl System {
                     *control_flow = ControlFlow::Exit;
                 }
 
-                if initial_render {
-                    initial_render = false;
-                    // Note:
-                    // We can not use `gl_window.window().set_visible(true)` as this will prevent the overlay
-                    // to be click trough...
-                    unsafe {
-                        let hwnd = HWND(gl_window.window().hwnd() as isize);
-                        ShowWindow(hwnd, SW_SHOW);
-                    }
-
-                    window_tracker.mark_force_update();
-                }
+                runtime_controller.frame_rendered();
             }
             Event::WindowEvent {
                 event: WindowEvent::CloseRequested,
@@ -297,8 +282,64 @@ impl System {
             } => *control_flow = ControlFlow::Exit,
             event => {
                 let gl_window = display.gl_window();
-                platform.handle_event(imgui.io_mut(), gl_window.window(), &event);
+                platform.handle_event(runtime_controller.imgui.io_mut(), gl_window.window(), &event);
             }
         })
+    }
+}
+
+pub struct SystemRuntimeController {
+    pub hwnd: HWND,
+
+    pub imgui: imgui::Context,
+
+    active_tracker: OverlayActiveTracker,
+    mouse_input_system: MouseInputSystem,
+    key_input_system: KeyboardInputSystem,
+
+    window_tracker: WindowTracker,
+
+    frame_count: u64,
+}
+
+impl SystemRuntimeController {
+    fn update_state(&mut self, window: &glutin::window::Window) -> bool {
+        self.mouse_input_system.update(window, self.imgui.io_mut());
+        self.key_input_system.update(window, self.imgui.io_mut());
+        self.active_tracker.update(window, self.imgui.io());
+        if !self.window_tracker.update(window) {
+            log::info!("Target window has been closed. Exiting overlay.");
+            return false;
+        }
+
+        true
+    }
+
+    fn frame_rendered(&mut self) {
+        self.frame_count += 1;
+        if self.frame_count == 1 {
+            /* initial frame */
+            unsafe { ShowWindow(self.hwnd, SW_SHOW) };
+
+            self.window_tracker.mark_force_update();
+        }
+    }
+
+    pub fn toggle_screen_capture_visibility(&self, should_be_visible: bool) {
+        unsafe {
+            let (target_state, state_name) = if should_be_visible {
+                (WDA_NONE, "normal")
+            } else {
+                (WDA_EXCLUDEFROMCAPTURE, "exclude from capture")
+            };
+
+            if !SetWindowDisplayAffinity(self.hwnd, target_state).as_bool() {
+                log::warn!(
+                    "{} '{}'.",
+                    obfstr!("Failed to change overlay display affinity to"),
+                    state_name
+                );
+            }
+        }
     }
 }
