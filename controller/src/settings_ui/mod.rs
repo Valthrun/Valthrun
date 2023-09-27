@@ -167,31 +167,56 @@ impl SettingsUI {
                             ui.slider_config("Skeleton Thickness", 0.1, 10.0)
                                 .build(&mut settings.esp_skeleton_thickness);
                             ui.checkbox(obfstr!("Display player health"), &mut settings.esp_health);
+
+                            ui.color_edit4_config("Team Color", &mut settings.esp_color_team)
+                                .alpha_bar(true)
+                                .inputs(false)
+                                .label(false)
+                                .build();
+                            ui.same_line();
+                            ui.text("Team Color");
+
+                            ui.color_edit4_config("Enemy Color", &mut settings.esp_color_enemy)
+                                .alpha_bar(true)
+                                .inputs(false)
+                                .label(false)
+                                .build();
+                            ui.same_line();
+                            ui.text("Enemy Color");
                             ui.separator();
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
-
-                        ui.color_edit4_config("Team Color", &mut settings.esp_color_team)
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build();
-                        ui.same_line();
-                        ui.text("Team Color");
-
-                        ui.color_edit4_config("Enemy Color", &mut settings.esp_color_enemy)
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build();
-                        ui.same_line();
-                        ui.text("Enemy Color");
                     }
 
                     if let Some(_) = ui.tab_item("Aim Assist") {
                         ui.button_key_optional("Trigger Bot", &mut settings.key_trigger_bot, [150.0, 0.0]);
-                        ui.checkbox("Team Check", &mut settings.trigger_bot_team_check);
+                        if settings.key_trigger_bot.is_some() {
+                            let mut values_updated = false;
+
+                            ui.text("Trigger delay: "); ui.same_line();
+
+                            let slider_width = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
+                            ui.set_next_item_width(slider_width);
+                            values_updated |= ui.slider_config("##delay_min", 0, 250).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
+                            ui.text(" - "); ui.same_line();
+                            ui.set_next_item_width(slider_width);
+                            values_updated |= ui.slider_config("##delay_max", 0, 250).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
+
+                            if values_updated {
+                                /* fixup min/max */
+                                let delay_min = settings.trigger_bot_delay_min.min(settings.trigger_bot_delay_max);
+                                let delay_max = settings.trigger_bot_delay_min.max(settings.trigger_bot_delay_max);
+
+                                settings.trigger_bot_delay_min = delay_min;
+                                settings.trigger_bot_delay_max = delay_max;
+                            }
+
+                            ui.checkbox("Retest trigger target after delay", &mut settings.trigger_bot_check_target_after_delay);
+                            ui.checkbox("Team Check", &mut settings.trigger_bot_team_check);
+                            ui.separator();
+                        }
+
                         ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
                 }

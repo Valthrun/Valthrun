@@ -89,6 +89,15 @@ pub struct AppSettings {
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,
 
+    #[serde(default = "default_u32::<10>")]
+    pub trigger_bot_delay_min: u32,
+
+    #[serde(default = "default_u32::<20>")]
+    pub trigger_bot_delay_max: u32,
+
+    #[serde(default = "bool_false")]
+    pub trigger_bot_check_target_after_delay: bool,
+
     #[serde(default = "bool_false")]
     pub aim_assist_recoil: bool,
 
