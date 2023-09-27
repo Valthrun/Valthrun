@@ -9,6 +9,7 @@ use cs2::{
     CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module, PCStrEx,
     Signature,
 };
+use cs2_schema_declaration::Ptr;
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
@@ -71,7 +72,7 @@ pub struct UpdateContext<'a> {
     pub cs2_entities: &'a EntitySystem,
 
     pub model_cache: &'a EntryCache<u64, CS2Model>,
-    pub class_name_cache: &'a EntryCache<u64, Option<String>>,
+    pub class_name_cache: &'a EntryCache<Ptr<()>, Option<String>>,
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
@@ -85,7 +86,7 @@ pub struct Application {
     pub cs2_build_info: BuildInfo,
 
     pub model_cache: EntryCache<u64, CS2Model>,
-    pub class_name_cache: EntryCache<u64, Option<String>>,
+    pub class_name_cache: EntryCache<Ptr<()>, Option<String>>,
     pub view_controller: ViewController,
 
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
@@ -440,36 +441,9 @@ fn main_overlay() -> anyhow::Result<()> {
         }),
         class_name_cache: EntryCache::new({
             let cs2 = cs2.clone();
-            move |vtable: &u64| {
-                let fn_get_class_schema = cs2.reference_schema::<u64>(&[
-                    *vtable + 0x00, // First entry in V-Table is GetClassSchema
-                ])?;
-
-                let mut asm_buffer = [0u8; 0x10];
-                cs2.read_slice(&[fn_get_class_schema], &mut asm_buffer)?;
-
-                // lea rcx, <class schema>
-                if asm_buffer[9] != 0x48 || asm_buffer[10] != 0x8D || asm_buffer[11] != 0x15 {
-                    /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
-                    log::trace!("{:X} isn't a client schema class. Returning none.", vtable);
-                    return Ok(None);
-                }
-
-                let schema_offset = i32::from_le_bytes(asm_buffer[12..16].try_into()?) as u64;
-                let class_schema = fn_get_class_schema
-                    .wrapping_add(schema_offset)
-                    .wrapping_add(0x10);
-
-                if !cs2.module_address(Module::Client, class_schema).is_some() {
-                    log::warn!(
-                        "GetClassSchema lea points to invalid target address for {:X}",
-                        *vtable
-                    );
-                    return Ok(None);
-                }
-
-                let class_name = cs2.read_string(&[class_schema + 0x08, 0], Some(32))?;
-                log::trace!("Resolved vtable class name {:X} to {}", vtable, class_name);
+            move |class_info: &Ptr<()>| {
+                let address = class_info.address()?;
+                let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
                 Ok(Some(class_name))
             }
         }),

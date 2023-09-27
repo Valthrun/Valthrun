@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
+use cs2::CEntityIdentityEx;
 use cs2_schema_generated::{cs2::client::C_CSPlayerPawn, EntityHandle};
 use rand::{distributions::Uniform, prelude::Distribution};
 use valthrun_kernel_interface::MouseState;
@@ -64,6 +65,7 @@ impl TriggerBot {
                     target.entity_id,
                 ))?
                 .context("missing crosshair player pawn")?
+                .entity_ptr::<C_CSPlayerPawn>()?
                 .read_schema()?;
 
             let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;

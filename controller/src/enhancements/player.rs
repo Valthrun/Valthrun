@@ -1,9 +1,11 @@
 use std::{ffi::CStr, sync::Arc};
 
 use anyhow::Context;
-use cs2::{BoneFlags, CS2Model};
+use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::client::{CCSPlayerController, CModelState, CSkeletonInstance};
+use cs2_schema_generated::cs2::client::{
+    CCSPlayerController, CModelState, CSkeletonInstance, C_CSPlayerPawn,
+};
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};
@@ -101,7 +103,7 @@ impl PlayerESP {
         }
 
         let player_pawn = match { ctx.cs2_entities.get_by_handle(&player_pawn)? } {
-            Some(pawn) => pawn.read_schema()?,
+            Some(pawn) => pawn.entity_ptr::<C_CSPlayerPawn>()?.read_schema()?,
             None => {
                 /*
                  * I'm not sure in what exact occasions this happens, but I would guess when the player is spectating or something.

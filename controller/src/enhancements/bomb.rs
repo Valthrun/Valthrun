@@ -2,7 +2,7 @@ use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::C_PlantedC4;
+use cs2_schema_generated::cs2::client::{CBasePlayerController, C_CSPlayerPawn, C_PlantedC4};
 use obfstr::obfstr;
 
 use crate::UpdateContext;
@@ -61,9 +61,12 @@ impl BombInfo {
             .all_identities()
             .with_context(|| obfstr!("failed to read entity list").to_string())?;
 
-        for entity in entities.iter() {
-            let vtable = entity.entity_vtable()?.read_schema()?.address()?;
-            let class_name = ctx.class_name_cache.lookup(vtable).context("class name")?;
+        for entity_identity in entities.iter() {
+            let class_name = ctx
+                .class_name_cache
+                .lookup(entity_identity.entity_class_info()?)
+                .context("class name")?;
+
             if !(*class_name)
                 .as_ref()
                 .map(|name| name == "C_PlantedC4")
@@ -73,7 +76,7 @@ impl BombInfo {
                 continue;
             }
 
-            let bomb = entity
+            let bomb = entity_identity
                 .entity_ptr::<C_PlantedC4>()?
                 .read_schema()
                 .context("bomb schame")?;
@@ -102,6 +105,7 @@ impl BombInfo {
                     .cs2_entities
                     .get_by_handle(&handle_defuser)?
                     .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
+                    .entity_ptr::<C_CSPlayerPawn>()?
                     .reference_schema()?;
 
                 let defuser_controller = defuser.m_hController()?;
@@ -109,6 +113,7 @@ impl BombInfo {
                     .cs2_entities
                     .get_by_handle(&defuser_controller)?
                     .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
+                    .entity_ptr::<CBasePlayerController>()?
                     .reference_schema()?;
 
                 let defuser_name =

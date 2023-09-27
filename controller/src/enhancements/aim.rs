@@ -1,4 +1,6 @@
 use anyhow::Context;
+use cs2::CEntityIdentityEx;
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
@@ -40,6 +42,7 @@ impl Enhancement for AntiAimPunsh {
             .cs2_entities
             .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
             .context("missing local player pawn")?
+            .entity_ptr::<C_CSPlayerPawn>()?
             .read_schema()?;
 
         if local_pawn.m_iShotsFired()? <= 1 {
