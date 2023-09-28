@@ -111,7 +111,8 @@ I haven't had the opportunity to test the overlay with VAC live,
 but I assume it should work similarly well.
 
 # Supported Windows Versions
-All recent windows versions should be supported as all functions / struct offsets are resolved dynamically.  
+All recent Windows versions should be supported as all functions / struct offsets are resolved dynamically.  
+The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback suggests, Windows versions back 'till 20H2 are working.
 If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
   
 # Screenshots
