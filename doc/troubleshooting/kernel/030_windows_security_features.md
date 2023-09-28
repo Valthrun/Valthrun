@@ -4,6 +4,7 @@ I highly recommand keeping them enabled, but for Valthrun to work a few must be 
 - Core Isolation
 - MSFT Driver Block List
 - Virtualization Based Security
+- Disable hypervisor
 
 ## Disable Core Isolation
 For details please visit:  
@@ -22,3 +23,9 @@ TODO: Why?
 https://www.makeuseof.com/windows-11-disable-vbs/
 
 TODO: Why?
+
+## Disable HyperVisor
+Run as admin in a cmd:
+```
+bcdedit /set hypervisorlaunchtype off
+```
