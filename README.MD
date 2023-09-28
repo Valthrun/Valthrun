@@ -70,13 +70,13 @@ The following steps need to be done for starting/activating the overlay.
       The Valthrun kernel driver fully supports manual driver mapping using a any   vulnerable driver. In order to detect the manual mapping the second driver entry argument (the   registry patch) must be a null ptr.  
       The kernel driver will automatically allocate a new driver for io communication.  
 
-   2. Setting Windows into test-signing mode  
-      TODO: Explain how to set Windows into test signing
-      Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
-
       In order to manually map the Valthrun driver you can use tools like  
       - [KDU](https://github.com/hfiref0x/KDU)
       - [kdmapper](https://github.com/TheCruZ/kdmapper)
+
+   2. Setting Windows into test-signing mode  
+      TODO: Explain how to set Windows into test signing
+      Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
    
 2. Start Counter-Strike 2  
 After loading the driver you can start Counter-Strike 2 as usual.  
