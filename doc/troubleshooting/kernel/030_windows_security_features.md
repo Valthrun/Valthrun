@@ -12,11 +12,12 @@ https://support.microsoft.com/en-us/windows/a-driver-can-t-load-on-this-device-8
   
 TODO: Why?
 
-## MSFT Driver Block List
+## MSFT Driver Block List & Microsoft Vulnerable Driver Blocklist
 KDMapper output: `NTSTATUS (0xC0000428): Windows cannot verify the digital signature for this file`
 https://www.thewindowsclub.com/microsoft-vulnerable-driver-blocklist-in-windows
 https://community.amd.com/t5/drivers-software/amd-driver-problem/m-p/474646#M144661
 
+ATTENTION: You have to restart your PC afterwards.
 TODO: Why?
 
 ## Virtualization Based Security

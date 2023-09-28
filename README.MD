@@ -71,8 +71,8 @@ The following steps need to be done for starting/activating the overlay.
       The kernel driver will automatically allocate a new driver for io communication.  
 
       In order to manually map the Valthrun driver you can use tools like  
-      - [KDU](https://github.com/hfiref0x/KDU)
       - [kdmapper](https://github.com/TheCruZ/kdmapper)
+      - [KDU](https://github.com/hfiref0x/KDU) (does not always work...)
 
    2. Setting Windows into test-signing mode  
       TODO: Explain how to set Windows into test signing
