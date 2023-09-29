@@ -3,14 +3,14 @@ use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
 use error::Result;
 use imgui::{Context, FontConfig, FontSource, Io};
-use imgui_rs_vulkan_renderer::{Renderer, Options};
-use imgui_winit_support::{HiDpiMode, WinitPlatform, winit::dpi::PhysicalSize};
-use input::{KeyboardInputSystem, MouseInputSystem};
-use obfstr::obfstr;
+use imgui_rs_vulkan_renderer::{Options, Renderer};
 use imgui_winit_support::winit::event::{Event, WindowEvent};
-use imgui_winit_support::winit::event_loop::{EventLoop, ControlFlow};
+use imgui_winit_support::winit::event_loop::{ControlFlow, EventLoop};
 use imgui_winit_support::winit::platform::windows::WindowExtWindows;
 use imgui_winit_support::winit::window::{Window, WindowBuilder};
+use imgui_winit_support::{winit::dpi::PhysicalSize, HiDpiMode, WinitPlatform};
+use input::{KeyboardInputSystem, MouseInputSystem};
+use obfstr::obfstr;
 use std::ffi::CString;
 use std::time::Instant;
 use window_tracker::WindowTracker;
@@ -102,7 +102,7 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
 fn create_imgui_context() -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
-    
+
     let platform = WinitPlatform::init(&mut imgui);
 
     match ClipboardContext::new() {
@@ -176,7 +176,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     };
 
     let swapchain = Swapchain::new(&vulkan_context).unwrap(); // FIXME: Don't use unwrap here!
-    // Semaphore use for presentation
+                                                              // Semaphore use for presentation
     let image_available_semaphore = {
         let semaphore_info = vk::SemaphoreCreateInfo::builder();
         unsafe {
@@ -291,12 +291,12 @@ impl System {
             window,
 
             vulkan_context,
-        mut swapchain,
+            mut swapchain,
             command_buffer,
             fence,
             image_available_semaphore,
             render_finished_semaphore,
-            
+
             imgui,
             mut platform,
             mut renderer,
@@ -349,7 +349,7 @@ impl System {
                             *control_flow = ControlFlow::Exit;
                             return;
                         }
-        
+
                         if !update(&mut runtime_controller) {
                             *control_flow = ControlFlow::Exit;
                             return;
@@ -357,7 +357,7 @@ impl System {
 
                         perf.mark("update");
                     }
-    
+
                     /* render */
                     {
                         // If swapchain must be recreated wait for windows to not be minimized anymore
@@ -375,8 +375,9 @@ impl System {
                                 return;
                             }
                         }
-                        
-                        if let Err(error) = platform.prepare_frame(runtime_controller.imgui.io_mut(), &window)
+
+                        if let Err(error) =
+                            platform.prepare_frame(runtime_controller.imgui.io_mut(), &window)
                         {
                             *control_flow = ControlFlow::ExitWithCode(1);
                             log::error!("Platform implementation prepare_frame failed: {}", error);
@@ -391,20 +392,26 @@ impl System {
                         }
                         if runtime_controller.debug_overlay_shown {
                             ui.window("Render Debug")
-                                .position([ 200.0, 200.0 ], imgui::Condition::FirstUseEver)
-                                .size([ 400.0, 400.0 ], imgui::Condition::FirstUseEver)
+                                .position([200.0, 200.0], imgui::Condition::FirstUseEver)
+                                .size([400.0, 400.0], imgui::Condition::FirstUseEver)
                                 .build(|| {
                                     ui.text(format!("FPS: {: >4.2}", ui.io().framerate));
                                     ui.same_line_with_pos(100.0);
 
-                                    ui.text(format!("Frame Time: {:.2}ms", ui.io().delta_time * 1000.0));
+                                    ui.text(format!(
+                                        "Frame Time: {:.2}ms",
+                                        ui.io().delta_time * 1000.0
+                                    ));
                                     ui.same_line_with_pos(275.0);
 
                                     ui.text("History length:");
                                     ui.same_line();
                                     let mut history_length = perf.history_length();
                                     ui.set_next_item_width(75.0);
-                                    if ui.input_scalar("##history_length", &mut history_length).build() {
+                                    if ui
+                                        .input_scalar("##history_length", &mut history_length)
+                                        .build()
+                                    {
                                         perf.set_history_length(history_length);
                                     }
                                     perf.render(ui, ui.content_region_avail());
@@ -437,20 +444,22 @@ impl System {
                                 dirty_swapchain = true;
                                 return;
                             }
-                            Err(error) => panic!("Error while acquiring next image. Cause: {}", error),
+                            Err(error) => {
+                                panic!("Error while acquiring next image. Cause: {}", error)
+                            }
                         };
-    
+
                         unsafe {
                             vulkan_context
                                 .device
                                 .reset_fences(&[fence])
                                 .expect("Failed to reset fences")
                         };
-    
+
                         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
                         let wait_semaphores = [image_available_semaphore];
                         let signal_semaphores = [render_finished_semaphore];
-    
+
                         // Re-record commands to draw geometry
                         record_command_buffers(
                             &vulkan_context.device,
@@ -463,17 +472,15 @@ impl System {
                             &draw_data,
                         )
                         .expect("Failed to record command buffer");
-    
+
                         let command_buffers = [command_buffer];
-                        let submit_info = [
-                            vk::SubmitInfo::builder()
-                                .wait_semaphores(&wait_semaphores)
-                                .wait_dst_stage_mask(&wait_stages)
-                                .command_buffers(&command_buffers)
-                                .signal_semaphores(&signal_semaphores)
-                                .build()
-                        ];
-                        
+                        let submit_info = [vk::SubmitInfo::builder()
+                            .wait_semaphores(&wait_semaphores)
+                            .wait_dst_stage_mask(&wait_stages)
+                            .command_buffers(&command_buffers)
+                            .signal_semaphores(&signal_semaphores)
+                            .build()];
+
                         perf.mark("before submit");
                         unsafe {
                             vulkan_context
@@ -489,7 +496,7 @@ impl System {
                             .wait_semaphores(&signal_semaphores)
                             .swapchains(&swapchains)
                             .image_indices(&images_indices);
-                        
+
                         let present_result = unsafe {
                             swapchain
                                 .loader

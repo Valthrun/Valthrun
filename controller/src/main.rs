@@ -476,7 +476,7 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_ui: RefCell::new(SettingsUI::new(settings)),
         /* set the screen capture visibility at the beginning of the first update */
         settings_screen_capture_changed: AtomicBool::new(true),
-        settings_render_debug_window_changed: AtomicBool::new(true)
+        settings_render_debug_window_changed: AtomicBool::new(true),
     };
 
     let app = Rc::new(RefCell::new(app));

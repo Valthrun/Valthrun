@@ -2,8 +2,8 @@ use std::ffi::NulError;
 
 use ash::vk;
 use imgui_rs_vulkan_renderer::RendererError;
-use thiserror::Error;
 use imgui_winit_support::winit::error::OsError;
+use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, OverlayError>;
 
@@ -20,19 +20,17 @@ pub enum OverlayError {
 
     #[error("failed to create overlay window")]
     WindowCreateFailed(#[from] OsError),
-    
+
     // #[error("{0}")]
     // DisplayError(#[from] DisplayCreationError),
 
     // #[error("{0}")]
     // RenderError(#[from] RendererError),
-
     #[error("{0}")]
     WindowsError(#[from] windows::core::Error),
 
     // #[error("generic error from vulkan: {0}")]
     // GenericError(#[from] Box<dyn std::error::Error>),
-
     #[error("vulkan: {0}")]
     VulkanError(#[from] vk::Result),
 

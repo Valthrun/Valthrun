@@ -228,7 +228,7 @@ impl SettingsUI {
                         // ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
-                    
+
                     if let Some(_) = ui.tab_item("Misc") {
                         if ui.checkbox("Hide overlay from screen capture", &mut settings.hide_overlay_from_screen_capture) {
                             app.settings_screen_capture_changed.store(true, Ordering::Relaxed);

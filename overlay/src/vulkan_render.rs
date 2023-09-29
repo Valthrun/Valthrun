@@ -1,4 +1,7 @@
-use std::{error::Error, ffi::{CString, c_void, CStr}};
+use std::{
+    error::Error,
+    ffi::{c_void, CStr, CString},
+};
 
 use ash::{
     extensions::{
@@ -9,8 +12,8 @@ use ash::{
 };
 use imgui::DrawData;
 use imgui_rs_vulkan_renderer::Renderer;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 use imgui_winit_support::winit::window::Window;
+use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
