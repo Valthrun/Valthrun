@@ -26,7 +26,7 @@ pub enum OverlayError {
 
     #[error("{0}")]
     WindowsError(#[from] windows::core::Error),
-    
+
     #[error("vulkan: {0}")]
     VulkanError(#[from] vk::Result),
 
