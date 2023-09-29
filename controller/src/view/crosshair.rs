@@ -1,7 +1,11 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use cs2_schema_generated::{cs2::client::CEntityInstance, EntityHandle};
+use cs2::CEntityIdentityEx;
+use cs2_schema_generated::{
+    cs2::client::{CEntityInstance, C_CSPlayerPawn},
+    EntityHandle,
+};
 
 use crate::{enhancements::CrosshairTarget, UpdateContext};
 
@@ -37,7 +41,7 @@ impl LocalCrosshair {
             .cs2_entities
             .get_by_handle(&local_player_controller.m_hPlayerPawn()?)?
         {
-            Some(ptr) => ptr,
+            Some(ptr) => ptr.entity_ptr::<C_CSPlayerPawn>()?,
             None => return Ok(None),
         };
 
@@ -67,15 +71,14 @@ impl LocalCrosshair {
             .unwrap_or(true);
 
         if new_target {
-            let crosshair_entity = ctx
+            let crosshair_entity_identnity = ctx
                 .cs2_entities
                 .get_by_handle(&crosshair_entity_handle)?
-                .context("failed to resolve crosshair entity id")?
-                .reference_schema()?;
+                .context("failed to resolve crosshair entity id")?;
 
             let target_type = ctx
                 .class_name_cache
-                .lookup(crosshair_entity.vtable()?.address()?)?;
+                .lookup(crosshair_entity_identnity.entity_class_info()?)?;
 
             self.current_target = Some(CrosshairTarget {
                 entity_id: crosshair_entity_handle.get_entity_index(),

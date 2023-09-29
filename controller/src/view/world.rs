@@ -8,7 +8,7 @@ use imgui::ImColor32;
 pub struct ViewController {
     cs2_view_matrix: u64,
     view_matrix: nalgebra::Matrix4<f32>,
-    screen_bounds: mint::Vector2<f32>,
+    pub screen_bounds: mint::Vector2<f32>,
 }
 
 impl ViewController {

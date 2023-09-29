@@ -70,13 +70,13 @@ The following steps need to be done for starting/activating the overlay.
       The Valthrun kernel driver fully supports manual driver mapping using a any   vulnerable driver. In order to detect the manual mapping the second driver entry argument (the   registry patch) must be a null ptr.  
       The kernel driver will automatically allocate a new driver for io communication.  
 
+      In order to manually map the Valthrun driver you can use tools like  
+      - [kdmapper](https://github.com/TheCruZ/kdmapper)
+      - [KDU](https://github.com/hfiref0x/KDU) (does not always work...)
+
    2. Setting Windows into test-signing mode  
       TODO: Explain how to set Windows into test signing
       Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
-
-      In order to manually map the Valthrun driver you can use tools like  
-      - [KDU](https://github.com/hfiref0x/KDU)
-      - [kdmapper](https://github.com/TheCruZ/kdmapper)
    
 2. Start Counter-Strike 2  
 After loading the driver you can start Counter-Strike 2 as usual.  
@@ -97,6 +97,12 @@ $env:RUST_LOG="trace"
 .\controller.exe
 ```
 
+# Troubleshooting
+If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting):  
+https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting
+  
+The issue you encounter is most likely covered. If you still have any questions or need assistens, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
+
 # VAC
 The same considerations as mentioned in [this link](https://github.com/dretax/GarHal_CSGO#starting-driver) have been taken into account.  
 With these precautions and some minor improvements, such as omitting the valthrun identifier and using xor-ing for strings, the driver/overlay should avoid VAC detection. However, I must clarify that I haven't extensively studied VAC, so my conclusion is speculative. Personally, I have been using a C based driver/overlay like this with CSGO for several years without ever getting VAC banned. But be aware of overwatch!  
@@ -105,7 +111,8 @@ I haven't had the opportunity to test the overlay with VAC live,
 but I assume it should work similarly well.
 
 # Supported Windows Versions
-All recent windows versions should be supported as all functions / struct offsets are resolved dynamically.  
+All recent Windows versions should be supported as all functions / struct offsets are resolved dynamically.  
+The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback suggests, Windows versions back 'till 20H2 are working.
 If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
   
 # Screenshots

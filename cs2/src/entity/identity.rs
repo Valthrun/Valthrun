@@ -7,6 +7,8 @@ use cs2_schema_generated::{
 pub trait CEntityIdentityEx {
     fn entity_ptr<T>(&self) -> anyhow::Result<Ptr<T>>;
     fn entity_vtable(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
+    fn entity_class_info(&self) -> anyhow::Result<Ptr<()>>;
+
     fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>>;
 }
 
@@ -19,6 +21,11 @@ impl CEntityIdentityEx for CEntityIdentity {
     /// The first pointer might be null, if the entity identity is invalid.
     fn entity_vtable(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
         Ok(self.entity_ptr::<()>()?.cast::<Ptr<()>>())
+    }
+
+    /// Returns a ptr to the entity runtime info
+    fn entity_class_info(&self) -> anyhow::Result<Ptr<()>> {
+        self.memory.reference_schema(0x08)
     }
 
     fn handle<T>(&self) -> anyhow::Result<EntityHandle<T>> {

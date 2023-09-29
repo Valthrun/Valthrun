@@ -94,7 +94,7 @@ impl EntitySystem {
     pub fn get_by_handle<T: SchemaValue>(
         &self,
         handle: &EntityHandle<T>,
-    ) -> anyhow::Result<Option<Ptr<T>>> {
+    ) -> anyhow::Result<Option<CEntityIdentity>> {
         let (bulk, offset) = handle.entity_array_offsets();
         let identity = self.cs2.read_schema::<CEntityIdentity>(&[
             self.offsets.global_entity_list,
@@ -103,7 +103,7 @@ impl EntitySystem {
         ])?;
 
         if identity.handle::<T>()?.get_entity_index() == handle.get_entity_index() {
-            Ok(Some(identity.entity_ptr::<T>()?))
+            Ok(Some(identity))
         } else {
             Ok(None)
         }

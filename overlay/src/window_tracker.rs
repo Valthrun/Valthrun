@@ -9,7 +9,10 @@ use windows::{
             GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, LPARAM, POINT, RECT, WPARAM,
         },
         Graphics::Gdi::ClientToScreen,
-        UI::WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
+        UI::{
+            Input::KeyboardAndMouse::GetFocus,
+            WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
+        },
     },
 };
 
@@ -56,6 +59,14 @@ impl WindowTracker {
         unsafe {
             ClientToScreen(self.cs2_hwnd, &mut rect.left as *mut _ as *mut POINT);
             ClientToScreen(self.cs2_hwnd, &mut rect.right as *mut _ as *mut POINT);
+        }
+
+        if unsafe { GetFocus() } != self.cs2_hwnd {
+            /*
+             * CS2 will render a black screen as soon as CS2 does not have the focus and is completely covered by
+             * another window. To prevent the overlay covering CS2 we make it one pixel less then the actual CS2 window.
+             */
+            rect.bottom -= 1;
         }
 
         if rect == self.current_bounds {

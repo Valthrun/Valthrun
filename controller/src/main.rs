@@ -5,11 +5,13 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Args, Parser, Subcommand};
-use cs2::{BuildInfo, CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals, Module};
+use cs2::{BuildInfo, CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals};
 use cs2_schema_generated::{definition::SchemaScope, RuntimeOffset, RuntimeOffsetProvider};
+use cs2_schema_declaration::Ptr;
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
+use overlay::SystemRuntimeController;
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
 use std::{
@@ -19,11 +21,15 @@ use std::{
     io::BufWriter,
     path::PathBuf,
     rc::Rc,
-    sync::Arc,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
     time::{Duration, Instant},
 };
+use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::Win32::System::Console::GetConsoleProcessList;
+use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
 
 use crate::{
     enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
@@ -66,7 +72,7 @@ pub struct UpdateContext<'a> {
     pub cs2_entities: &'a EntitySystem,
 
     pub model_cache: &'a EntryCache<u64, CS2Model>,
-    pub class_name_cache: &'a EntryCache<u64, Option<String>>,
+    pub class_name_cache: &'a EntryCache<Ptr<()>, Option<String>>,
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
@@ -80,7 +86,7 @@ pub struct Application {
     pub cs2_build_info: BuildInfo,
 
     pub model_cache: EntryCache<u64, CS2Model>,
-    pub class_name_cache: EntryCache<u64, Option<String>>,
+    pub class_name_cache: EntryCache<Ptr<()>, Option<String>>,
     pub view_controller: ViewController,
 
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
@@ -92,6 +98,7 @@ pub struct Application {
     pub settings_visible: bool,
     pub settings_dirty: bool,
     pub settings_ui: RefCell<SettingsUI>,
+    pub settings_screen_capture_changed: AtomicBool,
 }
 
 impl Application {
@@ -103,19 +110,32 @@ impl Application {
         self.settings.borrow_mut()
     }
 
-    pub fn pre_update(&mut self, context: &mut imgui::Context) -> anyhow::Result<()> {
+    pub fn pre_update(&mut self, controller: &mut SystemRuntimeController) -> anyhow::Result<()> {
         if self.settings_dirty {
             self.settings_dirty = false;
             let mut settings = self.settings.borrow_mut();
 
             let mut imgui_settings = String::new();
-            context.save_ini_settings(&mut imgui_settings);
+            controller.imgui.save_ini_settings(&mut imgui_settings);
             settings.imgui = Some(imgui_settings);
 
             if let Err(error) = save_app_settings(&*settings) {
                 log::warn!("Failed to save user settings: {}", error);
             };
         }
+
+        if self
+            .settings_screen_capture_changed
+            .swap(false, Ordering::Relaxed)
+        {
+            let settings = self.settings.borrow();
+            controller.toggle_screen_capture_visibility(!settings.hide_overlay_from_screen_capture);
+            log::debug!(
+                "Updating screen capture visibility to {}",
+                !settings.hide_overlay_from_screen_capture
+            );
+        }
+
         Ok(())
     }
 
@@ -229,7 +249,9 @@ impl Application {
 }
 
 fn show_critical_error(message: &str) {
-    log::error!("{}", message);
+    for line in message.lines() {
+        log::error!("{}", line);
+    }
 
     if !is_console_invoked() {
         overlay::show_error_message(obfstr!("Valthrun Controller"), message);
@@ -364,7 +386,31 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let settings = load_app_settings()?;
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = match CS2Handle::create() {
+        Ok(handle) => handle,
+        Err(err) => {
+            if let Some(err) = err.downcast_ref::<KInterfaceError>() {
+                if let KInterfaceError::DeviceUnavailable(_) = &err {
+                    if !unsafe { IsUserAnAdmin().as_bool() } {
+                        if !is_console_invoked() {
+                            /* If we don't have a console, show the message box and abort execution. */
+                            show_critical_error("Please re-run this application as administrator!");
+                            return Ok(());
+                        }
+
+                        /* Just print this warning message and return the actual error.  */
+                        log::warn!("Application run without administrator privileges.");
+                        log::warn!("Please re-run with administrator privileges!");
+                    }
+                } else if let KInterfaceError::ProcessDoesNotExists = &err {
+                    show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
+                    return Ok(());
+                }
+            }
+
+            return Err(err);
+        }
+    };
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -397,9 +443,10 @@ fn main_overlay() -> anyhow::Result<()> {
             move |model| {
                 let model_name = cs2.read_string(&[*model as u64 + 0x08, 0], Some(32))?;
                 log::debug!(
-                    "{} {}. Caching.",
+                    "{} {} at {:X}. Caching.",
                     obfstr!("Discovered new player model"),
-                    model_name
+                    model_name,
+                    model
                 );
 
                 Ok(CS2Model::read(&cs2, *model as u64)?)
@@ -407,36 +454,9 @@ fn main_overlay() -> anyhow::Result<()> {
         }),
         class_name_cache: EntryCache::new({
             let cs2 = cs2.clone();
-            move |vtable: &u64| {
-                let fn_get_class_schema = cs2.reference_schema::<u64>(&[
-                    *vtable + 0x00, // First entry in V-Table is GetClassSchema
-                ])?;
-
-                let mut asm_buffer = [0u8; 0x10];
-                cs2.read_slice(&[fn_get_class_schema], &mut asm_buffer)?;
-
-                // lea rcx, <class schema>
-                if asm_buffer[9] != 0x48 || asm_buffer[10] != 0x8D || asm_buffer[11] != 0x15 {
-                    /* Class defined in other module. GetClassSchema function might be implemented diffrently. */
-                    log::trace!("{:X} isn't a client schema class. Returning none.", vtable);
-                    return Ok(None);
-                }
-
-                let schema_offset = i32::from_le_bytes(asm_buffer[12..16].try_into()?) as u64;
-                let class_schema = fn_get_class_schema
-                    .wrapping_add(schema_offset)
-                    .wrapping_add(0x10);
-
-                if !cs2.module_address(Module::Client, class_schema).is_some() {
-                    log::warn!(
-                        "GetClassSchema lea points to invalid target address for {:X}",
-                        *vtable
-                    );
-                    return Ok(None);
-                }
-
-                let class_name = cs2.read_string(&[class_schema + 0x08, 0], Some(32))?;
-                log::trace!("Resolved vtable class name {:X} to {}", vtable, class_name);
+            move |class_info: &Ptr<()>| {
+                let address = class_info.address()?;
+                let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
                 Ok(Some(class_name))
             }
         }),
@@ -458,6 +478,8 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_visible: false,
         settings_dirty: false,
         settings_ui: RefCell::new(SettingsUI::new(settings)),
+        /* set the screen capture visibility at the beginning of the first update */
+        settings_screen_capture_changed: AtomicBool::new(true),
     };
 
     let app = Rc::new(RefCell::new(app));
@@ -474,9 +496,9 @@ fn main_overlay() -> anyhow::Result<()> {
     overlay.main_loop(
         {
             let app = app.clone();
-            move |context| {
+            move |controller| {
                 let mut app = app.borrow_mut();
-                if let Err(err) = app.pre_update(context) {
+                if let Err(err) = app.pre_update(controller) {
                     show_critical_error(&format!("{:#}", err));
                     false
                 } else {

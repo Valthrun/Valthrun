@@ -48,7 +48,7 @@ impl KeyboardInputSystem {
         }
     }
 
-    pub fn update(&mut self, window: &glutin::window::Window, io: &mut imgui::Io) {
+    pub fn update(&mut self, _window: &glutin::window::Window, io: &mut imgui::Io) {
         for vkey in 0..VK_KEY_MAX {
             let key_state = unsafe { GetAsyncKeyState(vkey as i32) as u16 };
             let pressed = (key_state & 0x8000) > 0;

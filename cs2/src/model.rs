@@ -61,7 +61,7 @@ impl CS2Model {
             self.vview_max,
         ] = cs2.read_sized::<[nalgebra::Vector3<f32>; 4]>(&[address + 0x18])?;
 
-        let bone_count = cs2.reference_schema::<u64>(&[address
+        let bone_count = cs2.reference_schema::<u32>(&[address
             + offsets_manual::client::CModel::BONE_NAME
             - 0x08])? as usize;
         if bone_count > 6000 {

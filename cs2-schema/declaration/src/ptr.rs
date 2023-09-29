@@ -10,6 +10,26 @@ pub struct Ptr<T: ?Sized> {
     _data: PhantomData<T>,
 }
 
+impl<T: ?Sized> PartialEq for Ptr<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.address == other.address
+    }
+}
+
+impl<T: ?Sized> Eq for Ptr<T> {}
+
+impl<T: ?Sized> PartialOrd for Ptr<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        self.address.partial_cmp(&other.address)
+    }
+}
+
+impl<T: ?Sized> Ord for Ptr<T> {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        self.address.cmp(&other.address)
+    }
+}
+
 impl<T: ?Sized> Ptr<T> {
     pub fn address(&self) -> anyhow::Result<u64> {
         Ok(self.address)

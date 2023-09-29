@@ -8,7 +8,7 @@ fn main() -> anyhow::Result<()> {
     let overlay = overlay::init("Task Manager Overlay", "Task Manager")?;
     let mut text_input = Default::default();
     overlay.main_loop(
-        |ctx| true,
+        |_ctx| true,
         move |ui| {
             ui.window("Dummy Window")
                 .resizable(true)
@@ -21,6 +21,4 @@ fn main() -> anyhow::Result<()> {
             true
         },
     );
-
-    Ok(())
 }

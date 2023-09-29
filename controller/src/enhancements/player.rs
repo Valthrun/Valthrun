@@ -1,9 +1,11 @@
 use std::{ffi::CStr, sync::Arc};
 
 use anyhow::Context;
-use cs2::{BoneFlags, CS2Model};
+use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::client::{CCSPlayerController, CModelState, CSkeletonInstance};
+use cs2_schema_generated::cs2::client::{
+    CCSPlayerController, CModelState, CSkeletonInstance, C_CSPlayerPawn,
+};
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};
@@ -26,6 +28,15 @@ pub struct PlayerInfo {
 
     pub model: Arc<CS2Model>,
     pub bone_states: Vec<BoneStateData>,
+}
+
+impl PlayerInfo {
+    pub fn calculate_screen_height(&self, view: &ViewController) -> Option<f32> {
+        let entry_lower = view.world_to_screen(&(self.model.vhull_min + self.position), true)?;
+        let entry_upper = view.world_to_screen(&(self.model.vhull_max + self.position), true)?;
+
+        Some((entry_lower.y - entry_upper.y).abs())
+    }
 }
 
 pub struct BoneStateData {
@@ -91,11 +102,16 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let player_pawn = ctx
-            .cs2_entities
-            .get_by_handle(&player_pawn)?
-            .context("missing player pawn")?
-            .read_schema()?;
+        let player_pawn = match { ctx.cs2_entities.get_by_handle(&player_pawn)? } {
+            Some(pawn) => pawn.entity_ptr::<C_CSPlayerPawn>()?.read_schema()?,
+            None => {
+                /*
+                 * I'm not sure in what exact occasions this happens, but I would guess when the player is spectating or something.
+                 * May check with m_bPawnIsAlive?
+                 */
+                return Ok(None);
+            }
+        };
 
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
@@ -218,15 +234,24 @@ impl Enhancement for PlayerESP {
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
-            if matches!(&entry.team_type, TeamType::Local) {
-                continue;
-            }
+            let esp_color = match &entry.team_type {
+                TeamType::Local => continue,
+                TeamType::Enemy => {
+                    if !settings.esp_enabled_enemy {
+                        continue;
+                    }
 
-            let esp_color = if entry.team_type == TeamType::Enemy {
-                &settings.esp_color_enemy
-            } else {
-                &settings.esp_color_team
+                    &settings.esp_color_enemy
+                }
+                TeamType::Friendly => {
+                    if !settings.esp_enabled_team {
+                        continue;
+                    }
+
+                    &settings.esp_color_team
+                }
             };
+
             if settings.esp_skeleton && entry.team_type != TeamType::Local {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 
@@ -266,6 +291,25 @@ impl Enhancement for PlayerESP {
                     (*esp_color).into(),
                     settings.esp_boxes_thickness,
                 );
+            }
+
+            if settings.esp_health {
+                if let Some(mut pos) = view.world_to_screen(&entry.position, false) {
+                    let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
+                    let target_scale = entry_height * 15.0 / view.screen_bounds.y;
+                    let target_scale = target_scale.clamp(0.5, 1.25);
+                    ui.set_window_font_scale(target_scale);
+
+                    let text = format!("{} HP", entry.player_health);
+                    let [text_width, _] = ui.calc_text_size(&text);
+                    pos.x -= text_width / 2.0;
+                    draw.add_text(
+                        pos,
+                        esp_color.clone(),
+                        format!("{} HP", entry.player_health),
+                    );
+                    ui.set_window_font_scale(1.0);
+                }
             }
         }
     }

@@ -69,13 +69,23 @@ pub struct AppSettings {
     #[serde(default = "default_esp_boxes_thickness")]
     pub esp_boxes_thickness: f32,
 
+    #[serde(default = "bool_false")]
+    pub esp_health: bool,
+
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
     #[serde(default = "default_esp_color_team")]
     pub esp_color_team: [f32; 4],
+
+    #[serde(default = "bool_true")]
+    pub esp_enabled_team: bool,
+
     #[serde(default = "default_esp_color_enemy")]
     pub esp_color_enemy: [f32; 4],
+
+    #[serde(default = "bool_true")]
+    pub esp_enabled_enemy: bool,
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
@@ -86,8 +96,20 @@ pub struct AppSettings {
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,
 
+    #[serde(default = "default_u32::<10>")]
+    pub trigger_bot_delay_min: u32,
+
+    #[serde(default = "default_u32::<20>")]
+    pub trigger_bot_delay_max: u32,
+
+    #[serde(default = "bool_false")]
+    pub trigger_bot_check_target_after_delay: bool,
+
     #[serde(default = "bool_false")]
     pub aim_assist_recoil: bool,
+
+    #[serde(default = "bool_true")]
+    pub hide_overlay_from_screen_capture: bool,
 
     #[serde(default)]
     pub imgui: Option<String>,
