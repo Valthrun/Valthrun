@@ -99,6 +99,7 @@ pub struct Application {
     pub settings_dirty: bool,
     pub settings_ui: RefCell<SettingsUI>,
     pub settings_screen_capture_changed: AtomicBool,
+    pub settings_render_debug_window_changed: AtomicBool,
 }
 
 impl Application {
@@ -134,6 +135,14 @@ impl Application {
                 "Updating screen capture visibility to {}",
                 !settings.hide_overlay_from_screen_capture
             );
+        }
+
+        if self
+            .settings_render_debug_window_changed
+            .swap(false, Ordering::Relaxed)
+        {
+            let settings = self.settings.borrow();
+            controller.toggle_debug_overlay(settings.render_debug_window);
         }
 
         Ok(())
@@ -467,6 +476,7 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_ui: RefCell::new(SettingsUI::new(settings)),
         /* set the screen capture visibility at the beginning of the first update */
         settings_screen_capture_changed: AtomicBool::new(true),
+        settings_render_debug_window_changed: AtomicBool::new(true)
     };
 
     let app = Rc::new(RefCell::new(app));

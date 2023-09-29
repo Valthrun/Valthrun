@@ -111,6 +111,9 @@ pub struct AppSettings {
     #[serde(default = "bool_true")]
     pub hide_overlay_from_screen_capture: bool,
 
+    #[serde(default = "bool_false")]
+    pub render_debug_window: bool,
+
     #[serde(default)]
     pub imgui: Option<String>,
 }

@@ -1,6 +1,6 @@
 use std::ffi::NulError;
 
-use ash::{prelude::VkResult, vk};
+use ash::vk;
 use imgui_rs_vulkan_renderer::RendererError;
 use thiserror::Error;
 use imgui_winit_support::winit::error::OsError;

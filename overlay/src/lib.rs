@@ -37,7 +37,7 @@ mod window_tracker;
 mod vulkan;
 
 mod perf;
-use perf::*;
+pub use perf::PerfTracker;
 
 mod vulkan_render;
 use vulkan_render::*;
@@ -103,7 +103,7 @@ fn create_imgui_context() -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
     
-    let mut platform = WinitPlatform::init(&mut imgui);
+    let platform = WinitPlatform::init(&mut imgui);
 
     match ClipboardContext::new() {
         Ok(backend) => imgui.set_clipboard_backend(ClipboardSupport(backend)),
@@ -398,7 +398,7 @@ impl System {
                                     ui.same_line_with_pos(100.0);
 
                                     ui.text(format!("Frame Time: {:.2}ms", ui.io().delta_time * 1000.0));
-                                    ui.same_line_with_pos(2750.0);
+                                    ui.same_line_with_pos(275.0);
 
                                     ui.text("History length:");
                                     ui.same_line();

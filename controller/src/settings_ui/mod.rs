@@ -195,10 +195,6 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
-
-                        if ui.checkbox("Hide overlay from screen capture", &mut settings.hide_overlay_from_screen_capture) {
-                            app.settings_screen_capture_changed.store(true, Ordering::Relaxed);
-                        }
                     }
 
                     if let Some(_) = ui.tab_item("Aim Assist") {
@@ -230,6 +226,17 @@ impl SettingsUI {
                         }
 
                         // ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                    }
+
+                    
+                    if let Some(_) = ui.tab_item("Misc") {
+                        if ui.checkbox("Hide overlay from screen capture", &mut settings.hide_overlay_from_screen_capture) {
+                            app.settings_screen_capture_changed.store(true, Ordering::Relaxed);
+                        }
+
+                        if ui.checkbox("Show render debug overlay", &mut settings.render_debug_window) {
+                            app.settings_render_debug_window_changed.store(true, Ordering::Relaxed);
+                        }
                     }
                 }
             });
