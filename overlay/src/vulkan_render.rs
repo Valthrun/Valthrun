@@ -35,9 +35,9 @@ pub struct VulkanContext {
 }
 
 impl VulkanContext {
-    pub fn new(window: &Window, name: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(window: &Window, name: &str) -> crate::error::Result<Self> {
         // Vulkan instance
-        let entry = Entry::linked();
+        let entry = unsafe { Entry::load()? };
         let (instance, debug_utils, debug_utils_messenger) =
             create_vulkan_instance(&entry, window, name)?;
 
@@ -195,7 +195,7 @@ fn create_vulkan_instance(
     entry: &Entry,
     window: &Window,
     title: &str,
-) -> Result<(Instance, DebugUtils, vk::DebugUtilsMessengerEXT), Box<dyn Error>> {
+) -> crate::Result<(Instance, DebugUtils, vk::DebugUtilsMessengerEXT)> {
     log::debug!("Creating vulkan instance");
     // Vulkan instance
     let app_name = CString::new(title)?;
@@ -260,7 +260,7 @@ fn create_vulkan_physical_device_and_get_graphics_and_present_qs_indices(
     instance: &Instance,
     surface: &Surface,
     surface_khr: vk::SurfaceKHR,
-) -> Result<(vk::PhysicalDevice, u32, u32), Box<dyn Error>> {
+) -> crate::Result<(vk::PhysicalDevice, u32, u32)> {
     log::debug!("Creating vulkan physical device");
     let devices = unsafe { instance.enumerate_physical_devices()? };
     let mut graphics = None;
@@ -355,7 +355,7 @@ fn create_vulkan_device_and_graphics_and_present_qs(
     physical_device: vk::PhysicalDevice,
     graphics_q_index: u32,
     present_q_index: u32,
-) -> Result<(Device, vk::Queue, vk::Queue), Box<dyn Error>> {
+) -> crate::Result<(Device, vk::Queue, vk::Queue)> {
     log::debug!("Creating vulkan device and graphics and present queues");
     let queue_priorities = [1.0f32];
     let queue_create_infos = {
