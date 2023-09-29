@@ -1244,6 +1244,8 @@ dependencies = [
  "imgui-rs-vulkan-renderer",
  "imgui-winit-support",
  "log",
+ "mint",
+ "nalgebra",
  "obfstr",
  "raw-window-handle 0.5.2",
  "thiserror",

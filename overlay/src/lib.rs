@@ -1,13 +1,7 @@
-use ash::{
-    extensions::{
-        ext::DebugUtils,
-        khr::{Surface, Swapchain as SwapchainLoader},
-    },
-    vk, Device, Entry, Instance,
-};
+use ash::vk;
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
-use error::{OverlayError, Result};
+use error::Result;
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_rs_vulkan_renderer::{Renderer, Options};
 use imgui_winit_support::{HiDpiMode, WinitPlatform, winit::dpi::PhysicalSize};
@@ -41,7 +35,9 @@ mod input;
 mod window_tracker;
 
 mod vulkan;
-use vulkan::*;
+
+mod perf;
+use perf::*;
 
 mod vulkan_render;
 use vulkan_render::*;
@@ -203,7 +199,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     };
 
     let (mut platform, mut imgui) = create_imgui_context()?;
-    platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Rounded);
+    platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
 
     let renderer = Renderer::with_default_allocator(
         &vulkan_context.instance,
@@ -218,6 +214,12 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
             ..Default::default()
         }),
     )?;
+
+    /* The Vulkan backend can handle 32bit vertex offsets, but forgets to insert that flag... */
+    imgui
+        .io_mut()
+        .backend_flags
+        .insert(imgui::BackendFlags::RENDERER_HAS_VTX_OFFSET);
 
     Ok(System {
         event_loop,
@@ -276,6 +278,8 @@ impl OverlayActiveTracker {
     }
 }
 
+const PERF_RECORDS: usize = 2048;
+
 impl System {
     pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
     where
@@ -312,9 +316,12 @@ impl System {
             window_tracker,
 
             frame_count: 0,
+            debug_overlay_shown: false,
         };
 
         let mut dirty_swapchain = false;
+
+        let mut perf = PerfTracker::new(PERF_RECORDS);
         event_loop.run(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             platform.handle_event(runtime_controller.imgui.io_mut(), &window, &event);
@@ -322,6 +329,7 @@ impl System {
             match event {
                 // New frame
                 Event::NewEvents(_) => {
+                    perf.begin();
                     let now = Instant::now();
                     runtime_controller
                         .imgui
@@ -332,6 +340,8 @@ impl System {
 
                 // End of event processing
                 Event::MainEventsCleared => {
+                    perf.mark("events cleared");
+
                     /* Update */
                     {
                         if !runtime_controller.update_state(&window) {
@@ -344,6 +354,8 @@ impl System {
                             *control_flow = ControlFlow::Exit;
                             return;
                         }
+
+                        perf.mark("update");
                     }
     
                     /* render */
@@ -377,11 +389,32 @@ impl System {
                             *control_flow = ControlFlow::ExitWithCode(0);
                             return;
                         }
-                        
+                        if runtime_controller.debug_overlay_shown {
+                            ui.window("Render Debug")
+                                .position([ 200.0, 200.0 ], imgui::Condition::FirstUseEver)
+                                .size([ 400.0, 400.0 ], imgui::Condition::FirstUseEver)
+                                .build(|| {
+                                    ui.text(format!("FPS: {: >4.2}", ui.io().framerate));
+                                    ui.same_line_with_pos(100.0);
+
+                                    ui.text(format!("Frame Time: {:.2}ms", ui.io().delta_time * 1000.0));
+                                    ui.same_line_with_pos(2750.0);
+
+                                    ui.text("History length:");
+                                    ui.same_line();
+                                    let mut history_length = perf.history_length();
+                                    ui.set_next_item_width(75.0);
+                                    if ui.input_scalar("##history_length", &mut history_length).build() {
+                                        perf.set_history_length(history_length);
+                                    }
+                                    perf.render(ui, ui.content_region_avail());
+                                });
+                        }
+                        perf.mark("render frame");
+
                         platform.prepare_render(ui, &window);
                         let draw_data = runtime_controller.imgui.render();
 
-                        let begin_vulkan = Instant::now();
                         unsafe {
                             vulkan_context
                                 .device
@@ -389,6 +422,7 @@ impl System {
                                 .expect("Failed to wait ")
                         };
 
+                        perf.mark("fence");
                         let next_image_result = unsafe {
                             swapchain.loader.acquire_next_image(
                                 swapchain.khr,
@@ -439,23 +473,23 @@ impl System {
                                 .signal_semaphores(&signal_semaphores)
                                 .build()
                         ];
+                        
+                        perf.mark("before submit");
                         unsafe {
                             vulkan_context
                                 .device
                                 .queue_submit(vulkan_context.graphics_queue, &submit_info, fence)
                                 .expect("Failed to submit work to gpu.")
                         };
-    
+                        perf.mark("after submit");
+
                         let swapchains = [swapchain.khr];
                         let images_indices = [image_index];
                         let present_info = vk::PresentInfoKHR::builder()
                             .wait_semaphores(&signal_semaphores)
                             .swapchains(&swapchains)
                             .image_indices(&images_indices);
-    
-                        let time_vulkan = begin_vulkan.elapsed();
-                        let begin = Instant::now();
-
+                        
                         let present_result = unsafe {
                             swapchain
                                 .loader
@@ -471,7 +505,9 @@ impl System {
                             Err(error) => panic!("Failed to present queue. Cause: {}", error),
                             _ => {}
                         }
-                        //log::debug!("Render {:?}, Display: {:?}", time_vulkan, begin.elapsed());
+                        perf.finish("present");
+
+                        runtime_controller.frame_rendered();
                     }
                 }
                 Event::WindowEvent {
@@ -488,6 +524,7 @@ pub struct SystemRuntimeController {
     pub hwnd: HWND,
 
     pub imgui: imgui::Context,
+    debug_overlay_shown: bool,
 
     active_tracker: OverlayActiveTracker,
     mouse_input_system: MouseInputSystem,
@@ -537,5 +574,13 @@ impl SystemRuntimeController {
                 );
             }
         }
+    }
+
+    pub fn toggle_debug_overlay(&mut self, visible: bool) {
+        self.debug_overlay_shown = visible;
+    }
+
+    pub fn debug_overlay_shown(&self) -> bool {
+        self.debug_overlay_shown
     }
 }

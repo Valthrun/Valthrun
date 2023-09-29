@@ -25,6 +25,7 @@ impl MouseInputSystem {
             GetCursorPos(&mut point);
             ScreenToClient(HWND(window.hwnd()), &mut point);
         };
+
         io.add_mouse_pos_event([
             (point.x as f64 / window.scale_factor()) as f32,
             (point.y as f64 / window.scale_factor()) as f32,
