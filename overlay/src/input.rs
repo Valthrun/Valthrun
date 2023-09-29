@@ -1,6 +1,5 @@
-use glium::glutin;
-use glium::glutin::platform::windows::WindowExtWindows;
 use imgui::{Key, MouseButton};
+use imgui_winit_support::winit::platform::windows::WindowExtWindows;
 use windows::Win32::Foundation::{HWND, POINT};
 use windows::Win32::Graphics::Gdi::ScreenToClient;
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -9,6 +8,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     VK_XBUTTON2,
 };
 use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+use imgui_winit_support::winit::window::Window;
 
 const VK_KEY_MAX: usize = 256;
 
@@ -19,7 +19,7 @@ impl MouseInputSystem {
         Self {}
     }
 
-    pub fn update(&mut self, window: &glutin::window::Window, io: &mut imgui::Io) {
+    pub fn update(&mut self, window: &Window, io: &mut imgui::Io) {
         let mut point: POINT = Default::default();
         unsafe {
             GetCursorPos(&mut point);
@@ -47,7 +47,7 @@ impl KeyboardInputSystem {
         }
     }
 
-    pub fn update(&mut self, _window: &glutin::window::Window, io: &mut imgui::Io) {
+    pub fn update(&mut self, _window: &Window, io: &mut imgui::Io) {
         for vkey in 0..VK_KEY_MAX {
             let key_state = unsafe { GetAsyncKeyState(vkey as i32) as u16 };
             let pressed = (key_state & 0x8000) > 0;

@@ -1,0 +1,4 @@
+[build]
+rustflags = [
+    "-L", "G:\\VulkanSDK\\1.3.261.1\\Lib",
+]

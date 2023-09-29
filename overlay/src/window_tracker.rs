@@ -1,7 +1,7 @@
 use std::ffi::CString;
 
 use crate::error::{OverlayError, Result};
-use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
+use imgui_winit_support::winit::{window::Window, platform::windows::WindowExtWindows};
 use windows::{
     core::PCSTR,
     Win32::{
