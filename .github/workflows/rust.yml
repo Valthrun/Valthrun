@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ "master", "in-dev" ]
+    branches: [ "master", "in-dev", "render-vulkan" ]
   pull_request:
     branches: [ "master" ]
 
