@@ -387,16 +387,14 @@ fn create_vulkan_device_and_graphics_and_present_qs(
 
 fn create_vulkan_swapchain(
     vulkan_context: &VulkanContext,
-) -> Result<
-    (
-        SwapchainLoader,
-        vk::SwapchainKHR,
-        vk::Extent2D,
-        vk::Format,
-        Vec<vk::Image>,
-        Vec<vk::ImageView>,
-    )
-> {
+) -> Result<(
+    SwapchainLoader,
+    vk::SwapchainKHR,
+    vk::Extent2D,
+    vk::Format,
+    Vec<vk::Image>,
+    Vec<vk::ImageView>,
+)> {
     log::debug!("Creating vulkan swapchain");
     // Swapchain format
     let format = {
@@ -532,10 +530,7 @@ fn create_vulkan_swapchain(
     ))
 }
 
-fn create_vulkan_render_pass(
-    device: &Device,
-    format: vk::Format,
-) -> Result<vk::RenderPass> {
+fn create_vulkan_render_pass(device: &Device, format: vk::Format) -> Result<vk::RenderPass> {
     log::debug!("Creating vulkan render pass");
     let attachment_descs = [vk::AttachmentDescription::builder()
         .format(format)

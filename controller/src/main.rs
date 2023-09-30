@@ -13,11 +13,12 @@ use cs2_schema_declaration::Ptr;
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
-use overlay::{SystemRuntimeController, OverlayError, LoadingError};
+use overlay::{LoadingError, OverlayError, SystemRuntimeController};
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
 use std::{
     cell::{RefCell, RefMut},
+    error::Error,
     fmt::Debug,
     fs::File,
     io::BufWriter,
@@ -27,7 +28,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::{Duration, Instant}, error::Error,
+    time::{Duration, Instant},
 };
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
@@ -484,26 +485,23 @@ fn main_overlay() -> anyhow::Result<()> {
     log::debug!("Initialize overlay");
     // OverlayError
     let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
-        Err(
-            OverlayError::VulkanDllNotFound(
-                LoadingError::LibraryLoadFailure(
-                    source
-                )
-            )
-        ) => {
+        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
                     let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", source);
                     show_critical_error(&message);
-                },
+                }
                 error => {
-                    let message = format!("An error occurred while loading vulkan-1.dll.\nError: {:#}", error);
+                    let message = format!(
+                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
+                        error
+                    );
                     show_critical_error(&message);
                 }
             }
             return Ok(());
-        },
-        value => value?
+        }
+        value => value?,
     };
     if let Some(imgui_settings) = imgui_settings {
         overlay.imgui.load_ini_settings(&imgui_settings);
