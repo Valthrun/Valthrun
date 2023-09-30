@@ -13,7 +13,7 @@ use cs2_schema_declaration::Ptr;
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
-use overlay::SystemRuntimeController;
+use overlay::{SystemRuntimeController, OverlayError, LoadingError};
 use settings::{load_app_settings, AppSettings};
 use settings_ui::SettingsUI;
 use std::{
@@ -27,7 +27,7 @@ use std::{
         atomic::{AtomicBool, Ordering},
         Arc,
     },
-    time::{Duration, Instant},
+    time::{Duration, Instant}, error::Error,
 };
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
@@ -482,7 +482,29 @@ fn main_overlay() -> anyhow::Result<()> {
     let app = Rc::new(RefCell::new(app));
 
     log::debug!("Initialize overlay");
-    let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
+    // OverlayError
+    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
+        Err(
+            OverlayError::VulkanDllNotFound(
+                LoadingError::LibraryLoadFailure(
+                    source
+                )
+            )
+        ) => {
+            match &source {
+                libloading::Error::LoadLibraryExW { .. } => {
+                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", source);
+                    show_critical_error(&message);
+                },
+                error => {
+                    let message = format!("An error occurred while loading vulkan-1.dll.\nError: {:#}", error);
+                    show_critical_error(&message);
+                }
+            }
+            return Ok(());
+        },
+        value => value?
+    };
     if let Some(imgui_settings) = imgui_settings {
         overlay.imgui.load_ini_settings(&imgui_settings);
     }

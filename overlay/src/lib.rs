@@ -1,7 +1,6 @@
 use ash::vk;
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
-use error::Result;
 use imgui::{Context, FontConfig, FontSource, Io};
 use imgui_rs_vulkan_renderer::{Options, Renderer};
 use imgui_winit_support::winit::event::{Event, WindowEvent};
@@ -31,6 +30,7 @@ use windows::Win32::UI::WindowsAndMessaging::{
 
 mod clipboard;
 mod error;
+pub use error::*;
 mod input;
 mod window_tracker;
 
@@ -161,7 +161,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
     let event_loop = EventLoop::new();
     let window = create_window(&event_loop, title)?;
 
-    let vulkan_context = VulkanContext::new(&window, title).unwrap(); // FIXME: Don't use unwrap here!
+    let vulkan_context = VulkanContext::new(&window, title)?;
     let command_buffer = {
         let allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(vulkan_context.command_pool)
@@ -175,8 +175,7 @@ pub fn init(title: &str, target_window: &str) -> Result<System> {
         }
     };
 
-    let swapchain = Swapchain::new(&vulkan_context).unwrap(); // FIXME: Don't use unwrap here!
-                                                              // Semaphore use for presentation
+    let swapchain = Swapchain::new(&vulkan_context)?;
     let image_available_semaphore = {
         let semaphore_info = vk::SemaphoreCreateInfo::builder();
         unsafe {

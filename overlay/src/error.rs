@@ -1,11 +1,11 @@
 use std::ffi::NulError;
 
-use ash::{vk, LoadingError};
 use imgui_rs_vulkan_renderer::RendererError;
 use imgui_winit_support::winit::error::OsError;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, OverlayError>;
+pub use ash::{ LoadingError, vk::Result as VkResult };
 
 #[derive(Error, Debug)]
 pub enum OverlayError {
@@ -28,7 +28,7 @@ pub enum OverlayError {
     WindowsError(#[from] windows::core::Error),
 
     #[error("vulkan: {0}")]
-    VulkanError(#[from] vk::Result),
+    VulkanError(#[from] VkResult),
 
     #[error("render error: {0}")]
     RenderError(#[from] RendererError),

@@ -1,7 +1,4 @@
-use std::{
-    error::Error,
-    ffi::{c_void, CStr, CString},
-};
+use std::ffi::{c_void, CStr, CString};
 
 use ash::{
     extensions::{
@@ -14,6 +11,8 @@ use imgui::DrawData;
 use imgui_rs_vulkan_renderer::Renderer;
 use imgui_winit_support::winit::window::Window;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+
+use crate::error::Result;
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
@@ -121,7 +120,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(vulkan_context: &VulkanContext) -> Result<Self, Box<dyn Error>> {
+    pub fn new(vulkan_context: &VulkanContext) -> Result<Self> {
         // Swapchain
         let (loader, khr, extent, format, images, image_views) =
             create_vulkan_swapchain(&vulkan_context)?;
@@ -144,7 +143,7 @@ impl Swapchain {
         })
     }
 
-    pub fn recreate(&mut self, vulkan_context: &VulkanContext) -> Result<(), Box<dyn Error>> {
+    pub fn recreate(&mut self, vulkan_context: &VulkanContext) -> Result<()> {
         log::debug!("Recreating the swapchain");
 
         unsafe { vulkan_context.device.device_wait_idle()? };
@@ -396,8 +395,7 @@ fn create_vulkan_swapchain(
         vk::Format,
         Vec<vk::Image>,
         Vec<vk::ImageView>,
-    ),
-    Box<dyn Error>,
+    )
 > {
     log::debug!("Creating vulkan swapchain");
     // Swapchain format
@@ -522,7 +520,7 @@ fn create_vulkan_swapchain(
 
             unsafe { vulkan_context.device.create_image_view(&create_info, None) }
         })
-        .collect::<Result<Vec<_>, _>>()?;
+        .collect::<std::result::Result<Vec<_>, _>>()?;
 
     Ok((
         swapchain,
@@ -537,7 +535,7 @@ fn create_vulkan_swapchain(
 fn create_vulkan_render_pass(
     device: &Device,
     format: vk::Format,
-) -> Result<vk::RenderPass, Box<dyn Error>> {
+) -> Result<vk::RenderPass> {
     log::debug!("Creating vulkan render pass");
     let attachment_descs = [vk::AttachmentDescription::builder()
         .format(format)
@@ -582,7 +580,7 @@ fn create_vulkan_framebuffers(
     render_pass: vk::RenderPass,
     extent: vk::Extent2D,
     image_views: &[vk::ImageView],
-) -> Result<Vec<vk::Framebuffer>, Box<dyn Error>> {
+) -> Result<Vec<vk::Framebuffer>> {
     log::debug!("Creating vulkan framebuffers");
     Ok(image_views
         .iter()
@@ -596,7 +594,7 @@ fn create_vulkan_framebuffers(
                 .layers(1);
             unsafe { device.create_framebuffer(&framebuffer_info, None) }
         })
-        .collect::<Result<Vec<_>, _>>()?)
+        .collect::<std::result::Result<Vec<_>, _>>()?)
 }
 
 pub fn record_command_buffers(
@@ -608,7 +606,7 @@ pub fn record_command_buffers(
     extent: vk::Extent2D,
     renderer: &mut Renderer,
     draw_data: &DrawData,
-) -> Result<(), Box<dyn Error>> {
+) -> Result<()> {
     unsafe { device.reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())? };
 
     let command_buffer_begin_info =
