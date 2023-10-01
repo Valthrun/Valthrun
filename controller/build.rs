@@ -2,12 +2,15 @@ use std::io;
 
 use winres::WindowsResource;
 
-const MANIFEST: &'static str = include_str!("./manifest.xml");
 fn main() -> io::Result<()> {
-    WindowsResource::new()
-        .set_icon("../logo-icon.ico")
-        .set_manifest(MANIFEST)
-        .compile()?;
+    let mut resource = WindowsResource::new();
+    resource.set_icon("../logo-icon.ico");
+    #[cfg(feature = "exe-manifest")]
+    {
+        const MANIFEST: &'static str = include_str!("./manifest.xml");
+        resource.set_manifest(MANIFEST);
+    }
 
+    resource.compile()?;
     Ok(())
 }
