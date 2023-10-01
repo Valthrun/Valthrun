@@ -4,7 +4,7 @@ version = "0.2.1"
 edition = "2021"
 
 [features]
-exe-manifest = [] # Include the manifest file in the final exe output
+require-administrator = []
 
 [dependencies]
 cs2 = { path = "../cs2" } 
