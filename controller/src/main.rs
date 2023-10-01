@@ -488,7 +488,8 @@ fn main_overlay() -> anyhow::Result<()> {
         Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
-                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", source);
+                    let error = source.source().context("LoadLibraryExW to have a source")?;
+                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
                     show_critical_error(&message);
                 }
                 error => {
