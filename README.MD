@@ -30,11 +30,13 @@ Regardless of this limitation, Valthrun supports the following features:
 - Player ESP
   Two modes are supported: `Skeleton` and `Boxes`
   - Configurable colors to distinguish between enemy and team players
+  - ESP includes player health
 - Bomb Info
   - Time until the bomb detonation
   - Defuser info such as how long until the defuse has succeeded
   - Bomb site where the bomb is located
 - Trigger Bot
+- Stream proof by default
 
 To access Valthruns settings overlay press `PAUSE`.
 
@@ -43,12 +45,6 @@ To access Valthruns settings overlay press `PAUSE`.
 - Spectator info
   - List of player currently watching you / the observer target
 - Player competitive ranks / wins
-  (I don't have access to the closed beta... so this has to wait a little)
-
-Mess around:
-- `KeUserModeCallback`
-https://www.unknowncheats.me/forum/anti-cheat-bypass/347320-communication-via-callbacks.html
-- Invoking Shellcode within CS (send text message, change player name etc.)
 
 # Installation
 Valthrun does not need to be installed.  

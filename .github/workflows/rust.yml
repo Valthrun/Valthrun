@@ -15,13 +15,17 @@ jobs:
     runs-on: windows-latest
 
     steps:
+    - name: Install toolchain
+      uses: actions-rs/toolchain@v1
+      with:
+          toolchain: nightly
+          override: true
     - uses: actions/checkout@v3
-    - name: Use rust nightly
-      run: rustup update nightly && rustup default nightly
+    - uses: Swatinem/rust-cache@v2
     - name: Check fmt
       run: rustup component add rustfmt && cargo fmt --check
     - name: Build
-      run: cargo build --verbose --release
+      run: cargo build --verbose --release -F exe-manifest
     # Right now there are no tests specified
     # - name: Run tests
     #   run: cargo test --verbose
