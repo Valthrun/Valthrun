@@ -26,6 +26,8 @@ jobs:
       run: rustup component add rustfmt && cargo fmt --check
     - name: Build
       run: cargo build --verbose --release -F require-administrator
+      env:
+        RUSTFLAGS: -Ctarget-feature=+crt-static
     # Right now there are no tests specified
     # - name: Run tests
     #   run: cargo test --verbose
