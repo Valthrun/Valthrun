@@ -6,6 +6,8 @@ pub trait MemoryDriver: Any {
     fn as_any(&self) -> &dyn Any;
 
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()>;
+    fn read_cstring(&self, address: u64, expected_length: Option<usize>, max_length: Option<usize>) -> anyhow::Result<String>;
+
     /* fn write_slice(&self, address: u64, slice: &[u8]) -> anyhow::Result<()>; */
 }
 

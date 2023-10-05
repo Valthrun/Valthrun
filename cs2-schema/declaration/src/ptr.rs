@@ -148,6 +148,23 @@ impl<T: SchemaValue> Ptr<[T]> {
 
 pub type PtrCStr = Ptr<*const i8>;
 
+impl PtrCStr {
+    pub fn read_string(&self) -> anyhow::Result<String> {
+        self.driver.read_cstring(self.address()?, None, None)
+    }
+
+    pub fn try_read_string(&self) -> anyhow::Result<Option<String>> {
+        let address = self.address()?;
+        if address == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(
+                self.driver.read_cstring(self.address()?, None, None)?
+            ))
+        }
+    }
+}
+
 pub struct FixedCString<const SIZE: usize> {
     memory: MemoryHandle,
 }

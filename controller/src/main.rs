@@ -7,7 +7,7 @@ use cache::EntryCache;
 use clap::{Args, Parser, Subcommand};
 use class_name_cache::ClassNameCache;
 use cs2::{
-    CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module, PCStrEx,
+    CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module,
     Signature,
 };
 use enhancements::Enhancement;
@@ -391,11 +391,11 @@ impl BuildInfo {
         let address = Self::find_build_info(cs2)?;
         let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[address])?;
         Ok(Self {
-            revision: engine_build_info.revision()?.read_string(&cs2)?,
+            revision: engine_build_info.revision()?.read_string()?,
             build_datetime: format!(
                 "{} {}",
-                engine_build_info.build_date()?.read_string(&cs2)?,
-                engine_build_info.build_time()?.read_string(&cs2)?
+                engine_build_info.build_date()?.read_string()?,
+                engine_build_info.build_time()?.read_string()?
             ),
         })
     }
