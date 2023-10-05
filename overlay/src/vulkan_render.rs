@@ -36,13 +36,14 @@ pub struct VulkanContext {
 impl VulkanContext {
     pub fn new(window: &Window, name: &str) -> crate::error::Result<Self> {
         // Vulkan instance
-        let vulkan_dll_path = if let Ok(path) = std::env::var("VULKAN_DLL_PATH") {
-            path
-        } else {
-            "C:\\Windows\\System32\\vulkan-1.dll".to_string()
-        };
-        log::debug!("Loading vulkan-1.dll from '{}'", vulkan_dll_path);
-        let entry = unsafe { Entry::load_from(vulkan_dll_path)? };
+        // let vulkan_dll_path = if let Ok(path) = std::env::var("VULKAN_DLL_PATH") {
+        //     path
+        // } else {
+        //     "C:\\Windows\\System32\\vulkan-1.dll".to_string()
+        // };
+        // log::debug!("Loading vulkan-1.dll from '{}'", vulkan_dll_path);
+        // let entry = unsafe { Entry::load_from(vulkan_dll_path)? };
+        let entry = unsafe { Entry::load()? };
         let (instance, debug_utils, debug_utils_messenger) =
             create_vulkan_instance(&entry, window, name)?;
 
