@@ -389,7 +389,7 @@ fn main_overlay() -> anyhow::Result<()> {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {
-                if let KInterfaceError::DeviceUnavailable(_) = &err {
+                if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if !unsafe { IsUserAnAdmin().as_bool() } {
                         if !is_console_invoked() {
                             /* If we don't have a console, show the message box and abort execution. */
@@ -400,6 +400,12 @@ fn main_overlay() -> anyhow::Result<()> {
                         /* Just print this warning message and return the actual error.  */
                         log::warn!("Application run without administrator privileges.");
                         log::warn!("Please re-run with administrator privileges!");
+                    }
+
+                    if error.code().0 as u32 == 0x80070002 {
+                        /* The system cannot find the file specified. */
+                        show_critical_error("Could not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
                     show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
