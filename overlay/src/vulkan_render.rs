@@ -12,7 +12,7 @@ use imgui_rs_vulkan_renderer::Renderer;
 use imgui_winit_support::winit::window::Window;
 use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
 
-use crate::error::Result;
+use crate::{error::Result, vulkan_driver::get_vulkan_entry};
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
@@ -36,14 +36,7 @@ pub struct VulkanContext {
 impl VulkanContext {
     pub fn new(window: &Window, name: &str) -> crate::error::Result<Self> {
         // Vulkan instance
-        // let vulkan_dll_path = if let Ok(path) = std::env::var("VULKAN_DLL_PATH") {
-        //     path
-        // } else {
-        //     "C:\\Windows\\System32\\vulkan-1.dll".to_string()
-        // };
-        // log::debug!("Loading vulkan-1.dll from '{}'", vulkan_dll_path);
-        // let entry = unsafe { Entry::load_from(vulkan_dll_path)? };
-        let entry = unsafe { Entry::load()? };
+        let entry = get_vulkan_entry()?;
         let (instance, debug_utils, debug_utils_messenger) =
             create_vulkan_instance(&entry, window, name)?;
 

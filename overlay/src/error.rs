@@ -35,4 +35,13 @@ pub enum OverlayError {
 
     #[error("a parameter contains the null character")]
     ParameterContainsNull(#[from] NulError),
+
+    #[error("current exe path is invalid: {0}")]
+    ExePathInvalid(std::io::Error),
+
+    #[error("the exe must be located within a directory")]
+    ExePathMissingParentDirectory,
+
+    #[error("failed to write the vulkan dll")]
+    VulkanDllError(std::io::Error),
 }

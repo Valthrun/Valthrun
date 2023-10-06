@@ -42,6 +42,8 @@ pub use perf::PerfTracker;
 mod vulkan_render;
 use vulkan_render::*;
 
+mod vulkan_driver;
+
 pub fn show_error_message(title: &str, message: &str) {
     let title = CString::new(title).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
     let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
