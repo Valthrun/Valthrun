@@ -1,11 +1,3 @@
-fn to_wide_chars(s: &str) -> Vec<u16> {
-    use std::ffi::OsStr;
-    use std::os::windows::ffi::OsStrExt;
-    OsStr::new(s).encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>()
-}
-
-// use std::ffi::CString;
-
 use crate::error::{OverlayError, Result};
 use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
@@ -27,6 +19,12 @@ use windows::{
 pub struct WindowTracker {
     cs2_hwnd: HWND,
     current_bounds: RECT,
+}
+
+fn to_wide_chars(s: &str) -> Vec<u16> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    OsStr::new(s).encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>()
 }
 
 impl WindowTracker {
