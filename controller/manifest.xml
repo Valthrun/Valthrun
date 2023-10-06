@@ -3,13 +3,6 @@
     xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
     <assemblyIdentity version="0.1.0.0" processorArchitecture="amd64"
         name="valthrun.controller.overlay" type="win32"></assemblyIdentity>
-    <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
-        <security>
-            <requestedPrivileges>
-                <requestedExecutionLevel level="{{execution_level}}" uiAccess="false"></requestedExecutionLevel>
-            </requestedPrivileges>
-        </security>
-    </trustInfo>
     <asmv3:application>
         <asmv3:windowsSettings>
             <dpiAware xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">true/PM</dpiAware>
