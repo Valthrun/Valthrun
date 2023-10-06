@@ -1,9 +1,15 @@
-use std::ffi::CString;
+fn to_wide_chars(s: &str) -> Vec<u16> {
+    use std::ffi::OsStr;
+    use std::os::windows::ffi::OsStrExt;
+    OsStr::new(s).encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>()
+}
+
+// use std::ffi::CString;
 
 use crate::error::{OverlayError, Result};
 use glium::glutin::{platform::windows::WindowExtWindows, window::Window};
 use windows::{
-    core::PCSTR,
+    core::PCWSTR,
     Win32::{
         Foundation::{
             GetLastError, ERROR_INVALID_WINDOW_HANDLE, HWND, LPARAM, POINT, RECT, WPARAM,
@@ -11,7 +17,7 @@ use windows::{
         Graphics::Gdi::ClientToScreen,
         UI::{
             Input::KeyboardAndMouse::GetFocus,
-            WindowsAndMessaging::{FindWindowA, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
+            WindowsAndMessaging::{FindWindowW, GetClientRect, MoveWindow, SendMessageA, WM_PAINT},
         },
     },
 };
@@ -25,10 +31,8 @@ pub struct WindowTracker {
 
 impl WindowTracker {
     pub fn new(target: &str) -> Result<Self> {
-        let target = CString::new(target).map_err(OverlayError::WindowInvalidName)?;
-
         let cs2_hwnd =
-            unsafe { FindWindowA(PCSTR::null(), PCSTR::from_raw(target.as_ptr() as *const u8)) };
+            unsafe { FindWindowW(PCWSTR::null(), PCWSTR::from_raw(to_wide_chars(target).as_ptr())) };
         if cs2_hwnd.0 == 0 {
             return Err(OverlayError::WindowNotFound);
         }
