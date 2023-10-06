@@ -24,13 +24,20 @@ pub struct WindowTracker {
 fn to_wide_chars(s: &str) -> Vec<u16> {
     use std::ffi::OsStr;
     use std::os::windows::ffi::OsStrExt;
-    OsStr::new(s).encode_wide().chain(Some(0).into_iter()).collect::<Vec<_>>()
+    OsStr::new(s)
+        .encode_wide()
+        .chain(Some(0).into_iter())
+        .collect::<Vec<_>>()
 }
 
 impl WindowTracker {
     pub fn new(target: &str) -> Result<Self> {
-        let cs2_hwnd =
-            unsafe { FindWindowW(PCWSTR::null(), PCWSTR::from_raw(to_wide_chars(target).as_ptr())) };
+        let cs2_hwnd = unsafe {
+            FindWindowW(
+                PCWSTR::null(),
+                PCWSTR::from_raw(to_wide_chars(target).as_ptr()),
+            )
+        };
         if cs2_hwnd.0 == 0 {
             return Err(OverlayError::WindowNotFound);
         }
