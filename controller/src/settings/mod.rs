@@ -75,6 +75,9 @@ pub struct AppSettings {
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
+    #[serde(default = "bool_true")]
+    pub valthrun_watermark: bool,
+
     #[serde(default = "default_esp_color_team")]
     pub esp_color_team: [f32; 4],
 
