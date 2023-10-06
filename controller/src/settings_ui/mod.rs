@@ -195,6 +195,12 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+
+                        ui.checkbox(obfstr!("Valthrun Watermark"), &mut settings.valthrun_watermark);
+
+                        if ui.checkbox("Hide overlay from screen capture", &mut settings.hide_overlay_from_screen_capture) {
+                            app.settings_screen_capture_changed.store(true, Ordering::Relaxed);
+                        }
                     }
 
                     if let Some(_) = ui.tab_item("Aim Assist") {

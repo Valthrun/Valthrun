@@ -224,31 +224,33 @@ impl Application {
     fn render_overlay(&self, ui: &imgui::Ui) {
         let settings = self.settings.borrow();
 
-        {
-            let text_buf;
-            let text = obfstr!(text_buf = "Valthrun Overlay");
+        if settings.valthrun_watermark {
+            {
+                let text_buf;
+                let text = obfstr!(text_buf = "Valthrun Overlay");
 
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
-                10.0,
-            ]);
-            ui.text(text);
-        }
-        {
-            let text = format!("{:.2} FPS", ui.io().framerate);
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
-                24.0,
-            ]);
-            ui.text(text)
-        }
-        {
-            let text = format!("{} Reads", self.frame_read_calls);
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
-                38.0,
-            ]);
-            ui.text(text)
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
+                    10.0,
+                ]);
+                ui.text(text);
+            }
+            {
+                let text = format!("{:.2} FPS", ui.io().framerate);
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                    24.0,
+                ]);
+                ui.text(text)
+            }
+            {
+                let text = format!("{} Reads", self.frame_read_calls);
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                    38.0,
+                ]);
+                ui.text(text)
+            }
         }
 
         for hack in self.enhancements.iter() {
