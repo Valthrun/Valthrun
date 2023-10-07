@@ -60,6 +60,57 @@ impl ViewController {
         Some(screen_pos)
     }
 
+    pub fn draw_box_2d(
+        &self,
+        draw: &imgui::DrawListMut,
+        vmin: &nalgebra::Vector3<f32>,
+        vmax: &nalgebra::Vector3<f32>,
+        color: ImColor32,
+        thickness: f32,
+    ) -> Option<(nalgebra::Vector2<f32>, nalgebra::Vector2<f32>)> {
+        type Vec3 = nalgebra::Vector3<f32>;
+        type Vec2 = nalgebra::Vector2<f32>;
+
+        let points = [
+            /* bottom */
+            Vec3::new(vmin.x, vmin.y, vmin.z),
+            Vec3::new(vmax.x, vmin.y, vmin.z),
+            Vec3::new(vmin.x, vmax.y, vmin.z),
+            Vec3::new(vmax.x, vmax.y, vmin.z),
+            /* top */
+            Vec3::new(vmin.x, vmin.y, vmax.z),
+            Vec3::new(vmax.x, vmin.y, vmax.z),
+            Vec3::new(vmin.x, vmax.y, vmax.z),
+            Vec3::new(vmax.x, vmax.y, vmax.z),
+        ];
+
+        let mut min2d = Vec2::new(f32::MAX, f32::MAX);
+        let mut max2d = Vec2::new(-f32::MAX, -f32::MAX);
+        for point in points {
+            if let Some(point) = self.world_to_screen(&point, true) {
+                min2d.x = min2d.x.min(point.x);
+                min2d.y = min2d.y.min(point.y);
+
+                max2d.x = max2d.x.max(point.x);
+                max2d.y = max2d.y.max(point.y);
+            }
+        }
+
+        if min2d.x >= max2d.x {
+            return None;
+        }
+
+        if min2d.y >= max2d.y {
+            return None;
+        }
+
+        draw.add_rect([min2d.x, min2d.y], [max2d.x, max2d.y], color)
+            .thickness(thickness)
+            .build();
+
+        Some((min2d, max2d))
+    }
+
     pub fn draw_box_3d(
         &self,
         draw: &imgui::DrawListMut,

@@ -8,7 +8,7 @@ use clap::{Args, Parser, Subcommand};
 use class_name_cache::ClassNameCache;
 use cs2::{
     CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module, PCStrEx,
-    Signature, CEntityIdentityEx,
+    Signature,
 };
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
@@ -41,12 +41,12 @@ use crate::{
 };
 
 mod cache;
+mod class_name_cache;
 mod enhancements;
 mod settings;
 mod settings_ui;
 mod view;
-mod class_name_cache;
-
+mod weapon;
 pub trait UpdateInputState {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
@@ -182,10 +182,12 @@ impl Application {
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
-        self.cs2_entities.read_entities()
+        self.cs2_entities
+            .read_entities()
             .with_context(|| obfstr!("failed to read global entity list").to_string())?;
 
-        self.class_name_cache.update_cache(self.cs2_entities.all_identities())
+        self.class_name_cache
+            .update_cache(self.cs2_entities.all_identities())
             .with_context(|| obfstr!("failed to update class name cache").to_string())?;
 
         let update_context = UpdateContext {
@@ -451,7 +453,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
-    let mut app = Application {
+    let app = Application {
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),

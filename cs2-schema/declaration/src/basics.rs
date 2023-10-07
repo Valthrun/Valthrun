@@ -53,7 +53,8 @@ impl<T: SchemaValue, const N: usize> SchemaValue for [T; N] {
     }
 
     fn from_memory(mut memory: MemoryHandle) -> anyhow::Result<Self> {
-        let element_size = T::value_size().context("fixed array can't have an unsized schema value")?;
+        let element_size =
+            T::value_size().context("fixed array can't have an unsized schema value")?;
         memory.cache(element_size as usize * N)?;
         std::array::try_from_fn(|index| {
             let memory = memory.clone().with_offset((index as u64) * element_size)?;

@@ -1,6 +1,4 @@
 use anyhow::Context;
-use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;

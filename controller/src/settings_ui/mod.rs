@@ -1,10 +1,10 @@
-use std::{cell::RefCell, rc::Rc, sync::atomic::Ordering, time::Instant};
+use std::{borrow::Cow, cell::RefCell, rc::Rc, sync::atomic::Ordering, time::Instant};
 
-use imgui::{Condition, StyleColor, StyleVar};
+use imgui::Condition;
 use obfstr::obfstr;
 
 use crate::{
-    settings::{AppSettings, HotKey},
+    settings::{AppSettings, EspBoxType, HotKey},
     Application,
 };
 
@@ -162,7 +162,23 @@ impl SettingsUI {
                         if settings.esp {
                             ui.checkbox(obfstr!("ESP Boxes"), &mut settings.esp_boxes);
                             if settings.esp_boxes {
-                                ui.slider_config(obfstr!("Box Thickness"), 0.1, 10.0)
+                                ui.set_next_item_width(120.0);
+                                const ESP_BOX_TYPES: [ EspBoxType; 2 ] = [ EspBoxType::Box2D, EspBoxType::Box3D ];
+
+                                fn esp_box_type_name(value: &EspBoxType) -> Cow<'_, str> {
+                                    match value {
+                                        EspBoxType::Box2D => "2D",
+                                        EspBoxType::Box3D => "3D",
+                                    }.into()
+                                }
+
+                                let mut type_index = ESP_BOX_TYPES.iter().position(|v| *v == settings.esp_box_type).unwrap_or_default();
+                                if ui.combo(obfstr!("Type"), &mut type_index, &ESP_BOX_TYPES, &esp_box_type_name) {
+                                    settings.esp_box_type = ESP_BOX_TYPES[type_index];
+                                }
+
+                                ui.same_line();
+                                ui.slider_config(obfstr!("Thickness"), 0.1, 10.0)
                                     .build(&mut settings.esp_boxes_thickness);
                             }
 
@@ -172,7 +188,8 @@ impl SettingsUI {
                                     .build(&mut settings.esp_skeleton_thickness);
                             }
 
-                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_health);
+                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
+                            ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
                             if settings.esp_enabled_team {

@@ -52,15 +52,11 @@ pub struct BombInfo {
 
 impl BombInfo {
     pub fn new() -> Self {
-        Self {
-            bomb_state: None,
-        }
+        Self { bomb_state: None }
     }
 
     fn read_state(&self, ctx: &UpdateContext) -> anyhow::Result<Option<C4Info>> {
-        let entities = ctx
-            .cs2_entities
-            .all_identities();
+        let entities = ctx.cs2_entities.all_identities();
 
         for entity_identity in entities.iter() {
             let class_name = ctx
@@ -68,7 +64,9 @@ impl BombInfo {
                 .lookup(&entity_identity.entity_class_info()?)
                 .context("class name")?;
 
-            if !class_name.map(|name| name == "C_PlantedC4").unwrap_or(false)
+            if !class_name
+                .map(|name| name == "C_PlantedC4")
+                .unwrap_or(false)
             {
                 /* Entity isn't the bomb. */
                 continue;
@@ -137,9 +135,9 @@ impl BombInfo {
 
             return Ok(Some(C4Info {
                 bomb_site,
-                state: C4State::Active { 
-                    time_detonation: time_blow - ctx.globals.time_2()?, 
-                    defuse: defusing 
+                state: C4State::Active {
+                    time_detonation: time_blow - ctx.globals.time_2()?,
+                    defuse: defusing,
                 },
             }));
         }
@@ -205,20 +203,20 @@ impl Enhancement for BombInfo {
         /* align to be on the right side after the players */
         let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
         let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
-        let offset_y = offset_y + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
+        let offset_y = offset_y
+            + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
 
-        ui.set_cursor_pos([ offset_x, offset_y ]);
+        ui.set_cursor_pos([offset_x, offset_y]);
         ui.text(&format!(
             "Bomb planted {}",
             if bomb_info.bomb_site == 0 { "A" } else { "B" }
         ));
-        
+
         match &bomb_info.state {
             C4State::Active {
                 time_detonation,
                 defuse,
             } => {
-                
                 ui.set_cursor_pos_x(offset_x);
                 ui.text(&format!("Time: {:.3}", time_detonation));
                 if let Some(defuse) = defuse.as_ref() {

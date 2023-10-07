@@ -1,7 +1,7 @@
 use std::{collections::BTreeMap, sync::Arc};
 
 use anyhow::Context;
-use cs2::{CS2Handle, CEntityIdentityEx};
+use cs2::{CEntityIdentityEx, CS2Handle};
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::CEntityIdentity;
 
@@ -25,7 +25,12 @@ impl ClassNameCache {
     pub fn update_cache(&mut self, known_identities: &[CEntityIdentity]) -> anyhow::Result<()> {
         for identity in known_identities {
             self.register_class_info(identity.entity_class_info()?)
-                .with_context(|| format!("failed to generate class info for entity {:?}", identity.handle::<()>().unwrap_or_default()))?;
+                .with_context(|| {
+                    format!(
+                        "failed to generate class info for entity {:?}",
+                        identity.handle::<()>().unwrap_or_default()
+                    )
+                })?;
         }
 
         Ok(())
@@ -38,7 +43,9 @@ impl ClassNameCache {
             return Ok(());
         }
 
-        let class_name = self.cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
+        let class_name = self
+            .cs2
+            .read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
 
         self.lookup.insert(address, class_name.clone());
         self.reverse_lookup.insert(class_name, address);

@@ -3,14 +3,91 @@ use std::{ffi::CStr, sync::Arc};
 use anyhow::Context;
 use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::{client::{
-    CModelState, CSkeletonInstance, C_CSPlayerPawn,
-}, globals::CSPlayerState};
+use cs2_schema_generated::cs2::client::{CModelState, CSkeletonInstance, C_CSPlayerPawn};
+use num_derive::FromPrimitive as DFromPrimitive;
+use num_traits::FromPrimitive;
 use obfstr::obfstr;
 
-use crate::{settings::AppSettings, view::ViewController};
+use crate::{
+    settings::{AppSettings, EspBoxType},
+    view::ViewController,
+};
 
 use super::Enhancement;
+
+#[derive(DFromPrimitive)]
+pub enum WeaponId {
+    Unknown = 0,
+    Deagle = 1,
+    Elite = 2,
+    Fiveseven = 3,
+    Glock = 4,
+    Ak47 = 7,
+    Aug = 8,
+    Awp = 9,
+    Famas = 10,
+    G3sg1 = 11,
+    Galilar = 13,
+    M249 = 14,
+    M4a1 = 16,
+    Mac10 = 17,
+    P90 = 19,
+    Ump45 = 24,
+    Xm1014 = 25,
+    Bizon = 26,
+    Mag7 = 27,
+    Negev = 28,
+    Sawedoff = 29,
+    Tec9 = 30,
+    Taser = 31,
+    Hkp2000 = 32,
+    Mp7 = 33,
+    Mp9 = 34,
+    Nova = 35,
+    P250 = 36,
+    Scar20 = 38,
+    Sg556 = 39,
+    Ssg08 = 40,
+    Knife = 42,
+    Flashbang = 43,
+    Hegrenade = 44,
+    Smokegrenade = 45,
+    Molotov = 46,
+    Decoy = 47,
+    Incgrenade = 48,
+    C4 = 49,
+    KnifeT = 59,
+    M4a1silencer = 60,
+    UspSilencer = 61,
+    CZ75a = 63,
+    Revolver = 64,
+    KnifeBayonet = 500,
+    KnifeFlip = 505,
+    KnifeGut = 506,
+    KnifeKarambit = 507,
+    KnifeM9Bayonet = 508,
+    KnifeTactical = 509,
+    KnifeFalchion = 512,
+    KnifeSurvivalBowie = 514,
+    KnifeButterfly = 515,
+    KnifePush = 516,
+}
+
+impl WeaponId {
+    pub fn display_name(&self) -> Option<&'static str> {
+        Some(match self {
+            Self::Deagle => "Deagle",
+            Self::Glock => "Glock-18",
+            Self::Awp => "AWP",
+            Self::Ak47 => "AK-47",
+            Self::Aug => "AUG",
+            Self::Bizon => "Bizon",
+            Self::C4 => "C4",
+            Self::Fiveseven => "Five & Seven",
+            _ => return None,
+        })
+    }
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum TeamType {
@@ -25,8 +102,9 @@ pub struct PlayerInfo {
 
     pub player_health: i32,
     pub player_name: String,
-    pub position: nalgebra::Vector3<f32>,
+    pub weapon: WeaponId,
 
+    pub position: nalgebra::Vector3<f32>,
     pub model: Arc<CS2Model>,
     pub bone_states: Vec<BoneStateData>,
 }
@@ -97,7 +175,8 @@ impl PlayerESP {
         ctx: &crate::UpdateContext,
         player_pawn: &Ptr<C_CSPlayerPawn>,
     ) -> anyhow::Result<Option<PlayerInfo>> {
-        let player_pawn = player_pawn.read_schema()
+        let player_pawn = player_pawn
+            .read_schema()
             .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
 
         let player_health = player_pawn.m_iHealth()?;
@@ -147,14 +226,21 @@ impl PlayerESP {
             .map(|bone| bone.try_into())
             .try_collect()?;
 
+        let weapon = player_pawn.m_pClippingWeapon()?.read_schema()?;
+        let weapon_type = weapon
+            .m_AttributeManager()?
+            .m_Item()?
+            .m_iItemDefinitionIndex()?;
+
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
 
             player_name,
             player_health,
-            position,
+            weapon: WeaponId::from_u16(weapon_type).unwrap_or(WeaponId::Unknown),
 
+            position,
             bone_states,
             model: model.clone(),
         }))
@@ -183,13 +269,19 @@ impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
 
-        if !ctx.settings.esp || !(ctx.settings.esp_boxes || ctx.settings.esp_skeleton) {
+        if !ctx.settings.esp
+            || !(ctx.settings.esp_boxes
+                || ctx.settings.esp_skeleton
+                || ctx.settings.esp_info_health)
+        {
             return Ok(());
         }
 
         self.players.reserve(16);
 
-        let local_player_controller = ctx.cs2_entities.get_local_player_controller()?
+        let local_player_controller = ctx
+            .cs2_entities
+            .get_local_player_controller()?
             .try_reference_schema()
             .with_context(|| obfstr!("failed to read local player controller").to_string())?;
 
@@ -200,14 +292,13 @@ impl Enhancement for PlayerESP {
                 return Ok(());
             }
         };
-        
+
         let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
             local_player_controller.m_hPawn()?.get_entity_index()
         } else {
             let local_obs_pawn = match {
-                ctx.cs2_entities.get_by_handle(
-                    &local_player_controller.m_hObserverPawn()?
-                )?
+                ctx.cs2_entities
+                    .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
             } {
                 Some(pawn) => pawn.entity()?.reference_schema()?,
                 None => {
@@ -216,7 +307,8 @@ impl Enhancement for PlayerESP {
                 }
             };
 
-            local_obs_pawn.m_pObserverServices()?
+            local_obs_pawn
+                .m_pObserverServices()?
                 .read_schema()?
                 .m_hObserverTarget()?
                 .get_entity_index()
@@ -230,8 +322,13 @@ impl Enhancement for PlayerESP {
                 continue;
             }
 
-            let entity_class = ctx.class_name_cache.lookup(&entity_identity.entity_class_info()?)?;
-            if !entity_class.map(|name| *name == "C_CSPlayerPawn").unwrap_or(false) {
+            let entity_class = ctx
+                .class_name_cache
+                .lookup(&entity_identity.entity_class_info()?)?;
+            if !entity_class
+                .map(|name| *name == "C_CSPlayerPawn")
+                .unwrap_or(false)
+            {
                 /* entity is not a player pawn */
                 continue;
             }
@@ -302,30 +399,61 @@ impl Enhancement for PlayerESP {
             }
 
             if settings.esp_boxes {
-                view.draw_box_3d(
-                    &draw,
-                    &(entry.model.vhull_min + entry.position),
-                    &(entry.model.vhull_max + entry.position),
-                    (*esp_color).into(),
-                    settings.esp_boxes_thickness,
-                );
+                match settings.esp_box_type {
+                    EspBoxType::Box2D => {
+                        view.draw_box_2d(
+                            &draw,
+                            &(entry.model.vhull_min + entry.position),
+                            &(entry.model.vhull_max + entry.position),
+                            (*esp_color).into(),
+                            settings.esp_boxes_thickness,
+                        );
+                    }
+                    EspBoxType::Box3D => {
+                        view.draw_box_3d(
+                            &draw,
+                            &(entry.model.vhull_min + entry.position),
+                            &(entry.model.vhull_max + entry.position),
+                            (*esp_color).into(),
+                            settings.esp_boxes_thickness,
+                        );
+                    }
+                }
             }
 
-            if settings.esp_health {
-                if let Some(mut pos) = view.world_to_screen(&entry.position, false) {
+            if settings.esp_info_health || settings.esp_info_weapon {
+                if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
                     let target_scale = target_scale.clamp(0.5, 1.25);
                     ui.set_window_font_scale(target_scale);
 
-                    let text = format!("{} HP", entry.player_health);
-                    let [text_width, _] = ui.calc_text_size(&text);
-                    pos.x -= text_width / 2.0;
-                    draw.add_text(
-                        pos,
-                        esp_color.clone(),
-                        format!("{} HP", entry.player_health),
-                    );
+                    let mut y_offset = 0.0;
+                    if settings.esp_info_health {
+                        let text = format!("{} HP", entry.player_health);
+                        let [text_width, _] = ui.calc_text_size(&text);
+
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(), text);
+
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if settings.esp_info_weapon {
+                        let text = entry.weapon.display_name().unwrap_or("Unknown Weapon");
+                        let [text_width, _] = ui.calc_text_size(&text);
+
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+
+                        draw.add_text(pos, esp_color.clone(), text);
+
+                        // y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
                     ui.set_window_font_scale(1.0);
                 }
             }

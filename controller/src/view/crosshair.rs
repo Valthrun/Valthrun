@@ -2,10 +2,7 @@ use std::time::Instant;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema_generated::{
-    cs2::client::CEntityInstance,
-    EntityHandle,
-};
+use cs2_schema_generated::{cs2::client::CEntityInstance, EntityHandle};
 
 use crate::{enhancements::CrosshairTarget, UpdateContext};
 

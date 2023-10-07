@@ -1,9 +1,9 @@
-use std::{sync::Arc, collections::BTreeMap};
+use std::{collections::BTreeMap, sync::Arc};
 
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::CEntityIdentity;
 
-use crate::{CS2Handle, CEntityIdentityEx};
+use crate::{CEntityIdentityEx, CS2Handle};
 
 type InnerEntityList = [CEntityIdentity; 512];
 type OuterEntityList = [Ptr<InnerEntityList>; 64];
@@ -31,7 +31,8 @@ impl EntityList {
     }
 
     pub fn lookup_entity_index(&self, entity_index: u32) -> Option<&CEntityIdentity> {
-        self.handle_lookup.get(&entity_index)
+        self.handle_lookup
+            .get(&entity_index)
             .map(|index| self.entities.get(*index))
             .flatten()
     }
@@ -40,7 +41,9 @@ impl EntityList {
         self.entities.clear();
         self.handle_lookup.clear();
 
-        let outer_list = self.cs2.read_schema::<OuterEntityList>(&[ self.entity_list_offset, 0x00 ])?;
+        let outer_list = self
+            .cs2
+            .read_schema::<OuterEntityList>(&[self.entity_list_offset, 0x00])?;
         for (bulk_index, bulk) in outer_list.into_iter().enumerate() {
             let list = match bulk.try_read_schema()? {
                 Some(list) => list,
@@ -56,7 +59,8 @@ impl EntityList {
                 }
 
                 self.entities.push(entry);
-                self.handle_lookup.insert(entity_index, self.entities.len() - 1);
+                self.handle_lookup
+                    .insert(entity_index, self.entities.len() - 1);
             }
         }
 

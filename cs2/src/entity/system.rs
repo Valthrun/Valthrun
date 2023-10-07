@@ -1,18 +1,20 @@
-use std::{sync::Arc, marker::PhantomData, ops::{DerefMut, Deref}};
+use std::{
+    marker::PhantomData,
+    ops::{Deref, DerefMut},
+    sync::Arc,
+};
 
+use crate::{CEntityIdentityEx, CS2Handle, CS2Offsets, EntityList};
 use anyhow::{Context, Ok};
 use cs2_schema_declaration::{Ptr, SchemaValue};
 use cs2_schema_generated::{
     cs2::client::{CCSPlayerController, CEntityIdentity},
     EntityHandle,
 };
-use obfstr::obfstr;
-
-use crate::{CEntityIdentityEx, CS2Handle, CS2Offsets, EntityList};
 
 pub struct TypedEntityIdentity<T> {
     identity: CEntityIdentity,
-    _data: PhantomData<T>
+    _data: PhantomData<T>,
 }
 
 impl<T: SchemaValue> TypedEntityIdentity<T> {
@@ -23,7 +25,7 @@ impl<T: SchemaValue> TypedEntityIdentity<T> {
 
 impl<T> Deref for TypedEntityIdentity<T> {
     type Target = CEntityIdentity;
-    
+
     fn deref(&self) -> &Self::Target {
         &self.identity
     }
@@ -45,7 +47,7 @@ pub struct EntitySystem {
 impl EntitySystem {
     pub fn new(cs2: Arc<CS2Handle>, offsets: Arc<CS2Offsets>) -> Self {
         let entity_list = EntityList::new(cs2.clone(), offsets.global_entity_list);
-        Self { 
+        Self {
             cs2,
             offsets,
             entity_list,
@@ -91,10 +93,13 @@ impl EntitySystem {
         &self,
         handle: &EntityHandle<T>,
     ) -> anyhow::Result<Option<TypedEntityIdentity<T>>> {
-        Ok(
-            self.entity_list.lookup_entity_index(handle.get_entity_index())
-                .map(|identity| TypedEntityIdentity{ identity: identity.clone(), _data: Default::default() })
-        )
+        Ok(self
+            .entity_list
+            .lookup_entity_index(handle.get_entity_index())
+            .map(|identity| TypedEntityIdentity {
+                identity: identity.clone(),
+                _data: Default::default(),
+            }))
     }
 
     pub fn get_player_controllers(&self) -> anyhow::Result<Vec<Ptr<CCSPlayerController>>> {

@@ -45,6 +45,15 @@ fn default_key_trigger_bot() -> Option<HotKey> {
 fn default_key_none() -> Option<HotKey> {
     None
 }
+fn default_esp_box_type() -> EspBoxType {
+    EspBoxType::Box3D
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspBoxType {
+    Box2D,
+    Box3D,
+}
 
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
@@ -66,11 +75,17 @@ pub struct AppSettings {
     #[serde(default)]
     pub esp_boxes: bool,
 
+    #[serde(default = "default_esp_box_type")]
+    pub esp_box_type: EspBoxType,
+
     #[serde(default = "default_esp_boxes_thickness")]
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
-    pub esp_health: bool,
+    pub esp_info_health: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_weapon: bool,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
