@@ -496,13 +496,6 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
 
-    if true {
-        app.cs2_entities.read_entities()?;
-        for entity in app.cs2_entities.all_identities() {
-            log::debug!("{:X} -> {:?}", entity.handle::<()>()?.get_entity_index(), app.class_name_cache.lookup(&entity.entity_class_info()?)?);
-        }
-    }
-
     let app = Rc::new(RefCell::new(app));
 
     log::debug!("Initialize overlay");

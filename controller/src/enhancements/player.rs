@@ -3,9 +3,9 @@ use std::{ffi::CStr, sync::Arc};
 use anyhow::Context;
 use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::client::{
-    CCSPlayerController, CModelState, CSkeletonInstance, C_CSPlayerPawn,
-};
+use cs2_schema_generated::cs2::{client::{
+    CModelState, CSkeletonInstance, C_CSPlayerPawn,
+}, globals::CSPlayerState};
 use obfstr::obfstr;
 
 use crate::{settings::AppSettings, view::ViewController};
@@ -20,7 +20,8 @@ pub enum TeamType {
 }
 
 pub struct PlayerInfo {
-    pub team_type: TeamType,
+    pub controller_entity_id: u32,
+    pub team_id: u8,
 
     pub player_health: i32,
     pub player_name: String,
@@ -80,38 +81,24 @@ impl CModelStateEx for CModelState {
 
 pub struct PlayerESP {
     players: Vec<PlayerInfo>,
+    local_team_id: u8,
 }
 
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
             players: Default::default(),
+            local_team_id: 0,
         }
     }
 
     fn generate_player_info(
         &self,
         ctx: &crate::UpdateContext,
-        local_team: u8,
-        player_controller: &Ptr<CCSPlayerController>,
+        player_pawn: &Ptr<C_CSPlayerPawn>,
     ) -> anyhow::Result<Option<PlayerInfo>> {
-        let player_controller = player_controller.read_schema()?;
-
-        let player_pawn = player_controller.m_hPlayerPawn()?;
-        if !player_pawn.is_valid() {
-            return Ok(None);
-        }
-
-        let player_pawn = match { ctx.cs2_entities.get_by_handle(&player_pawn)? } {
-            Some(pawn) => pawn.entity_ptr::<C_CSPlayerPawn>()?.read_schema()?,
-            None => {
-                /*
-                 * I'm not sure in what exact occasions this happens, but I would guess when the player is spectating or something.
-                 * May check with m_bPawnIsAlive?
-                 */
-                return Ok(None);
-            }
-        };
+        let player_pawn = player_pawn.read_schema()
+            .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
 
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
@@ -127,12 +114,20 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let player_team = player_controller.m_iTeamNum()?;
-        let player_name = CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
-            .context("player name missing nul terminator")?
-            .to_str()
-            .context("invalid player name")?
-            .to_string();
+        let controller_handle = player_pawn.m_hController()?;
+        let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
+
+        let player_team = player_pawn.m_iTeamNum()?;
+        let player_name = if let Some(identity) = &current_controller {
+            let player_controller = identity.entity()?.reference_schema()?;
+            CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
+                .context("player name missing nul terminator")?
+                .to_str()
+                .context("invalid player name")?
+                .to_string()
+        } else {
+            "unknown".to_string()
+        };
 
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
@@ -152,16 +147,10 @@ impl PlayerESP {
             .map(|bone| bone.try_into())
             .try_collect()?;
 
-        let team_type = if player_controller.m_bIsLocalPlayerController()? {
-            TeamType::Local
-        } else if local_team == player_team {
-            TeamType::Friendly
-        } else {
-            TeamType::Enemy
-        };
-
         Ok(Some(PlayerInfo {
-            team_type,
+            controller_entity_id: controller_handle.get_entity_index(),
+            team_id: player_team,
+
             player_name,
             player_health,
             position,
@@ -200,28 +189,61 @@ impl Enhancement for PlayerESP {
 
         self.players.reserve(16);
 
-        let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;
-
-        if local_player_controller.is_null()? {
-            /* We're currently not connected */
-            return Ok(());
-        }
-
-        let local_player_controller = local_player_controller
-            .reference_schema()
+        let local_player_controller = ctx.cs2_entities.get_local_player_controller()?
+            .try_reference_schema()
             .with_context(|| obfstr!("failed to read local player controller").to_string())?;
 
-        let local_team = local_player_controller.m_iPendingTeamNum()?;
+        let local_player_controller = match local_player_controller {
+            Some(controller) => controller,
+            None => {
+                /* We're currently not connected */
+                return Ok(());
+            }
+        };
+        
+        let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
+            local_player_controller.m_hPawn()?.get_entity_index()
+        } else {
+            let local_obs_pawn = match {
+                ctx.cs2_entities.get_by_handle(
+                    &local_player_controller.m_hObserverPawn()?
+                )?
+            } {
+                Some(pawn) => pawn.entity()?.reference_schema()?,
+                None => {
+                    /* this is odd... */
+                    return Ok(());
+                }
+            };
 
-        let player_controllers = ctx.cs2_entities.get_player_controllers()?;
-        for player_controller in player_controllers {
-            match self.generate_player_info(ctx, local_team, &player_controller) {
+            local_obs_pawn.m_pObserverServices()?
+                .read_schema()?
+                .m_hObserverTarget()?
+                .get_entity_index()
+        };
+
+        self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
+
+        for entity_identity in ctx.cs2_entities.all_identities() {
+            if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
+                /* current pawn we control/observe */
+                continue;
+            }
+
+            let entity_class = ctx.class_name_cache.lookup(&entity_identity.entity_class_info()?)?;
+            if !entity_class.map(|name| *name == "C_CSPlayerPawn").unwrap_or(false) {
+                /* entity is not a player pawn */
+                continue;
+            }
+
+            let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
+            match self.generate_player_info(ctx, &player_pawn) {
                 Ok(Some(info)) => self.players.push(info),
                 Ok(None) => {}
                 Err(error) => {
                     log::warn!(
-                        "Failed to generate player ESP info for {:X}: {:#}",
-                        player_controller.address()?,
+                        "Failed to generate player pawn ESP info for {:X}: {:#}",
+                        player_pawn.address()?,
                         error
                     );
                 }
@@ -234,25 +256,21 @@ impl Enhancement for PlayerESP {
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
-            let esp_color = match &entry.team_type {
-                TeamType::Local => continue,
-                TeamType::Enemy => {
-                    if !settings.esp_enabled_enemy {
-                        continue;
-                    }
-
-                    &settings.esp_color_enemy
+            let esp_color = if entry.team_id == self.local_team_id {
+                if !settings.esp_enabled_team {
+                    continue;
                 }
-                TeamType::Friendly => {
-                    if !settings.esp_enabled_team {
-                        continue;
-                    }
 
-                    &settings.esp_color_team
+                &settings.esp_color_team
+            } else {
+                if !settings.esp_enabled_enemy {
+                    continue;
                 }
+
+                &settings.esp_color_enemy
             };
 
-            if settings.esp_skeleton && entry.team_type != TeamType::Local {
+            if settings.esp_skeleton {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 
                 for (bone, state) in bones {
@@ -283,7 +301,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_boxes && entry.team_type != TeamType::Local {
+            if settings.esp_boxes {
                 view.draw_box_3d(
                     &draw,
                     &(entry.model.vhull_min + entry.position),

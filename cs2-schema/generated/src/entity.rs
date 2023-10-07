@@ -30,11 +30,6 @@ impl<T> EntityHandle<T> {
     pub fn get_serial_number(&self) -> u32 {
         self.value >> 15
     }
-
-    pub fn entity_array_offsets(&self) -> (u64, u64) {
-        let entity_index = self.get_entity_index();
-        ((entity_index >> 9) as u64, (entity_index & 0x1FF) as u64)
-    }
 }
 
 impl<T> Debug for EntityHandle<T> {
