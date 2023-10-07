@@ -65,7 +65,7 @@ impl TriggerBot {
                     target.entity_id,
                 ))?
                 .context("missing crosshair player pawn")?
-                .entity_ptr::<C_CSPlayerPawn>()?
+                .entity()?
                 .read_schema()?;
 
             let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;

@@ -42,7 +42,7 @@ impl Enhancement for AntiAimPunsh {
             .cs2_entities
             .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
             .context("missing local player pawn")?
-            .entity_ptr::<C_CSPlayerPawn>()?
+            .entity()?
             .read_schema()?;
 
         if local_pawn.m_iShotsFired()? <= 1 {

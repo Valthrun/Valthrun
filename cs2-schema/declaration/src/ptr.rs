@@ -4,6 +4,7 @@ use anyhow::Context;
 
 use crate::{MemoryDriver, MemoryHandle, SchemaValue};
 
+#[derive(Clone)]
 pub struct Ptr<T: ?Sized> {
     driver: Arc<dyn MemoryDriver>,
     address: u64,

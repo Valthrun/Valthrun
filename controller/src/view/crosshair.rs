@@ -3,7 +3,7 @@ use std::time::Instant;
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
 use cs2_schema_generated::{
-    cs2::client::{CEntityInstance, C_CSPlayerPawn},
+    cs2::client::CEntityInstance,
     EntityHandle,
 };
 
@@ -41,7 +41,7 @@ impl LocalCrosshair {
             .cs2_entities
             .get_by_handle(&local_player_controller.m_hPlayerPawn()?)?
         {
-            Some(ptr) => ptr.entity_ptr::<C_CSPlayerPawn>()?,
+            Some(ptr) => ptr.entity()?,
             None => return Ok(None),
         };
 
@@ -78,11 +78,11 @@ impl LocalCrosshair {
 
             let target_type = ctx
                 .class_name_cache
-                .lookup(crosshair_entity_identnity.entity_class_info()?)?;
+                .lookup(&crosshair_entity_identnity.entity_class_info()?)?;
 
             self.current_target = Some(CrosshairTarget {
                 entity_id: crosshair_entity_handle.get_entity_index(),
-                entity_type: (*target_type).clone(),
+                entity_type: target_type.cloned(),
                 timestamp: Instant::now(),
             });
         }

@@ -5,11 +5,11 @@
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{Args, Parser, Subcommand};
+use class_name_cache::ClassNameCache;
 use cs2::{
     CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module, PCStrEx,
-    Signature,
+    Signature, CEntityIdentityEx,
 };
-use cs2_schema_declaration::Ptr;
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
@@ -45,6 +45,7 @@ mod enhancements;
 mod settings;
 mod settings_ui;
 mod view;
+mod class_name_cache;
 
 pub trait UpdateInputState {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -73,7 +74,7 @@ pub struct UpdateContext<'a> {
     pub cs2_entities: &'a EntitySystem,
 
     pub model_cache: &'a EntryCache<u64, CS2Model>,
-    pub class_name_cache: &'a EntryCache<Ptr<()>, Option<String>>,
+    pub class_name_cache: &'a ClassNameCache,
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
@@ -87,7 +88,7 @@ pub struct Application {
     pub cs2_build_info: BuildInfo,
 
     pub model_cache: EntryCache<u64, CS2Model>,
-    pub class_name_cache: EntryCache<Ptr<()>, Option<String>>,
+    pub class_name_cache: ClassNameCache,
     pub view_controller: ViewController,
 
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
@@ -180,6 +181,12 @@ impl Application {
             .reference_schema::<Globals>(&[self.cs2_offsets.globals, 0])?
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
+
+        self.cs2_entities.read_entities()
+            .with_context(|| obfstr!("failed to read global entity list").to_string())?;
+
+        self.class_name_cache.update_cache(self.cs2_entities.all_identities())
+            .with_context(|| obfstr!("failed to update class name cache").to_string())?;
 
         let update_context = UpdateContext {
             cs2: &self.cs2,
@@ -444,7 +451,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
-    let app = Application {
+    let mut app = Application {
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
@@ -465,14 +472,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 Ok(CS2Model::read(&cs2, *model as u64)?)
             }
         }),
-        class_name_cache: EntryCache::new({
-            let cs2 = cs2.clone();
-            move |class_info: &Ptr<()>| {
-                let address = class_info.address()?;
-                let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
-                Ok(Some(class_name))
-            }
-        }),
+        class_name_cache: ClassNameCache::new(cs2.clone()),
         view_controller: ViewController::new(cs2_offsets.clone()),
 
         enhancements: vec![
@@ -495,6 +495,13 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_screen_capture_changed: AtomicBool::new(true),
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
+
+    if true {
+        app.cs2_entities.read_entities()?;
+        for entity in app.cs2_entities.all_identities() {
+            log::debug!("{:X} -> {:?}", entity.handle::<()>()?.get_entity_index(), app.class_name_cache.lookup(&entity.entity_class_info()?)?);
+        }
+    }
 
     let app = Rc::new(RefCell::new(app));
 
