@@ -215,6 +215,14 @@ impl Application {
             .position([0.0, 0.0], Condition::Always)
             .build(|| self.render_overlay(ui));
 
+        {
+            let mut settings = self.settings.borrow_mut();
+            for enhancement in self.enhancements.iter() {
+                let mut enhancement = enhancement.borrow_mut();
+                enhancement.render_debug_window(&mut *settings, ui);
+            }
+        }
+
         if self.settings_visible {
             let mut settings_ui = self.settings_ui.borrow_mut();
             settings_ui.render(self, ui)
