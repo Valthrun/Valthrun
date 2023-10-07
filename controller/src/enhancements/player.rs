@@ -79,7 +79,7 @@ impl WeaponId {
             Self::Deagle => "Deagle",
             Self::Elite => "Elite",
             Self::Fiveseven => "Five & Seven",
-            Self::Glock => "Glock",
+            Self::Glock => "Glock-18",
             Self::Ak47 => "Ak-47",
             Self::Aug => "Aug",
             Self::Awp => "Awp",
