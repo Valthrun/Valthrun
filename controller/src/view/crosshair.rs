@@ -4,7 +4,14 @@ use anyhow::Context;
 use cs2::CEntityIdentityEx;
 use cs2_schema_generated::{cs2::client::CEntityInstance, EntityHandle};
 
-use crate::{enhancements::CrosshairTarget, UpdateContext};
+use crate::UpdateContext;
+
+#[derive(Debug)]
+pub struct CrosshairTarget {
+    pub entity_id: u32,
+    pub entity_type: Option<String>,
+    pub timestamp: Instant,
+}
 
 pub struct LocalCrosshair {
     offset_crosshair_id: u64,

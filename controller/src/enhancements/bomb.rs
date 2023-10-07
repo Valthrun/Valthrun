@@ -5,7 +5,7 @@ use cs2::CEntityIdentityEx;
 use cs2_schema_generated::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
-use crate::UpdateContext;
+use crate::{utils::ImguiUiEx, UpdateContext};
 
 use super::Enhancement;
 
@@ -143,21 +143,6 @@ impl BombInfo {
         }
 
         return Ok(None);
-    }
-}
-
-trait ImguiUiEx {
-    fn set_cursor_pos_x(&self, pos: f32);
-    fn set_cursor_pos_y(&self, pos: f32);
-}
-
-impl ImguiUiEx for imgui::Ui {
-    fn set_cursor_pos_x(&self, pos: f32) {
-        unsafe { imgui::sys::igSetCursorPosX(pos) };
-    }
-
-    fn set_cursor_pos_y(&self, pos: f32) {
-        unsafe { imgui::sys::igSetCursorPosY(pos) };
     }
 }
 

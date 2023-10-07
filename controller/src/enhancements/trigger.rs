@@ -13,13 +13,6 @@ use crate::{
 
 use super::Enhancement;
 
-#[derive(Debug)]
-pub struct CrosshairTarget {
-    pub entity_id: u32,
-    pub entity_type: Option<String>,
-    pub timestamp: Instant,
-}
-
 enum TriggerState {
     Idle,
     Pending { delay: u32, timestamp: Instant },

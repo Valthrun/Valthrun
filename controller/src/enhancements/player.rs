@@ -8,17 +8,11 @@ use obfstr::obfstr;
 
 use crate::{
     settings::{AppSettings, EspBoxType},
-    view::ViewController, weapon::WeaponId,
+    view::ViewController,
+    weapon::WeaponId,
 };
 
 use super::Enhancement;
-
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub enum TeamType {
-    Local,
-    Enemy,
-    Friendly,
-}
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -325,13 +319,14 @@ impl Enhancement for PlayerESP {
             if settings.esp_boxes {
                 match settings.esp_box_type {
                     EspBoxType::Box2D => {
-                        view.draw_box_2d(
-                            &draw,
+                        if let Some((vmin, vmax)) = view.calculate_box_2d(
                             &(entry.model.vhull_min + entry.position),
                             &(entry.model.vhull_max + entry.position),
-                            (*esp_color).into(),
-                            settings.esp_boxes_thickness,
-                        );
+                        ) {
+                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
+                                .thickness(settings.esp_boxes_thickness)
+                                .build();
+                        }
                     }
                     EspBoxType::Box3D => {
                         view.draw_box_3d(

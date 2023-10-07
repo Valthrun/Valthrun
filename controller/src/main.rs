@@ -14,8 +14,7 @@ use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
 use overlay::{LoadingError, OverlayError, SystemRuntimeController};
-use settings::{load_app_settings, AppSettings};
-use settings_ui::SettingsUI;
+use settings::{load_app_settings, AppSettings, SettingsUI};
 use std::{
     cell::{RefCell, RefMut},
     error::Error,
@@ -44,15 +43,16 @@ mod cache;
 mod class_name_cache;
 mod enhancements;
 mod settings;
-mod settings_ui;
+mod utils;
 mod view;
 mod weapon;
-pub trait UpdateInputState {
+
+pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
 }
 
-impl UpdateInputState for imgui::Ui {
+impl KeyboardInput for imgui::Ui {
     fn is_key_down(&self, key: imgui::Key) -> bool {
         Ui::is_key_down(self, key)
     }
@@ -68,7 +68,7 @@ impl UpdateInputState for imgui::Ui {
 
 pub struct UpdateContext<'a> {
     pub settings: &'a AppSettings,
-    pub input: &'a dyn UpdateInputState,
+    pub input: &'a dyn KeyboardInput,
 
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,

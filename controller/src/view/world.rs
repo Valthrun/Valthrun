@@ -60,13 +60,10 @@ impl ViewController {
         Some(screen_pos)
     }
 
-    pub fn draw_box_2d(
+    pub fn calculate_box_2d(
         &self,
-        draw: &imgui::DrawListMut,
         vmin: &nalgebra::Vector3<f32>,
         vmax: &nalgebra::Vector3<f32>,
-        color: ImColor32,
-        thickness: f32,
     ) -> Option<(nalgebra::Vector2<f32>, nalgebra::Vector2<f32>)> {
         type Vec3 = nalgebra::Vector3<f32>;
         type Vec2 = nalgebra::Vector2<f32>;
@@ -103,10 +100,6 @@ impl ViewController {
         if min2d.y >= max2d.y {
             return None;
         }
-
-        draw.add_rect([min2d.x, min2d.y], [max2d.x, max2d.y], color)
-            .thickness(thickness)
-            .build();
 
         Some((min2d, max2d))
     }
