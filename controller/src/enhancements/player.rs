@@ -4,90 +4,14 @@ use anyhow::Context;
 use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
 use cs2_schema_declaration::{define_schema, Ptr};
 use cs2_schema_generated::cs2::client::{CModelState, CSkeletonInstance, C_CSPlayerPawn};
-use num_derive::FromPrimitive as DFromPrimitive;
-use num_traits::FromPrimitive;
 use obfstr::obfstr;
 
 use crate::{
     settings::{AppSettings, EspBoxType},
-    view::ViewController,
+    view::ViewController, weapon::WeaponId,
 };
 
 use super::Enhancement;
-
-#[derive(DFromPrimitive)]
-pub enum WeaponId {
-    Unknown = 0,
-    Deagle = 1,
-    Elite = 2,
-    Fiveseven = 3,
-    Glock = 4,
-    Ak47 = 7,
-    Aug = 8,
-    Awp = 9,
-    Famas = 10,
-    G3sg1 = 11,
-    Galilar = 13,
-    M249 = 14,
-    M4a1 = 16,
-    Mac10 = 17,
-    P90 = 19,
-    Ump45 = 24,
-    Xm1014 = 25,
-    Bizon = 26,
-    Mag7 = 27,
-    Negev = 28,
-    Sawedoff = 29,
-    Tec9 = 30,
-    Taser = 31,
-    Hkp2000 = 32,
-    Mp7 = 33,
-    Mp9 = 34,
-    Nova = 35,
-    P250 = 36,
-    Scar20 = 38,
-    Sg556 = 39,
-    Ssg08 = 40,
-    Knife = 42,
-    Flashbang = 43,
-    Hegrenade = 44,
-    Smokegrenade = 45,
-    Molotov = 46,
-    Decoy = 47,
-    Incgrenade = 48,
-    C4 = 49,
-    KnifeT = 59,
-    M4a1silencer = 60,
-    UspSilencer = 61,
-    CZ75a = 63,
-    Revolver = 64,
-    KnifeBayonet = 500,
-    KnifeFlip = 505,
-    KnifeGut = 506,
-    KnifeKarambit = 507,
-    KnifeM9Bayonet = 508,
-    KnifeTactical = 509,
-    KnifeFalchion = 512,
-    KnifeSurvivalBowie = 514,
-    KnifeButterfly = 515,
-    KnifePush = 516,
-}
-
-impl WeaponId {
-    pub fn display_name(&self) -> Option<&'static str> {
-        Some(match self {
-            Self::Deagle => "Deagle",
-            Self::Glock => "Glock-18",
-            Self::Awp => "AWP",
-            Self::Ak47 => "AK-47",
-            Self::Aug => "AUG",
-            Self::Bizon => "Bizon",
-            Self::C4 => "C4",
-            Self::Fiveseven => "Five & Seven",
-            _ => return None,
-        })
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum TeamType {
@@ -238,7 +162,7 @@ impl PlayerESP {
 
             player_name,
             player_health,
-            weapon: WeaponId::from_u16(weapon_type).unwrap_or(WeaponId::Unknown),
+            weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
             position,
             bone_states,
