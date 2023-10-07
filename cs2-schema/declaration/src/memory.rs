@@ -41,6 +41,14 @@ impl MemoryHandle {
     }
 
     pub fn cache(&mut self, length: usize) -> anyhow::Result<()> {
+        if let Some(cache) = &self.cache {
+            assert!(cache.address <= self.address);
+            let cache_offset = (self.address - cache.address) as usize;
+            if cache.buffer.len() >= length + cache_offset {
+                /* cache does already contain the requested data */
+                return Ok(());
+            }
+        }
         self.cache = None;
 
         let mut buffer = Vec::with_capacity(length);
