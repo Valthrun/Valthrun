@@ -128,11 +128,11 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let controller_handle = player_pawn.m_hController()?;
-        let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
+        let player_controller_handle = player_pawn.m_hOriginalController()?;
+        let player_current_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
 
         let player_team = player_pawn.m_iTeamNum()?;
-        let player_name = if let Some(identity) = &current_controller {
+        let player_name = if let Some(identity) = &player_current_controller {
             let player_controller = identity.entity()?.reference_schema()?;
             CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
                 .context("player name missing nul terminator")?
@@ -143,7 +143,12 @@ impl PlayerESP {
             "unknown".to_string()
         };
 
-        let player_has_defuser = player_controller.m_bPawnHasDefuser()?;
+        let player_has_defuser = if let Some(identity) = &player_current_controller {
+            let player_controller = identity.entity()?.reference_schema()?;
+            player_controller.m_bPawnHasDefuser()?
+        } else {
+            false
+        };
 
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
@@ -174,7 +179,7 @@ impl PlayerESP {
         };
 
         Ok(Some(PlayerInfo {
-            controller_entity_id: controller_handle.get_entity_index(),
+            controller_entity_id: player_controller_handle.get_entity_index(),
             team_id: player_team,
 
             player_name,
@@ -364,7 +369,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon {
+            if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -394,33 +399,30 @@ impl Enhancement for PlayerESP {
 
                         draw.add_text(pos, esp_color.clone(), text);
 
-                        // y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if settings.esp_info_player_name {
+                        let text = format!("{}", entry.player_name);
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(),text);
+                    }
+
+                    if entry.player_has_defuser && settings.esp_info_kit {
+                        let text = format!("KIT");
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(),text);
+
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     ui.set_window_font_scale(1.0);
-                }
-
-                if entry.player_has_defuser
-                {
-                    let mut kit_text_pos = entry.position;
-                    kit_text_pos.z += 80.0;
-
-                    if let Some(mut pos) = view.world_to_screen(&kit_text_pos, false) {
-                        let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
-                        let target_scale = entry_height * 15.0 / view.screen_bounds.y;
-                        let target_scale = target_scale.clamp(0.5, 1.25);
-                        ui.set_window_font_scale(target_scale);
-
-                        let text = format!("KIT");
-                        let [text_width, _] = ui.calc_text_size(&text);
-                        pos.x -= text_width / 2.0;
-                        draw.add_text(
-                            pos,
-                            esp_color.clone(),
-                            format!("KIT"),
-                        );
-                        ui.set_window_font_scale(1.0);
-                    }
                 }
             }
         }

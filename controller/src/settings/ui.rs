@@ -106,7 +106,9 @@ impl SettingsUI {
                             }
 
                             ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
+                            ui.checkbox(obfstr!("Display if player has kit"), &mut settings.esp_info_kit);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
+                            ui.checkbox(obfstr!("Show player name"), &mut settings.esp_info_player_name);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
                             if settings.esp_enabled_team {
