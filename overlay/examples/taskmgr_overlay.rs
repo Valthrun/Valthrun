@@ -5,7 +5,7 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     log::info!("Initialize overlay");
-    let overlay = overlay::init("Task Manager Overlay", "Counter-Strike 2")?;
+    let overlay = overlay::init("Task Manager Overlay", 12345)?;
     let mut text_input = Default::default();
     overlay.main_loop(
         |controller| {

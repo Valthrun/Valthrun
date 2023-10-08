@@ -220,8 +220,8 @@ pub struct System {
     pub window_tracker: WindowTracker,
 }
 
-pub fn init(title: &str, target_window: &str) -> Result<System> {
-    let window_tracker = WindowTracker::new(target_window)?;
+pub fn init(title: &str, target_process_id: u32) -> Result<System> {
+    let window_tracker = WindowTracker::new(target_process_id)?;
 
     let event_loop = EventLoop::new();
     let window = create_window(&event_loop, title)?;
