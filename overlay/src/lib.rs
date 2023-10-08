@@ -96,6 +96,7 @@ mod error;
 pub use error::*;
 mod input;
 mod window_tracker;
+pub use window_tracker::OverlayTarget;
 
 mod vulkan;
 
@@ -105,6 +106,7 @@ pub use perf::PerfTracker;
 mod vulkan_render;
 use vulkan_render::*;
 
+mod util;
 mod vulkan_driver;
 
 pub fn show_error_message(title: &str, message: &str) {
@@ -220,8 +222,8 @@ pub struct System {
     pub window_tracker: WindowTracker,
 }
 
-pub fn init(title: &str, target_window: &str) -> Result<System> {
-    let window_tracker = WindowTracker::new(target_window)?;
+pub fn init(title: &str, target: OverlayTarget) -> Result<System> {
+    let window_tracker = WindowTracker::new(target)?;
 
     let event_loop = EventLoop::new();
     let window = create_window(&event_loop, title)?;

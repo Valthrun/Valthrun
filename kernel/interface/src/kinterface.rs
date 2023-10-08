@@ -64,11 +64,15 @@ impl KernelInterface {
         })
     }
 
+    #[must_use]
     pub fn total_read_calls(&self) -> usize {
         self.read_calls.load(Ordering::Relaxed)
     }
 
-    pub fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
+    /// Execute an action with kernel privilidges
+    /// Note: It's unsafe, as the caller must validate all parameters given for the target action.
+    #[must_use]
+    pub unsafe fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
         let mut result: R::Result = Default::default();
         let success = unsafe {
             DeviceIoControl(
@@ -92,34 +96,22 @@ impl KernelInterface {
         }
     }
 
-    pub fn read<T>(&self, process_id: i32, offsets: &[u64]) -> KResult<T> {
-        let mut result = unsafe { std::mem::zeroed() };
+    #[must_use]
+    pub fn read<T: Copy>(&self, process_id: i32, offsets: &[u64]) -> KResult<T> {
+        let mut result = unsafe { std::mem::zeroed::<T>() };
         let result_buff = unsafe {
             std::slice::from_raw_parts_mut(
                 std::mem::transmute::<_, *mut u8>(&mut result),
                 std::mem::size_of::<T>(),
             )
         };
+
         self.read_slice(process_id, offsets, result_buff)?;
         Ok(result)
     }
 
-    pub fn read_vec<T: Sized>(
-        &self,
-        process_id: i32,
-        offsets: &[u64],
-        length: usize,
-    ) -> KResult<Vec<T>> {
-        let mut buffer = Vec::new();
-        buffer.reserve(length);
-
-        self.read_slice(process_id, offsets, buffer.spare_capacity_mut())?;
-        unsafe { buffer.set_len(length) };
-
-        Ok(buffer)
-    }
-
-    pub fn read_slice<T: Sized>(
+    #[must_use]
+    pub fn read_slice<T: Copy>(
         &self,
         process_id: i32,
         offsets: &[u64],
@@ -135,15 +127,23 @@ impl KernelInterface {
 
         self.read_calls.fetch_add(1, Ordering::Relaxed);
         offset_buffer[0..offsets.len()].copy_from_slice(offsets);
-        let result = self.execute_request::<RequestRead>(&RequestRead {
-            process_id,
+        let result = unsafe {
+            /*
+             * Safety:
+             * All parameters are checked and verified to point to valid memory.
+             * The buffer ptr is guranteed to hold at least `count` bytes.
+             */
+            self.execute_request::<RequestRead>(&RequestRead {
+                process_id,
 
-            offsets: offset_buffer.clone(),
-            offset_count: offsets.len(),
+                offsets: offset_buffer.clone(),
+                offset_count: offsets.len(),
 
-            buffer: buffer.as_mut_ptr() as *mut u8,
-            count: buffer.len() * std::mem::size_of::<T>(),
-        })?;
+                buffer: buffer.as_mut_ptr() as *mut u8,
+                count: buffer.len() * std::mem::size_of::<T>(),
+            })
+        }?;
+
         match result {
             ResponseRead::Success => Ok(()),
             ResponseRead::InvalidAddress {
@@ -167,6 +167,7 @@ impl KernelInterface {
         }
     }
 
+    #[must_use]
     pub fn find_pattern(
         &self,
         process_id: i32,

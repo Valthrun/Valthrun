@@ -8,10 +8,12 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
         *entry = index;
     }
 
-    let read_buffer = interface.read_vec::<usize>(
+    let mut read_buffer = Vec::new();
+    read_buffer.resize(buffer.len(), 0usize);
+    interface.read_slice::<usize>(
         std::process::id() as i32,
         &[buffer.as_ptr() as u64],
-        buffer.len(),
+        &mut read_buffer,
     )?;
 
     if buffer == read_buffer {
