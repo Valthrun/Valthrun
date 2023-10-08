@@ -409,6 +409,8 @@ impl Enhancement for PlayerESP {
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
                         draw.add_text(pos, esp_color.clone(),text);
+
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     if entry.player_has_defuser && settings.esp_info_kit {
@@ -419,7 +421,7 @@ impl Enhancement for PlayerESP {
                         pos.y += y_offset;
                         draw.add_text(pos, esp_color.clone(),text);
 
-                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        //y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     ui.set_window_font_scale(1.0);

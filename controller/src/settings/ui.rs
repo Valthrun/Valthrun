@@ -167,7 +167,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        // ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
 
