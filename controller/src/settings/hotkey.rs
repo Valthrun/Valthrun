@@ -1,4 +1,8 @@
-use serde::{de::Visitor, Deserialize, Serialize};
+use serde::{
+    de::Visitor,
+    Deserialize,
+    Serialize,
+};
 
 #[derive(Clone, Debug)]
 pub struct HotKey(pub imgui::Key);

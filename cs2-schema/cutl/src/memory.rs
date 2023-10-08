@@ -1,6 +1,10 @@
 use std::marker::PhantomData;
 
-use cs2_schema_declaration::{MemoryHandle, Ptr, SchemaValue};
+use cs2_schema_declaration::{
+    MemoryHandle,
+    Ptr,
+    SchemaValue,
+};
 
 pub struct CUtlMemory<T> {
     memory: MemoryHandle,

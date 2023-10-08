@@ -2,12 +2,14 @@ use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::{CBasePlayerController, C_CSPlayerPawn, C_PlantedC4};
+use cs2_schema_generated::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
-use crate::UpdateContext;
-
 use super::Enhancement;
+use crate::{
+    utils::ImguiUiEx,
+    UpdateContext,
+};
 
 #[derive(Debug)]
 pub struct BombDefuser {
@@ -18,18 +20,20 @@ pub struct BombDefuser {
     pub player_name: String,
 }
 
-#[derive(Debug)]
-pub enum BombState {
-    /// Bomb hasn't been planted
-    Unset,
+pub struct C4Info {
+    /// Planted bomb site
+    /// 0 = A
+    /// 1 = B
+    bomb_site: u8,
 
+    /// Current state of the C4
+    state: C4State,
+}
+
+#[derive(Debug)]
+pub enum C4State {
     /// Bomb is currently actively ticking
     Active {
-        /// Planted bomb site
-        /// 0 = A
-        /// 1 = B
-        bomb_site: u8,
-
         /// Time remaining (in seconds) until detonation
         time_detonation: f32,
 
@@ -45,30 +49,24 @@ pub enum BombState {
 }
 
 pub struct BombInfo {
-    bomb_state: BombState,
+    bomb_state: Option<C4Info>,
 }
 
 impl BombInfo {
     pub fn new() -> Self {
-        Self {
-            bomb_state: BombState::Unset,
-        }
+        Self { bomb_state: None }
     }
 
-    fn read_state(&self, ctx: &UpdateContext) -> anyhow::Result<BombState> {
-        let entities = ctx
-            .cs2_entities
-            .all_identities()
-            .with_context(|| obfstr!("failed to read entity list").to_string())?;
+    fn read_state(&self, ctx: &UpdateContext) -> anyhow::Result<Option<C4Info>> {
+        let entities = ctx.cs2_entities.all_identities();
 
         for entity_identity in entities.iter() {
             let class_name = ctx
                 .class_name_cache
-                .lookup(entity_identity.entity_class_info()?)
+                .lookup(&entity_identity.entity_class_info()?)
                 .context("class name")?;
 
-            if !(*class_name)
-                .as_ref()
+            if !class_name
                 .map(|name| name == "C_PlantedC4")
                 .unwrap_or(false)
             {
@@ -85,15 +83,21 @@ impl BombInfo {
                 continue;
             }
 
+            let bomb_site = bomb.m_nBombSite()? as u8;
             if bomb.m_bBombDefused()? {
-                return Ok(BombState::Defused);
+                return Ok(Some(C4Info {
+                    bomb_site,
+                    state: C4State::Defused,
+                }));
             }
 
             let time_blow = bomb.m_flC4Blow()?.m_Value()?;
-            let bomb_site = bomb.m_nBombSite()? as u8;
 
             if time_blow <= ctx.globals.time_2()? {
-                return Ok(BombState::Detonated);
+                return Ok(Some(C4Info {
+                    bomb_site,
+                    state: C4State::Detonated,
+                }));
             }
 
             let is_defusing = bomb.m_bBeingDefused()?;
@@ -105,7 +109,7 @@ impl BombInfo {
                     .cs2_entities
                     .get_by_handle(&handle_defuser)?
                     .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
-                    .entity_ptr::<C_CSPlayerPawn>()?
+                    .entity()?
                     .reference_schema()?;
 
                 let defuser_controller = defuser.m_hController()?;
@@ -113,7 +117,7 @@ impl BombInfo {
                     .cs2_entities
                     .get_by_handle(&defuser_controller)?
                     .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
-                    .entity_ptr::<CBasePlayerController>()?
+                    .entity()?
                     .reference_schema()?;
 
                 let defuser_name =
@@ -131,16 +135,24 @@ impl BombInfo {
                 None
             };
 
-            return Ok(BombState::Active {
+            return Ok(Some(C4Info {
                 bomb_site,
-                time_detonation: time_blow - ctx.globals.time_2()?,
-                defuse: defusing,
-            });
+                state: C4State::Active {
+                    time_detonation: time_blow - ctx.globals.time_2()?,
+                    defuse: defusing,
+                },
+            }));
         }
 
-        return Ok(BombState::Unset);
+        return Ok(None);
     }
 }
+
+/// % of the screens height
+const PLAYER_AVATAR_TOP_OFFSET: f32 = 0.004;
+
+/// % of the screens height
+const PLAYER_AVATAR_SIZE: f32 = 0.05;
 
 impl Enhancement for BombInfo {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
@@ -162,25 +174,37 @@ impl Enhancement for BombInfo {
             return;
         }
 
+        let bomb_info = match &self.bomb_state {
+            Some(state) => state,
+            None => return,
+        };
+
         let group = ui.begin_group();
 
-        let line_height = ui.text_line_height_with_spacing();
-        ui.set_cursor_pos([10.0, ui.window_size()[1] * 0.95 - line_height * 5.0]); // ui.frame_height() - line_height * 5.0
+        let line_count = match &bomb_info.state {
+            C4State::Active { .. } => 3,
+            C4State::Defused | C4State::Detonated => 2,
+        };
+        let text_height = ui.text_line_height_with_spacing() * line_count as f32;
 
-        match &self.bomb_state {
-            BombState::Unset => {}
-            BombState::Active {
-                bomb_site,
+        /* align to be on the right side after the players */
+        let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
+        let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
+        let offset_y = offset_y
+            + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
+
+        ui.set_cursor_pos([offset_x, offset_y]);
+        ui.text(&format!(
+            "Bomb planted {}",
+            if bomb_info.bomb_site == 0 { "A" } else { "B" }
+        ));
+
+        match &bomb_info.state {
+            C4State::Active {
                 time_detonation,
                 defuse,
             } => {
-                ui.text(&format!(
-                    "Bomb planted on {}",
-                    if *bomb_site == 0 { "A" } else { "B" }
-                ));
-                ui.text(&format!("Damage:"));
-                ui.same_line();
-                ui.text_colored([0.0, 0.0, 0.0, 0.0], "???");
+                ui.set_cursor_pos_x(offset_x);
                 ui.text(&format!("Time: {:.3}", time_detonation));
                 if let Some(defuse) = defuse.as_ref() {
                     let color = if defuse.time_remaining > *time_detonation {
@@ -189,6 +213,7 @@ impl Enhancement for BombInfo {
                         [0.11, 0.79, 0.26, 1.0]
                     };
 
+                    ui.set_cursor_pos_x(offset_x);
                     ui.text_colored(
                         color,
                         &format!(
@@ -197,13 +222,16 @@ impl Enhancement for BombInfo {
                         ),
                     );
                 } else {
+                    ui.set_cursor_pos_x(offset_x);
                     ui.text("Not defusing");
                 }
             }
-            BombState::Defused => {
+            C4State::Defused => {
+                ui.set_cursor_pos_x(offset_x);
                 ui.text("Bomb has been defused");
             }
-            BombState::Detonated => {
+            C4State::Detonated => {
+                ui.set_cursor_pos_x(offset_x);
                 ui.text("Bomb has been detonated");
             }
         }

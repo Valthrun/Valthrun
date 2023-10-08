@@ -1,6 +1,12 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{
+    fmt::Debug,
+    marker::PhantomData,
+};
 
-use cs2_schema_declaration::{MemoryHandle, SchemaValue};
+use cs2_schema_declaration::{
+    MemoryHandle,
+    SchemaValue,
+};
 
 /// CS2 32 bit entity handle packed with
 /// the entity index and serial number.
@@ -29,11 +35,6 @@ impl<T> EntityHandle<T> {
 
     pub fn get_serial_number(&self) -> u32 {
         self.value >> 15
-    }
-
-    pub fn entity_array_offsets(&self) -> (u64, u64) {
-        let entity_index = self.get_entity_index();
-        ((entity_index >> 9) as u64, (entity_index & 0x1FF) as u64)
     }
 }
 

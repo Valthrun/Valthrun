@@ -1,5 +1,12 @@
-use std::io::Write;
-use std::{env, fs::File, io::BufWriter, path::Path};
+use std::{
+    env,
+    fs::File,
+    io::{
+        BufWriter,
+        Write,
+    },
+    path::Path,
+};
 
 use anyhow::Context;
 

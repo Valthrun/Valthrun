@@ -1,4 +1,7 @@
-use valthrun_kernel_interface::{ByteSequencePattern, SearchPattern};
+use valthrun_kernel_interface::{
+    ByteSequencePattern,
+    SearchPattern,
+};
 
 pub enum SignatureType {
     /// The value is an address relative to the current instruction.

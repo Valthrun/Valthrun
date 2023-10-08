@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ "master", "in-dev" ]
+    branches: [ "master", "in-dev", "render-vulkan" ]
   pull_request:
     branches: [ "master" ]
 
@@ -25,7 +25,9 @@ jobs:
     - name: Check fmt
       run: rustup component add rustfmt && cargo fmt --check
     - name: Build
-      run: cargo build --verbose --release -F exe-manifest
+      run: cargo build --verbose --release
+      env:
+        RUSTFLAGS: -Ctarget-feature=+crt-static
     # Right now there are no tests specified
     # - name: Run tests
     #   run: cargo test --verbose

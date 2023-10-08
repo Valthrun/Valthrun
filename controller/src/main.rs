@@ -2,55 +2,102 @@
 #![feature(result_option_inspect)]
 #![allow(dead_code)]
 
-use anyhow::Context;
-use cache::EntryCache;
-use clap::{Args, Parser, Subcommand};
-use cs2::{BuildInfo, CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals};
-use cs2_schema_declaration::Ptr;
-use cs2_schema_generated::{definition::SchemaScope, RuntimeOffset, RuntimeOffsetProvider};
-use enhancements::Enhancement;
-use imgui::{Condition, Ui};
-use obfstr::obfstr;
-use overlay::SystemRuntimeController;
-use settings::{load_app_settings, AppSettings};
-use settings_ui::SettingsUI;
 use std::{
-    cell::{RefCell, RefMut},
+    cell::{
+        RefCell,
+        RefMut,
+    },
+    error::Error,
     fmt::Debug,
     fs::File,
     io::BufWriter,
     path::PathBuf,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{
+            AtomicBool,
+            Ordering,
+        },
         Arc,
     },
-    time::{Duration, Instant},
+    time::{
+        Duration,
+        Instant,
+    },
+};
+
+use anyhow::Context;
+use cache::EntryCache;
+use clap::{
+    Args,
+    Parser,
+    Subcommand,
+};
+use class_name_cache::ClassNameCache;
+use cs2::{
+    CS2Handle,
+    CS2Model,
+    CS2Offsets,
+    EntitySystem,
+    Globals,
+};
+use cs2_schema_generated::{
+    definition::SchemaScope,
+    RuntimeOffset,
+    RuntimeOffsetProvider,
+};
+use enhancements::Enhancement;
+use imgui::{
+    Condition,
+    Ui,
+};
+use obfstr::obfstr;
+use overlay::{
+    LoadingError,
+    OverlayError,
+    SystemRuntimeController,
+};
+use settings::{
+    load_app_settings,
+    AppSettings,
+    SettingsUI,
 };
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
+use windows::Win32::{
+    System::Console::GetConsoleProcessList,
+    UI::Shell::IsUserAnAdmin,
+};
 
 use crate::{
-    enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
+    build::BuildInfo,
+    enhancements::{
+        AntiAimPunsh,
+        BombInfo,
+        PlayerESP,
+        TriggerBot,
+    },
     settings::save_app_settings,
     view::LocalCrosshair,
     winver::version_info,
 };
 
+mod build;
 mod cache;
+mod class_name_cache;
 mod enhancements;
 mod settings;
-mod settings_ui;
+mod utils;
 mod view;
+mod weapon;
 mod winver;
 
-pub trait UpdateInputState {
+pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
 }
 
-impl UpdateInputState for imgui::Ui {
+impl KeyboardInput for imgui::Ui {
     fn is_key_down(&self, key: imgui::Key) -> bool {
         Ui::is_key_down(self, key)
     }
@@ -66,13 +113,13 @@ impl UpdateInputState for imgui::Ui {
 
 pub struct UpdateContext<'a> {
     pub settings: &'a AppSettings,
-    pub input: &'a dyn UpdateInputState,
+    pub input: &'a dyn KeyboardInput,
 
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,
 
     pub model_cache: &'a EntryCache<u64, CS2Model>,
-    pub class_name_cache: &'a EntryCache<Ptr<()>, Option<String>>,
+    pub class_name_cache: &'a ClassNameCache,
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
@@ -86,7 +133,7 @@ pub struct Application {
     pub cs2_build_info: BuildInfo,
 
     pub model_cache: EntryCache<u64, CS2Model>,
-    pub class_name_cache: EntryCache<Ptr<()>, Option<String>>,
+    pub class_name_cache: ClassNameCache,
     pub view_controller: ViewController,
 
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
@@ -99,6 +146,7 @@ pub struct Application {
     pub settings_dirty: bool,
     pub settings_ui: RefCell<SettingsUI>,
     pub settings_screen_capture_changed: AtomicBool,
+    pub settings_render_debug_window_changed: AtomicBool,
 }
 
 impl Application {
@@ -136,6 +184,14 @@ impl Application {
             );
         }
 
+        if self
+            .settings_render_debug_window_changed
+            .swap(false, Ordering::Relaxed)
+        {
+            let settings = self.settings.borrow();
+            controller.toggle_debug_overlay(settings.render_debug_window);
+        }
+
         Ok(())
     }
 
@@ -171,6 +227,14 @@ impl Application {
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
+        self.cs2_entities
+            .read_entities()
+            .with_context(|| obfstr!("failed to read global entity list").to_string())?;
+
+        self.class_name_cache
+            .update_cache(self.cs2_entities.all_identities())
+            .with_context(|| obfstr!("failed to update class name cache").to_string())?;
+
         let update_context = UpdateContext {
             cs2: &self.cs2,
             cs2_entities: &self.cs2_entities,
@@ -205,6 +269,14 @@ impl Application {
             .position([0.0, 0.0], Condition::Always)
             .build(|| self.render_overlay(ui));
 
+        {
+            let mut settings = self.settings.borrow_mut();
+            for enhancement in self.enhancements.iter() {
+                let mut enhancement = enhancement.borrow_mut();
+                enhancement.render_debug_window(&mut *settings, ui);
+            }
+        }
+
         if self.settings_visible {
             let mut settings_ui = self.settings_ui.borrow_mut();
             settings_ui.render(self, ui)
@@ -214,31 +286,33 @@ impl Application {
     fn render_overlay(&self, ui: &imgui::Ui) {
         let settings = self.settings.borrow();
 
-        {
-            let text_buf;
-            let text = obfstr!(text_buf = "Valthrun Overlay");
+        if settings.valthrun_watermark {
+            {
+                let text_buf;
+                let text = obfstr!(text_buf = "Valthrun Overlay");
 
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
-                10.0,
-            ]);
-            ui.text(text);
-        }
-        {
-            let text = format!("{:.2} FPS", ui.io().framerate);
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
-                24.0,
-            ]);
-            ui.text(text)
-        }
-        {
-            let text = format!("{} Reads", self.frame_read_calls);
-            ui.set_cursor_pos([
-                ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
-                38.0,
-            ]);
-            ui.text(text)
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
+                    10.0,
+                ]);
+                ui.text(text);
+            }
+            {
+                let text = format!("{:.2} FPS", ui.io().framerate);
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                    24.0,
+                ]);
+                ui.text(text)
+            }
+            {
+                let text = format!("{} Reads", self.frame_read_calls);
+                ui.set_cursor_pos([
+                    ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
+                    38.0,
+                ]);
+                ui.text(text)
+            }
         }
 
         for hack in self.enhancements.iter() {
@@ -390,7 +464,7 @@ fn main_overlay() -> anyhow::Result<()> {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {
-                if let KInterfaceError::DeviceUnavailable(_) = &err {
+                if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if !unsafe { IsUserAnAdmin().as_bool() } {
                         if !is_console_invoked() {
                             /* If we don't have a console, show the message box and abort execution. */
@@ -401,6 +475,12 @@ fn main_overlay() -> anyhow::Result<()> {
                         /* Just print this warning message and return the actual error.  */
                         log::warn!("Application run without administrator privileges.");
                         log::warn!("Please re-run with administrator privileges!");
+                    }
+
+                    if error.code().0 as u32 == 0x80070002 {
+                        /* The system cannot find the file specified. */
+                        show_critical_error("Could not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
                     show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
@@ -452,14 +532,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 Ok(CS2Model::read(&cs2, *model as u64)?)
             }
         }),
-        class_name_cache: EntryCache::new({
-            let cs2 = cs2.clone();
-            move |class_info: &Ptr<()>| {
-                let address = class_info.address()?;
-                let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
-                Ok(Some(class_name))
-            }
-        }),
+        class_name_cache: ClassNameCache::new(cs2.clone()),
         view_controller: ViewController::new(cs2_offsets.clone()),
 
         enhancements: vec![
@@ -480,12 +553,33 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_ui: RefCell::new(SettingsUI::new(settings)),
         /* set the screen capture visibility at the beginning of the first update */
         settings_screen_capture_changed: AtomicBool::new(true),
+        settings_render_debug_window_changed: AtomicBool::new(true),
     };
 
     let app = Rc::new(RefCell::new(app));
 
     log::debug!("Initialize overlay");
-    let mut overlay = overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2"))?;
+    // OverlayError
+    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
+        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
+            match &source {
+                libloading::Error::LoadLibraryExW { .. } => {
+                    let error = source.source().context("LoadLibraryExW to have a source")?;
+                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
+                    show_critical_error(&message);
+                }
+                error => {
+                    let message = format!(
+                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
+                        error
+                    );
+                    show_critical_error(&message);
+                }
+            }
+            return Ok(());
+        }
+        value => value?,
+    };
     if let Some(imgui_settings) = imgui_settings {
         overlay.imgui.load_ini_settings(&imgui_settings);
     }
