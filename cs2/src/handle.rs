@@ -101,7 +101,8 @@ impl CS2Handle {
          */
         unsafe { interface.execute_request(&RequestProtectionToggle { enabled: true }) }?;
 
-        let module_info = unsafe { interface.execute_request::<RequestCSModule>(&RequestCSModule {}) }?;
+        let module_info =
+            unsafe { interface.execute_request::<RequestCSModule>(&RequestCSModule {}) }?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
             ResponseCsModule::NoProcess => return Err(KInterfaceError::ProcessDoesNotExists.into()),
@@ -136,7 +137,8 @@ impl CS2Handle {
 
     pub fn protect_process(&self) -> anyhow::Result<()> {
         unsafe {
-            self.ke_interface.execute_request(&RequestProtectionToggle { enabled: true })
+            self.ke_interface
+                .execute_request(&RequestProtectionToggle { enabled: true })
         }?;
         Ok(())
     }
@@ -183,7 +185,9 @@ impl CS2Handle {
     }
 
     pub fn read_sized<T: Copy>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        Ok(self.ke_interface.read(self.module_info.process_id, offsets)?)
+        Ok(self
+            .ke_interface
+            .read(self.module_info.process_id, offsets)?)
     }
 
     pub fn read_slice<T: Copy>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {

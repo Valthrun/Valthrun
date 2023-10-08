@@ -84,7 +84,8 @@ impl KernelInterface {
                 std::mem::size_of::<R::Result>() as u32,
                 None,
                 None,
-            ).as_bool()
+            )
+            .as_bool()
         };
 
         if success {
@@ -134,10 +135,10 @@ impl KernelInterface {
              */
             self.execute_request::<RequestRead>(&RequestRead {
                 process_id,
-    
+
                 offsets: offset_buffer.clone(),
                 offset_count: offsets.len(),
-    
+
                 buffer: buffer.as_mut_ptr() as *mut u8,
                 count: buffer.len() * std::mem::size_of::<T>(),
             })

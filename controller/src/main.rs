@@ -51,6 +51,7 @@ use obfstr::obfstr;
 use overlay::{
     LoadingError,
     OverlayError,
+    OverlayTarget,
     SystemRuntimeController,
 };
 use settings::{
@@ -515,9 +516,11 @@ fn main_overlay() -> anyhow::Result<()> {
     let app = Rc::new(RefCell::new(app));
 
     log::debug!("Initialize overlay");
-    
+
     // OverlayError
-    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
+    let overlay_target =
+        OverlayTarget::WindowOfProcess(app.borrow().cs2.module_info.process_id as u32);
+    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), overlay_target) {
         Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
