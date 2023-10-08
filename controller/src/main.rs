@@ -515,6 +515,7 @@ fn main_overlay() -> anyhow::Result<()> {
     let app = Rc::new(RefCell::new(app));
 
     log::debug!("Initialize overlay");
+    
     // OverlayError
     let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
         Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
