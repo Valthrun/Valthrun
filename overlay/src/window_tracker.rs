@@ -2,29 +2,31 @@ use imgui_winit_support::winit::{
     platform::windows::WindowExtWindows,
     window::Window,
 };
-use windows::{
-    core::PCWSTR,
-    Win32::{
-        Foundation::{
-            GetLastError,
-            ERROR_INVALID_WINDOW_HANDLE,
-            HWND,
-            LPARAM,
-            POINT,
-            RECT,
-            WPARAM,
+use windows::Win32::{
+    Foundation::{
+        GetLastError,
+        ERROR_INVALID_WINDOW_HANDLE,
+        HWND,
+        LPARAM,
+        POINT,
+        RECT,
+        WPARAM,
+    },
+    Graphics::Gdi::ClientToScreen,
+    System::SystemInformation::GetTickCount,
+    UI::{
+        Input::KeyboardAndMouse::GetFocus,
+        WindowsAndMessaging::{
+            FindWindowExA,
+            GetClassNameW,
+            GetClientRect,
+            GetParent,
+            GetWindowThreadProcessId,
+            IsWindowVisible,
+            MoveWindow,
+            SendMessageA,
+            WM_PAINT,
         },
-        Graphics::Gdi::ClientToScreen,
-        UI::{
-            Input::KeyboardAndMouse::GetFocus,
-            WindowsAndMessaging::{
-                FindWindowW,
-                GetClientRect,
-                MoveWindow,
-                SendMessageA,
-                WM_PAINT, FindWindowExA, IsWindowVisible, GetWindowThreadProcessId, GetParent, GetClassNameW,
-            },
-        }, System::SystemInformation::GetTickCount,
     },
 };
 
@@ -96,7 +98,7 @@ impl WindowTracker {
         log::trace!("Looking for a game window with PID {:?}", target);
         let cs2_hwnd = match get_window_handle_by_process_id(target, None, Some(10000), None) {
             v if v <= 0 => return Err(OverlayError::WindowNotFound),
-            v => HWND(v as isize)
+            v => HWND(v as isize),
         };
 
         if cs2_hwnd.0 == 0 {
