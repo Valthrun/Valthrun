@@ -381,81 +381,22 @@ impl Enhancement for PlayerESP {
                     }
 
                     if settings.esp_health_bar{
-                        let max_health = 100;
+                        let max_health = 100.0;
                         let border_color = [0.0, 0.0, 0.0, 1.0];
-                        let border_thickness = 0.5;
+                        let border_thickness = 2.0;
+                        let player_health = entry.player_health; 
+
+                        let bar_pos = [pos.x, pos.y];
+                        let bar_height = 3.0;
+                        let bar_width = 5.0;
+                        let esp_color = *esp_color;
 
                         if settings.health_bar_hori {
-                            let health_percentage = entry.player_health as f32 / max_health as f32;
-                            let bar_width = health_percentage * 75.0;
-
-                            let bar_x = pos.x;
-                            let bar_y = pos.y;
-
-                            let bar_height = 3.0;
-
-                            let bar_filled_color = *esp_color;
-
-                            for i in 0..(bar_width as i32) {
-                                let x1 = bar_x + i as f32;
-                                let x2 = x1 + 1.0;
-                                let y1 = bar_y;
-                                let y2 = bar_y + bar_height;
-
-                                draw.add_line([x1, y1], [x2, y2], bar_filled_color)
-                                    .thickness(bar_height)
-                                    .build();
-                            }
-
-                            let border_x1 = bar_x - border_thickness / 2.0;
-                            let border_x2 = bar_x + bar_width + border_thickness / 2.0;
-                            let border_y1 = bar_y - border_thickness / 0.2;
-                            let border_y2 = bar_y + bar_height + border_thickness / 0.2;
-                        
-                            draw.add_line([border_x1, border_y1], [border_x2, border_y1], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x1, border_y1], [border_x1, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x2, border_y1], [border_x2, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x1, border_y2], [border_x2, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                        } /*else {
-                            let health_percentage = entry.player_health as f32 / max_health as f32;
-                            let bar_height = health_percentage * 75.0;
-                            
-                            let bar_x = pos.x;
-                            let bar_y = pos.y + 75.0;
-                            
-                            let bar_width = 10.0;
-                            
-                            let bar_filled_color = *esp_color;
-                            
-                            draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], bar_filled_color)
-                            .thickness(3.0)
-                            .build();
-
-                            let border_y1 = bar_y + 75.0 - border_thickness / 0.2;
-                            let border_y2 = bar_y + 75.0 - bar_height - border_thickness / 0.2;
-                        
-                            draw.add_line([border_x1, border_y1], [border_x2, border_y1], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x1, border_y1], [border_x1, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x2, border_y1], [border_x2, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([border_x1, border_y2], [border_x2, border_y2], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                        }*/
+                            view.draw_health_bar_hori(&draw, player_health, max_health, bar_pos, bar_height, esp_color, border_thickness, border_color);
+                        } else if settings.health_bar_vert {
+                            view.draw_health_bar_vert(&draw, player_health, max_health, bar_pos, bar_height, bar_width, esp_color, border_thickness, border_color);
                         }
+                    }
 
                     if settings.esp_info_weapon {
                         let text = entry.weapon.display_name();

@@ -63,6 +63,102 @@ impl ViewController {
         Some(screen_pos)
     }
 
+    pub fn draw_health_bar_hori(
+        &self,
+        draw: &imgui::DrawListMut,
+        player_health: i32,
+        max_health: f32,
+        bar_pos: [f32; 2],
+        bar_height: f32,
+        esp_color: [f32; 4],
+        border_thickness: f32,
+        border_color: [f32; 4],
+    ) {
+        let health_percentage = player_health as f32 / max_health as f32;
+        let bar_width = health_percentage * 75.0;
+        let bar_filled_color = esp_color;
+        
+        let bar_x = bar_pos[0];
+        let bar_y = bar_pos[1];
+        
+        // fixed border
+        let border_x1 = bar_x - border_thickness / 2.0;
+        let border_x2 = bar_x + 75.0 + border_thickness / 2.0;
+        let border_y1 = bar_y - border_thickness / 2.0;
+        let border_y2 = bar_y + bar_height + border_thickness / 2.0;
+        
+        draw.add_line([border_x1, border_y1], [border_x2, border_y1], border_color)
+            .thickness(border_thickness)
+            .build();
+        draw.add_line([border_x1, border_y1], [border_x1, border_y2], border_color)
+            .thickness(border_thickness)
+            .build();
+        draw.add_line([border_x2, border_y1], [border_x2, border_y2], border_color)
+            .thickness(border_thickness)
+            .build();
+        draw.add_line([border_x1, border_y2], [border_x2, border_y2], border_color)
+            .thickness(border_thickness)
+            .build();
+        
+        // draw health bar
+        for i in 0..(bar_width as i32) {
+            let x1 = bar_x + i as f32;
+            let x2 = x1 + 1.0;
+            let y1 = bar_y;
+            let y2 = bar_y + bar_height;
+            draw.add_line([x1, y1], [x2, y2], bar_filled_color)
+                .thickness(bar_height)
+                .build();
+        }                                                
+    }
+
+    pub fn draw_health_bar_vert(
+        &self,
+        draw: &imgui::DrawListMut,
+        player_health: i32,
+        max_health: f32,
+        bar_pos: [f32; 2],
+        bar_height: f32,
+        bar_width: f32,
+        esp_color: [f32; 4],
+        border_thickness: f32,
+        border_color: [f32; 4],
+    ) {
+        let health_percentage = player_health as f32 / max_health as f32;
+        let bar_height = health_percentage * 75.0;
+        let bar_filled_color = esp_color;
+        
+        let bar_x = bar_pos[0];
+        let bar_y = bar_pos[1];
+        
+        let border_x1 = bar_x - border_thickness / 2.0;
+        let border_x2 = bar_x + bar_width + border_thickness / 2.0;
+        let border_y1 = bar_y - 75.0 - border_thickness / 2.0;
+        let border_y2 = bar_y + border_thickness / 2.0;
+        
+        draw.add_line([border_x1, border_y1], [border_x2, border_y1], border_color)
+            .thickness(border_thickness)
+            .build();
+        
+        draw.add_line([border_x1, border_y1], [border_x1, border_y2], border_color)
+            .thickness(border_thickness)
+            .build();
+        
+        draw.add_line([border_x2, border_y1], [border_x2, border_y2], border_color)
+            .thickness(border_thickness)
+            .build();
+        
+        for i in 0..(bar_height as i32) {
+            let y1 = bar_y - i as f32;
+            let y2 = y1 - 1.0;
+            let x1 = bar_x;
+            let x2 = bar_x + bar_width;
+            draw.add_line([x1, y1], [x2, y2], bar_filled_color)
+                .thickness(bar_width)
+                .build();
+        }                                                          
+    }
+
     pub fn calculate_box_2d(
         &self,
         vmin: &nalgebra::Vector3<f32>,
