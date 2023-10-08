@@ -158,9 +158,11 @@ impl PtrCStr {
         if address == 0 {
             Ok(None)
         } else {
-            Ok(Some(
-                self.driver.read_cstring(self.address()?, None, None)?
-            ))
+            Ok(Some(self.driver.read_cstring(
+                self.address()?,
+                None,
+                None,
+            )?))
         }
     }
 }

@@ -6,10 +6,7 @@ use anyhow::Context;
 use cache::EntryCache;
 use clap::{Args, Parser, Subcommand};
 use class_name_cache::ClassNameCache;
-use cs2::{
-    CS2Handle, CS2Model, CS2Offsets, EngineBuildInfo, EntitySystem, Globals, Module,
-    Signature,
-};
+use cs2::{CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals};
 use enhancements::Enhancement;
 use imgui::{Condition, Ui};
 use obfstr::obfstr;
@@ -34,11 +31,13 @@ use view::ViewController;
 use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
 
 use crate::{
+    build::BuildInfo,
     enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
     settings::save_app_settings,
     view::LocalCrosshair,
 };
 
+mod build;
 mod cache;
 mod class_name_cache;
 mod enhancements;
@@ -366,39 +365,6 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     serde_json::to_writer_pretty(&mut output, &schema)?;
     log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
     Ok(())
-}
-
-#[derive(Debug)]
-pub struct BuildInfo {
-    revision: String,
-    build_datetime: String,
-}
-
-impl BuildInfo {
-    fn find_build_info(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(
-            Module::Engine,
-            &Signature::relative_address(
-                obfstr!("client build info"),
-                obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"),
-                0x03,
-                0x07,
-            ),
-        )
-    }
-
-    pub fn read_build_info(cs2: &CS2Handle) -> anyhow::Result<Self> {
-        let address = Self::find_build_info(cs2)?;
-        let engine_build_info = cs2.read_schema::<EngineBuildInfo>(&[address])?;
-        Ok(Self {
-            revision: engine_build_info.revision()?.read_string()?,
-            build_datetime: format!(
-                "{} {}",
-                engine_build_info.build_date()?.read_string()?,
-                engine_build_info.build_time()?.read_string()?
-            ),
-        })
-    }
 }
 
 fn main_overlay() -> anyhow::Result<()> {

@@ -30,7 +30,12 @@ impl MemoryDriver for CSMemoryDriver {
         cs2.read_slice(&[address], slice)
     }
 
-    fn read_cstring(&self, address: u64, expected_length: Option<usize>, _max_length: Option<usize>) -> anyhow::Result<String> {
+    fn read_cstring(
+        &self,
+        address: u64,
+        expected_length: Option<usize>,
+        _max_length: Option<usize>,
+    ) -> anyhow::Result<String> {
         let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
         cs2.read_string(&[address], expected_length)
     }
