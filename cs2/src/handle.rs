@@ -99,9 +99,9 @@ impl CS2Handle {
          *
          * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
          */
-        interface.execute_request(&RequestProtectionToggle { enabled: true })?;
+        unsafe { interface.execute_request(&RequestProtectionToggle { enabled: true }) }?;
 
-        let module_info = interface.execute_request::<RequestCSModule>(&RequestCSModule {})?;
+        let module_info = unsafe { interface.execute_request::<RequestCSModule>(&RequestCSModule {}) }?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
             ResponseCsModule::NoProcess => return Err(KInterfaceError::ProcessDoesNotExists.into()),
@@ -135,25 +135,30 @@ impl CS2Handle {
     }
 
     pub fn protect_process(&self) -> anyhow::Result<()> {
-        self.ke_interface
-            .execute_request(&RequestProtectionToggle { enabled: true })?;
+        unsafe {
+            self.ke_interface.execute_request(&RequestProtectionToggle { enabled: true })
+        }?;
         Ok(())
     }
 
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> anyhow::Result<()> {
-        self.ke_interface.execute_request(&RequestKeyboardState {
-            buffer: states.as_ptr(),
-            state_count: states.len(),
-        })?;
+        unsafe {
+            self.ke_interface.execute_request(&RequestKeyboardState {
+                buffer: states.as_ptr(),
+                state_count: states.len(),
+            })
+        }?;
 
         Ok(())
     }
 
     pub fn send_mouse_state(&self, states: &[MouseState]) -> anyhow::Result<()> {
-        self.ke_interface.execute_request(&RequestMouseMove {
-            buffer: states.as_ptr(),
-            state_count: states.len(),
-        })?;
+        unsafe {
+            self.ke_interface.execute_request(&RequestMouseMove {
+                buffer: states.as_ptr(),
+                state_count: states.len(),
+            })
+        }?;
 
         Ok(())
     }
@@ -177,16 +182,8 @@ impl CS2Handle {
             + offset)
     }
 
-    pub fn read_sized<T: Copy + Default>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        let mut result = unsafe { std::mem::zeroed::<T>() };
-        let result_buff = unsafe {
-            std::slice::from_raw_parts_mut(
-                std::mem::transmute::<_, *mut u8>(&mut result),
-                std::mem::size_of::<T>(),
-            )
-        };
-        self.ke_interface.read_slice(self.module_info.process_id, offsets, result_buff)?;
-        Ok(result)
+    pub fn read_sized<T: Copy>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+        Ok(self.ke_interface.read(self.module_info.process_id, offsets)?)
     }
 
     pub fn read_slice<T: Copy>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
