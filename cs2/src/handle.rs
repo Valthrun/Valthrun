@@ -1,23 +1,42 @@
 #![allow(dead_code)]
 
-use anyhow::Context;
-use cs2_schema_declaration::{MemoryDriver, MemoryHandle, SchemaValue};
-use obfstr::obfstr;
 use std::{
     any::Any,
     ffi::CStr,
     fmt::Debug,
-    sync::{Arc, Weak},
-};
-use valthrun_kernel_interface::{
-    requests::{
-        RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
-        ResponseCsModule,
+    sync::{
+        Arc,
+        Weak,
     },
-    CS2ModuleInfo, KInterfaceError, KernelInterface, KeyboardState, ModuleInfo, MouseState,
 };
 
-use crate::{Signature, SignatureType};
+use anyhow::Context;
+use cs2_schema_declaration::{
+    MemoryDriver,
+    MemoryHandle,
+    SchemaValue,
+};
+use obfstr::obfstr;
+use valthrun_kernel_interface::{
+    requests::{
+        RequestCSModule,
+        RequestKeyboardState,
+        RequestMouseMove,
+        RequestProtectionToggle,
+        ResponseCsModule,
+    },
+    CS2ModuleInfo,
+    KInterfaceError,
+    KernelInterface,
+    KeyboardState,
+    ModuleInfo,
+    MouseState,
+};
+
+use crate::{
+    Signature,
+    SignatureType,
+};
 
 pub struct CSMemoryDriver(Weak<CS2Handle>);
 impl MemoryDriver for CSMemoryDriver {
@@ -28,6 +47,16 @@ impl MemoryDriver for CSMemoryDriver {
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()> {
         let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
         cs2.read_slice(&[address], slice)
+    }
+
+    fn read_cstring(
+        &self,
+        address: u64,
+        expected_length: Option<usize>,
+        _max_length: Option<usize>,
+    ) -> anyhow::Result<String> {
+        let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
+        cs2.read_string(&[address], expected_length)
     }
 }
 

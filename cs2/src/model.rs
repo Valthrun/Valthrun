@@ -1,7 +1,10 @@
 use cs2_schema_declaration::Ptr;
 use obfstr::obfstr;
 
-use crate::{offsets_manual, CS2Handle};
+use crate::{
+    offsets_manual,
+    CS2Handle,
+};
 
 pub enum BoneFlags {
     FlagNoBoneFlags = 0x0,

@@ -1,6 +1,9 @@
 use anyhow::Context;
 
-use crate::{MemoryHandle, SchemaValue};
+use crate::{
+    MemoryHandle,
+    SchemaValue,
+};
 
 macro_rules! prim_impl {
     ($type:ty) => {
@@ -52,9 +55,10 @@ impl<T: SchemaValue, const N: usize> SchemaValue for [T; N] {
         Some(T::value_size()? * N as u64)
     }
 
-    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
+    fn from_memory(mut memory: MemoryHandle) -> anyhow::Result<Self> {
         let element_size =
             T::value_size().context("fixed array can't have an unsized schema value")?;
+        memory.cache(element_size as usize * N)?;
         std::array::try_from_fn(|index| {
             let memory = memory.clone().with_offset((index as u64) * element_size)?;
             T::from_memory(memory)

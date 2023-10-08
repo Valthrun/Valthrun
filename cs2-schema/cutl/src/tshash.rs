@@ -1,8 +1,12 @@
 use std::marker::PhantomData;
 
 use anyhow::Context;
-
-use cs2_schema_declaration::{define_schema, MemoryHandle, Ptr, SchemaValue};
+use cs2_schema_declaration::{
+    define_schema,
+    MemoryHandle,
+    Ptr,
+    SchemaValue,
+};
 
 define_schema! {
     pub struct CUtlMemoryPool[0x18] {

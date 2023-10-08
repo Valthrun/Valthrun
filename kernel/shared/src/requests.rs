@@ -1,4 +1,9 @@
-use crate::{CS2ModuleInfo, KeyboardState, MouseState, IO_MAX_DEREF_COUNT};
+use crate::{
+    CS2ModuleInfo,
+    KeyboardState,
+    MouseState,
+    IO_MAX_DEREF_COUNT,
+};
 
 pub trait DriverRequest: Sized {
     type Result: Sized + Default;

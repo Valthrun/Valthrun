@@ -26,4 +26,7 @@ pub use trigger::*;
 mod aim;
 pub use aim::*;
 
-use crate::{view::ViewController, UpdateContext};
+use crate::{
+    view::ViewController,
+    UpdateContext,
+};

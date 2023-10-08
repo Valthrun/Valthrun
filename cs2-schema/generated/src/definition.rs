@@ -1,6 +1,14 @@
-use std::io::{self, Error, Result, Write};
+use std::io::{
+    self,
+    Error,
+    Result,
+    Write,
+};
 
-use serde::{Deserialize, Serialize};
+use serde::{
+    Deserialize,
+    Serialize,
+};
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct SchemaScope {

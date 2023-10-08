@@ -1,4 +1,3 @@
-#![feature(sync_unsafe_cell)]
 use std::cell::SyncUnsafeCell;
 
 use valthrun_driver_shared::requests::RequestProtectionToggle;

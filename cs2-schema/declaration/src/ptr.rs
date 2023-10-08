@@ -1,9 +1,19 @@
-use std::{ffi::CStr, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{
+    ffi::CStr,
+    fmt::Debug,
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use anyhow::Context;
 
-use crate::{MemoryDriver, MemoryHandle, SchemaValue};
+use crate::{
+    MemoryDriver,
+    MemoryHandle,
+    SchemaValue,
+};
 
+#[derive(Clone)]
 pub struct Ptr<T: ?Sized> {
     driver: Arc<dyn MemoryDriver>,
     address: u64,
@@ -146,6 +156,25 @@ impl<T: SchemaValue> Ptr<[T]> {
 }
 
 pub type PtrCStr = Ptr<*const i8>;
+
+impl PtrCStr {
+    pub fn read_string(&self) -> anyhow::Result<String> {
+        self.driver.read_cstring(self.address()?, None, None)
+    }
+
+    pub fn try_read_string(&self) -> anyhow::Result<Option<String>> {
+        let address = self.address()?;
+        if address == 0 {
+            Ok(None)
+        } else {
+            Ok(Some(self.driver.read_cstring(
+                self.address()?,
+                None,
+                None,
+            )?))
+        }
+    }
+}
 
 pub struct FixedCString<const SIZE: usize> {
     memory: MemoryHandle,

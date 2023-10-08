@@ -1,25 +1,25 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use cs2::CEntityIdentityEx;
-use cs2_schema_generated::{cs2::client::C_CSPlayerPawn, EntityHandle};
-use rand::{distributions::Uniform, prelude::Distribution};
+use cs2_schema_generated::{
+    cs2::client::C_CSPlayerPawn,
+    EntityHandle,
+};
+use rand::{
+    distributions::Uniform,
+    prelude::Distribution,
+};
 use valthrun_kernel_interface::MouseState;
 
+use super::Enhancement;
 use crate::{
     settings::AppSettings,
-    view::{LocalCrosshair, ViewController},
+    view::{
+        LocalCrosshair,
+        ViewController,
+    },
     UpdateContext,
 };
-
-use super::Enhancement;
-
-#[derive(Debug)]
-pub struct CrosshairTarget {
-    pub entity_id: u32,
-    pub entity_type: Option<String>,
-    pub timestamp: Instant,
-}
 
 enum TriggerState {
     Idle,
@@ -65,7 +65,7 @@ impl TriggerBot {
                     target.entity_id,
                 ))?
                 .context("missing crosshair player pawn")?
-                .entity_ptr::<C_CSPlayerPawn>()?
+                .entity()?
                 .read_schema()?;
 
             let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;

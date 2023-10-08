@@ -1,7 +1,11 @@
 use anyhow::Context;
 use obfstr::obfstr;
 
-use crate::{CS2Handle, Module, Signature};
+use crate::{
+    CS2Handle,
+    Module,
+    Signature,
+};
 
 /// Offsets which needs to be scaned for on runtime.
 /// Mostly global variables.

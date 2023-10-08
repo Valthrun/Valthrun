@@ -1,4 +1,7 @@
-use std::{any::Any, sync::Arc};
+use std::{
+    any::Any,
+    sync::Arc,
+};
 
 use crate::SchemaValue;
 
@@ -6,6 +9,13 @@ pub trait MemoryDriver: Any {
     fn as_any(&self) -> &dyn Any;
 
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()>;
+    fn read_cstring(
+        &self,
+        address: u64,
+        expected_length: Option<usize>,
+        max_length: Option<usize>,
+    ) -> anyhow::Result<String>;
+
     /* fn write_slice(&self, address: u64, slice: &[u8]) -> anyhow::Result<()>; */
 }
 
@@ -41,6 +51,14 @@ impl MemoryHandle {
     }
 
     pub fn cache(&mut self, length: usize) -> anyhow::Result<()> {
+        if let Some(cache) = &self.cache {
+            assert!(cache.address <= self.address);
+            let cache_offset = (self.address - cache.address) as usize;
+            if cache.buffer.len() >= length + cache_offset {
+                /* cache does already contain the requested data */
+                return Ok(());
+            }
+        }
         self.cache = None;
 
         let mut buffer = Vec::with_capacity(length);

@@ -1,14 +1,35 @@
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::{
+    btree_map::Entry,
+    BTreeMap,
+};
 
-use crate::{CS2Handle, Module, PCStrEx, Signature};
 use anyhow::Context;
-use cs2_schema_cutl::{CUtlTSHash, CUtlVector};
-use cs2_schema_declaration::{define_schema, FixedCString, Ptr, PtrCStr};
+use cs2_schema_cutl::{
+    CUtlTSHash,
+    CUtlVector,
+};
+use cs2_schema_declaration::{
+    define_schema,
+    FixedCString,
+    Ptr,
+    PtrCStr,
+};
 use cs2_schema_generated::definition::{
-    mod_name_from_schema_name, ClassDefinition, ClassField, EnumDefinition, EnumMember, Metadata,
+    mod_name_from_schema_name,
+    ClassDefinition,
+    ClassField,
+    EnumDefinition,
+    EnumMember,
+    Metadata,
     SchemaScope,
 };
 use obfstr::obfstr;
+
+use crate::{
+    CS2Handle,
+    Module,
+    Signature,
+};
 
 // Returns SchemaSystem_001
 fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
@@ -164,8 +185,8 @@ define_schema! {
     }
 }
 
-fn parse_metadata(cs2: &CS2Handle, metadata: &CSchemaMetadataEntry) -> anyhow::Result<Metadata> {
-    let name = metadata.name()?.read_string(cs2)?;
+fn parse_metadata(metadata: &CSchemaMetadataEntry) -> anyhow::Result<Metadata> {
+    let name = metadata.name()?.read_string()?;
 
     let meta = match name.as_str() {
         "MNetworkEnable" => Metadata::NetworkEnable,
@@ -175,7 +196,7 @@ fn parse_metadata(cs2: &CS2Handle, metadata: &CSchemaMetadataEntry) -> anyhow::R
                 .metadata_value()?
                 .cast::<PtrCStr>()
                 .read_schema()?
-                .read_string(cs2)?;
+                .read_string()?;
 
             Metadata::NetworkChangeCallback { name }
         }
@@ -186,8 +207,8 @@ fn parse_metadata(cs2: &CS2Handle, metadata: &CSchemaMetadataEntry) -> anyhow::R
                 .read_schema()?;
 
             Metadata::NetworkVarNames {
-                var_name: meta_value.var_name()?.read_string(cs2)?,
-                var_type: meta_value.var_type()?.read_string(cs2)?,
+                var_name: meta_value.var_name()?.read_string()?,
+                var_type: meta_value.var_type()?.read_string()?,
             }
         }
         _ => Metadata::Unknown { name },
@@ -199,7 +220,7 @@ fn parse_metadata(cs2: &CS2Handle, metadata: &CSchemaMetadataEntry) -> anyhow::R
 fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Option<String>> {
     let result = match schema_type.type_category()? {
         TypeCategory::Builtin => {
-            let var_type = schema_type.var_type()?.read_string(cs2)?;
+            let var_type = schema_type.var_type()?.read_string()?;
             let rust_type = match var_type.as_str() {
                 "bool" => "bool",
                 "char" => "u8",
@@ -244,7 +265,7 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
         TypeCategory::Atomic => {
             match schema_type.atomic_category()? {
                 AtomicCategory::Basic => {
-                    let value = schema_type.var_type()?.read_string(cs2)?;
+                    let value = schema_type.var_type()?.read_string()?;
                     Some(
                         match value.as_str() {
                             "CEntityIndex" => "CEntityIndex",
@@ -263,7 +284,7 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                     )
                 }
                 AtomicCategory::CollectionOfT => {
-                    let value = schema_type.var_type()?.read_string(cs2)?;
+                    let value = schema_type.var_type()?.read_string()?;
                     if !value.starts_with("CUtlVector<") {
                         return Ok(None);
                     }
@@ -276,7 +297,7 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                     inner_type.map(|inner_type| format!("CUtlVector<{}>", inner_type))
                 }
                 AtomicCategory::T => {
-                    let value = schema_type.var_type()?.read_string(cs2)?;
+                    let value = schema_type.var_type()?.read_string()?;
                     if !value.starts_with("CHandle<") {
                         return Ok(None);
                     }
@@ -300,7 +321,7 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                 .read_schema()?
                 .scope_name()?
                 .to_string_lossy()?;
-            let class_name = type_class.name()?.read_string(cs2)?.replace(":", "_");
+            let class_name = type_class.name()?.read_string()?.replace(":", "_");
             Some(format!(
                 "{}::{}",
                 mod_name_from_schema_name(&module_name),
@@ -317,7 +338,7 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                 .read_schema()?
                 .scope_name()?
                 .to_string_lossy()?;
-            let enum_name = enum_binding.name()?.read_string(cs2)?.replace(":", "_");
+            let enum_name = enum_binding.name()?.read_string()?.replace(":", "_");
             Some(format!(
                 "{}::{}",
                 mod_name_from_schema_name(&module_name),
@@ -331,14 +352,13 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
 }
 
 fn read_enum_binding(
-    cs2: &CS2Handle,
     binding_ptr: &Ptr<CSchemaEnumBinding>,
 ) -> anyhow::Result<(String, EnumDefinition)> {
     let binding = binding_ptr.read_schema()?;
     let mut definition: EnumDefinition = Default::default();
 
     definition.enum_size = binding.size()? as usize;
-    definition.enum_name = binding.name()?.read_string(cs2)?;
+    definition.enum_name = binding.name()?.read_string()?;
 
     log::debug!("   {:X} {}", binding_ptr.address()?, definition.enum_name);
     definition
@@ -346,7 +366,7 @@ fn read_enum_binding(
         .reserve(binding.member_count()? as usize);
     for index in 0..binding.member_count()? as usize {
         let member = binding.members()?.reference_element(index)?;
-        let member_name = member.name()?.read_string(cs2)?;
+        let member_name = member.name()?.read_string()?;
         let member_value = member.value()?;
         definition.memebers.push(EnumMember {
             name: member_name,
@@ -372,7 +392,7 @@ fn read_class_binding(
     log::debug!(
         "   {:X} {} -> {}",
         binding_ptr.address()?,
-        binding.name()?.read_string(cs2)?,
+        binding.name()?.read_string()?,
         binding
             .type_scope()?
             .read_schema()?
@@ -381,7 +401,7 @@ fn read_class_binding(
     );
 
     let mut definition: ClassDefinition = Default::default();
-    definition.class_name = binding.name()?.read_string(cs2)?;
+    definition.class_name = binding.name()?.read_string()?;
     definition.class_size = binding.size()? as u64;
     definition.offsets.reserve(binding.field_size()? as usize);
 
@@ -400,7 +420,7 @@ fn read_class_binding(
         let base_class = format!(
             "{}::{}",
             mod_name_from_schema_name(&class_module),
-            base_class.name()?.read_string(cs2)?.replace(":", "_")
+            base_class.name()?.read_string()?.replace(":", "_")
         );
 
         definition.inherits = Some(base_class);
@@ -415,10 +435,10 @@ fn read_class_binding(
         let mut metadata = Vec::with_capacity(field.metadata_size()? as usize);
         for index in 0..field.metadata_size()? as usize {
             let meta_entry = field.metadata()?.read_element(index)?;
-            metadata.push(parse_metadata(cs2, &meta_entry)?);
+            metadata.push(parse_metadata(&meta_entry)?);
         }
 
-        let c_type = field_type.var_type()?.read_string(cs2)?;
+        let c_type = field_type.var_type()?.read_string()?;
         let rust_type = parse_type(cs2, &field_type)?;
         if rust_type.is_none() {
             log::warn!(
@@ -426,13 +446,13 @@ fn read_class_binding(
                 &c_type,
                 field_type.type_category()?,
                 field_type.atomic_category()?,
-                field.name()?.read_string(cs2)?,
+                field.name()?.read_string()?,
             );
         }
 
         //log::debug!("    - {:X} {}", field.offset, field.name.read_string(cs2)?);
         definition.offsets.push(ClassField {
-            field_name: field.name()?.read_string(cs2)?,
+            field_name: field.name()?.read_string()?,
 
             field_type: rust_type,
             field_ctype: c_type,
@@ -449,7 +469,7 @@ fn read_class_binding(
         let metadata = &binding.metadata()?.read_element(index)?;
         definition
             .metadata
-            .push(parse_metadata(cs2, metadata).context("metadata parse")?);
+            .push(parse_metadata(metadata).context("metadata parse")?);
     }
 
     Ok((
@@ -518,7 +538,7 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
         }
 
         for enum_binding in enum_bindings {
-            let (scope_name, definition) = read_enum_binding(cs2, &enum_binding)?;
+            let (scope_name, definition) = read_enum_binding(&enum_binding)?;
             let schema_scope = match schema_scops.entry(scope_name) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
