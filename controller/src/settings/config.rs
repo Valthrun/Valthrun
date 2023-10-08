@@ -91,6 +91,15 @@ pub struct AppSettings {
     pub esp_info_health: bool,
 
     #[serde(default = "bool_false")]
+    pub esp_health_bar: bool,
+
+    #[serde(default = "bool_false")]
+    pub health_bar_vert: bool,
+
+    #[serde(default = "bool_false")]
+    pub health_bar_hori: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "bool_true")]

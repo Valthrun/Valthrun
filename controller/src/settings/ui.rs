@@ -106,6 +106,17 @@ impl SettingsUI {
                             }
 
                             ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
+                            ui.checkbox(obfstr!("Display health bar"), &mut settings.esp_health_bar);
+                            if settings.esp_health_bar {
+                                if settings.health_bar_hori == false && settings.health_bar_vert == false {
+                                    ui.checkbox(obfstr!("Health bar horizontal"), &mut settings.health_bar_hori);
+                                    ui.checkbox(obfstr!("Health bar vertical"), &mut settings.health_bar_vert);
+                                } else if settings.health_bar_hori == false && settings.health_bar_vert == true {
+                                    ui.checkbox(obfstr!("Health bar vertical (Not working!)"), &mut settings.health_bar_vert);
+                                } else if settings.health_bar_hori == true && settings.health_bar_vert == false {
+                                    ui.checkbox(obfstr!("Health bar horizontal"), &mut settings.health_bar_hori);
+                                }
+                            }
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
