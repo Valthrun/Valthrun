@@ -33,21 +33,21 @@ macro_rules! define_weapons {
                 }
             }
 
-            pub fn id(&self) -> Option<u16> {
+            pub fn id(&self) -> u16 {
                 match self {
-                    $(Self::$member_name => Some($id),)*
+                    $(Self::$member_name => $id,)*
                 }
             }
 
-            pub fn flags(&self) -> Option<u32> {
+            pub fn flags(&self) -> u32 {
                 match self {
-                    $(Self::$member_name => Some($flags),)*
+                    $(Self::$member_name => $flags,)*
                 }
             }
 
-            pub fn display_name(&self) -> Option<&'static str> {
+            pub fn display_name(&self) -> &'static str {
                 match self {
-                    $(Self::$member_name => Some($name),)*
+                    $(Self::$member_name => $name,)*
                 }
             }
         }

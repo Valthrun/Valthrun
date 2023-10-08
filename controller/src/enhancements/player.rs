@@ -160,11 +160,15 @@ impl PlayerESP {
             .map(|bone| bone.try_into())
             .try_collect()?;
 
-        let weapon = player_pawn.m_pClippingWeapon()?.read_schema()?;
-        let weapon_type = weapon
-            .m_AttributeManager()?
-            .m_Item()?
-            .m_iItemDefinitionIndex()?;
+        let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+        let weapon_type = if let Some(weapon) = weapon {
+            weapon
+                .m_AttributeManager()?
+                .m_Item()?
+                .m_iItemDefinitionIndex()?
+        } else {
+            WeaponId::Knife.id()
+        };
 
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
@@ -377,7 +381,7 @@ impl Enhancement for PlayerESP {
                     }
 
                     if settings.esp_info_weapon {
-                        let text = entry.weapon.display_name().unwrap_or("Unknown Weapon");
+                        let text = entry.weapon.display_name();
                         let [text_width, _] = ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
