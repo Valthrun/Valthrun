@@ -91,35 +91,8 @@ impl KernelInterface {
             Err(KInterfaceError::RequestFailed)
         }
     }
-
-    pub fn read<T>(&self, process_id: i32, offsets: &[u64]) -> KResult<T> {
-        let mut result = unsafe { std::mem::zeroed() };
-        let result_buff = unsafe {
-            std::slice::from_raw_parts_mut(
-                std::mem::transmute::<_, *mut u8>(&mut result),
-                std::mem::size_of::<T>(),
-            )
-        };
-        self.read_slice(process_id, offsets, result_buff)?;
-        Ok(result)
-    }
-
-    pub fn read_vec<T: Sized>(
-        &self,
-        process_id: i32,
-        offsets: &[u64],
-        length: usize,
-    ) -> KResult<Vec<T>> {
-        let mut buffer = Vec::new();
-        buffer.reserve(length);
-
-        self.read_slice(process_id, offsets, buffer.spare_capacity_mut())?;
-        unsafe { buffer.set_len(length) };
-
-        Ok(buffer)
-    }
-
-    pub fn read_slice<T: Sized>(
+    
+    pub fn read_slice<T: Copy>(
         &self,
         process_id: i32,
         offsets: &[u64],

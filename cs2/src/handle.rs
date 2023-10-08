@@ -177,13 +177,19 @@ impl CS2Handle {
             + offset)
     }
 
-    pub fn read_sized<T>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        Ok(self
-            .ke_interface
-            .read(self.module_info.process_id, offsets)?)
+    pub fn read_sized<T: Copy + Default>(&self, offsets: &[u64]) -> anyhow::Result<T> {
+        let mut result = unsafe { std::mem::zeroed::<T>() };
+        let result_buff = unsafe {
+            std::slice::from_raw_parts_mut(
+                std::mem::transmute::<_, *mut u8>(&mut result),
+                std::mem::size_of::<T>(),
+            )
+        };
+        self.ke_interface.read_slice(self.module_info.process_id, offsets, result_buff)?;
+        Ok(result)
     }
 
-    pub fn read_slice<T: Sized>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
+    pub fn read_slice<T: Copy>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
         Ok(self
             .ke_interface
             .read_slice(self.module_info.process_id, offsets, buffer)?)
