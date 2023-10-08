@@ -516,7 +516,10 @@ fn main_overlay() -> anyhow::Result<()> {
 
     log::debug!("Initialize overlay");
     // OverlayError
-    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), app.borrow().cs2.module_info.process_id as u32) {
+    let mut overlay = match overlay::init(
+        obfstr!("CS2 Overlay"),
+        app.borrow().cs2.module_info.process_id as u32,
+    ) {
         Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
