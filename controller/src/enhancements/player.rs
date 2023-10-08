@@ -23,6 +23,7 @@ pub struct PlayerInfo {
     pub team_type: TeamType,
 
     pub player_health: i32,
+    pub player_has_defuser: bool,
     pub player_name: String,
     pub position: nalgebra::Vector3<f32>,
 
@@ -134,6 +135,8 @@ impl PlayerESP {
             .context("invalid player name")?
             .to_string();
 
+        let player_has_defuser = player_controller.m_bPawnHasDefuser()?;
+
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
@@ -163,6 +166,7 @@ impl PlayerESP {
         Ok(Some(PlayerInfo {
             team_type,
             player_name,
+            player_has_defuser,
             player_health,
             position,
 
@@ -309,6 +313,29 @@ impl Enhancement for PlayerESP {
                         format!("{} HP", entry.player_health),
                     );
                     ui.set_window_font_scale(1.0);
+                }
+
+                if entry.player_has_defuser
+                {
+                    let mut kit_text_pos = entry.position;
+                    kit_text_pos.z += 80.0;
+
+                    if let Some(mut pos) = view.world_to_screen(&kit_text_pos, false) {
+                        let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
+                        let target_scale = entry_height * 15.0 / view.screen_bounds.y;
+                        let target_scale = target_scale.clamp(0.5, 1.25);
+                        ui.set_window_font_scale(target_scale);
+
+                        let text = format!("KIT");
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        pos.x -= text_width / 2.0;
+                        draw.add_text(
+                            pos,
+                            esp_color.clone(),
+                            format!("KIT"),
+                        );
+                        ui.set_window_font_scale(1.0);
+                    }
                 }
             }
         }
