@@ -1,3 +1,5 @@
+use overlay::OverlayTarget;
+
 fn main() -> anyhow::Result<()> {
     env_logger::builder()
         .filter_level(log::LevelFilter::Trace)
@@ -5,7 +7,10 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     log::info!("Initialize overlay");
-    let overlay = overlay::init("Task Manager Overlay", "Counter-Strike 2")?;
+    let overlay = overlay::init(
+        "Task Manager Overlay",
+        OverlayTarget::WindowTitle("Task Manager".into()),
+    )?;
     let mut text_input = Default::default();
     overlay.main_loop(
         |controller| {
