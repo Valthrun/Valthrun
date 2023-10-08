@@ -1,8 +1,17 @@
-use std::{ffi::CStr, fmt::Debug, marker::PhantomData, sync::Arc};
+use std::{
+    ffi::CStr,
+    fmt::Debug,
+    marker::PhantomData,
+    sync::Arc,
+};
 
 use anyhow::Context;
 
-use crate::{MemoryDriver, MemoryHandle, SchemaValue};
+use crate::{
+    MemoryDriver,
+    MemoryHandle,
+    SchemaValue,
+};
 
 #[derive(Clone)]
 pub struct Ptr<T: ?Sized> {

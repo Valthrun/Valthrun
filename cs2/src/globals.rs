@@ -1,4 +1,7 @@
-use cs2_schema_declaration::{define_schema, PtrCStr};
+use cs2_schema_declaration::{
+    define_schema,
+    PtrCStr,
+};
 
 define_schema! {
     pub struct EngineBuildInfo[0x28] {

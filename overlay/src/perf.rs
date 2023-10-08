@@ -1,6 +1,9 @@
 use std::time::Instant;
 
-use imgui::{ImColor32, StyleColor};
+use imgui::{
+    ImColor32,
+    StyleColor,
+};
 
 pub struct PerfTracker {
     history_length: usize,

@@ -1,22 +1,40 @@
 use std::{
-    ffi::{c_void, CString},
-    sync::atomic::{AtomicUsize, Ordering},
+    ffi::{
+        c_void,
+        CString,
+    },
+    sync::atomic::{
+        AtomicUsize,
+        Ordering,
+    },
 };
 
 use valthrun_driver_shared::{
-    requests::{DriverRequest, RequestRead, ResponseRead},
+    requests::{
+        DriverRequest,
+        RequestRead,
+        ResponseRead,
+    },
     IO_MAX_DEREF_COUNT,
 };
 use windows::{
     core::PCSTR,
     Win32::{
         Foundation,
-        Storage::FileSystem::{self, CreateFileA, FILE_FLAGS_AND_ATTRIBUTES},
+        Storage::FileSystem::{
+            self,
+            CreateFileA,
+            FILE_FLAGS_AND_ATTRIBUTES,
+        },
         System::IO::DeviceIoControl,
     },
 };
 
-use crate::{KInterfaceError, KResult, SearchPattern};
+use crate::{
+    KInterfaceError,
+    KResult,
+    SearchPattern,
+};
 
 /// Interface for our kernel driver
 pub struct KernelInterface {

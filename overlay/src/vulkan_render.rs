@@ -1,18 +1,34 @@
-use std::ffi::{c_void, CStr, CString};
+use std::ffi::{
+    c_void,
+    CStr,
+    CString,
+};
 
 use ash::{
     extensions::{
         ext::DebugUtils,
-        khr::{Surface, Swapchain as SwapchainLoader},
+        khr::{
+            Surface,
+            Swapchain as SwapchainLoader,
+        },
     },
-    vk, Device, Entry, Instance,
+    vk,
+    Device,
+    Entry,
+    Instance,
 };
 use imgui::DrawData;
 use imgui_rs_vulkan_renderer::Renderer;
 use imgui_winit_support::winit::window::Window;
-use raw_window_handle::{HasRawDisplayHandle, HasRawWindowHandle};
+use raw_window_handle::{
+    HasRawDisplayHandle,
+    HasRawWindowHandle,
+};
 
-use crate::{error::Result, vulkan_driver::get_vulkan_entry};
+use crate::{
+    error::Result,
+    vulkan_driver::get_vulkan_entry,
+};
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;

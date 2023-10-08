@@ -1,9 +1,15 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    sync::Arc,
+};
 
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::CEntityIdentity;
 
-use crate::{CEntityIdentityEx, CS2Handle};
+use crate::{
+    CEntityIdentityEx,
+    CS2Handle,
+};
 
 type InnerEntityList = [CEntityIdentity; 512];
 type OuterEntityList = [Ptr<InnerEntityList>; 64];

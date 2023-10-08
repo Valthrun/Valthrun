@@ -1,7 +1,13 @@
-use std::{collections::BTreeMap, sync::Arc};
+use std::{
+    collections::BTreeMap,
+    sync::Arc,
+};
 
 use anyhow::Context;
-use cs2::{CEntityIdentityEx, CS2Handle};
+use cs2::{
+    CEntityIdentityEx,
+    CS2Handle,
+};
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::CEntityIdentity;
 

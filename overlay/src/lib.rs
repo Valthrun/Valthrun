@@ -1,31 +1,94 @@
+use std::{
+    ffi::CString,
+    time::Instant,
+};
+
 use ash::vk;
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
-use imgui::{Context, FontConfig, FontSource, Io};
-use imgui_rs_vulkan_renderer::{Options, Renderer};
-use imgui_winit_support::winit::event::{Event, WindowEvent};
-use imgui_winit_support::winit::event_loop::{ControlFlow, EventLoop};
-use imgui_winit_support::winit::platform::windows::WindowExtWindows;
-use imgui_winit_support::winit::window::{Window, WindowBuilder};
-use imgui_winit_support::{winit::dpi::PhysicalSize, HiDpiMode, WinitPlatform};
-use input::{KeyboardInputSystem, MouseInputSystem};
-use obfstr::obfstr;
-use std::ffi::CString;
-use std::time::Instant;
-use window_tracker::WindowTracker;
-use windows::core::PCSTR;
-use windows::Win32::Foundation::{BOOL, HWND};
-use windows::Win32::Graphics::Dwm::{
-    DwmEnableBlurBehindWindow, DWM_BB_BLURREGION, DWM_BB_ENABLE, DWM_BLURBEHIND,
+use imgui::{
+    Context,
+    FontConfig,
+    FontSource,
+    Io,
 };
-use windows::Win32::Graphics::Gdi::CreateRectRgn;
-use windows::Win32::UI::Input::KeyboardAndMouse::SetActiveWindow;
-use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowLongPtrA, MessageBoxA, SetWindowDisplayAffinity, SetWindowLongA, SetWindowLongPtrA,
-    SetWindowPos, ShowWindow, GWL_EXSTYLE, GWL_STYLE, HWND_TOPMOST, MB_ICONERROR, MB_OK,
-    SWP_NOACTIVATE, SWP_NOMOVE, SWP_NOSIZE, SW_SHOWNOACTIVATE, WDA_EXCLUDEFROMCAPTURE, WDA_NONE,
-    WS_CLIPSIBLINGS, WS_EX_LAYERED, WS_EX_NOACTIVATE, WS_EX_TOOLWINDOW, WS_EX_TRANSPARENT,
-    WS_POPUP, WS_VISIBLE,
+use imgui_rs_vulkan_renderer::{
+    Options,
+    Renderer,
+};
+use imgui_winit_support::{
+    winit::{
+        dpi::PhysicalSize,
+        event::{
+            Event,
+            WindowEvent,
+        },
+        event_loop::{
+            ControlFlow,
+            EventLoop,
+        },
+        platform::windows::WindowExtWindows,
+        window::{
+            Window,
+            WindowBuilder,
+        },
+    },
+    HiDpiMode,
+    WinitPlatform,
+};
+use input::{
+    KeyboardInputSystem,
+    MouseInputSystem,
+};
+use obfstr::obfstr;
+use window_tracker::WindowTracker;
+use windows::{
+    core::PCSTR,
+    Win32::{
+        Foundation::{
+            BOOL,
+            HWND,
+        },
+        Graphics::{
+            Dwm::{
+                DwmEnableBlurBehindWindow,
+                DWM_BB_BLURREGION,
+                DWM_BB_ENABLE,
+                DWM_BLURBEHIND,
+            },
+            Gdi::CreateRectRgn,
+        },
+        UI::{
+            Input::KeyboardAndMouse::SetActiveWindow,
+            WindowsAndMessaging::{
+                GetWindowLongPtrA,
+                MessageBoxA,
+                SetWindowDisplayAffinity,
+                SetWindowLongA,
+                SetWindowLongPtrA,
+                SetWindowPos,
+                ShowWindow,
+                GWL_EXSTYLE,
+                GWL_STYLE,
+                HWND_TOPMOST,
+                MB_ICONERROR,
+                MB_OK,
+                SWP_NOACTIVATE,
+                SWP_NOMOVE,
+                SWP_NOSIZE,
+                SW_SHOWNOACTIVATE,
+                WDA_EXCLUDEFROMCAPTURE,
+                WDA_NONE,
+                WS_CLIPSIBLINGS,
+                WS_EX_LAYERED,
+                WS_EX_NOACTIVATE,
+                WS_EX_TOOLWINDOW,
+                WS_EX_TRANSPARENT,
+                WS_POPUP,
+                WS_VISIBLE,
+            },
+        },
+    },
 };
 
 mod clipboard;

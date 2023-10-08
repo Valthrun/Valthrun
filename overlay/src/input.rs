@@ -1,14 +1,39 @@
-use imgui::{Key, MouseButton};
-use imgui_winit_support::winit::platform::windows::WindowExtWindows;
-use imgui_winit_support::winit::window::Window;
-use windows::Win32::Foundation::{HWND, POINT};
-use windows::Win32::Graphics::Gdi::ScreenToClient;
-use windows::Win32::UI::Input::KeyboardAndMouse::{
-    GetAsyncKeyState, VIRTUAL_KEY, VK_CONTROL, VK_LBUTTON, VK_LCONTROL, VK_LMENU, VK_LSHIFT,
-    VK_LWIN, VK_MBUTTON, VK_MENU, VK_RBUTTON, VK_RMENU, VK_RSHIFT, VK_RWIN, VK_XBUTTON1,
-    VK_XBUTTON2,
+use imgui::{
+    Key,
+    MouseButton,
 };
-use windows::Win32::UI::WindowsAndMessaging::GetCursorPos;
+use imgui_winit_support::winit::{
+    platform::windows::WindowExtWindows,
+    window::Window,
+};
+use windows::Win32::{
+    Foundation::{
+        HWND,
+        POINT,
+    },
+    Graphics::Gdi::ScreenToClient,
+    UI::{
+        Input::KeyboardAndMouse::{
+            GetAsyncKeyState,
+            VIRTUAL_KEY,
+            VK_CONTROL,
+            VK_LBUTTON,
+            VK_LCONTROL,
+            VK_LMENU,
+            VK_LSHIFT,
+            VK_LWIN,
+            VK_MBUTTON,
+            VK_MENU,
+            VK_RBUTTON,
+            VK_RMENU,
+            VK_RSHIFT,
+            VK_RWIN,
+            VK_XBUTTON1,
+            VK_XBUTTON2,
+        },
+        WindowsAndMessaging::GetCursorPos,
+    },
+};
 
 const VK_KEY_MAX: usize = 256;
 

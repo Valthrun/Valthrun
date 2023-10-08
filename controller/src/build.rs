@@ -1,4 +1,9 @@
-use cs2::{CS2Handle, EngineBuildInfo, Module, Signature};
+use cs2::{
+    CS2Handle,
+    EngineBuildInfo,
+    Module,
+    Signature,
+};
 use obfstr::obfstr;
 
 #[derive(Debug)]

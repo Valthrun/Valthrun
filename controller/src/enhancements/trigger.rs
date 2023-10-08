@@ -1,17 +1,25 @@
 use std::time::Instant;
 
 use anyhow::Context;
-use cs2_schema_generated::{cs2::client::C_CSPlayerPawn, EntityHandle};
-use rand::{distributions::Uniform, prelude::Distribution};
+use cs2_schema_generated::{
+    cs2::client::C_CSPlayerPawn,
+    EntityHandle,
+};
+use rand::{
+    distributions::Uniform,
+    prelude::Distribution,
+};
 use valthrun_kernel_interface::MouseState;
 
+use super::Enhancement;
 use crate::{
     settings::AppSettings,
-    view::{LocalCrosshair, ViewController},
+    view::{
+        LocalCrosshair,
+        ViewController,
+    },
     UpdateContext,
 };
-
-use super::Enhancement;
 
 enum TriggerState {
     Idle,

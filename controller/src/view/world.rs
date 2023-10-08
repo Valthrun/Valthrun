@@ -1,6 +1,9 @@
 use std::sync::Arc;
 
-use cs2::{CS2Handle, CS2Offsets};
+use cs2::{
+    CS2Handle,
+    CS2Offsets,
+};
 use imgui::ImColor32;
 
 /// View controller which helps resolve in game

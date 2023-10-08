@@ -1,6 +1,9 @@
 use anyhow::Context;
 
-use crate::{MemoryHandle, SchemaValue};
+use crate::{
+    MemoryHandle,
+    SchemaValue,
+};
 
 macro_rules! prim_impl {
     ($type:ty) => {

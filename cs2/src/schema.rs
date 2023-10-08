@@ -1,14 +1,35 @@
-use std::collections::{btree_map::Entry, BTreeMap};
+use std::collections::{
+    btree_map::Entry,
+    BTreeMap,
+};
 
-use crate::{CS2Handle, Module, Signature};
 use anyhow::Context;
-use cs2_schema_cutl::{CUtlTSHash, CUtlVector};
-use cs2_schema_declaration::{define_schema, FixedCString, Ptr, PtrCStr};
+use cs2_schema_cutl::{
+    CUtlTSHash,
+    CUtlVector,
+};
+use cs2_schema_declaration::{
+    define_schema,
+    FixedCString,
+    Ptr,
+    PtrCStr,
+};
 use cs2_schema_generated::definition::{
-    mod_name_from_schema_name, ClassDefinition, ClassField, EnumDefinition, EnumMember, Metadata,
+    mod_name_from_schema_name,
+    ClassDefinition,
+    ClassField,
+    EnumDefinition,
+    EnumMember,
+    Metadata,
     SchemaScope,
 };
 use obfstr::obfstr;
+
+use crate::{
+    CS2Handle,
+    Module,
+    Signature,
+};
 
 // Returns SchemaSystem_001
 fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {

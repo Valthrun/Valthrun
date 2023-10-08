@@ -1,10 +1,17 @@
-use anyhow::Context;
-use imgui::Key;
-use serde::{Deserialize, Serialize};
 use std::{
     fs::File,
-    io::{BufReader, BufWriter},
+    io::{
+        BufReader,
+        BufWriter,
+    },
     path::PathBuf,
+};
+
+use anyhow::Context;
+use imgui::Key;
+use serde::{
+    Deserialize,
+    Serialize,
 };
 
 use super::HotKey;

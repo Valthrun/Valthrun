@@ -2,18 +2,11 @@
 #![feature(result_option_inspect)]
 #![allow(dead_code)]
 
-use anyhow::Context;
-use cache::EntryCache;
-use clap::{Args, Parser, Subcommand};
-use class_name_cache::ClassNameCache;
-use cs2::{CS2Handle, CS2Model, CS2Offsets, EntitySystem, Globals};
-use enhancements::Enhancement;
-use imgui::{Condition, Ui};
-use obfstr::obfstr;
-use overlay::{LoadingError, OverlayError, SystemRuntimeController};
-use settings::{load_app_settings, AppSettings, SettingsUI};
 use std::{
-    cell::{RefCell, RefMut},
+    cell::{
+        RefCell,
+        RefMut,
+    },
     error::Error,
     fmt::Debug,
     fs::File,
@@ -21,18 +14,64 @@ use std::{
     path::PathBuf,
     rc::Rc,
     sync::{
-        atomic::{AtomicBool, Ordering},
+        atomic::{
+            AtomicBool,
+            Ordering,
+        },
         Arc,
     },
-    time::{Duration, Instant},
+    time::{
+        Duration,
+        Instant,
+    },
+};
+
+use anyhow::Context;
+use cache::EntryCache;
+use clap::{
+    Args,
+    Parser,
+    Subcommand,
+};
+use class_name_cache::ClassNameCache;
+use cs2::{
+    CS2Handle,
+    CS2Model,
+    CS2Offsets,
+    EntitySystem,
+    Globals,
+};
+use enhancements::Enhancement;
+use imgui::{
+    Condition,
+    Ui,
+};
+use obfstr::obfstr;
+use overlay::{
+    LoadingError,
+    OverlayError,
+    SystemRuntimeController,
+};
+use settings::{
+    load_app_settings,
+    AppSettings,
+    SettingsUI,
 };
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::Win32::{System::Console::GetConsoleProcessList, UI::Shell::IsUserAnAdmin};
+use windows::Win32::{
+    System::Console::GetConsoleProcessList,
+    UI::Shell::IsUserAnAdmin,
+};
 
 use crate::{
     build::BuildInfo,
-    enhancements::{AntiAimPunsh, BombInfo, PlayerESP, TriggerBot},
+    enhancements::{
+        AntiAimPunsh,
+        BombInfo,
+        PlayerESP,
+        TriggerBot,
+    },
     settings::save_app_settings,
     view::LocalCrosshair,
 };

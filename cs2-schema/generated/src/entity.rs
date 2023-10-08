@@ -1,6 +1,12 @@
-use std::{fmt::Debug, marker::PhantomData};
+use std::{
+    fmt::Debug,
+    marker::PhantomData,
+};
 
-use cs2_schema_declaration::{MemoryHandle, SchemaValue};
+use cs2_schema_declaration::{
+    MemoryHandle,
+    SchemaValue,
+};
 
 /// CS2 32 bit entity handle packed with
 /// the entity index and serial number.

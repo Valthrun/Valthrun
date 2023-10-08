@@ -1,8 +1,14 @@
-use std::{fs::File, io::Write};
+use std::{
+    fs::File,
+    io::Write,
+};
 
 use ash::Entry;
 
-use crate::{OverlayError, Result};
+use crate::{
+    OverlayError,
+    Result,
+};
 
 const DRIVER_BYTES: &[u8] = include_bytes!("../resources/vulkan-1.dll");
 

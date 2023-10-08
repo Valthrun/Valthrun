@@ -1,6 +1,9 @@
 use std::{
     cell::RefCell,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{
+        btree_map::Entry,
+        BTreeMap,
+    },
     sync::Arc,
     time::Instant,
 };

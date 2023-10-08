@@ -5,9 +5,11 @@ use cs2::CEntityIdentityEx;
 use cs2_schema_generated::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
-use crate::{utils::ImguiUiEx, UpdateContext};
-
 use super::Enhancement;
+use crate::{
+    utils::ImguiUiEx,
+    UpdateContext,
+};
 
 #[derive(Debug)]
 pub struct BombDefuser {

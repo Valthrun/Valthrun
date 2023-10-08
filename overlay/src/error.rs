@@ -5,7 +5,10 @@ use imgui_winit_support::winit::error::OsError;
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, OverlayError>;
-pub use ash::{vk::Result as VkResult, LoadingError};
+pub use ash::{
+    vk::Result as VkResult,
+    LoadingError,
+};
 
 #[derive(Error, Debug)]
 pub enum OverlayError {

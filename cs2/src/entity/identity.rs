@@ -1,6 +1,9 @@
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::{
-    cs2::client::{CEntityIdentity, CEntityInstance},
+    cs2::client::{
+        CEntityIdentity,
+        CEntityInstance,
+    },
     EntityHandle,
 };
 

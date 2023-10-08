@@ -1,23 +1,42 @@
 #![allow(dead_code)]
 
-use anyhow::Context;
-use cs2_schema_declaration::{MemoryDriver, MemoryHandle, SchemaValue};
-use obfstr::obfstr;
 use std::{
     any::Any,
     ffi::CStr,
     fmt::Debug,
-    sync::{Arc, Weak},
-};
-use valthrun_kernel_interface::{
-    requests::{
-        RequestCSModule, RequestKeyboardState, RequestMouseMove, RequestProtectionToggle,
-        ResponseCsModule,
+    sync::{
+        Arc,
+        Weak,
     },
-    CS2ModuleInfo, KInterfaceError, KernelInterface, KeyboardState, ModuleInfo, MouseState,
 };
 
-use crate::{Signature, SignatureType};
+use anyhow::Context;
+use cs2_schema_declaration::{
+    MemoryDriver,
+    MemoryHandle,
+    SchemaValue,
+};
+use obfstr::obfstr;
+use valthrun_kernel_interface::{
+    requests::{
+        RequestCSModule,
+        RequestKeyboardState,
+        RequestMouseMove,
+        RequestProtectionToggle,
+        ResponseCsModule,
+    },
+    CS2ModuleInfo,
+    KInterfaceError,
+    KernelInterface,
+    KeyboardState,
+    ModuleInfo,
+    MouseState,
+};
+
+use crate::{
+    Signature,
+    SignatureType,
+};
 
 pub struct CSMemoryDriver(Weak<CS2Handle>);
 impl MemoryDriver for CSMemoryDriver {

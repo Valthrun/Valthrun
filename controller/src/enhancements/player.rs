@@ -1,18 +1,34 @@
-use std::{ffi::CStr, sync::Arc};
+use std::{
+    ffi::CStr,
+    sync::Arc,
+};
 
 use anyhow::Context;
-use cs2::{BoneFlags, CEntityIdentityEx, CS2Model};
-use cs2_schema_declaration::{define_schema, Ptr};
-use cs2_schema_generated::cs2::client::{CModelState, CSkeletonInstance, C_CSPlayerPawn};
+use cs2::{
+    BoneFlags,
+    CEntityIdentityEx,
+    CS2Model,
+};
+use cs2_schema_declaration::{
+    define_schema,
+    Ptr,
+};
+use cs2_schema_generated::cs2::client::{
+    CModelState,
+    CSkeletonInstance,
+    C_CSPlayerPawn,
+};
 use obfstr::obfstr;
 
+use super::Enhancement;
 use crate::{
-    settings::{AppSettings, EspBoxType},
+    settings::{
+        AppSettings,
+        EspBoxType,
+    },
     view::ViewController,
     weapon::WeaponId,
 };
-
-use super::Enhancement;
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,

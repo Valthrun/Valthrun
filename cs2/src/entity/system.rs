@@ -1,15 +1,33 @@
 use std::{
     marker::PhantomData,
-    ops::{Deref, DerefMut},
+    ops::{
+        Deref,
+        DerefMut,
+    },
     sync::Arc,
 };
 
-use crate::{CEntityIdentityEx, CS2Handle, CS2Offsets, EntityList};
-use anyhow::{Context, Ok};
-use cs2_schema_declaration::{Ptr, SchemaValue};
+use anyhow::{
+    Context,
+    Ok,
+};
+use cs2_schema_declaration::{
+    Ptr,
+    SchemaValue,
+};
 use cs2_schema_generated::{
-    cs2::client::{CCSPlayerController, CEntityIdentity},
+    cs2::client::{
+        CCSPlayerController,
+        CEntityIdentity,
+    },
     EntityHandle,
+};
+
+use crate::{
+    CEntityIdentityEx,
+    CS2Handle,
+    CS2Offsets,
+    EntityList,
 };
 
 pub struct TypedEntityIdentity<T> {

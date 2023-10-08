@@ -3,9 +3,13 @@ pub use texture::*;
 
 mod buffer {
 
-    use ash::{vk, Device};
-    use imgui_rs_vulkan_renderer::RendererResult;
     use std::mem;
+
+    use ash::{
+        vk,
+        Device,
+    };
+    use imgui_rs_vulkan_renderer::RendererResult;
 
     #[allow(dead_code)]
     pub fn create_and_fill_buffer<T: Copy>(
@@ -86,10 +90,13 @@ mod buffer {
 
 mod texture {
 
-    use super::buffer::*;
-    use ash::vk;
-    use ash::Device;
+    use ash::{
+        vk,
+        Device,
+    };
     use imgui_rs_vulkan_renderer::RendererResult;
+
+    use super::buffer::*;
 
     /// Helper struct representing a sampled texture.
     #[allow(dead_code)]

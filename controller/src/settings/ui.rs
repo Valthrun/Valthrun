@@ -1,10 +1,19 @@
-use std::{borrow::Cow, cell::RefCell, rc::Rc, sync::atomic::Ordering, time::Instant};
+use std::{
+    borrow::Cow,
+    cell::RefCell,
+    rc::Rc,
+    sync::atomic::Ordering,
+    time::Instant,
+};
 
 use imgui::Condition;
 use obfstr::obfstr;
 
 use crate::{
-    settings::{AppSettings, EspBoxType},
+    settings::{
+        AppSettings,
+        EspBoxType,
+    },
     utils::ImGuiKey,
     Application,
 };
