@@ -203,7 +203,7 @@ impl ViewController {
                 .build();
         }
     }
-    
+
     pub fn draw_border(
         &self,
         draw: &imgui::DrawListMut,
@@ -235,7 +235,7 @@ impl ViewController {
         .thickness(border_thickness)
         .build();
     }
-    
+
     // Thanks to https://www.unknowncheats.me/forum/d3d-tutorials-and-source/208799-esp-rainbow-healthbar.html
     pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
         let frequency = 0.1;
@@ -244,14 +244,19 @@ impl ViewController {
         let b = (frequency * value + 4.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
         [r / 255.0, g / 255.0, b / 255.0, 1.0]
     }
-    
+
     pub fn calculate_health_color(&self, health_percentage: f32) -> [f32; 4] {
         if health_percentage > 0.6 {
-            [2.0 - 2.0 * health_percentage, 2.0 * health_percentage, 0.0, 1.0]
+            [
+                2.0 - 2.0 * health_percentage,
+                2.0 * health_percentage,
+                0.0,
+                1.0,
+            ]
         } else if health_percentage > 0.3 {
             [1.0, 1.0, 2.0 - 2.0 * health_percentage, 1.0]
         } else {
             [1.0, 2.0 * health_percentage, 0.0, 1.0]
         }
-    }    
+    }
 }

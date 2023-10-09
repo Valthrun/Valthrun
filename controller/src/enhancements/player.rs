@@ -96,7 +96,6 @@ pub struct PlayerESP {
     local_team_id: u8,
 }
 
-
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
@@ -289,7 +288,7 @@ impl Enhancement for PlayerESP {
         Ok(())
     }
 
-fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
+    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
             let esp_color = if entry.team_id == self.local_team_id {
@@ -361,11 +360,27 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
                                 let bar_y = vmax.y - filled_height;
 
                                 if settings.rainbow_health_bar {
-                                    let rainbow_color = view.calculate_rainbow_color(player_health as f32);
-                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, width, rainbow_color)
+                                    let rainbow_color =
+                                        view.calculate_rainbow_color(player_health as f32);
+                                    view.draw_health_bar(
+                                        &draw,
+                                        bar_x,
+                                        bar_y,
+                                        filled_height,
+                                        width,
+                                        rainbow_color,
+                                    )
                                 } else {
-                                    let health_color = view.calculate_health_color(health_percentage);
-                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, width, health_color)
+                                    let health_color =
+                                        view.calculate_health_color(health_percentage);
+                                    view.draw_health_bar(
+                                        &draw,
+                                        bar_x,
+                                        bar_y,
+                                        filled_height,
+                                        width,
+                                        health_color,
+                                    )
                                 }
 
                                 let bar_x = vmin.x - 5.0;
@@ -374,10 +389,17 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
                                 let border_thickness = 1.0;
                                 let border_color = [0.0, 0.0, 0.0, 1.0];
 
-                                view.draw_border(&draw, bar_x, bar_y, bar_width, bar_height, border_thickness, border_color)
+                                view.draw_border(
+                                    &draw,
+                                    bar_x,
+                                    bar_y,
+                                    bar_width,
+                                    bar_height,
+                                    border_thickness,
+                                    border_color,
+                                )
                             }
-
-                        }    
+                        }
                     }
                     EspBoxType::Box3D => {
                         view.draw_box_3d(
