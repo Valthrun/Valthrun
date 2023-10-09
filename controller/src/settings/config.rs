@@ -91,6 +91,9 @@ pub struct AppSettings {
     pub esp_info_health: bool,
 
     #[serde(default = "bool_false")]
+    pub esp_info_name: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "bool_true")]
@@ -113,6 +116,9 @@ pub struct AppSettings {
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
+
+    #[serde(default = "bool_true")]
+    pub trigger_bot_toggle: bool,
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,
