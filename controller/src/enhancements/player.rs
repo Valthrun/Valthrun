@@ -356,20 +356,21 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
                                 let player_health = entry.player_health;
                                 let health_percentage = player_health as f32 / max_health as f32;
                                 let filled_height = bar_height * health_percentage;
+                                let width = settings.health_bar_width;
 
                                 let bar_y = vmax.y - filled_height;
 
                                 if settings.rainbow_health_bar {
                                     let rainbow_color = view.calculate_rainbow_color(player_health as f32);
-                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, rainbow_color)
+                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, width, rainbow_color)
                                 } else {
                                     let health_color = view.calculate_health_color(health_percentage);
-                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, health_color)
+                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, width, health_color)
                                 }
 
                                 let bar_x = vmin.x - 5.0;
                                 let bar_y = vmax.y;
-                                let bar_width = 5.0;
+                                let bar_width = width;
                                 let border_thickness = 1.0;
                                 let border_color = [0.0, 0.0, 0.0, 1.0];
 

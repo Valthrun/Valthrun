@@ -190,13 +190,14 @@ impl ViewController {
         bar_x: f32,
         bar_y: f32,
         filled_height: f32,
+        width: f32,
         health_color: [f32; 4],
     ) {
         for i in 0..filled_height as i32 {
             let y1 = bar_y + i as f32;
             let y2 = y1 + 1.0;
             let x1 = bar_x;
-            let x2 = bar_x + 5.0;
+            let x2 = bar_x + width; //width
             draw.add_line([x1, y1], [x2, y2], health_color)
                 .thickness(5.0)
                 .build();

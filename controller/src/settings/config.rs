@@ -34,7 +34,9 @@ fn default_esp_skeleton_thickness() -> f32 {
 fn default_esp_boxes_thickness() -> f32 {
     3.0
 }
-
+fn default_health_bar_width() -> f32 {
+    3.5
+}
 fn default_u32<const V: u32>() -> u32 {
     V
 }
@@ -92,6 +94,9 @@ pub struct AppSettings {
 
     #[serde(default = "bool_false")]
     pub esp_health_bar: bool,
+
+    #[serde(default = "default_health_bar_width")]
+    pub health_bar_width: f32,
 
     #[serde(default = "bool_false")]
     pub rainbow_health_bar: bool,
