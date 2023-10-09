@@ -183,4 +183,74 @@ impl ViewController {
             }
         }
     }
+
+    pub fn draw_health_bar(
+        &self,
+        draw: &imgui::DrawListMut,
+        bar_x: f32,
+        bar_y: f32,
+        filled_height: f32,
+        health_color: [f32; 4],
+    ) {
+        for i in 0..filled_height as i32 {
+            let y1 = bar_y + i as f32;
+            let y2 = y1 + 1.0;
+            let x1 = bar_x;
+            let x2 = bar_x + 5.0;
+            draw.add_line([x1, y1], [x2, y2], health_color)
+                .thickness(5.0)
+                .build();
+        }
+    }
+    
+    pub fn draw_border(
+        &self,
+        draw: &imgui::DrawListMut,
+        bar_x: f32,
+        bar_y: f32,
+        bar_width: f32,
+        bar_height: f32,
+        border_thickness: f32,
+        border_color: [f32; 4],
+    ) {
+        draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
+            .thickness(border_thickness)
+            .build();
+        draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
+            .thickness(border_thickness)
+            .build();
+        draw.add_line(
+            [bar_x + bar_width, bar_y],
+            [bar_x + bar_width, bar_y - bar_height],
+            border_color,
+        )
+        .thickness(border_thickness)
+        .build();
+        draw.add_line(
+            [bar_x, bar_y - bar_height],
+            [bar_x + bar_width, bar_y - bar_height],
+            border_color,
+        )
+        .thickness(border_thickness)
+        .build();
+    }
+    
+    // Thanks to https://www.unknowncheats.me/forum/d3d-tutorials-and-source/208799-esp-rainbow-healthbar.html
+    pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
+        let frequency = 0.1;
+        let r = (frequency * value).sin() * 127.0 + 128.0;
+        let g = (frequency * value + 2.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
+        let b = (frequency * value + 4.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
+        [r / 255.0, g / 255.0, b / 255.0, 1.0]
+    }
+    
+    pub fn calculate_health_color(&self, health_percentage: f32) -> [f32; 4] {
+        if health_percentage > 0.6 {
+            [2.0 - 2.0 * health_percentage, 2.0 * health_percentage, 0.0, 1.0]
+        } else if health_percentage > 0.3 {
+            [1.0, 1.0, 2.0 - 2.0 * health_percentage, 1.0]
+        } else {
+            [1.0, 2.0 * health_percentage, 0.0, 1.0]
+        }
+    }    
 }

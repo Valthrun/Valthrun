@@ -347,86 +347,35 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
                             draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
+
                             if settings.esp_health_bar {
                                 let bar_height = vmax.y - vmin.y; // height = box height
                                 let bar_x = vmin.x - 5.0; // Left
-                                
+
                                 let max_health = 100.0;
                                 let player_health = entry.player_health;
                                 let health_percentage = player_health as f32 / max_health as f32;
                                 let filled_height = bar_height * health_percentage;
-                                
+
                                 let bar_y = vmax.y - filled_height;
-                                
+
                                 if settings.rainbow_health_bar {
-                                    // Thanks to https://www.unknowncheats.me/forum/d3d-tutorials-and-source/208799-esp-rainbow-healthbar.html
-                                    let rainbow_color = |value: f32| {
-                                        let frequency = 0.1;
-                                        let r = (frequency * value).sin() * 127.0 + 128.0;
-                                        let g = (frequency * value + 2.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
-                                        let b = (frequency * value + 4.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
-                                        [r / 255.0, g / 255.0, b / 255.0, 1.0]
-                                    };
-                                
-                                    for i in 0..filled_height as i32 {
-                                        let y1 = bar_y + i as f32;
-                                        let y2 = y1 + 1.0;
-                                        let x1 = bar_x;
-                                        let x2 = bar_x + 5.0;
-                                        draw.add_line([x1, y1], [x2, y2], rainbow_color(player_health as f32))
-                                            .thickness(5.0)
-                                            .build();
-                                    }
+                                    let rainbow_color = view.calculate_rainbow_color(player_health as f32);
+                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, rainbow_color)
                                 } else {
-                                    let health_color = if health_percentage > 0.6 {
-                                        // Green when health is greater than 60%
-                                        [2.0 - 2.0 * health_percentage, 2.0 * health_percentage, 0.0, 1.0]
-                                    } else if health_percentage > 0.3 {
-                                        // Yellow when health is between 30% and 60%
-                                        [1.0, 1.0, 2.0 - 2.0 * health_percentage, 1.0]
-                                    } else {
-                                        // Red when health is less than or equal to 30%
-                                        [1.0, 2.0 * health_percentage, 0.0, 1.0]
-                                    };
-                                
-                                    for i in 0..filled_height as i32 {
-                                        let y1 = bar_y + i as f32;
-                                        let y2 = y1 + 1.0;
-                                        let x1 = bar_x;
-                                        let x2 = bar_x + 5.0;
-                                        draw.add_line([x1, y1], [x2, y2], health_color)
-                                            .thickness(5.0)
-                                            .build();
-                                    }
+                                    let health_color = view.calculate_health_color(health_percentage);
+                                    view.draw_health_bar(&draw, bar_x, bar_y, filled_height, health_color)
                                 }
-                                
+
                                 let bar_x = vmin.x - 5.0;
                                 let bar_y = vmax.y;
                                 let bar_width = 5.0;
                                 let border_thickness = 1.0;
                                 let border_color = [0.0, 0.0, 0.0, 1.0];
-                                
-                                draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
-                                    .thickness(border_thickness)
-                                    .build();
-                                draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
-                                    .thickness(border_thickness)
-                                    .build();
-                                draw.add_line(
-                                    [bar_x + bar_width, bar_y],
-                                    [bar_x + bar_width, bar_y - bar_height],
-                                    border_color,
-                                )
-                                .thickness(border_thickness)
-                                .build();
-                                draw.add_line(
-                                    [bar_x, bar_y - bar_height],
-                                    [bar_x + bar_width, bar_y - bar_height],
-                                    border_color,
-                                )
-                                .thickness(border_thickness)
-                                .build();
+
+                                view.draw_border(&draw, bar_x, bar_y, bar_width, bar_height, border_thickness, border_color)
                             }
+
                         }    
                     }
                     EspBoxType::Box3D => {
