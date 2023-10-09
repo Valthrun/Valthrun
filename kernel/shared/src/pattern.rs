@@ -66,7 +66,7 @@ impl ByteSequencePattern {
         pattern
             .split(" ")
             .map(BytePattern::parse)
-            .try_collect::<Vec<_>>()
+            .collect::<Option<Vec<_>>>()
             .map(|bytes| Self { bytes })
     }
 }

@@ -1,5 +1,3 @@
-#![feature(iterator_try_collect)]
-#![feature(result_option_inspect)]
 #![allow(dead_code)]
 
 use std::{

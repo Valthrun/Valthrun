@@ -3,7 +3,10 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Context;
+use anyhow::{
+    Context,
+    Result,
+};
 use cs2::{
     BoneFlags,
     CEntityIdentityEx,
@@ -158,7 +161,7 @@ impl PlayerESP {
             .read_entries(model.bones.len())?
             .into_iter()
             .map(|bone| bone.try_into())
-            .try_collect()?;
+            .collect::<Result<Vec<_>>>()?;
 
         let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
         let weapon_type = if let Some(weapon) = weapon {

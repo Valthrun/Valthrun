@@ -1,5 +1,4 @@
 #![no_std]
-#![feature(iterator_try_collect)]
 
 pub const IO_MAX_DEREF_COUNT: usize = 31;
 

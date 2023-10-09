@@ -1,5 +1,3 @@
-#![feature(array_try_from_fn)]
-
 pub mod definition;
 
 mod entity;
