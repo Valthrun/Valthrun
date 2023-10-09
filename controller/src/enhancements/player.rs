@@ -348,44 +348,52 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
                             if settings.esp_health_bar {
-                            // Calculate the position and size of the health bar
-                            let bar_height = vmax.y - vmin.y; // height = box height
-                            let bar_x = vmin.x - 5.0; // Left
-        
-                            let max_health = 100.0;
-                            let player_health = entry.player_health;
-                            let health_percentage = player_health as f32 / max_health as f32;
-                            let filled_height = bar_height * health_percentage;
-        
-                            let bar_y = vmax.y - filled_height;
-        
-                            let bar_color = [1.0, 0.0, 0.0, 1.0];
-                            for i in 0..filled_height as i32 {
-                                let y1 = bar_y + i as f32;
-                                let y2 = y1 + 1.0;
-                                let x1 = bar_x;
-                                let x2 = bar_x + 5.0; 
-                                draw.add_line([x1, y1], [x2, y2], bar_color)
-                                    .thickness(5.0) 
-                                    .build();
-                            }
-                            let bar_x = vmin.x - 5.0;
-                            let bar_y = vmax.y;
-                            let bar_height = vmax.y - vmin.y;
-                            let bar_width = 5.0;
-                            let border_thickness = 1.0;
-                            let border_color = [0.0, 0.0, 0.0, 1.0];
+                                // Calculate the position and size of the health bar
+                                let bar_height = vmax.y - vmin.y; // height = box height
+                                let bar_x = vmin.x - 5.0; // Left
 
-                            draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
+                                let max_health = 100.0;
+                                let player_health = entry.player_health;
+                                let health_percentage = player_health as f32 / max_health as f32;
+                                let filled_height = bar_height * health_percentage;
+
+                                let bar_y = vmax.y - filled_height;
+
+                                let bar_color = [1.0, 0.0, 0.0, 1.0];
+                                for i in 0..filled_height as i32 {
+                                    let y1 = bar_y + i as f32;
+                                    let y2 = y1 + 1.0;
+                                    let x1 = bar_x;
+                                    let x2 = bar_x + 5.0;
+                                    draw.add_line([x1, y1], [x2, y2], bar_color)
+                                        .thickness(5.0)
+                                        .build();
+                                }
+
+                                let bar_x = vmin.x - 5.0;
+                                let bar_y = vmax.y;
+                                let bar_width = 5.0;
+                                let border_thickness = 1.0;
+                                let border_color = [0.0, 0.0, 0.0, 1.0];
+
+                                draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
+                                    .thickness(border_thickness)
+                                    .build();
+                                draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
+                                    .thickness(border_thickness)
+                                    .build();
+                                draw.add_line(
+                                    [bar_x + bar_width, bar_y],
+                                    [bar_x + bar_width, bar_y - bar_height],
+                                    border_color,
+                                )
                                 .thickness(border_thickness)
                                 .build();
-                            draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([bar_x + bar_width, bar_y], [bar_x + bar_width, bar_y - bar_height], border_color)
-                                .thickness(border_thickness)
-                                .build();
-                            draw.add_line([bar_x, bar_y - bar_height], [bar_x + bar_width, bar_y - bar_height], border_color)
+                                draw.add_line(
+                                    [bar_x, bar_y - bar_height],
+                                    [bar_x + bar_width, bar_y - bar_height],
+                                    border_color,
+                                )
                                 .thickness(border_thickness)
                                 .build();
                             }
