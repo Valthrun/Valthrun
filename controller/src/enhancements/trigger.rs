@@ -88,7 +88,7 @@ impl TriggerBot {
 impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
         let should_be_active = if let Some(key) = &ctx.settings.key_trigger_bot {
-            if ctx.input.is_key_down(key.0) {
+            if ctx.input.is_key_down(key.0) || ctx.settings.trigger_bot_toggle{
                 self.crosshair.update(ctx)?;
                 self.should_be_active(ctx)?
             } else {
