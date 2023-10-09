@@ -94,6 +94,16 @@ impl CModelStateEx for CModelState {
 pub struct PlayerESP {
     players: Vec<PlayerInfo>,
     local_team_id: u8,
+    health_bar_settings: HealthBarSettings,
+}
+
+// Define uma estrutura para configurar a barra de vida
+pub struct HealthBarSettings {
+    enabled: bool,
+    width: f32,     // Largura da barra de vida
+    height: f32,    // Altura da barra de vida
+    offset_x: f32,  // Distância horizontal entre a caixa 2D e a barra de vida
+    // Outras configurações da barra de vida, como cores, espessura, etc.
 }
 
 impl PlayerESP {
@@ -101,6 +111,14 @@ impl PlayerESP {
         PlayerESP {
             players: Default::default(),
             local_team_id: 0,
+            // Inicialize as configurações da barra de vida
+                health_bar_settings: HealthBarSettings {
+                    enabled: true,
+                    width: 40.0,
+                    height: 4.0,
+                    offset_x: -10.0, // Ajuste o valor conforme necessário
+                    // Configurações adicionais da barra de vida
+            },
         }
     }
 
@@ -288,7 +306,7 @@ impl Enhancement for PlayerESP {
         Ok(())
     }
 
-    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
+fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
             let esp_color = if entry.team_id == self.local_team_id {
@@ -346,7 +364,49 @@ impl Enhancement for PlayerESP {
                             draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
-                        }
+                            if settings.esp_health_bar {
+                            // Calculate the position and size of the health bar
+                            let bar_height = vmax.y - vmin.y; // height = box height
+                            let bar_x = vmin.x - 5.0; // Left
+        
+                            let max_health = 100.0;
+                            let player_health = entry.player_health;
+                            let health_percentage = player_health as f32 / max_health as f32;
+                            let filled_height = bar_height * health_percentage;
+        
+                            let bar_y = vmax.y - filled_height;
+        
+                            let bar_color = [1.0, 0.0, 0.0, 1.0];
+                            for i in 0..filled_height as i32 {
+                                let y1 = bar_y + i as f32;
+                                let y2 = y1 + 1.0;
+                                let x1 = bar_x;
+                                let x2 = bar_x + 5.0; 
+                                draw.add_line([x1, y1], [x2, y2], bar_color)
+                                    .thickness(5.0) 
+                                    .build();
+                            }
+                            let bar_x = vmin.x - 5.0;
+                            let bar_y = vmax.y;
+                            let bar_height = vmax.y - vmin.y;
+                            let bar_width = 5.0;
+                            let border_thickness = 1.0;
+                            let border_color = [0.0, 0.0, 0.0, 1.0];
+
+                            draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
+                                .thickness(border_thickness)
+                                .build();
+                            draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
+                                .thickness(border_thickness)
+                                .build();
+                            draw.add_line([bar_x + bar_width, bar_y], [bar_x + bar_width, bar_y - bar_height], border_color)
+                                .thickness(border_thickness)
+                                .build();
+                            draw.add_line([bar_x, bar_y - bar_height], [bar_x + bar_width, bar_y - bar_height], border_color)
+                                .thickness(border_thickness)
+                                .build();
+                            }
+                        }    
                     }
                     EspBoxType::Box3D => {
                         view.draw_box_3d(
@@ -379,25 +439,7 @@ impl Enhancement for PlayerESP {
 
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
-
-                    if settings.esp_health_bar{
-                        let max_health = 100.0;
-                        let border_color = [0.0, 0.0, 0.0, 1.0];
-                        let border_thickness = 2.0;
-                        let player_health = entry.player_health; 
-
-                        let bar_pos = [pos.x, pos.y];
-                        let bar_height = 3.0;
-                        let bar_width = 5.0;
-                        let esp_color = *esp_color;
-
-                        if settings.health_bar_hori {
-                            view.draw_health_bar_hori(&draw, player_health, max_health, bar_pos, bar_height, esp_color, border_thickness, border_color);
-                        } else if settings.health_bar_vert {
-                            view.draw_health_bar_vert(&draw, player_health, max_health, bar_pos, bar_height, bar_width, esp_color, border_thickness, border_color);
-                        }
-                    }
-
+                    
                     if settings.esp_info_weapon {
                         let text = entry.weapon.display_name();
                         let [text_width, _] = ui.calc_text_size(&text);
