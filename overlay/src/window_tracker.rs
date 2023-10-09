@@ -7,7 +7,6 @@ use windows::{
     Win32::{
         Foundation::{
             GetLastError,
-            BOOL,
             ERROR_INVALID_WINDOW_HANDLE,
             HWND,
             LPARAM,
@@ -19,7 +18,6 @@ use windows::{
         UI::{
             Input::KeyboardAndMouse::GetFocus,
             WindowsAndMessaging::{
-                EnumWindows,
                 FindWindowExA,
                 FindWindowW,
                 GetClientRect,

@@ -1,5 +1,3 @@
-#![feature(iterator_try_collect)]
-#![feature(result_option_inspect)]
 #![allow(dead_code)]
 
 use std::{
@@ -417,28 +415,20 @@ fn main_overlay() -> anyhow::Result<()> {
         build_info.dwBuildNumber
     );
 
-    let settings = load_app_settings()?;
+    if unsafe { IsUserAnAdmin().as_bool() } {
+        show_critical_error("Please do not run this as administrator!\nRunning the controller as administrator might cause failures with your graphic drivers.");
+        return Ok(());
+    }
 
+    let settings = load_app_settings()?;
     let cs2 = match CS2Handle::create() {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
-                    if !unsafe { IsUserAnAdmin().as_bool() } {
-                        if !is_console_invoked() {
-                            /* If we don't have a console, show the message box and abort execution. */
-                            show_critical_error("Please re-run this application as administrator!");
-                            return Ok(());
-                        }
-
-                        /* Just print this warning message and return the actual error.  */
-                        log::warn!("Application run without administrator privileges.");
-                        log::warn!("Please re-run with administrator privileges!");
-                    }
-
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error("Could not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        show_critical_error("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
                         return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
