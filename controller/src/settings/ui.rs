@@ -110,6 +110,8 @@ impl SettingsUI {
                                     ui.text(obfstr!("Team Box Color"));
                                     ui.same_line();
                                     ui.checkbox(obfstr!("Health Based Team Boxes"), &mut settings.esp_box_color_team_health_based);
+                                    ui.same_line();
+                                    ui.checkbox(obfstr!("Team Based Team Boxes"), &mut settings.esp_box_color_team_team_based);
                                 }
 
                                 ui.checkbox(obfstr!("Box ESP Enemy"), &mut settings.esp_box_enabled_enemy);
@@ -124,6 +126,8 @@ impl SettingsUI {
                                     ui.text(obfstr!("Enemy Box Color"));
                                     ui.same_line();
                                     ui.checkbox(obfstr!("Health Based Enemy Boxes"), &mut settings.esp_box_color_enemy_health_based);
+                                    ui.same_line();
+                                    ui.checkbox(obfstr!("Team Based Enemy Boxes"), &mut settings.esp_box_color_enemy_team_based);
                                 }
                                 ui.separator();
                             }
@@ -145,6 +149,8 @@ impl SettingsUI {
                                     ui.text(obfstr!("Team Skeleton Color"));
                                     ui.same_line();
                                     ui.checkbox(obfstr!("Health Based Team Skeletons"), &mut settings.esp_skeleton_color_team_health_based);
+                                    ui.same_line();
+                                    ui.checkbox(obfstr!("Team Based Team Skeletons"), &mut settings.esp_skeleton_color_team_team_based);
                                 }
 
                                 ui.checkbox(obfstr!("Skeleton ESP Enemy"), &mut settings.esp_skeleton_enabled_enemy);
@@ -159,6 +165,8 @@ impl SettingsUI {
                                     ui.text(obfstr!("Enemy Skeleton Color"));
                                     ui.same_line();
                                     ui.checkbox(obfstr!("Health Based Enemy Skeletons"), &mut settings.esp_skeleton_color_enemy_health_based);
+                                    ui.same_line();
+                                    ui.checkbox(obfstr!("Team Based Enemy Skeletons"), &mut settings.esp_skeleton_color_enemy_team_based);
                                 }
                                 ui.separator();
                             }
@@ -176,6 +184,8 @@ impl SettingsUI {
                                 ui.text(obfstr!("Color"));
                                 ui.same_line();
                                 ui.checkbox(obfstr!("Health based Health Color"), &mut settings.esp_info_health_color_health_based);
+                                ui.same_line();
+                                ui.checkbox(obfstr!("Team based Health Color"), &mut settings.esp_info_health_color_team_based);
                             }
 
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
@@ -191,6 +201,8 @@ impl SettingsUI {
                                  ui.text(obfstr!("Weapon Color"));
                                 ui.same_line();
                                 ui.checkbox(obfstr!("Health based Weapon Color"), &mut settings.esp_info_weapon_color_health_based);
+                                ui.same_line();
+                                ui.checkbox(obfstr!("Team based Weapon Color"), &mut settings.esp_info_weapon_color_team_based);
                             }
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);

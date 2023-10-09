@@ -321,7 +321,7 @@ impl Enhancement for PlayerESP {
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
-            let (box_esp_color, skeleton_esp_color) = if entry.team_id == self.local_team_id {
+            let (box_esp_color, skeleton_esp_color, health_esp_color, weapon_esp_color) = if entry.team_id == self.local_team_id {
                 if !settings.esp_enabled_team {
                     continue;
                 }
@@ -329,6 +329,8 @@ impl Enhancement for PlayerESP {
                 let box_color = if settings.esp_box_enabled_team {
                     if settings.esp_box_color_team_health_based {
                         Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_box_color_team_team_based {
+                         settings.esp_color_team
                     } else {
                         settings.esp_box_color_team
                     }
@@ -339,6 +341,8 @@ impl Enhancement for PlayerESP {
                 let skeleton_color = if settings.esp_skeleton_enabled_team {
                     if settings.esp_skeleton_color_team_health_based {
                         Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_skeleton_color_team_team_based {
+                         settings.esp_color_team
                     } else {
                         settings.esp_skeleton_color_team
                     }
@@ -346,15 +350,41 @@ impl Enhancement for PlayerESP {
                     [0.0, 0.0, 0.0, 0.0]
                 };
 
-                (box_color, skeleton_color)
+                let health_esp_color = if settings.esp_info_health {
+                    if settings.esp_info_health_color_health_based {
+                        Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_info_health_color_team_based {
+                         settings.esp_color_team
+                    } else {
+                        settings.esp_info_health_color
+                    }
+                } else {
+                    [0.0, 0.0, 0.0, 0.0]
+                };
+
+                let weapon_esp_color = if settings.esp_info_weapon {
+                    if settings.esp_info_weapon_color_health_based {
+                        Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_info_weapon_color_team_based {
+                         settings.esp_color_team
+                    } else {
+                        settings.esp_info_weapon_color
+                    }
+                } else {
+                    [0.0, 0.0, 0.0, 0.0]
+                };
+
+                (box_color, skeleton_color, health_esp_color, weapon_esp_color)
             } else {
                 if !settings.esp_enabled_enemy {
                     continue;
                 }
-                
+
                 let box_color = if settings.esp_box_enabled_enemy {
                     if settings.esp_box_color_enemy_health_based {
                         Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_box_color_enemy_team_based {
+                         settings.esp_color_enemy
                     } else {
                         settings.esp_box_color_enemy
                     }
@@ -365,6 +395,8 @@ impl Enhancement for PlayerESP {
                 let skeleton_color = if settings.esp_skeleton_enabled_enemy {
                     if settings.esp_skeleton_color_enemy_health_based {
                         Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_skeleton_color_enemy_team_based {
+                         settings.esp_color_enemy
                     } else {
                         settings.esp_skeleton_color_enemy
                     }
@@ -372,7 +404,31 @@ impl Enhancement for PlayerESP {
                     [0.0, 0.0, 0.0, 0.0]
                 };
 
-                (box_color, skeleton_color)
+                let health_esp_color = if settings.esp_info_health {
+                    if settings.esp_info_health_color_health_based {
+                        Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_info_health_color_team_based {
+                         settings.esp_color_enemy
+                    } else {
+                        settings.esp_info_health_color
+                    }
+                } else {
+                    [0.0, 0.0, 0.0, 0.0]
+                };
+
+                let weapon_esp_color = if settings.esp_info_weapon {
+                    if settings.esp_info_weapon_color_health_based {
+                        Self::calculate_health_color(entry.player_health)
+                    } else if settings.esp_info_weapon_color_team_based {
+                         settings.esp_color_enemy
+                    } else {
+                        settings.esp_info_weapon_color
+                    }
+                } else {
+                    [0.0, 0.0, 0.0, 0.0]
+                };
+
+                (box_color, skeleton_color, health_esp_color, weapon_esp_color)
             };
 
 
@@ -440,30 +496,18 @@ impl Enhancement for PlayerESP {
 
                     let mut y_offset = 0.0;
                     if settings.esp_info_health {
-                        let color_esp_info_health;
-                        if settings.esp_info_health_color_health_based{
-                          color_esp_info_health = Self::calculate_health_color(entry.player_health);
-                        } else {
-                          color_esp_info_health = settings.esp_info_health_color;
-                        }
                         let text = format!("{} HP", entry.player_health);
                         let [text_width, _] = ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
-                        draw.add_text(pos, color_esp_info_health.clone(), text);
+                        draw.add_text(pos, health_esp_color.clone(), text);
 
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     if settings.esp_info_weapon {
-                        let color_esp_info_weapon;
-                        if settings.esp_info_weapon_color_health_based{
-                          color_esp_info_weapon = Self::calculate_health_color(entry.player_health);
-                        } else {
-                          color_esp_info_weapon = settings.esp_info_weapon_color;
-                        }
                         let text = entry.weapon.display_name();
                         let [text_width, _] = ui.calc_text_size(&text);
 
@@ -471,7 +515,7 @@ impl Enhancement for PlayerESP {
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
 
-                        draw.add_text(pos, color_esp_info_weapon.clone(), text);
+                        draw.add_text(pos, weapon_esp_color.clone(), text);
 
                         // y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
