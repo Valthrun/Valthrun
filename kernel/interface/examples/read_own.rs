@@ -27,7 +27,7 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    let interface = KernelInterface::create("\\\\.\\valthrun")?;
+    let interface = KernelInterface::create("\\\\.\\GLOBALROOT\\Device\\valthrun")?;
 
     let target_value = 0x42u64;
     let read_value = interface.read::<u64>(
