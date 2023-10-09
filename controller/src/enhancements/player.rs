@@ -383,6 +383,18 @@ impl Enhancement for PlayerESP {
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
+                    if settings.esp_info_name {
+                        let text = format!("{}", entry.player_name);
+                        let [text_width, _] = ui.calc_text_size(&text);
+
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(), text);
+
+                        y_offset += ui.text_line_height_with_spacing();
+                    }
+
                     if settings.esp_info_weapon {
                         let text = entry.weapon.display_name();
                         let [text_width, _] = ui.calc_text_size(&text);
