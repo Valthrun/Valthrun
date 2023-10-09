@@ -23,7 +23,7 @@ fn bool_false() -> bool {
     false
 }
 fn default_esp_color_team() -> [f32; 4] {
-      [0.0, 1.0, 0.0, 0.75]
+    [0.0, 1.0, 0.0, 0.75]
 }
 fn default_esp_info_health_color() -> [f32; 4] {
     [0.0, 1.0, 0.0, 0.75]
@@ -38,7 +38,7 @@ fn default_esp_skeleton_color_team() -> [f32; 4] {
     [0.0, 1.0, 0.0, 0.75]
 }
 fn default_esp_color_enemy() -> [f32; 4] {
-      [1.0, 0.0, 0.0, 0.75]
+    [1.0, 0.0, 0.0, 0.75]
 }
 fn default_esp_box_color_enemy() -> [f32; 4] {
     [1.0, 0.0, 0.0, 0.75]
