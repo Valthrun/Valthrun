@@ -23,9 +23,27 @@ fn bool_false() -> bool {
     false
 }
 fn default_esp_color_team() -> [f32; 4] {
+      [0.0, 1.0, 0.0, 0.75]
+}
+fn default_esp_info_health_color() -> [f32; 4] {
+    [0.0, 1.0, 0.0, 0.75]
+}
+fn default_esp_info_weapon_color() -> [f32; 4] {
+    [0.0, 1.0, 0.0, 0.75]
+}
+fn default_esp_box_color_team() -> [f32; 4] {
+    [0.0, 1.0, 0.0, 0.75]
+}
+fn default_esp_skeleton_color_team() -> [f32; 4] {
     [0.0, 1.0, 0.0, 0.75]
 }
 fn default_esp_color_enemy() -> [f32; 4] {
+      [1.0, 0.0, 0.0, 0.75]
+}
+fn default_esp_box_color_enemy() -> [f32; 4] {
+    [1.0, 0.0, 0.0, 0.75]
+}
+fn default_esp_skeleton_color_enemy() -> [f32; 4] {
     [1.0, 0.0, 0.0, 0.75]
 }
 fn default_esp_skeleton_thickness() -> f32 {
@@ -90,8 +108,26 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub esp_info_health: bool,
 
+    #[serde(default = "default_esp_info_health_color")]
+    pub esp_info_health_color: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_info_health_color_health_based: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_health_color_team_based: bool,
+
     #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
+
+    #[serde(default = "default_esp_info_weapon_color")]
+    pub esp_info_weapon_color: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_info_weapon_color_health_based: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_weapon_color_team_based: bool,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
@@ -110,6 +146,54 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub esp_enabled_enemy: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_box_enabled_team: bool,
+
+    #[serde(default = "default_esp_box_color_team")]
+    pub esp_box_color_team: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_box_color_team_health_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_box_color_team_team_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_skeleton_enabled_team: bool,
+
+    #[serde(default = "default_esp_skeleton_color_team")]
+    pub esp_skeleton_color_team: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_skeleton_color_team_health_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_skeleton_color_team_team_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_box_enabled_enemy: bool,
+
+    #[serde(default = "default_esp_box_color_enemy")]
+    pub esp_box_color_enemy: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_box_color_enemy_health_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_box_color_enemy_team_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_skeleton_enabled_enemy: bool,
+
+    #[serde(default = "default_esp_skeleton_color_enemy")]
+    pub esp_skeleton_color_enemy: [f32; 4],
+
+    #[serde(default = "bool_false")]
+    pub esp_skeleton_color_enemy_health_based: bool,
+
+    #[serde(default = "bool_true")]
+    pub esp_skeleton_color_enemy_team_based: bool,
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
