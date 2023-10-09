@@ -36,6 +36,15 @@ impl SettingsUI {
         ui.window(obfstr!("Valthrun"))
             .size([600.0, 300.0], Condition::FirstUseEver)
             .build(|| {
+                // Menu style
+                let _tab_rounding = ui.push_style_var(StyleVar::TabRounding(5.0));
+                let _window_rounding = ui.push_style_var(StyleVar::WindowRounding(5.0));
+                let _frame_rounding = ui.push_style_var(StyleVar::FrameRounding(5.0));
+                let _child_rounding = ui.push_style_var(StyleVar::ChildRounding(5.0));
+                let _grab_rounding = ui.push_style_var(StyleVar::GrabRounding(5.0));
+                let _scrollbar_rounding = ui.push_style_var(StyleVar::ScrollbarRounding(5.0));
+                let _popup_rounding = ui.push_style_var(StyleVar::PopupRounding(5.0));
+
                 let mut settings = self.settings.borrow_mut();
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
@@ -105,8 +114,9 @@ impl SettingsUI {
                                     .build(&mut settings.esp_skeleton_thickness);
                             }
 
-                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
-                            ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
+                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);                            ui.checkbox(obfstr!("Display player name"), &mut settings.esp_info_name);
+                            ui.checkbox(obfstr!("Display player name"), &mut settings.esp_info_name);
+                            ui.checkbox(obfstr!("Display player weapon"), &mut settings.esp_info_weapon);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
                             if settings.esp_enabled_team {
