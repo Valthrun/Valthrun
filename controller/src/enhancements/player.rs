@@ -94,31 +94,14 @@ impl CModelStateEx for CModelState {
 pub struct PlayerESP {
     players: Vec<PlayerInfo>,
     local_team_id: u8,
-    health_bar_settings: HealthBarSettings,
 }
 
-// Define uma estrutura para configurar a barra de vida
-pub struct HealthBarSettings {
-    enabled: bool,
-    width: f32,     // Largura da barra de vida
-    height: f32,    // Altura da barra de vida
-    offset_x: f32,  // Distância horizontal entre a caixa 2D e a barra de vida
-    // Outras configurações da barra de vida, como cores, espessura, etc.
-}
 
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
             players: Default::default(),
             local_team_id: 0,
-            // Inicialize as configurações da barra de vida
-                health_bar_settings: HealthBarSettings {
-                    enabled: true,
-                    width: 40.0,
-                    height: 4.0,
-                    offset_x: -10.0, // Ajuste o valor conforme necessário
-                    // Configurações adicionais da barra de vida
-            },
         }
     }
 
@@ -439,7 +422,7 @@ fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) 
 
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
-                    
+
                     if settings.esp_info_weapon {
                         let text = entry.weapon.display_name();
                         let [text_width, _] = ui.calc_text_size(&text);
