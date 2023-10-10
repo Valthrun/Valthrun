@@ -102,8 +102,7 @@ impl SettingsUI {
                                 ui.checkbox(obfstr!("2DBOX: Show Health Bar"), &mut settings.esp_health_bar);
                                 if settings.esp_health_bar {
                                     ui.same_line();
-                                    ui.slider_config(obfstr!("Width"), 1.0, 10.0)
-                                    .build(&mut settings.esp_health_bar_width);
+                                    ui.checkbox(obfstr!("Big bar"), &mut settings.esp_health_bar_size);
                                     ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.rainbow_health_bar);
                                 }
                             }

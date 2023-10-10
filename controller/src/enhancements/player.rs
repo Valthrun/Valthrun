@@ -350,44 +350,56 @@ impl Enhancement for PlayerESP {
                                 .build();
 
                             if settings.esp_health_bar {
-                                let bar_height = vmax.y - vmin.y; // height = box height
+                                let bar_height = vmax.y - vmin.y;
+
                                 let player_health = entry.player_health as f32;
-                                let clamped_player_health = player_health.clamp(0.0, HEALTH_BAR_MAX_HEALTH);
-                                let health_percentage = clamped_player_health / HEALTH_BAR_MAX_HEALTH;
-                                let filled_height = bar_height * health_percentage;             
+                                let clamped_player_health =
+                                    player_health.clamp(0.0, HEALTH_BAR_MAX_HEALTH);
+                                let health_percentage =
+                                    clamped_player_health / HEALTH_BAR_MAX_HEALTH;
+                                let filled_height = bar_height * health_percentage;
 
                                 let border_color = [0.0, 0.0, 0.0, esp_color[3]];
-                                
-                                //+ and - -> align the bar and border perfectly.
 
+                                let bar_width = if settings.esp_health_bar_size {
+                                    6.0
+                                } else {
+                                    1.0
+                                };
+
+                                let bar_x = if settings.esp_health_bar_size {
+                                    vmin.x - bar_width + 1.0
+                                } else {
+                                    vmin.x + 1.0
+                                };
                                 draw.add_rect(
-                                    [vmin.x - 6.0, vmax.y - 1.0], // upper-left
-                                    [vmin.x + 1.0, vmin.y + 1.0], //lower-right
+                                    [vmin.x - bar_width, vmax.y - 1.0],
+                                    [vmin.x + 1.0, vmin.y + 1.0],
                                     border_color,
                                 )
                                 .build();
 
                                 if settings.rainbow_health_bar {
-                                    let rainbow_color =
-                                        view.calculate_rainbow_color(player_health as f32, *esp_color);
-                                        draw.add_rect(
-                                            [vmin.x - 5.0, vmax.y - 1.0], // upper-left
-                                            [vmin.x, (vmax.y + 1.0) - filled_height], // lower-right
-                                            rainbow_color,
-                                        )
-                                        .filled(true)
-                                        .build();
+                                    let rainbow_color = view
+                                        .calculate_rainbow_color(player_health as f32, *esp_color);
+                                    draw.add_rect(
+                                        [bar_x, vmax.y - 1.0],
+                                        [vmin.x, (vmax.y + 1.0) - filled_height],
+                                        rainbow_color,
+                                    )
+                                    .filled(true)
+                                    .build();
                                 } else {
                                     let health_color =
                                         view.calculate_health_color(health_percentage, *esp_color);
-                                        draw.add_rect(
-                                            [vmin.x - 5.0, vmax.y - 1.0], // upper-left
-                                            [vmin.x, (vmax.y + 1.0) - filled_height], // lower-right
-                                            health_color,
-                                        )
-                                        .filled(true)
-                                        .build();
-                                } 
+                                    draw.add_rect(
+                                        [bar_x, vmax.y - 1.0],
+                                        [vmin.x, (vmax.y + 1.0) - filled_height],
+                                        health_color,
+                                    )
+                                    .filled(true)
+                                    .build();
+                                }
                             }
                         }
                     }
