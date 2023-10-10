@@ -72,11 +72,71 @@ fn default_key_none() -> Option<HotKey> {
 fn default_esp_box_type() -> EspBoxType {
     EspBoxType::Box3D
 }
+fn default_esp_box_team_color_type() -> EspBoxTeamColorType {
+    EspBoxTeamColorType::TeamBased
+}
+fn default_esp_box_enemy_color_type() -> EspBoxEnemyColorType {
+    EspBoxEnemyColorType::TeamBased
+}
+fn default_esp_skeleton_team_color_type() -> EspSkeletonTeamColorType {
+    EspSkeletonTeamColorType::TeamBased
+}
+fn default_esp_skeleton_enemy_color_type() -> EspSkeletonEnemyColorType {
+    EspSkeletonEnemyColorType::TeamBased
+}
+fn default_esp_info_health_color_type() -> EspInfoHealthColorType {
+    EspInfoHealthColorType::TeamBased
+}
+fn default_esp_info_weapon_color_type() -> EspInfoWeaponColorType {
+    EspInfoWeaponColorType::TeamBased
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
     Box2D,
     Box3D,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspBoxTeamColorType {
+    Static,
+    TeamBased,
+    HealthBased,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspBoxEnemyColorType {
+    Static,
+    TeamBased,
+    HealthBased,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspSkeletonTeamColorType {
+    Static,
+    TeamBased,
+    HealthBased,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspSkeletonEnemyColorType {
+    Static,
+    TeamBased,
+    HealthBased,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspInfoHealthColorType {
+    Static,
+    TeamBased,
+    HealthBased,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspInfoWeaponColorType {
+    Static,
+    TeamBased,
+    HealthBased,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -102,6 +162,24 @@ pub struct AppSettings {
     #[serde(default = "default_esp_box_type")]
     pub esp_box_type: EspBoxType,
 
+    #[serde(default = "default_esp_box_team_color_type")]
+    pub esp_box_team_color_type: EspBoxTeamColorType,
+
+    #[serde(default = "default_esp_box_enemy_color_type")]
+    pub esp_box_enemy_color_type: EspBoxEnemyColorType,
+
+    #[serde(default = "default_esp_skeleton_team_color_type")]
+    pub esp_skeleton_team_color_type: EspSkeletonTeamColorType,
+
+    #[serde(default = "default_esp_skeleton_enemy_color_type")]
+    pub esp_skeleton_enemy_color_type: EspSkeletonEnemyColorType,
+
+    #[serde(default = "default_esp_info_health_color_type")]
+    pub esp_info_health_color_type: EspInfoHealthColorType,
+
+    #[serde(default = "default_esp_info_weapon_color_type")]
+    pub esp_info_weapon_color_type: EspInfoWeaponColorType,
+
     #[serde(default = "default_esp_boxes_thickness")]
     pub esp_boxes_thickness: f32,
 
@@ -112,22 +190,10 @@ pub struct AppSettings {
     pub esp_info_health_color: [f32; 4],
 
     #[serde(default = "bool_false")]
-    pub esp_info_health_color_health_based: bool,
-
-    #[serde(default = "bool_false")]
-    pub esp_info_health_color_team_based: bool,
-
-    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "default_esp_info_weapon_color")]
     pub esp_info_weapon_color: [f32; 4],
-
-    #[serde(default = "bool_false")]
-    pub esp_info_weapon_color_health_based: bool,
-
-    #[serde(default = "bool_false")]
-    pub esp_info_weapon_color_team_based: bool,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
@@ -153,23 +219,11 @@ pub struct AppSettings {
     #[serde(default = "default_esp_box_color_team")]
     pub esp_box_color_team: [f32; 4],
 
-    #[serde(default = "bool_false")]
-    pub esp_box_color_team_health_based: bool,
-
-    #[serde(default = "bool_true")]
-    pub esp_box_color_team_team_based: bool,
-
     #[serde(default = "bool_true")]
     pub esp_skeleton_enabled_team: bool,
 
     #[serde(default = "default_esp_skeleton_color_team")]
     pub esp_skeleton_color_team: [f32; 4],
-
-    #[serde(default = "bool_false")]
-    pub esp_skeleton_color_team_health_based: bool,
-
-    #[serde(default = "bool_true")]
-    pub esp_skeleton_color_team_team_based: bool,
 
     #[serde(default = "bool_true")]
     pub esp_box_enabled_enemy: bool,
@@ -177,23 +231,11 @@ pub struct AppSettings {
     #[serde(default = "default_esp_box_color_enemy")]
     pub esp_box_color_enemy: [f32; 4],
 
-    #[serde(default = "bool_false")]
-    pub esp_box_color_enemy_health_based: bool,
-
-    #[serde(default = "bool_true")]
-    pub esp_box_color_enemy_team_based: bool,
-
     #[serde(default = "bool_true")]
     pub esp_skeleton_enabled_enemy: bool,
 
     #[serde(default = "default_esp_skeleton_color_enemy")]
     pub esp_skeleton_color_enemy: [f32; 4],
-
-    #[serde(default = "bool_false")]
-    pub esp_skeleton_color_enemy_health_based: bool,
-
-    #[serde(default = "bool_true")]
-    pub esp_skeleton_color_enemy_team_based: bool,
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,

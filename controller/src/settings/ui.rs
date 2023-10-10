@@ -12,7 +12,13 @@ use obfstr::obfstr;
 use crate::{
     settings::{
         AppSettings,
+        EspBoxEnemyColorType,
+        EspBoxTeamColorType,
         EspBoxType,
+        EspInfoHealthColorType,
+        EspInfoWeaponColorType,
+        EspSkeletonEnemyColorType,
+        EspSkeletonTeamColorType,
     },
     utils::ImGuiKey,
     Application,
@@ -101,33 +107,69 @@ impl SettingsUI {
                                 ui.checkbox(obfstr!("Box ESP Team"), &mut settings.esp_box_enabled_team);
                                 if settings.esp_box_enabled_team {
                                     ui.same_line();
-                                    ui.color_edit4_config(obfstr!("Team Box Color"), &mut settings.esp_box_color_team)
-                                        .alpha_bar(true)
-                                        .inputs(false)
-                                        .label(false)
-                                        .build();
-                                    ui.same_line();
-                                    ui.text(obfstr!("Team Box Color"));
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Health Based Team Boxes"), &mut settings.esp_box_color_team_health_based);
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Team Based Team Boxes"), &mut settings.esp_box_color_team_team_based);
+                                    ui.set_next_item_width(120.0);
+                                    const ESP_BOX_TEAM_COLOR_TYPES: [ EspBoxTeamColorType; 3 ] = [ EspBoxTeamColorType::Static, EspBoxTeamColorType::TeamBased, EspBoxTeamColorType::HealthBased ];
+
+                                    fn esp_box_team_color_type_name(value: &EspBoxTeamColorType) -> Cow<'_, str> {
+                                        match value {
+                                            EspBoxTeamColorType::Static => "Static",
+                                            EspBoxTeamColorType::TeamBased => "Team Based",
+                                            EspBoxTeamColorType::HealthBased => "Health Based",
+                                        }.into()
+                                    }
+
+                                    let mut esp_box_team_color_type_index = ESP_BOX_TEAM_COLOR_TYPES.iter().position(|v| *v == settings.esp_box_team_color_type).unwrap_or_default();
+                                    if ui.combo(obfstr!("ESP Box Team Type"), &mut esp_box_team_color_type_index, &ESP_BOX_TEAM_COLOR_TYPES, &esp_box_team_color_type_name) {
+                                        settings.esp_box_team_color_type = ESP_BOX_TEAM_COLOR_TYPES[esp_box_team_color_type_index];
+                                    }
+                                    match settings.esp_box_team_color_type {
+                                        EspBoxTeamColorType::Static => {
+                                            ui.same_line();
+                                            ui.color_edit4_config(obfstr!("Team Box Color"), &mut settings.esp_box_color_team)
+                                                .alpha_bar(true)
+                                                .inputs(false)
+                                                .label(false)
+                                                .build();
+                                            ui.same_line();
+                                            ui.text(obfstr!("Team Box Color"));
+                                        }
+                                        EspBoxTeamColorType::TeamBased => {}
+                                        EspBoxTeamColorType::HealthBased => {}
+                                    }
                                 }
 
                                 ui.checkbox(obfstr!("Box ESP Enemy"), &mut settings.esp_box_enabled_enemy);
                                 if settings.esp_box_enabled_enemy {
                                     ui.same_line();
-                                    ui.color_edit4_config(obfstr!("Enemy Box Color"), &mut settings.esp_box_color_enemy)
-                                        .alpha_bar(true)
-                                        .inputs(false)
-                                        .label(false)
-                                        .build();
-                                    ui.same_line();
-                                    ui.text(obfstr!("Enemy Box Color"));
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Health Based Enemy Boxes"), &mut settings.esp_box_color_enemy_health_based);
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Team Based Enemy Boxes"), &mut settings.esp_box_color_enemy_team_based);
+                                    ui.set_next_item_width(120.0);
+                                    const ESP_BOX_ENEMY_COLOR_TYPES: [ EspBoxEnemyColorType; 3 ] = [ EspBoxEnemyColorType::Static, EspBoxEnemyColorType::TeamBased, EspBoxEnemyColorType::HealthBased ];
+
+                                    fn esp_box_enemy_color_type_name(value: &EspBoxEnemyColorType) -> Cow<'_, str> {
+                                        match value {
+                                            EspBoxEnemyColorType::Static => "Static",
+                                            EspBoxEnemyColorType::TeamBased => "Team Based",
+                                            EspBoxEnemyColorType::HealthBased => "Health Based",
+                                        }.into()
+                                    }
+
+                                    let mut esp_box_enemy_color_type_index = ESP_BOX_ENEMY_COLOR_TYPES.iter().position(|v| *v == settings.esp_box_enemy_color_type).unwrap_or_default();
+                                    if ui.combo(obfstr!("ESP Box Enemy Type"), &mut esp_box_enemy_color_type_index, &ESP_BOX_ENEMY_COLOR_TYPES, &esp_box_enemy_color_type_name) {
+                                        settings.esp_box_enemy_color_type = ESP_BOX_ENEMY_COLOR_TYPES[esp_box_enemy_color_type_index];
+                                    }
+                                    match settings.esp_box_enemy_color_type {
+                                        EspBoxEnemyColorType::Static => {
+                                            ui.same_line();
+                                            ui.color_edit4_config(obfstr!("Enemy Box Color"), &mut settings.esp_box_color_enemy)
+                                                .alpha_bar(true)
+                                                .inputs(false)
+                                                .label(false)
+                                                .build();
+                                            ui.same_line();
+                                            ui.text(obfstr!("Enemy Box Color"));
+                                        }
+                                        EspBoxEnemyColorType::TeamBased => {}
+                                        EspBoxEnemyColorType::HealthBased => {}
+                                    }
                                 }
                                 ui.separator();
                             }
@@ -140,33 +182,70 @@ impl SettingsUI {
                                 ui.checkbox(obfstr!("Skeleton ESP Team"), &mut settings.esp_skeleton_enabled_team);
                                 if settings.esp_skeleton_enabled_team {
                                     ui.same_line();
-                                    ui.color_edit4_config(obfstr!("Team Skeleton Color"), &mut settings.esp_skeleton_color_team)
-                                        .alpha_bar(true)
-                                        .inputs(false)
-                                        .label(false)
-                                        .build();
-                                    ui.same_line();
-                                    ui.text(obfstr!("Team Skeleton Color"));
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Health Based Team Skeletons"), &mut settings.esp_skeleton_color_team_health_based);
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Team Based Team Skeletons"), &mut settings.esp_skeleton_color_team_team_based);
+                                    ui.set_next_item_width(120.0);
+                                    const ESP_SKELETON_TEAM_COLOR_TYPES: [ EspSkeletonTeamColorType; 3 ] = [ EspSkeletonTeamColorType::Static, EspSkeletonTeamColorType::TeamBased, EspSkeletonTeamColorType::HealthBased ];
+
+                                    fn esp_skeleton_team_color_type_name(value: &EspSkeletonTeamColorType) -> Cow<'_, str> {
+                                        match value {
+                                            EspSkeletonTeamColorType::Static => "Static",
+                                            EspSkeletonTeamColorType::TeamBased => "Team Based",
+                                            EspSkeletonTeamColorType::HealthBased => "Health Based",
+                                        }.into()
+                                    }
+
+                                    let mut esp_skeleton_team_color_type_index = ESP_SKELETON_TEAM_COLOR_TYPES.iter().position(|v| *v == settings.esp_skeleton_team_color_type).unwrap_or_default();
+                                    if ui.combo(obfstr!("ESP Skeleton Team Type"), &mut esp_skeleton_team_color_type_index, &ESP_SKELETON_TEAM_COLOR_TYPES, &esp_skeleton_team_color_type_name) {
+                                        settings.esp_skeleton_team_color_type = ESP_SKELETON_TEAM_COLOR_TYPES[esp_skeleton_team_color_type_index];
+                                    }
+                                    match settings.esp_skeleton_team_color_type {
+                                        EspSkeletonTeamColorType::Static => {
+                                            ui.same_line();
+                                            ui.color_edit4_config(obfstr!("Team Skeleton Color"), &mut settings.esp_skeleton_color_team)
+                                                .alpha_bar(true)
+                                                .inputs(false)
+                                                .label(false)
+                                                .build();
+                                            ui.same_line();
+                                            ui.text(obfstr!("Team Skeleton Color"));
+                                        }
+                                        EspSkeletonTeamColorType::TeamBased => {}
+                                        EspSkeletonTeamColorType::HealthBased => {}
+                                    }
                                 }
 
                                 ui.checkbox(obfstr!("Skeleton ESP Enemy"), &mut settings.esp_skeleton_enabled_enemy);
                                 if settings.esp_skeleton_enabled_enemy {
                                     ui.same_line();
-                                    ui.color_edit4_config(obfstr!("Enemy Skeleton Color"), &mut settings.esp_skeleton_color_enemy)
-                                        .alpha_bar(true)
-                                        .inputs(false)
-                                        .label(false)
-                                        .build();
-                                    ui.same_line();
-                                    ui.text(obfstr!("Enemy Skeleton Color"));
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Health Based Enemy Skeletons"), &mut settings.esp_skeleton_color_enemy_health_based);
-                                    ui.same_line();
-                                    ui.checkbox(obfstr!("Team Based Enemy Skeletons"), &mut settings.esp_skeleton_color_enemy_team_based);
+                                    ui.set_next_item_width(120.0);
+                                    const ESP_SKELETON_ENEMY_COLOR_TYPES: [ EspSkeletonEnemyColorType; 3 ] = [ EspSkeletonEnemyColorType::Static, EspSkeletonEnemyColorType::TeamBased, EspSkeletonEnemyColorType::HealthBased ];
+
+                                    fn esp_skeleton_enemy_color_type_name(value: &EspSkeletonEnemyColorType) -> Cow<'_, str> {
+                                        match value {
+                                            EspSkeletonEnemyColorType::Static => "Static",
+                                            EspSkeletonEnemyColorType::TeamBased => "Team Based",
+                                            EspSkeletonEnemyColorType::HealthBased => "Health Based",
+                                        }.into()
+                                    }
+
+                                    let mut esp_skeleton_enemy_color_type_index = ESP_SKELETON_ENEMY_COLOR_TYPES.iter().position(|v| *v == settings.esp_skeleton_enemy_color_type).unwrap_or_default();
+                                    if ui.combo(obfstr!("ESP Skeleton Enemy Type"), &mut esp_skeleton_enemy_color_type_index, &ESP_SKELETON_ENEMY_COLOR_TYPES, &esp_skeleton_enemy_color_type_name) {
+                                        settings.esp_skeleton_enemy_color_type = ESP_SKELETON_ENEMY_COLOR_TYPES[esp_skeleton_enemy_color_type_index];
+                                    }
+                                    match settings.esp_skeleton_enemy_color_type {
+                                        EspSkeletonEnemyColorType::Static => {
+                                            ui.same_line();
+                                            ui.color_edit4_config(obfstr!("Enemy Skeleton Color"), &mut settings.esp_skeleton_color_enemy)
+                                                .alpha_bar(true)
+                                                .inputs(false)
+                                                .label(false)
+                                                .build();
+                                            ui.same_line();
+                                            ui.text(obfstr!("Enemy Skeleton Color"));
+                                            ui.same_line();
+                                        }
+                                        EspSkeletonEnemyColorType::TeamBased => {}
+                                        EspSkeletonEnemyColorType::HealthBased => {}
+                                    }
                                 }
                                 ui.separator();
                             }
@@ -175,34 +254,70 @@ impl SettingsUI {
 
                             if settings.esp_info_health {
                                 ui.same_line();
-                                ui.color_edit4_config(obfstr!("Color"), &mut settings.esp_info_health_color)
-                                .alpha_bar(true)
-                                    .inputs(false)
-                                    .label(false)
-                                    .build();
-                                ui.same_line();
-                                ui.text(obfstr!("Color"));
-                                ui.same_line();
-                                ui.checkbox(obfstr!("Health based Health Color"), &mut settings.esp_info_health_color_health_based);
-                                ui.same_line();
-                                ui.checkbox(obfstr!("Team based Health Color"), &mut settings.esp_info_health_color_team_based);
+                                ui.set_next_item_width(120.0);
+                                const ESP_INFO_HEALTH_COLOR_TYPES: [ EspInfoHealthColorType; 3 ] = [ EspInfoHealthColorType::Static, EspInfoHealthColorType::TeamBased, EspInfoHealthColorType::HealthBased ];
+
+                                fn esp_info_health_color_type_name(value: &EspInfoHealthColorType) -> Cow<'_, str> {
+                                    match value {
+                                        EspInfoHealthColorType::Static => "Static",
+                                        EspInfoHealthColorType::TeamBased => "Team Based",
+                                        EspInfoHealthColorType::HealthBased => "Health Based",
+                                    }.into()
+                                }
+
+                                let mut esp_info_health_color_type_index = ESP_INFO_HEALTH_COLOR_TYPES.iter().position(|v| *v == settings.esp_info_health_color_type).unwrap_or_default();
+                                if ui.combo(obfstr!("ESP Health Type"), &mut esp_info_health_color_type_index, &ESP_INFO_HEALTH_COLOR_TYPES, &esp_info_health_color_type_name) {
+                                    settings.esp_info_health_color_type = ESP_INFO_HEALTH_COLOR_TYPES[esp_info_health_color_type_index];
+                                }
+                                match settings.esp_info_health_color_type {
+                                    EspInfoHealthColorType::Static => {
+                                        ui.same_line();
+                                        ui.color_edit4_config(obfstr!("Color"), &mut settings.esp_info_health_color)
+                                        .alpha_bar(true)
+                                            .inputs(false)
+                                            .label(false)
+                                            .build();
+                                        ui.same_line();
+                                        ui.text(obfstr!("Color"));
+                                    }
+                                    EspInfoHealthColorType::TeamBased => {}
+                                    EspInfoHealthColorType::HealthBased => {}
+                                }
                             }
 
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
 
                             if settings.esp_info_weapon {
                                 ui.same_line();
-                                ui.color_edit4_config(obfstr!("Weapon Color"), &mut settings.esp_info_weapon_color)
-                                    .alpha_bar(true)
-                                    .inputs(false)
-                                    .label(false)
-                                    .build();
-                                ui.same_line();
-                                 ui.text(obfstr!("Weapon Color"));
-                                ui.same_line();
-                                ui.checkbox(obfstr!("Health based Weapon Color"), &mut settings.esp_info_weapon_color_health_based);
-                                ui.same_line();
-                                ui.checkbox(obfstr!("Team based Weapon Color"), &mut settings.esp_info_weapon_color_team_based);
+                                ui.set_next_item_width(120.0);
+                                const ESP_INFO_WEAPON_COLOR_TYPES: [ EspInfoWeaponColorType; 3 ] = [ EspInfoWeaponColorType::Static, EspInfoWeaponColorType::TeamBased, EspInfoWeaponColorType::HealthBased ];
+
+                                fn esp_info_weapon_color_type_name(value: &EspInfoWeaponColorType) -> Cow<'_, str> {
+                                    match value {
+                                        EspInfoWeaponColorType::Static => "Static",
+                                        EspInfoWeaponColorType::TeamBased => "Team Based",
+                                        EspInfoWeaponColorType::HealthBased => "Health Based",
+                                    }.into()
+                                }
+
+                                let mut esp_info_weapon_color_type_index = ESP_INFO_WEAPON_COLOR_TYPES.iter().position(|v| *v == settings.esp_info_weapon_color_type).unwrap_or_default();
+                                if ui.combo(obfstr!("ESP Weapon Type"), &mut esp_info_weapon_color_type_index, &ESP_INFO_WEAPON_COLOR_TYPES, &esp_info_weapon_color_type_name) {
+                                    settings.esp_info_weapon_color_type = ESP_INFO_WEAPON_COLOR_TYPES[esp_info_weapon_color_type_index];
+                                }
+                                match settings.esp_info_weapon_color_type {
+                                    EspInfoWeaponColorType::Static => {
+                                        ui.same_line();
+                                        ui.color_edit4_config(obfstr!("Weapon Color"), &mut settings.esp_info_weapon_color)
+                                            .alpha_bar(true)
+                                            .inputs(false)
+                                            .label(false)
+                                            .build();
+                                        ui.same_line();
+                                        ui.text(obfstr!("Weapon Color"));
+                                    }
+                                    EspInfoWeaponColorType::TeamBased => {}
+                                    EspInfoWeaponColorType::HealthBased => {}
+                                }
                             }
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);

@@ -27,7 +27,13 @@ use super::Enhancement;
 use crate::{
     settings::{
         AppSettings,
+        EspBoxEnemyColorType,
+        EspBoxTeamColorType,
         EspBoxType,
+        EspInfoHealthColorType,
+        EspInfoWeaponColorType,
+        EspSkeletonEnemyColorType,
+        EspSkeletonTeamColorType,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -331,48 +337,48 @@ impl Enhancement for PlayerESP {
                     }
 
                     let box_color = if settings.esp_box_enabled_team {
-                        if settings.esp_box_color_team_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_box_color_team_team_based {
-                            settings.esp_color_team
-                        } else {
-                            settings.esp_box_color_team
+                        match settings.esp_box_team_color_type {
+                            EspBoxTeamColorType::Static => settings.esp_box_color_team,
+                            EspBoxTeamColorType::TeamBased => settings.esp_color_team,
+                            EspBoxTeamColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let skeleton_color = if settings.esp_skeleton_enabled_team {
-                        if settings.esp_skeleton_color_team_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_skeleton_color_team_team_based {
-                            settings.esp_color_team
-                        } else {
-                            settings.esp_skeleton_color_team
+                        match settings.esp_skeleton_team_color_type {
+                            EspSkeletonTeamColorType::Static => settings.esp_skeleton_color_team,
+                            EspSkeletonTeamColorType::TeamBased => settings.esp_color_team,
+                            EspSkeletonTeamColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let health_esp_color = if settings.esp_info_health {
-                        if settings.esp_info_health_color_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_info_health_color_team_based {
-                            settings.esp_color_team
-                        } else {
-                            settings.esp_info_health_color
+                        match settings.esp_info_health_color_type {
+                            EspInfoHealthColorType::Static => settings.esp_info_health_color,
+                            EspInfoHealthColorType::TeamBased => settings.esp_color_team,
+                            EspInfoHealthColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let weapon_esp_color = if settings.esp_info_weapon {
-                        if settings.esp_info_weapon_color_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_info_weapon_color_team_based {
-                            settings.esp_color_team
-                        } else {
-                            settings.esp_info_weapon_color
+                        match settings.esp_info_weapon_color_type {
+                            EspInfoWeaponColorType::Static => settings.esp_info_weapon_color,
+                            EspInfoWeaponColorType::TeamBased => settings.esp_color_team,
+                            EspInfoWeaponColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
@@ -390,48 +396,48 @@ impl Enhancement for PlayerESP {
                     }
 
                     let box_color = if settings.esp_box_enabled_enemy {
-                        if settings.esp_box_color_enemy_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_box_color_enemy_team_based {
-                            settings.esp_color_enemy
-                        } else {
-                            settings.esp_box_color_enemy
+                        match settings.esp_box_enemy_color_type {
+                            EspBoxEnemyColorType::Static => settings.esp_box_color_enemy,
+                            EspBoxEnemyColorType::TeamBased => settings.esp_color_enemy,
+                            EspBoxEnemyColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let skeleton_color = if settings.esp_skeleton_enabled_enemy {
-                        if settings.esp_skeleton_color_enemy_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_skeleton_color_enemy_team_based {
-                            settings.esp_color_enemy
-                        } else {
-                            settings.esp_skeleton_color_enemy
+                        match settings.esp_skeleton_enemy_color_type {
+                            EspSkeletonEnemyColorType::Static => settings.esp_skeleton_color_enemy,
+                            EspSkeletonEnemyColorType::TeamBased => settings.esp_color_enemy,
+                            EspSkeletonEnemyColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let health_esp_color = if settings.esp_info_health {
-                        if settings.esp_info_health_color_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_info_health_color_team_based {
-                            settings.esp_color_enemy
-                        } else {
-                            settings.esp_info_health_color
+                        match settings.esp_info_health_color_type {
+                            EspInfoHealthColorType::Static => settings.esp_info_health_color,
+                            EspInfoHealthColorType::TeamBased => settings.esp_color_enemy,
+                            EspInfoHealthColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
                     };
 
                     let weapon_esp_color = if settings.esp_info_weapon {
-                        if settings.esp_info_weapon_color_health_based {
-                            Self::calculate_health_color(entry.player_health)
-                        } else if settings.esp_info_weapon_color_team_based {
-                            settings.esp_color_enemy
-                        } else {
-                            settings.esp_info_weapon_color
+                        match settings.esp_info_weapon_color_type {
+                            EspInfoWeaponColorType::Static => settings.esp_info_weapon_color,
+                            EspInfoWeaponColorType::TeamBased => settings.esp_color_enemy,
+                            EspInfoWeaponColorType::HealthBased => {
+                                Self::calculate_health_color(entry.player_health)
+                            }
                         }
                     } else {
                         [0.0, 0.0, 0.0, 0.0]
