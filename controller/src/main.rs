@@ -70,6 +70,7 @@ use crate::{
         BombInfo,
         PlayerESP,
         TriggerBot,
+        SpectatorsList
     },
     settings::save_app_settings,
     view::LocalCrosshair,
@@ -484,6 +485,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
         enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),
+            Rc::new(RefCell::new(SpectatorsList::new())),
             Rc::new(RefCell::new(BombInfo::new())),
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
                 cs2_offsets.offset_crosshair_id,

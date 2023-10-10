@@ -102,6 +102,9 @@ pub struct AppSettings {
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
+    #[serde(default = "bool_false")]
+    pub spectators_list: bool,
+
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,
 
