@@ -221,25 +221,21 @@ impl ViewController {
     }
 
     pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
-        let frequency = 0.1;
-        let r = (frequency * value).sin() * 127.0 + 128.0;
-        let g = (frequency * value + 2.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
-        let b = (frequency * value + 4.0 * std::f32::consts::PI / 3.0).sin() * 127.0 + 128.0;
-        [r / 255.0, g / 255.0, b / 255.0, 1.0]
+        let frequency: f32 = 0.1;
+        let sin_value = |offset: f32| (frequency * value + offset).sin() * 0.5 + 1.0;
+        let r: f32 = sin_value(0.0);
+        let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
+        let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
+        [r, g, b, 1.0]        
     }
 
     pub fn calculate_health_color(&self, health_percentage: f32) -> [f32; 4] {
-        if health_percentage > 0.6 {
-            [
-                2.0 - 2.0 * health_percentage,
-                2.0 * health_percentage,
-                0.0,
-                1.0,
-            ]
-        } else if health_percentage > 0.3 {
-            [1.0, 1.0, 2.0 - 2.0 * health_percentage, 1.0]
-        } else {
-            [1.0, 2.0 * health_percentage, 0.0, 1.0]
-        }
-    }
+        let clamped_percentage = health_percentage.clamp(0.0, 1.0);
+        
+        let r = 1.0 - clamped_percentage;
+        let g = clamped_percentage;
+        let b = 0.0;
+        
+        [r, g, b, 1.0]
+    }    
 }
