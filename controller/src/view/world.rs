@@ -200,16 +200,16 @@ impl ViewController {
         //get fix edge
         let border_bottom_y = border_bar_y - border_thickness;
         let border_top_y = border_bottom_y - bar_height - border_thickness;
-
+    
         //border
         draw.add_rect(
             [bar_x - border_thickness, border_top_y],
-            [bar_x + bar_width + border_thickness, border_bottom_y],
+            [bar_x + bar_width + border_thickness, border_bottom_y], // Use border_top_y and border_bottom_y here
             border_color,
         )
         .thickness(border_thickness)
         .build();
-
+    
         draw.add_rect_filled_multicolor(
             [bar_x, bar_y],
             [bar_x + bar_width, bar_y + filled_height],
@@ -218,7 +218,7 @@ impl ViewController {
             health_color,
             health_color,
         );
-    }
+    }    
 
     pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
         let frequency: f32 = 0.1;
@@ -226,7 +226,7 @@ impl ViewController {
         let r: f32 = sin_value(0.0);
         let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
         let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-        [r, g, b, 1.0]        
+        [r, g, b, 0.75]        
     }
 
     pub fn calculate_health_color(&self, health_percentage: f32) -> [f32; 4] {
@@ -236,6 +236,6 @@ impl ViewController {
         let g = clamped_percentage;
         let b = 0.0;
         
-        [r, g, b, 1.0]
+        [r, g, b, 0.75]
     }    
 }
