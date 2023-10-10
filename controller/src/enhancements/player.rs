@@ -351,51 +351,43 @@ impl Enhancement for PlayerESP {
 
                             if settings.esp_health_bar {
                                 let bar_height = vmax.y - vmin.y; // height = box height
-                                let bar_x = vmin.x - 5.0; // Left
-
                                 let player_health = entry.player_health as f32;
                                 let clamped_player_health =
-                                    player_health.max(0.0).min(HEALTH_BAR_MAX_HEALTH);
+                                    player_health.clamp(0.0, HEALTH_BAR_MAX_HEALTH);
                                 let health_percentage =
                                     clamped_player_health / HEALTH_BAR_MAX_HEALTH;
                                 let filled_height = bar_height * health_percentage;
-                                let width = settings.health_bar_width;
-                                let border_bar_y = vmax.y;
-                                let border_thickness = 1.5;
-                                let border_color = [0.0, 0.0, 0.0, 0.75];
 
-                                let bar_y = vmax.y - filled_height - 1.5;
+                                let border_color = [0.0, 0.0, 0.0, esp_color[3]];
+
+                                draw.add_rect(
+                                    [vmin.x - 5.0, vmax.y - 1.0], // upper-left
+                                    [vmin.x, vmin.y + 1.0],       //lower-right
+                                    border_color,
+                                )
+                                .thickness(1.5)
+                                .build();
 
                                 if settings.rainbow_health_bar {
-                                    let rainbow_color =
-                                        view.calculate_rainbow_color(player_health as f32);
-                                    view.draw_health_bar(
-                                        &draw,
-                                        bar_x,
-                                        bar_y,
-                                        filled_height,
-                                        width,
+                                    let rainbow_color = view
+                                        .calculate_rainbow_color(player_health as f32, *esp_color);
+                                    draw.add_rect(
+                                        [vmin.x - 5.0, vmax.y - 1.0],     // upper-left
+                                        [vmin.x, vmax.y - filled_height], // lower-right
                                         rainbow_color,
-                                        border_thickness,
-                                        border_color,
-                                        bar_height,
-                                        border_bar_y,
                                     )
+                                    .filled(true)
+                                    .build();
                                 } else {
                                     let health_color =
-                                        view.calculate_health_color(health_percentage);
-                                    view.draw_health_bar(
-                                        &draw,
-                                        bar_x,
-                                        bar_y,
-                                        filled_height,
-                                        width,
+                                        view.calculate_health_color(health_percentage, *esp_color);
+                                    draw.add_rect(
+                                        [vmin.x - 5.0, vmax.y - 1.0],     // upper-left
+                                        [vmin.x, vmax.y - filled_height], // lower-right
                                         health_color,
-                                        border_thickness,
-                                        border_color,
-                                        bar_height,
-                                        border_bar_y,
                                     )
+                                    .filled(true)
+                                    .build();
                                 }
                             }
                         }

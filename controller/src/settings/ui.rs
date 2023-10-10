@@ -103,7 +103,7 @@ impl SettingsUI {
                                 if settings.esp_health_bar {
                                     ui.same_line();
                                     ui.slider_config(obfstr!("Width"), 1.0, 10.0)
-                                    .build(&mut settings.health_bar_width);
+                                    .build(&mut settings.esp_health_bar_width);
                                     ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.rainbow_health_bar);
                                 }
                             }

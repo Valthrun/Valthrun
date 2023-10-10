@@ -184,57 +184,22 @@ impl ViewController {
         }
     }
 
-    pub fn draw_health_bar(
-        &self,
-        draw: &imgui::DrawListMut,
-        bar_x: f32,
-        bar_y: f32,
-        filled_height: f32,
-        bar_width: f32,
-        health_color: [f32; 4],
-        border_thickness: f32,
-        border_color: [f32; 4],
-        bar_height: f32,
-        border_bar_y: f32,
-    ) {
-        draw.add_rect_filled_multicolor(
-            [bar_x, bar_y],
-            [bar_x + bar_width, bar_y + filled_height],
-            health_color,
-            health_color,
-            health_color,
-            health_color,
-        );
-
-        // fix border
-        let border_top_y = border_bar_y - border_thickness;
-        let border_bottom_y = border_top_y - bar_height;
-
-        draw.add_rect(
-            [bar_x - border_thickness, border_top_y], // top left
-            [bar_x + bar_width + border_thickness, border_bottom_y], // bottom right
-            border_color,
-        )
-        .thickness(border_thickness)
-        .build();
-    }
-
-    pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
+    pub fn calculate_rainbow_color(&self, value: f32, esp_color: [f32; 4]) -> [f32; 4] {
         let frequency: f32 = 0.1;
         let sin_value = |offset: f32| (frequency * value + offset).sin() * 0.5 + 1.0;
         let r: f32 = sin_value(0.0);
         let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
         let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-        [r, g, b, 0.75]
+        [r, g, b, esp_color[3]]
     }
 
-    pub fn calculate_health_color(&self, health_percentage: f32) -> [f32; 4] {
+    pub fn calculate_health_color(&self, health_percentage: f32, esp_color: [f32; 4]) -> [f32; 4] {
         let clamped_percentage = health_percentage.clamp(0.0, 1.0);
 
         let r = 1.0 - clamped_percentage;
         let g = clamped_percentage;
         let b = 0.0;
 
-        [r, g, b, 0.75]
+        [r, g, b, esp_color[3]]
     }
 }
