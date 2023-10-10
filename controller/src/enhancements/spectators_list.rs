@@ -1,6 +1,7 @@
 use std::{
     ffi::CStr,
 };
+
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
 use obfstr::obfstr;
@@ -150,14 +151,12 @@ impl Enhancement for SpectatorsList {
         let line_count = self.spectators.iter().count();
         let text_height = ui.text_line_height_with_spacing() * line_count as f32;
 
-        /* align to be on the right side after the players */
         let offset_x = ui.io().display_size[0] * 0.01;
         let offset_y = (ui.io().display_size[1] + text_height) * 0.5;
         let mut offset_y = offset_y;
 
         for spectator in self.spectators.iter() {
             ui.set_cursor_pos([offset_x, offset_y]);
-
             ui.text(&format!("{}", spectator.spectator_name));
             offset_y += ui.text_line_height_with_spacing();
         };

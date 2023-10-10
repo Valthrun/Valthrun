@@ -88,9 +88,6 @@ pub struct AppSettings {
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
-    pub esp_info_player_name: bool,
-
-    #[serde(default = "bool_false")]
     pub esp_info_health: bool,
 
     #[serde(default = "bool_false")]
