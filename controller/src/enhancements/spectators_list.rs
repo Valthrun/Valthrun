@@ -74,12 +74,24 @@ impl Enhancement for SpectatorsList {
 
             let local_observer_target_pawn = if let Some(identity) = &current_local_observer_target
             {
-                identity.entity()?.cast::<C_CSPlayerPawnBase>().reference_schema()?
+                identity
+                    .entity()?
+                    .cast::<C_CSPlayerPawnBase>()
+                    .try_reference_schema()
+                    .with_context(|| obfstr!("failed to read local observer target pawn").to_string())?
             } else {
                 return Ok(());
             };
 
-            local_observer_target_pawn.m_hController()?.get_entity_index()
+            let local_observed_controller = match local_observer_target_pawn{
+                Some(controller) => controller.m_hController()?,
+                None => {
+                    /* We have no target to spectate */
+                    return Ok(());
+                }
+            };
+
+            local_observed_controller.get_entity_index()
         };
 
         for entity_identity in ctx.cs2_entities.all_identities() {
