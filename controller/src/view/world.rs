@@ -190,53 +190,36 @@ impl ViewController {
         bar_x: f32,
         bar_y: f32,
         filled_height: f32,
-        width: f32,
-        health_color: [f32; 4],
-    ) {
-        for i in 0..filled_height as i32 {
-            let y1 = bar_y + i as f32;
-            let y2 = y1 + 1.0;
-            let x1 = bar_x;
-            let x2 = bar_x + width; //width
-            draw.add_line([x1, y1], [x2, y2], health_color)
-                .thickness(5.0)
-                .build();
-        }
-    }
-
-    pub fn draw_border(
-        &self,
-        draw: &imgui::DrawListMut,
-        bar_x: f32,
-        bar_y: f32,
         bar_width: f32,
-        bar_height: f32,
+        health_color: [f32; 4],
         border_thickness: f32,
         border_color: [f32; 4],
+        bar_height: f32,
+        border_bar_y: f32,
     ) {
-        draw.add_line([bar_x, bar_y], [bar_x + bar_width, bar_y], border_color)
-            .thickness(border_thickness)
-            .build();
-        draw.add_line([bar_x, bar_y], [bar_x, bar_y - bar_height], border_color)
-            .thickness(border_thickness)
-            .build();
-        draw.add_line(
-            [bar_x + bar_width, bar_y],
-            [bar_x + bar_width, bar_y - bar_height],
+        //get fix edge
+        let border_bottom_y = border_bar_y - border_thickness;
+        let border_top_y = border_bottom_y - bar_height - border_thickness;
+
+        //border
+        draw.add_rect(
+            [bar_x - border_thickness, border_top_y],
+            [bar_x + bar_width + border_thickness, border_bottom_y],
             border_color,
         )
         .thickness(border_thickness)
         .build();
-        draw.add_line(
-            [bar_x, bar_y - bar_height],
-            [bar_x + bar_width, bar_y - bar_height],
-            border_color,
-        )
-        .thickness(border_thickness)
-        .build();
+
+        draw.add_rect_filled_multicolor(
+            [bar_x, bar_y],
+            [bar_x + bar_width, bar_y + filled_height],
+            health_color,
+            health_color,
+            health_color,
+            health_color,
+        );
     }
 
-    // Thanks to https://www.unknowncheats.me/forum/d3d-tutorials-and-source/208799-esp-rainbow-healthbar.html
     pub fn calculate_rainbow_color(&self, value: f32) -> [f32; 4] {
         let frequency = 0.1;
         let r = (frequency * value).sin() * 127.0 + 128.0;

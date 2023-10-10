@@ -1,3 +1,5 @@
+const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
+
 use std::{
     ffi::CStr,
     sync::Arc,
@@ -351,11 +353,16 @@ impl Enhancement for PlayerESP {
                                 let bar_height = vmax.y - vmin.y; // height = box height
                                 let bar_x = vmin.x - 5.0; // Left
 
-                                let max_health = 100.0;
-                                let player_health = entry.player_health;
-                                let health_percentage = player_health as f32 / max_health as f32;
+                                let player_health = entry.player_health as f32;
+                                let clamped_player_health =
+                                    player_health.max(0.0).min(HEALTH_BAR_MAX_HEALTH);
+                                let health_percentage =
+                                    clamped_player_health / HEALTH_BAR_MAX_HEALTH;
                                 let filled_height = bar_height * health_percentage;
                                 let width = settings.health_bar_width;
+                                let border_bar_y = vmax.y;
+                                let border_thickness = 1.0;
+                                let border_color = [0.0, 0.0, 0.0, 1.0];
 
                                 let bar_y = vmax.y - filled_height;
 
@@ -369,6 +376,10 @@ impl Enhancement for PlayerESP {
                                         filled_height,
                                         width,
                                         rainbow_color,
+                                        border_thickness,
+                                        border_color,
+                                        bar_height,
+                                        border_bar_y,
                                     )
                                 } else {
                                     let health_color =
@@ -380,24 +391,12 @@ impl Enhancement for PlayerESP {
                                         filled_height,
                                         width,
                                         health_color,
+                                        border_thickness,
+                                        border_color,
+                                        bar_height,
+                                        border_bar_y,
                                     )
                                 }
-
-                                let bar_x = vmin.x - 5.0;
-                                let bar_y = vmax.y;
-                                let bar_width = width;
-                                let border_thickness = 1.0;
-                                let border_color = [0.0, 0.0, 0.0, 1.0];
-
-                                view.draw_border(
-                                    &draw,
-                                    bar_x,
-                                    bar_y,
-                                    bar_width,
-                                    bar_height,
-                                    border_thickness,
-                                    border_color,
-                                )
                             }
                         }
                     }
