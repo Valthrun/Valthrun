@@ -7,6 +7,7 @@ use cs2::CEntityIdentityEx;
 use obfstr::obfstr;
 use cs2_schema_generated::cs2::client::{
     C_CSObserverPawn,
+    C_CSPlayerPawnBase
 };
 
 use super::Enhancement;
@@ -49,6 +50,38 @@ impl Enhancement for SpectatorsList {
             }
         };
 
+        let actual_entity_index = if local_player_controller.m_bPawnIsAlive()?
+        {
+            local_player_controller.m_hOriginalControllerOfCurrentPawn()?.get_entity_index()
+        } else {
+            let local_obs_pawn = match {
+                ctx.cs2_entities
+                    .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
+            } {
+                Some(pawn) => pawn.entity()?.reference_schema()?,
+                None => {
+                    /* this is odd... */
+                    return Ok(());
+                }
+            };
+
+            let local_observer_target_handle = local_obs_pawn
+                .m_pObserverServices()?
+                .read_schema()?
+                .m_hObserverTarget()?;
+
+            let current_local_observer_target = ctx.cs2_entities.get_by_handle(&local_observer_target_handle)?;
+
+            let local_observer_target_pawn = if let Some(identity) = &current_local_observer_target
+            {
+                identity.entity()?.cast::<C_CSPlayerPawnBase>().reference_schema()?
+            } else {
+                return Ok(());
+            };
+
+            local_observer_target_pawn.m_hController()?.get_entity_index()
+        };
+
         for entity_identity in ctx.cs2_entities.all_identities() {
             let entity_class = ctx
                 .class_name_cache
@@ -65,14 +98,6 @@ impl Enhancement for SpectatorsList {
             let player_pawn_ptr = entity_identity.entity_ptr::<C_CSObserverPawn>()?;
             let player_pawn = player_pawn_ptr.read_schema()?;
             let player_controller_handle = player_pawn.m_hController()?;
-            let current_player_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
-
-            let player_controller = if let Some(identity) = &current_player_controller
-            {
-                identity.entity()?.reference_schema()?
-            } else {
-                continue;
-            };
 
             let observer_services_ptr = player_pawn.m_pObserverServices();
             let observer_services = observer_services_ptr?
@@ -86,20 +111,29 @@ impl Enhancement for SpectatorsList {
                 }
             };
 
-            let current_target = ctx.cs2_entities.get_by_handle(&observer_target_handle)?;
+            let current_observer_target = ctx.cs2_entities.get_by_handle(&observer_target_handle)?;
 
-            let observer_target = if let Some(identity) = &current_target
+            let observer_target_pawn = if let Some(identity) = &current_observer_target
             {
-                identity.entity()?.cast::<C_CSObserverPawn>().reference_schema()?
+                identity.entity()?.cast::<C_CSPlayerPawnBase>().reference_schema()?
             } else {
                 continue;
             };
 
-            let target_controller_handle = observer_target.m_hController()?;
+            let target_controller_handle = observer_target_pawn.m_hController()?;
 
-            if target_controller_handle.get_entity_index() != local_player_controller.m_hOriginalControllerOfCurrentPawn()?.get_entity_index() {
+            if target_controller_handle.get_entity_index() != actual_entity_index {
                 continue;
             }
+
+            let current_player_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
+
+            let player_controller = if let Some(identity) = &current_player_controller
+            {
+                identity.entity()?.reference_schema()?
+            } else {
+                continue;
+            };
 
             let spectator_name = CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
                 .context("player name missing nul terminator")?
@@ -132,7 +166,7 @@ impl Enhancement for SpectatorsList {
         let text_height = ui.text_line_height_with_spacing() * line_count as f32;
 
         let offset_x = ui.io().display_size[0] * 0.01;
-        let offset_y = (ui.io().display_size[1] + text_height) * 0.5;
+        let offset_y = ui.io().display_size[1] * 0.5 - text_height * 0.5;
         let mut offset_y = offset_y;
 
         for spectator in self.spectators.iter() {
