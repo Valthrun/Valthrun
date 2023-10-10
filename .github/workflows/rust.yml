@@ -38,5 +38,6 @@ jobs:
     - name: Upload release build to Discord
       run: .github/workflows/discord_upload.sh
       shell: bash
+      if: ${{ github.event_name != 'pull_request' }}
       env:
         DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
