@@ -132,11 +132,11 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let player_controller_handle = player_pawn.m_hController()?;
-        let player_current_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
+        let controller_handle = player_pawn.m_hController()?;
+        let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
 
         let player_team = player_pawn.m_iTeamNum()?;
-        let player_name = if let Some(identity) = &player_current_controller {
+        let player_name = if let Some(identity) = &current_controller {
             let player_controller = identity.entity()?.reference_schema()?;
             CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
                 .context("player name missing nul terminator")?
@@ -182,7 +182,7 @@ impl PlayerESP {
         };
 
         Ok(Some(PlayerInfo {
-            controller_entity_id: player_controller_handle.get_entity_index(),
+            controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
 
             player_name,
