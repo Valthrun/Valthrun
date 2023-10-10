@@ -20,6 +20,7 @@ use cs2_schema_generated::cs2::client::{
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
+    CCSPlayer_ItemServices
 };
 use obfstr::obfstr;
 
@@ -131,7 +132,7 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        let player_controller_handle = player_pawn.m_hOriginalController()?;
+        let player_controller_handle = player_pawn.m_hController()?;
         let player_current_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
 
         let player_team = player_pawn.m_iTeamNum()?;
@@ -146,12 +147,11 @@ impl PlayerESP {
             "unknown".to_string()
         };
 
-        let player_has_defuser = if let Some(identity) = &player_current_controller {
-            let player_controller = identity.entity()?.reference_schema()?;
-            player_controller.m_bPawnHasDefuser()?
-        } else {
-            false
-        };
+
+        let player_has_defuser = player_pawn.m_pItemServices()?
+            .cast::<CCSPlayer_ItemServices>()
+            .reference_schema()?
+            .m_bHasDefuser()?;
 
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
@@ -406,7 +406,7 @@ impl Enhancement for PlayerESP {
                     }
 
                     if entry.player_has_defuser && settings.esp_info_kit {
-                        let text = format!("KIT");
+                        let text = "KIT";
                         let [text_width, _] = ui.calc_text_size(&text);
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;

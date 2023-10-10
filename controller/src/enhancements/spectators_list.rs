@@ -6,7 +6,6 @@ use anyhow::Context;
 use cs2::CEntityIdentityEx;
 use obfstr::obfstr;
 use cs2_schema_generated::cs2::client::{
-    CCSPlayerController,
     C_CSObserverPawn,
 };
 
@@ -67,19 +66,19 @@ impl Enhancement for SpectatorsList {
                 .lookup(&entity_identity.entity_class_info()?)?;
 
             if !entity_class
-                .map(|name| *name == "CCSPlayerController")
+                .map(|name| *name == "C_CSObserverPawn")
                 .unwrap_or(false)
             {
                 /* entity is not a player pawn */
                 continue;
             }
 
-            let player_controller_ptr = entity_identity.entity_ptr::<CCSPlayerController>()?;
-            let player_controller = player_controller_ptr.read_schema()?;
-            let player_pawn_handle = player_controller.m_hPawn()?;
-            let current_player_pawn = ctx.cs2_entities.get_by_handle(&player_pawn_handle)?;
+            let player_pawn_ptr = entity_identity.entity_ptr::<C_CSObserverPawn>()?;
+            let player_pawn = player_pawn_ptr.read_schema()?;
+            let player_controller_handle = player_pawn.m_hController()?;
+            let current_player_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
 
-            let player_pawn = if let Some(identity) = &current_player_pawn
+            let player_controller = if let Some(identity) = &current_player_controller
             {
                 identity.entity()?.reference_schema()?
             } else {
