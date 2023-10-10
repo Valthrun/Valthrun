@@ -49,18 +49,7 @@ impl Enhancement for SpectatorsList {
             }
         };
 
-        let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
-            local_player_controller.m_hPawn()?.get_entity_index()
-        } else {
-            return Ok(());
-        };
-
         for entity_identity in ctx.cs2_entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
-                /* current pawn we control/observe */
-                continue;
-            }
-
             let entity_class = ctx
                 .class_name_cache
                 .lookup(&entity_identity.entity_class_info()?)?;
@@ -107,16 +96,8 @@ impl Enhancement for SpectatorsList {
             };
 
             let target_controller_handle = observer_target.m_hController()?;
-            let target_current_controller = ctx.cs2_entities.get_by_handle(&target_controller_handle)?;
 
-            let target_controller = if let Some(identity) = &target_current_controller
-            {
-                identity.entity()?.reference_schema()?
-            } else {
-                continue;
-            };
-
-            if target_controller.m_hPawn()?.get_entity_index() != observice_entity_handle {
+            if target_controller_handle.get_entity_index() != local_player_controller.m_hOriginalControllerOfCurrentPawn()?.get_entity_index() {
                 continue;
             }
 
