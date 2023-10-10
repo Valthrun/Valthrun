@@ -361,10 +361,10 @@ impl Enhancement for PlayerESP {
                                 let filled_height = bar_height * health_percentage;
                                 let width = settings.health_bar_width;
                                 let border_bar_y = vmax.y;
-                                let border_thickness = 1.0;
-                                let border_color = [0.0, 0.0, 0.0, 1.0];
+                                let border_thickness = 1.5;
+                                let border_color = [0.0, 0.0, 0.0, 0.75];
 
-                                let bar_y = vmax.y - filled_height;
+                                let bar_y = vmax.y - filled_height - 1.5;
 
                                 if settings.rainbow_health_bar {
                                     let rainbow_color =
