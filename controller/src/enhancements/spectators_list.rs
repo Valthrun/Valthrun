@@ -166,7 +166,7 @@ impl Enhancement for SpectatorsList {
         let text_height = ui.text_line_height_with_spacing() * line_count as f32;
 
         let offset_x = ui.io().display_size[0] * 0.01;
-        let offset_y = ui.io().display_size[1] * 0.5 - text_height * 0.5;
+        let offset_y = (ui.io().display_size[1] - text_height) * 0.5;
         let mut offset_y = offset_y;
 
         for spectator in self.spectators.iter() {
