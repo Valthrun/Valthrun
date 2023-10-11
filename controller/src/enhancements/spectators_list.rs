@@ -86,9 +86,9 @@ impl Enhancement for SpectatorsList {
                 return Ok(());
             };
 
-            let local_observer_target_pawn = match local_observer_target_pawn{
+            let local_observer_target_pawn = match local_observer_target_pawn {
                 Some(pawn) => pawn,
-                None =>{
+                None => {
                     return Ok(());
                 }
             };
@@ -108,11 +108,10 @@ impl Enhancement for SpectatorsList {
                 .class_name_cache
                 .lookup(&entity_identity.entity_class_info()?)?;
 
-            if !entity_class
-                .map(|name| *name == "C_CSObserverPawn")
-                .unwrap_or(false)
+            if entity_class
+                .map(|name| *name != "C_CSObserverPawn")
+                .unwrap_or(true)
             {
-                /* entity is not a player pawn */
                 continue;
             }
 
@@ -120,23 +119,24 @@ impl Enhancement for SpectatorsList {
             let player_pawn = player_pawn_ptr.read_schema()?;
             let player_controller_handle = player_pawn.m_hController()?;
 
-            let observer_services_ptr = player_pawn.m_pObserverServices();
-            let observer_services = observer_services_ptr?
-                .try_reference_schema()
-                .with_context(|| obfstr!("failed to read observer services").to_string())?;
+            let observer_target_handle = {
+                let observer_services_ptr = player_pawn.m_pObserverServices();
+                let observer_services = observer_services_ptr?
+                    .try_reference_schema()
+                    .with_context(|| obfstr!("failed to read observer services").to_string())?;
 
-            let observer_target_handle = match observer_services {
-                Some(observer) => observer.m_hObserverTarget()?,
-                None => {
-                    continue;
+                match observer_services {
+                    Some(observer) => observer.m_hObserverTarget()?,
+                    None => {
+                        continue;
+                    }
                 }
             };
 
             let current_observer_target =
                 ctx.cs2_entities.get_by_handle(&observer_target_handle)?;
 
-            let observer_target_pawn = if let Some(identity) = &current_observer_target
-            {
+            let observer_target_pawn = if let Some(identity) = &current_observer_target {
                 identity
                     .entity()?
                     .cast::<C_CSPlayerPawnBase>()
@@ -146,7 +146,7 @@ impl Enhancement for SpectatorsList {
                 continue;
             };
 
-            let observer_target_pawn = match observer_target_pawn{
+            let observer_target_pawn = match observer_target_pawn {
                 Some(pawn) => pawn,
                 None => {
                     continue;
@@ -180,7 +180,6 @@ impl Enhancement for SpectatorsList {
                 .to_string();
 
             self.spectators.push(SpectatorInfo { spectator_name });
-            continue;
         }
 
         Ok(())
@@ -205,9 +204,9 @@ impl Enhancement for SpectatorsList {
         let offset_y = (ui.io().display_size[1] - text_height) * 0.5;
         let mut offset_y = offset_y;
 
-        for spectator in self.spectators.iter() {
+        for spectator in &self.spectators {
             ui.set_cursor_pos([offset_x, offset_y]);
-            ui.text(&format!("{}", spectator.spectator_name));
+            ui.text(&spectator.spectator_name);
             offset_y += ui.text_line_height_with_spacing();
         }
 
