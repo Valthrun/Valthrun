@@ -23,6 +23,9 @@ pub use player::*;
 mod trigger;
 pub use trigger::*;
 
+mod spectators_list;
+pub use spectators_list::*;
+
 mod aim;
 pub use aim::*;
 

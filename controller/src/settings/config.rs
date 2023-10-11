@@ -99,10 +99,16 @@ pub struct AppSettings {
     pub esp_health_bar_rainbow: bool,
 
     #[serde(default = "bool_false")]
+    pub esp_info_kit: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_false")]
+    pub spectators_list: bool,
 
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,

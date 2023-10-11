@@ -20,6 +20,7 @@ use cs2_schema_generated::cs2::client::{
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
+    CCSPlayer_ItemServices
 };
 use obfstr::obfstr;
 
@@ -38,6 +39,7 @@ pub struct PlayerInfo {
     pub team_id: u8,
 
     pub player_health: i32,
+    pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
 
@@ -145,6 +147,12 @@ impl PlayerESP {
             "unknown".to_string()
         };
 
+
+        let player_has_defuser = player_pawn.m_pItemServices()?
+            .cast::<CCSPlayer_ItemServices>()
+            .reference_schema()?
+            .m_bHasDefuser()?;
+
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
@@ -178,6 +186,7 @@ impl PlayerESP {
             team_id: player_team,
 
             player_name,
+            player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
@@ -414,7 +423,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_weapon {
+            if settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -432,6 +441,30 @@ impl Enhancement for PlayerESP {
                         draw.add_text(pos, esp_color.clone(), text);
 
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if settings.esp_info_weapon {
+                        let text = entry.weapon.display_name();
+                        let [text_width, _] = ui.calc_text_size(&text);
+
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+
+                        draw.add_text(pos, esp_color.clone(), text);
+
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if entry.player_has_defuser && settings.esp_info_kit {
+                        let text = "KIT";
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(),text);
+
+                        //y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     ui.set_window_font_scale(1.0);
