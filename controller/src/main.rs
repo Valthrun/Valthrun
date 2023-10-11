@@ -69,6 +69,7 @@ use crate::{
         AntiAimPunsh,
         BombInfo,
         PlayerESP,
+        SpectatorsList,
         TriggerBot,
     },
     settings::save_app_settings,
@@ -484,6 +485,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
         enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),
+            Rc::new(RefCell::new(SpectatorsList::new())),
             Rc::new(RefCell::new(BombInfo::new())),
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
                 cs2_offsets.offset_crosshair_id,

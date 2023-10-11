@@ -173,6 +173,14 @@ impl SettingsUI {
                                 }
                                 ui.separator();
                             }
+                            if settings.esp_box_type == EspBoxType::Box2D {
+                                ui.checkbox(obfstr!("2DBOX: Show Health Bar"), &mut settings.esp_health_bar);
+                                if settings.esp_health_bar {
+                                    ui.same_line();
+                                    ui.slider("Bar Width", 2.0, 20.0, &mut settings.esp_health_bar_size);
+                                    ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.esp_health_bar_rainbow);
+                                }
+                            }
 
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
                             if settings.esp_skeleton {
@@ -285,6 +293,7 @@ impl SettingsUI {
                                 }
                             }
 
+                            ui.checkbox(obfstr!("Display if player has kit"), &mut settings.esp_info_kit);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
 
                             if settings.esp_info_weapon {
@@ -347,6 +356,7 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
@@ -377,7 +387,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        // ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        //ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
 

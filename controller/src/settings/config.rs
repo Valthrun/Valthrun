@@ -52,7 +52,6 @@ fn default_esp_skeleton_thickness() -> f32 {
 fn default_esp_boxes_thickness() -> f32 {
     3.0
 }
-
 fn default_u32<const V: u32>() -> u32 {
     V
 }
@@ -89,6 +88,9 @@ fn default_esp_info_health_color_type() -> EspInfoHealthColorType {
 }
 fn default_esp_info_weapon_color_type() -> EspInfoWeaponColorType {
     EspInfoWeaponColorType::TeamBased
+}
+fn default_esp_health_bar_size() -> f32 {
+    5.0
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
@@ -184,7 +186,16 @@ pub struct AppSettings {
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
-    pub esp_info_health: bool,
+    pub esp_health_bar: bool,
+
+    #[serde(default = "default_esp_health_bar_size")]
+    pub esp_health_bar_size: f32,
+
+    #[serde(default = "bool_false")]
+    pub esp_health_bar_rainbow: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_kit: bool,
 
     #[serde(default = "default_esp_info_health_color")]
     pub esp_info_health_color: [f32; 4],
@@ -197,6 +208,9 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_false")]
+    pub spectators_list: bool,
 
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,
