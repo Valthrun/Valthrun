@@ -113,7 +113,6 @@ impl SettingsUI {
                                     .build(&mut settings.esp_skeleton_thickness);
                             }
 
-                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);

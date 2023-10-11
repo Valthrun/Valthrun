@@ -90,9 +90,6 @@ pub struct AppSettings {
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
-    pub esp_info_health: bool,
-
-    #[serde(default = "bool_false")]
     pub esp_health_bar: bool,
 
     #[serde(default = "default_esp_health_bar_size")]

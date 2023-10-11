@@ -232,8 +232,7 @@ impl Enhancement for PlayerESP {
 
         if !ctx.settings.esp
             || !(ctx.settings.esp_boxes
-                || ctx.settings.esp_skeleton
-                || ctx.settings.esp_info_health)
+                || ctx.settings.esp_skeleton)
         {
             return Ok(());
         }
@@ -415,7 +414,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon {
+            if settings.esp_info_weapon {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -423,7 +422,7 @@ impl Enhancement for PlayerESP {
                     ui.set_window_font_scale(target_scale);
 
                     let mut y_offset = 0.0;
-                    if settings.esp_info_health {
+                    {
                         let text = format!("{} HP", entry.player_health);
                         let [text_width, _] = ui.calc_text_size(&text);
 
@@ -433,19 +432,6 @@ impl Enhancement for PlayerESP {
                         draw.add_text(pos, esp_color.clone(), text);
 
                         y_offset += ui.text_line_height_with_spacing() * target_scale;
-                    }
-
-                    if settings.esp_info_weapon {
-                        let text = entry.weapon.display_name();
-                        let [text_width, _] = ui.calc_text_size(&text);
-
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
-
-                        draw.add_text(pos, esp_color.clone(), text);
-
-                        // y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     ui.set_window_font_scale(1.0);
