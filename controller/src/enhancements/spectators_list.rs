@@ -83,10 +83,16 @@ impl Enhancement for SpectatorsList {
                 return Ok(());
             };
 
-            let local_observed_controller = match local_observer_target_pawn{
-                Some(controller) => controller.m_hController()?,
-                None => {
-                    /* We have no target to spectate */
+            let local_observer_target_pawn = match local_observer_target_pawn{
+                Some(pawn) => pawn,
+                None =>{
+                    return Ok(());
+                }
+            };
+
+            let local_observed_controller = match local_observer_target_pawn.m_hController() {
+                Ok(controller) => controller,
+                Err(_e) => {
                     return Ok(());
                 }
             };
@@ -109,6 +115,7 @@ impl Enhancement for SpectatorsList {
 
             let player_pawn_ptr = entity_identity.entity_ptr::<C_CSObserverPawn>()?;
             let player_pawn = player_pawn_ptr.read_schema()?;
+
             let player_controller_handle = player_pawn.m_hController()?;
 
             let observer_services_ptr = player_pawn.m_pObserverServices();
@@ -127,12 +134,28 @@ impl Enhancement for SpectatorsList {
 
             let observer_target_pawn = if let Some(identity) = &current_observer_target
             {
-                identity.entity()?.cast::<C_CSPlayerPawnBase>().reference_schema()?
+                identity
+                    .entity()?
+                    .cast::<C_CSPlayerPawnBase>()
+                    .try_reference_schema()
+                    .with_context(|| obfstr!("failed to observer target pawn").to_string())?
             } else {
                 continue;
             };
 
-            let target_controller_handle = observer_target_pawn.m_hController()?;
+            let observer_target_pawn = match observer_target_pawn{
+                Some(pawn) => pawn,
+                None => {
+                    continue;
+                }
+            };
+
+            let target_controller_handle = match observer_target_pawn.m_hController() {
+                Ok(controller) => controller,
+                Err(_e) => {
+                    continue;
+                }
+            };
 
             if target_controller_handle.get_entity_index() != actual_entity_index {
                 continue;
