@@ -53,6 +53,9 @@ fn default_key_none() -> Option<HotKey> {
 fn default_esp_box_type() -> EspBoxType {
     EspBoxType::Box3D
 }
+fn default_esp_health_bar_size() -> f32 {
+    5.0
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
@@ -92,11 +95,11 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub esp_health_bar: bool,
 
-    #[serde(default = "bool_false")]
-    pub esp_health_bar_size: bool,
+    #[serde(default = "default_esp_health_bar_size")]
+    pub esp_health_bar_size: f32,
 
     #[serde(default = "bool_false")]
-    pub rainbow_health_bar: bool,
+    pub esp_health_bar_rainbow: bool,
 
     #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,

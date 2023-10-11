@@ -183,23 +183,4 @@ impl ViewController {
             }
         }
     }
-
-    pub fn calculate_rainbow_color(&self, value: f32, esp_color: [f32; 4]) -> [f32; 4] {
-        let frequency: f32 = 0.1;
-        let sin_value = |offset: f32| (frequency * value + offset).sin() * 0.5 + 1.0;
-        let r: f32 = sin_value(0.0);
-        let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
-        let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-        [r, g, b, esp_color[3]]
-    }
-
-    pub fn calculate_health_color(&self, health_percentage: f32, esp_color: [f32; 4]) -> [f32; 4] {
-        let clamped_percentage = health_percentage.clamp(0.0, 1.0);
-
-        let r = 1.0 - clamped_percentage;
-        let g = clamped_percentage;
-        let b = 0.0;
-
-        [r, g, b, esp_color[3]]
-    }
 }
