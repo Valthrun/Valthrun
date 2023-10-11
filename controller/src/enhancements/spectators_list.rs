@@ -1,14 +1,12 @@
-use std::{
-    ffi::CStr,
-};
+use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use obfstr::obfstr;
 use cs2_schema_generated::cs2::client::{
     C_CSObserverPawn,
-    C_CSPlayerPawnBase
+    C_CSPlayerPawnBase,
 };
+use obfstr::obfstr;
 
 use super::Enhancement;
 
@@ -17,12 +15,12 @@ pub struct SpectatorInfo {
 }
 
 pub struct SpectatorsList {
-    spectators: Vec<SpectatorInfo>
+    spectators: Vec<SpectatorInfo>,
 }
 
 impl SpectatorsList {
     pub fn new() -> Self {
-        SpectatorsList{
+        SpectatorsList {
             spectators: Default::default(),
         }
     }
@@ -50,9 +48,10 @@ impl Enhancement for SpectatorsList {
             }
         };
 
-        let actual_entity_index = if local_player_controller.m_bPawnIsAlive()?
-        {
-            local_player_controller.m_hOriginalControllerOfCurrentPawn()?.get_entity_index()
+        let actual_entity_index = if local_player_controller.m_bPawnIsAlive()? {
+            local_player_controller
+                .m_hOriginalControllerOfCurrentPawn()?
+                .get_entity_index()
         } else {
             let local_obs_pawn = match {
                 ctx.cs2_entities
@@ -70,7 +69,9 @@ impl Enhancement for SpectatorsList {
                 .read_schema()?
                 .m_hObserverTarget()?;
 
-            let current_local_observer_target = ctx.cs2_entities.get_by_handle(&local_observer_target_handle)?;
+            let current_local_observer_target = ctx
+                .cs2_entities
+                .get_by_handle(&local_observer_target_handle)?;
 
             let local_observer_target_pawn = if let Some(identity) = &current_local_observer_target
             {
@@ -78,12 +79,14 @@ impl Enhancement for SpectatorsList {
                     .entity()?
                     .cast::<C_CSPlayerPawnBase>()
                     .try_reference_schema()
-                    .with_context(|| obfstr!("failed to read local observer target pawn").to_string())?
+                    .with_context(|| {
+                        obfstr!("failed to read local observer target pawn").to_string()
+                    })?
             } else {
                 return Ok(());
             };
 
-            let local_observed_controller = match local_observer_target_pawn{
+            let local_observed_controller = match local_observer_target_pawn {
                 Some(controller) => controller.m_hController()?,
                 None => {
                     /* We have no target to spectate */
@@ -123,11 +126,14 @@ impl Enhancement for SpectatorsList {
                 }
             };
 
-            let current_observer_target = ctx.cs2_entities.get_by_handle(&observer_target_handle)?;
+            let current_observer_target =
+                ctx.cs2_entities.get_by_handle(&observer_target_handle)?;
 
-            let observer_target_pawn = if let Some(identity) = &current_observer_target
-            {
-                identity.entity()?.cast::<C_CSPlayerPawnBase>().reference_schema()?
+            let observer_target_pawn = if let Some(identity) = &current_observer_target {
+                identity
+                    .entity()?
+                    .cast::<C_CSPlayerPawnBase>()
+                    .reference_schema()?
             } else {
                 continue;
             };
@@ -138,10 +144,10 @@ impl Enhancement for SpectatorsList {
                 continue;
             }
 
-            let current_player_controller = ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
+            let current_player_controller =
+                ctx.cs2_entities.get_by_handle(&player_controller_handle)?;
 
-            let player_controller = if let Some(identity) = &current_player_controller
-            {
+            let player_controller = if let Some(identity) = &current_player_controller {
                 identity.entity()?.reference_schema()?
             } else {
                 continue;
@@ -153,9 +159,7 @@ impl Enhancement for SpectatorsList {
                 .context("invalid player name")?
                 .to_string();
 
-            self.spectators.push(SpectatorInfo{
-                spectator_name
-            });
+            self.spectators.push(SpectatorInfo { spectator_name });
             continue;
         }
 
@@ -185,7 +189,7 @@ impl Enhancement for SpectatorsList {
             ui.set_cursor_pos([offset_x, offset_y]);
             ui.text(&format!("{}", spectator.spectator_name));
             offset_y += ui.text_line_height_with_spacing();
-        };
+        }
 
         group.end();
     }

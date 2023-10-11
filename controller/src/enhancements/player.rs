@@ -17,10 +17,10 @@ use cs2_schema_declaration::{
     Ptr,
 };
 use cs2_schema_generated::cs2::client::{
+    CCSPlayer_ItemServices,
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
-    CCSPlayer_ItemServices
 };
 use obfstr::obfstr;
 
@@ -147,8 +147,8 @@ impl PlayerESP {
             "unknown".to_string()
         };
 
-
-        let player_has_defuser = player_pawn.m_pItemServices()?
+        let player_has_defuser = player_pawn
+            .m_pItemServices()?
             .cast::<CCSPlayer_ItemServices>()
             .reference_schema()?
             .m_bHasDefuser()?;
@@ -197,7 +197,8 @@ impl PlayerESP {
     }
 
     pub fn calculate_rainbow_color(value: f32, alpha: f32) -> [f32; 4] {
-        let sin_value = |offset: f32| (2.0 * std::f32::consts::PI * value * 0.75 + offset).sin() * 0.5 + 1.0;
+        let sin_value =
+            |offset: f32| (2.0 * std::f32::consts::PI * value * 0.75 + offset).sin() * 0.5 + 1.0;
         let r: f32 = sin_value(0.0);
         let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
         let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
@@ -239,10 +240,7 @@ impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
 
-        if !ctx.settings.esp
-            || !(ctx.settings.esp_boxes
-                || ctx.settings.esp_skeleton)
-        {
+        if !ctx.settings.esp || !(ctx.settings.esp_boxes || ctx.settings.esp_skeleton) {
             return Ok(());
         }
 
@@ -379,35 +377,57 @@ impl Enhancement for PlayerESP {
                                 .build();
 
                             if settings.esp_health_bar {
-                                let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0 + HEALTH_BAR_BORDER_WIDTH / 2.0;
-                                let bar_x = vmin.x - settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
+                                let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0
+                                    + HEALTH_BAR_BORDER_WIDTH / 2.0;
+                                let bar_x =
+                                    vmin.x - settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
 
                                 let bar_height = vmax.y - vmin.y + settings.esp_boxes_thickness;
                                 let bar_width = settings.esp_health_bar_size;
 
                                 /* player health in [0.0; 1.0] */
                                 let normalized_player_health = (entry.player_health as f32)
-                                    .clamp(0.0, HEALTH_BAR_MAX_HEALTH) / HEALTH_BAR_MAX_HEALTH;
+                                    .clamp(0.0, HEALTH_BAR_MAX_HEALTH)
+                                    / HEALTH_BAR_MAX_HEALTH;
 
                                 let bar_color = if settings.esp_health_bar_rainbow {
-                                    Self::calculate_rainbow_color(normalized_player_health, esp_color[3])
+                                    Self::calculate_rainbow_color(
+                                        normalized_player_health,
+                                        esp_color[3],
+                                    )
                                 } else {
-                                    Self::calculate_health_color(normalized_player_health, esp_color[3])
+                                    Self::calculate_health_color(
+                                        normalized_player_health,
+                                        esp_color[3],
+                                    )
                                 };
 
                                 draw.add_rect(
-                                    [bar_x + HEALTH_BAR_BORDER_WIDTH, bar_y + HEALTH_BAR_BORDER_WIDTH + bar_height * (1.0 - normalized_player_health)],
-                                    [bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH, bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH * 2.0],
+                                    [
+                                        bar_x + HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y
+                                            + HEALTH_BAR_BORDER_WIDTH
+                                            + bar_height * (1.0 - normalized_player_health),
+                                    ],
+                                    [
+                                        bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH * 2.0,
+                                    ],
                                     bar_color,
                                 )
                                 .filled(true)
                                 .build();
-                            
+
                                 draw.add_rect(
                                     [bar_x, bar_y],
-                                    [bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH, bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH],
+                                    [
+                                        bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH,
+                                    ],
                                     [0.0, 0.0, 0.0, esp_color[3]],
-                                ).thickness(HEALTH_BAR_BORDER_WIDTH).build();
+                                )
+                                .thickness(HEALTH_BAR_BORDER_WIDTH)
+                                .build();
                             }
                         }
                     }
@@ -462,7 +482,7 @@ impl Enhancement for PlayerESP {
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
-                        draw.add_text(pos, esp_color.clone(),text);
+                        draw.add_text(pos, esp_color.clone(), text);
 
                         //y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }

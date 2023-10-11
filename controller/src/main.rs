@@ -69,8 +69,8 @@ use crate::{
         AntiAimPunsh,
         BombInfo,
         PlayerESP,
+        SpectatorsList,
         TriggerBot,
-        SpectatorsList
     },
     settings::save_app_settings,
     view::LocalCrosshair,
