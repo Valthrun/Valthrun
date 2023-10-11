@@ -52,6 +52,7 @@ fn default_esp_skeleton_thickness() -> f32 {
 fn default_esp_boxes_thickness() -> f32 {
     3.0
 }
+
 fn default_u32<const V: u32>() -> u32 {
     V
 }
@@ -184,6 +185,9 @@ pub struct AppSettings {
 
     #[serde(default = "default_esp_boxes_thickness")]
     pub esp_boxes_thickness: f32,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_health: bool,
 
     #[serde(default = "bool_false")]
     pub esp_health_bar: bool,

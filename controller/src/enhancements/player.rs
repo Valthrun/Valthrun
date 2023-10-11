@@ -241,7 +241,7 @@ impl PlayerESP {
         [r, g, b, alpha]
     }
 
-    pub fn calculate_health_color(health_percentage: f32, alpha: f32) -> [f32; 4] {
+    pub fn calculate_health_color_bar(health_percentage: f32, alpha: f32) -> [f32; 4] {
         let clamped_percentage = health_percentage.clamp(0.0, 1.0);
 
         let r = 1.0 - clamped_percentage;
@@ -356,6 +356,20 @@ impl Enhancement for PlayerESP {
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
+            let esp_color = if entry.team_id == self.local_team_id {
+                if !settings.esp_enabled_team {
+                    continue;
+                }
+
+                &settings.esp_color_team
+            } else {
+                if !settings.esp_enabled_enemy {
+                    continue;
+                }
+
+                &settings.esp_color_enemy
+            };
+
             let (box_esp_color, skeleton_esp_color, health_esp_color, weapon_esp_color) =
                 if entry.team_id == self.local_team_id {
                     if !settings.esp_enabled_team {
@@ -539,7 +553,7 @@ impl Enhancement for PlayerESP {
                                         esp_color[3],
                                     )
                                 } else {
-                                    Self::calculate_health_color(
+                                    Self::calculate_health_color_bar(
                                         normalized_player_health,
                                         esp_color[3],
                                     )
