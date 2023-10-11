@@ -98,6 +98,14 @@ impl SettingsUI {
                                 ui.slider_config(obfstr!("Thickness"), 0.1, 10.0)
                                     .build(&mut settings.esp_boxes_thickness);
                             }
+                            if settings.esp_box_type == EspBoxType::Box2D {
+                                ui.checkbox(obfstr!("2DBOX: Show Health Bar"), &mut settings.esp_health_bar);
+                                if settings.esp_health_bar {
+                                    ui.same_line();
+                                    ui.checkbox(obfstr!("Big bar"), &mut settings.esp_health_bar_size);
+                                    ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.rainbow_health_bar);
+                                }
+                            }
 
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
                             if settings.esp_skeleton {
