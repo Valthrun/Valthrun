@@ -28,6 +28,7 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
+        LineStartPosition,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -204,21 +205,6 @@ impl PlayerESP {
         let b = 0.0;
 
         [r, g, b, alpha]
-    }
-
-    pub fn draw_line_from_screen_to_player(
-        ui: &imgui::Ui,
-        screen_pos: [f32; 2],
-        player_pos: nalgebra::Vector3<f32>,
-    ) {
-        let draw_list = ui.get_window_draw_list();
-        draw_list
-            .add_line(
-                [screen_pos[0], screen_pos[1]],
-                [player_pos.x, player_pos.y],
-                [1.0, 1.0, 1.0, 1.0], // Cor da linha (branco)
-            )
-            .thickness(2.0); // Espessura da linha
     }
 }
 
@@ -476,8 +462,16 @@ impl Enhancement for PlayerESP {
             if settings.esp_lines {
                 if let Some(player_screen_pos) = view.world_to_screen(&entry.position, false) {
                     let screen_size = [view.screen_bounds.x, view.screen_bounds.y];
-
-                    draw.add_line(player_screen_pos, screen_size, *esp_color)
+                    let start_pos = match settings.esp_lines_position {
+                        LineStartPosition::TopLeft => [0.0, 0.0],
+                        LineStartPosition::TopCenter => [screen_size[0] / 2.0, 0.0],
+                        LineStartPosition::TopRight => [screen_size[0], 0.0],
+                        LineStartPosition::Center => [screen_size[0] / 2.0, screen_size[1] / 2.0],
+                        LineStartPosition::BottomLeft => [0.0, screen_size[1]],
+                        LineStartPosition::BottomCenter => [screen_size[0] / 2.0, screen_size[1]],
+                        LineStartPosition::BottomRight => [screen_size[0], screen_size[1]],
+                    };
+                    draw.add_line(start_pos, player_screen_pos, *esp_color)
                         .thickness(1.0)
                         .build();
                 }
