@@ -8,7 +8,6 @@ use std::{
 };
 
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::C_EnvVolumetricFogController;
 use imgui::Key;
 use serde::{
     Deserialize,
