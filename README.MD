@@ -76,7 +76,7 @@ After loading the driver you can start Counter-Strike 2 as usual.
 
 3. Start Overlay  
 With an open instance of Counter-Strike 2 you can start the overlay.  
-Attention: You *must* start the overlay as administrator!  
+**Attention: Do *NOT* start the overlay as administrator!**g
   
 To explore all command line options of the controller, start the controller from the terminal and pass `-h` to display the command line interface:
 ```ps1

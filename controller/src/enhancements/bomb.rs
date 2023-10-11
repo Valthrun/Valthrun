@@ -5,11 +5,10 @@ use cs2::CEntityIdentityEx;
 use cs2_schema_generated::cs2::client::C_PlantedC4;
 use obfstr::obfstr;
 
+use imgui::Condition;
+
 use super::Enhancement;
-use crate::{
-    utils::ImguiUiEx,
-    UpdateContext,
-};
+use crate::UpdateContext;
 
 #[derive(Debug)]
 pub struct BombDefuser {
@@ -179,63 +178,46 @@ impl Enhancement for BombInfo {
             None => return,
         };
 
-        let group = ui.begin_group();
+        ui.window(obfstr!("Bomb Info"))
+            .size([250.0, 125.0], Condition::Appearing)
+            .build(|| {
+                ui.text(&format!(
+                    "Bomb planted {}",
+                    if bomb_info.bomb_site == 0 { "A" } else { "B" }
+                ));
 
-        let line_count = match &bomb_info.state {
-            C4State::Active { .. } => 3,
-            C4State::Defused | C4State::Detonated => 2,
-        };
-        let text_height = ui.text_line_height_with_spacing() * line_count as f32;
+                match &bomb_info.state {
+                    C4State::Active {
+                        time_detonation,
+                        defuse,
+                    } => {
+                        ui.text(&format!("Time: {:.3}", time_detonation));
+                        if let Some(defuse) = defuse.as_ref() {
+                            let color = if defuse.time_remaining > *time_detonation {
+                                [0.79, 0.11, 0.11, 1.0]
+                            } else {
+                                [0.11, 0.79, 0.26, 1.0]
+                            };
 
-        /* align to be on the right side after the players */
-        let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
-        let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
-        let offset_y = offset_y
-            + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
-
-        ui.set_cursor_pos([offset_x, offset_y]);
-        ui.text(&format!(
-            "Bomb planted {}",
-            if bomb_info.bomb_site == 0 { "A" } else { "B" }
-        ));
-
-        match &bomb_info.state {
-            C4State::Active {
-                time_detonation,
-                defuse,
-            } => {
-                ui.set_cursor_pos_x(offset_x);
-                ui.text(&format!("Time: {:.3}", time_detonation));
-                if let Some(defuse) = defuse.as_ref() {
-                    let color = if defuse.time_remaining > *time_detonation {
-                        [0.79, 0.11, 0.11, 1.0]
-                    } else {
-                        [0.11, 0.79, 0.26, 1.0]
-                    };
-
-                    ui.set_cursor_pos_x(offset_x);
-                    ui.text_colored(
-                        color,
-                        &format!(
-                            "Defused in {:.3} by {}",
-                            defuse.time_remaining, defuse.player_name
-                        ),
-                    );
-                } else {
-                    ui.set_cursor_pos_x(offset_x);
-                    ui.text("Not defusing");
+                            // TODO: doesn't do anything?
+                            ui.text_colored(
+                                color,
+                                &format!(
+                                    "Defused in {:.3} by {}",
+                                    defuse.time_remaining, defuse.player_name
+                                ),
+                            );
+                        } else {
+                            ui.text("Not defusing");
+                        }
+                    }
+                    C4State::Defused => {
+                        ui.text("Bomb has been defused");
+                    }
+                    C4State::Detonated => {
+                        ui.text("Bomb has been detonated");
+                    }
                 }
-            }
-            C4State::Defused => {
-                ui.set_cursor_pos_x(offset_x);
-                ui.text("Bomb has been defused");
-            }
-            C4State::Detonated => {
-                ui.set_cursor_pos_x(offset_x);
-                ui.text("Bomb has been detonated");
-            }
-        }
-
-        group.end();
+            });
     }
 }
