@@ -56,11 +56,25 @@ fn default_esp_box_type() -> EspBoxType {
 fn default_esp_health_bar_size() -> f32 {
     5.0
 }
+fn default_esp_line_position() -> LineStartPosition {
+    LineStartPosition::Center
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
     Box2D,
     Box3D,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum LineStartPosition {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    Center,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -103,6 +117,12 @@ pub struct AppSettings {
 
     #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_lines: bool,
+
+    #[serde(default = "default_esp_line_position")]
+    pub esp_lines_position: LineStartPosition,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
