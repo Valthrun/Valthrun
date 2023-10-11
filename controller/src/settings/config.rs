@@ -101,6 +101,9 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
+    #[serde(default = "bool_false")]
+    pub esp_lines: bool,
+
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 

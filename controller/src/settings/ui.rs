@@ -114,6 +114,7 @@ impl SettingsUI {
                             }
 
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
+                            ui.checkbox(obfstr!("Show lines"), &mut settings.esp_lines);
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
                             if settings.esp_enabled_team {

@@ -204,6 +204,17 @@ impl PlayerESP {
 
         [r, g, b, alpha]
     }
+
+    pub fn draw_line_from_screen_to_player(ui: &imgui::Ui, screen_pos: [f32; 2], player_pos: nalgebra::Vector3<f32>) {
+        let draw_list = ui.get_window_draw_list();
+        draw_list
+            .add_line(
+                [screen_pos[0], screen_pos[1]],
+                [player_pos.x, player_pos.y],
+                [1.0, 1.0, 1.0, 1.0], // Cor da linha (branco)
+            )
+            .thickness(2.0); // Espessura da linha
+    }
 }
 
 const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
@@ -435,6 +446,15 @@ impl Enhancement for PlayerESP {
                     }
 
                     ui.set_window_font_scale(1.0);
+                }
+            }
+
+            if settings.esp_lines {
+                if let Some(player_screen_pos) = view.world_to_screen(&entry.position, false) {
+                    let screen_size = [view.screen_bounds.x, view.screen_bounds.y];
+                    draw.add_line(player_screen_pos, screen_size, *esp_color)
+                        .thickness(1.0)
+                        .build();
                 }
             }
         }
