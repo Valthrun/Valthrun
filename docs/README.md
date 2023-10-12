@@ -1,4 +1,4 @@
-![Valthrun CS2 Logo](./logo.svg)
+![Valthrun CS2 Logo](./_media/logo.svg)
 <p align="right">
 <a href="https://discord.gg/ecKbpAPW5T">
 <img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
@@ -107,8 +107,8 @@ The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback sug
 If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
   
 # Screenshots
-![](./img/showcase_01.png)
-![](./img/showcase_02.png)
+![](./_media/showcase_01.png)
+![](./_media/showcase_02.png)
 
 # Help
 You can find help on the official Valthrun Discord server:  
