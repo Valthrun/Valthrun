@@ -145,6 +145,7 @@ pub enum EspInfoWeaponColorType {
     HealthBased,
 }
 
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum LineStartPosition {
     TopLeft,
     TopCenter,
@@ -222,7 +223,7 @@ pub struct AppSettings {
 
     #[serde(default = "default_esp_info_weapon_color")]
     pub esp_info_weapon_color: [f32; 4],
-    
+
     #[serde(default = "bool_false")]
     pub esp_lines: bool,
 
