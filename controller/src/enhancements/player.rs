@@ -475,8 +475,10 @@ impl Enhancement for PlayerESP {
                         let [text_width, _] = ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
+                        pos.x += entry_height / 2.0;
+                        pos.x += box_width / 2.0;
+                        pos.x += text_width;
+                        pos.y -= text_height;
 
                         draw.add_text(pos, esp_color.clone(), text);
 
