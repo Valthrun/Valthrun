@@ -1,4 +1,4 @@
-![Valthrun CS2 Logo](./docs/_media/logo.svg)
+![Valthrun CS2 Logo](./_media/logo.svg)
 <p align="right">
 <a href="https://discord.gg/ecKbpAPW5T">
 <img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
@@ -33,14 +33,14 @@ Regardless of this limitation, Valthrun supports the following features:
   - Defuser info such as a defuse timer
   - Bomb site where the bomb is located
 - Trigger Bot
-- Spectator info
-  - List of player currently watching you / the observer target
 - Stream proof by default
 
 To access Valthruns settings overlay press `PAUSE`.
 
 ## Planned Features
 - Aimbot
+- Spectator info
+  - List of player currently watching you / the observer target
 - Player competitive ranks / wins
 
 # Installation
@@ -76,7 +76,7 @@ After loading the driver you can start Counter-Strike 2 as usual.
 
 3. Start Overlay  
 With an open instance of Counter-Strike 2 you can start the overlay.  
-**Attention: Do *NOT* start the overlay as administrator!**g
+Attention: You *must* start the overlay as administrator!  
   
 To explore all command line options of the controller, start the controller from the terminal and pass `-h` to display the command line interface:
 ```ps1
@@ -91,8 +91,8 @@ $env:RUST_LOG="trace"
 ```
 
 # Troubleshooting
-If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/#/):  
-https://wiki.valth.run/#/
+If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting):  
+https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting
   
 The issue you encounter is most likely covered. If you still have any questions or need assistance, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
 
@@ -107,8 +107,8 @@ The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback sug
 If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
   
 # Screenshots
-![](./docs/_media/showcase_01.png)
-![](./docs/_media/showcase_02.png)
+![](./_media/showcase_01.png)
+![](./_media/showcase_02.png)
 
 # Help
 You can find help on the official Valthrun Discord server:  

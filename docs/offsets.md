@@ -1,10 +1,4 @@
 # Offsets
-TOC:
-- [What are offsets](#what-are-offsets)
-- [Use of offsets and the CS2 schema system](#use-of-offsets-and-the-cs2-schema-system)
-- [Updating CS2 schema based offsets](#updating-cs2-schema-based-offsets)
-
-  
 ## What are offsets
 In computer science, an offset within an array or other data structure object is an integer indicating the distance (displacement) between the beginning of the object and a given element or point, presumably within the same object [^4].
 Valthrun heavily uses offsets to retrieve data from different CS2 structures to enhance your gameplay experience.
