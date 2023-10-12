@@ -43,12 +43,16 @@ use cs2::{
 use enhancements::Enhancement;
 use imgui::{
     Condition,
+    FontConfig,
+    FontId,
+    FontSource,
     Ui,
 };
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
     OverlayError,
+    OverlayOptions,
     OverlayTarget,
     SystemRuntimeController,
 };
@@ -120,7 +124,13 @@ pub struct UpdateContext<'a> {
     pub globals: Globals,
 }
 
+pub struct AppFonts {
+    valthrun: FontId,
+}
+
 pub struct Application {
+    pub fonts: AppFonts,
+
     pub cs2: Arc<CS2Handle>,
     pub cs2_offsets: Arc<CS2Offsets>,
     pub cs2_entities: EntitySystem,
@@ -460,7 +470,67 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
+
+    log::debug!("Initialize overlay");
+    let app_fonts: Rc<RefCell<Option<AppFonts>>> = Default::default();
+    let overlay_options = OverlayOptions {
+        title: obfstr!("CS2 Overlay").to_string(),
+        target: OverlayTarget::WindowOfProcess(cs2.module_info.process_id as u32),
+        font_init: Some(Box::new({
+            let app_fonts = app_fonts.clone();
+
+            move |imgui| {
+                let mut app_fonts = app_fonts.borrow_mut();
+
+                let font_size = 18.0;
+                let valthrun_font = imgui.fonts().add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../resources/Valthrun-Regular.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+
+                *app_fonts = Some(AppFonts {
+                    valthrun: valthrun_font,
+                });
+            }
+        })),
+    };
+
+    let mut overlay = match overlay::init(&overlay_options) {
+        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
+            match &source {
+                libloading::Error::LoadLibraryExW { .. } => {
+                    let error = source.source().context("LoadLibraryExW to have a source")?;
+                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
+                    show_critical_error(&message);
+                }
+                error => {
+                    let message = format!(
+                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
+                        error
+                    );
+                    show_critical_error(&message);
+                }
+            }
+            return Ok(());
+        }
+        value => value?,
+    };
+    if let Some(imgui_settings) = imgui_settings {
+        overlay.imgui.load_ini_settings(&imgui_settings);
+    }
+
     let app = Application {
+        fonts: app_fonts
+            .borrow_mut()
+            .take()
+            .context("failed to initialize app fonts")?,
+
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
@@ -505,37 +575,7 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_screen_capture_changed: AtomicBool::new(true),
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
-
     let app = Rc::new(RefCell::new(app));
-
-    log::debug!("Initialize overlay");
-
-    // OverlayError
-    let overlay_target =
-        OverlayTarget::WindowOfProcess(app.borrow().cs2.module_info.process_id as u32);
-    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), overlay_target) {
-        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
-            match &source {
-                libloading::Error::LoadLibraryExW { .. } => {
-                    let error = source.source().context("LoadLibraryExW to have a source")?;
-                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
-                    show_critical_error(&message);
-                }
-                error => {
-                    let message = format!(
-                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
-                        error
-                    );
-                    show_critical_error(&message);
-                }
-            }
-            return Ok(());
-        }
-        value => value?,
-    };
-    if let Some(imgui_settings) = imgui_settings {
-        overlay.imgui.load_ini_settings(&imgui_settings);
-    }
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
