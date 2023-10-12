@@ -7,6 +7,7 @@ use cs2_schema_generated::cs2::client::{
     C_CSPlayerPawnBase,
 };
 use obfstr::obfstr;
+use crate::RenderContext;
 
 use super::Enhancement;
 
@@ -187,27 +188,29 @@ impl Enhancement for SpectatorsList {
 
     fn render(
         &self,
-        settings: &crate::settings::AppSettings,
-        ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
+        ctx: RenderContext,
     ) {
-        if !settings.spectators_list {
+        if !ctx.settings.spectators_list {
             return;
         }
 
-        let group = ui.begin_group();
+        let group = ctx.ui.begin_group();
 
         let line_count = self.spectators.iter().count();
-        let text_height = ui.text_line_height_with_spacing() * line_count as f32;
+        let text_height = ctx.ui.text_line_height_with_spacing() * line_count as f32;
 
-        let offset_x = ui.io().display_size[0] * 0.01;
-        let offset_y = (ui.io().display_size[1] - text_height) * 0.5;
+        let offset_x = ctx.ui.io().display_size[0] * 0.01;
+        let offset_y = (ctx.ui.io().display_size[1] - text_height) * 0.5;
         let mut offset_y = offset_y;
 
+        ctx.ui.set_cursor_pos([offset_x, offset_y]);
+        ctx.ui.text(&format!("Spectator(s): {}", &self.spectators.len()));
+        offset_y += ctx.ui.text_line_height_with_spacing();
+
         for spectator in &self.spectators {
-            ui.set_cursor_pos([offset_x, offset_y]);
-            ui.text(&spectator.spectator_name);
-            offset_y += ui.text_line_height_with_spacing();
+            ctx.ui.set_cursor_pos([offset_x, offset_y]);
+            ctx.ui.text(&spectator.spectator_name);
+            offset_y += ctx.ui.text_line_height_with_spacing();
         }
 
         group.end();

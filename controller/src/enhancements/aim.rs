@@ -1,5 +1,6 @@
 use anyhow::Context;
 use valthrun_kernel_interface::MouseState;
+use crate::RenderContext;
 
 use super::Enhancement;
 
@@ -88,11 +89,7 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(
-        &self,
-        _settings: &crate::settings::AppSettings,
-        _ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
-    ) {
+    fn render(&self, _ctx: RenderContext) {
+        /* We have nothing to render */
     }
 }

@@ -25,15 +25,11 @@ use cs2_schema_generated::cs2::client::{
 use obfstr::obfstr;
 
 use super::Enhancement;
-use crate::{
-    settings::{
-        AppSettings,
-        EspBoxType,
-        LineStartPosition,
-    },
-    view::ViewController,
-    weapon::WeaponId,
-};
+use crate::{RenderContext, settings::{
+    AppSettings,
+    EspBoxType,
+    LineStartPosition,
+}, view::ViewController, weapon::WeaponId};
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -318,24 +314,24 @@ impl Enhancement for PlayerESP {
         Ok(())
     }
 
-    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
-        let draw = ui.get_window_draw_list();
+    fn render(&self, ctx: RenderContext) {
+        let draw = ctx.ui.get_window_draw_list();
         for entry in self.players.iter() {
             let esp_color = if entry.team_id == self.local_team_id {
-                if !settings.esp_enabled_team {
+                if !ctx.settings.esp_enabled_team {
                     continue;
                 }
 
-                &settings.esp_color_team
+                &ctx.settings.esp_color_team
             } else {
-                if !settings.esp_enabled_enemy {
+                if !ctx.settings.esp_enabled_enemy {
                     continue;
                 }
 
-                &settings.esp_color_enemy
+                &ctx.settings.esp_color_enemy
             };
 
-            if settings.esp_skeleton {
+            if ctx.settings.esp_skeleton {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 
                 for (bone, state) in bones {
@@ -349,49 +345,49 @@ impl Enhancement for PlayerESP {
                         continue;
                     };
 
-                    let parent_position = match view
+                    let parent_position = match ctx.view
                         .world_to_screen(&entry.bone_states[parent_index].position, true)
                     {
                         Some(position) => position,
                         None => continue,
                     };
-                    let bone_position = match view.world_to_screen(&state.position, true) {
+                    let bone_position = match ctx.view.world_to_screen(&state.position, true) {
                         Some(position) => position,
                         None => continue,
                     };
 
                     draw.add_line(parent_position, bone_position, *esp_color)
-                        .thickness(settings.esp_skeleton_thickness)
+                        .thickness(ctx.settings.esp_skeleton_thickness)
                         .build();
                 }
             }
 
-            if settings.esp_boxes {
-                match settings.esp_box_type {
+            if ctx.settings.esp_boxes {
+                match ctx.settings.esp_box_type {
                     EspBoxType::Box2D => {
-                        if let Some((vmin, vmax)) = view.calculate_box_2d(
+                        if let Some((vmin, vmax)) = ctx.view.calculate_box_2d(
                             &(entry.model.vhull_min + entry.position),
                             &(entry.model.vhull_max + entry.position),
                         ) {
                             draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
-                                .thickness(settings.esp_boxes_thickness)
+                                .thickness(ctx.settings.esp_boxes_thickness)
                                 .build();
 
-                            if settings.esp_health_bar {
-                                let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0
+                            if ctx.settings.esp_health_bar {
+                                let bar_y = vmin.y - ctx.settings.esp_boxes_thickness / 2.0
                                     + HEALTH_BAR_BORDER_WIDTH / 2.0;
                                 let bar_x =
-                                    vmin.x - settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
+                                    vmin.x - ctx.settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
 
-                                let bar_height = vmax.y - vmin.y + settings.esp_boxes_thickness;
-                                let bar_width = settings.esp_health_bar_size;
+                                let bar_height = vmax.y - vmin.y + ctx.settings.esp_boxes_thickness;
+                                let bar_width = ctx.settings.esp_health_bar_size;
 
                                 /* player health in [0.0; 1.0] */
                                 let normalized_player_health = (entry.player_health as f32)
                                     .clamp(0.0, HEALTH_BAR_MAX_HEALTH)
                                     / HEALTH_BAR_MAX_HEALTH;
 
-                                let bar_color = if settings.esp_health_bar_rainbow {
+                                let bar_color = if ctx.settings.esp_health_bar_rainbow {
                                     Self::calculate_rainbow_color(
                                         normalized_player_health,
                                         esp_color[3],
@@ -433,40 +429,40 @@ impl Enhancement for PlayerESP {
                         }
                     }
                     EspBoxType::Box3D => {
-                        view.draw_box_3d(
+                        ctx.view.draw_box_3d(
                             &draw,
                             &(entry.model.vhull_min + entry.position),
                             &(entry.model.vhull_max + entry.position),
                             (*esp_color).into(),
-                            settings.esp_boxes_thickness,
+                            ctx.settings.esp_boxes_thickness,
                         );
                     }
                 }
             }
 
-            if settings.esp_info_weapon || settings.esp_info_kit {
-                if let Some(pos) = view.world_to_screen(&entry.position, false) {
-                    let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
-                    let target_scale = entry_height * 15.0 / view.screen_bounds.y;
+            if ctx.settings.esp_info_weapon || ctx.settings.esp_info_kit {
+                if let Some(pos) = ctx.view.world_to_screen(&entry.position, false) {
+                    let entry_height = entry.calculate_screen_height(ctx.view).unwrap_or(100.0);
+                    let target_scale = entry_height * 15.0 / ctx.view.screen_bounds.y;
                     let target_scale = target_scale.clamp(0.5, 1.25);
-                    ui.set_window_font_scale(target_scale);
+                    ctx.ui.set_window_font_scale(target_scale);
 
                     let mut y_offset = 0.0;
                     {
                         let text = format!("{} HP", entry.player_health);
-                        let [text_width, _] = ui.calc_text_size(&text);
+                        let [text_width, _] = ctx.ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
                         draw.add_text(pos, esp_color.clone(), text);
 
-                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        y_offset += ctx.ui.text_line_height_with_spacing() * target_scale;
                     }
 
-                    if settings.esp_info_weapon {
+                    if ctx.settings.esp_info_weapon {
                         let text = entry.weapon.display_name();
-                        let [text_width, _] = ui.calc_text_size(&text);
+                        let [text_width, _] = ctx.ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;
@@ -474,12 +470,12 @@ impl Enhancement for PlayerESP {
 
                         draw.add_text(pos, esp_color.clone(), text);
 
-                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        y_offset += ctx.ui.text_line_height_with_spacing() * target_scale;
                     }
 
-                    if entry.player_has_defuser && settings.esp_info_kit {
+                    if entry.player_has_defuser && ctx.settings.esp_info_kit {
                         let text = "KIT";
-                        let [text_width, _] = ui.calc_text_size(&text);
+                        let [text_width, _] = ctx.ui.calc_text_size(&text);
                         let mut pos = pos.clone();
                         pos.x -= text_width / 2.0;
                         pos.y += y_offset;
@@ -488,14 +484,14 @@ impl Enhancement for PlayerESP {
                         //y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
-                    ui.set_window_font_scale(1.0);
+                    ctx.ui.set_window_font_scale(1.0);
                 }
             }
 
-            if settings.esp_lines {
-                if let Some(player_screen_pos) = view.world_to_screen(&entry.position, false) {
-                    let screen_size = [view.screen_bounds.x, view.screen_bounds.y];
-                    let start_pos = match settings.esp_lines_position {
+            if ctx.settings.esp_lines {
+                if let Some(player_screen_pos) = ctx.view.world_to_screen(&entry.position, false) {
+                    let screen_size = [ctx.view.screen_bounds.x, ctx.view.screen_bounds.y];
+                    let start_pos = match ctx.settings.esp_lines_position {
                         LineStartPosition::TopLeft => [0.0, 0.0],
                         LineStartPosition::TopCenter => [screen_size[0] / 2.0, 0.0],
                         LineStartPosition::TopRight => [screen_size[0], 0.0],

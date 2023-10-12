@@ -83,6 +83,9 @@ pub struct AppSettings {
     pub key_settings: HotKey,
 
     #[serde(default = "bool_true")]
+    pub escape_close: bool,
+
+    #[serde(default = "bool_true")]
     pub esp: bool,
 
     #[serde(default = "default_key_none")]
@@ -126,6 +129,12 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_false")]
+    pub bomb_timer_decor: bool,
+
+    #[serde(default = "bool_false")]
+    pub bomb_timer_color: bool,
 
     #[serde(default = "bool_false")]
     pub spectators_list: bool,

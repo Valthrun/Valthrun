@@ -70,7 +70,9 @@ impl SettingsUI {
                     }
 
                     if let Some(_) = ui.tab_item("Hotkeys") {
-                        ui.button_key(obfstr!("Toggle Settings"), &mut settings.key_settings, [150.0, 0.0]);
+                        ui.button_key(obfstr!("Toggle Settings UI"), &mut settings.key_settings, [ 150.0, 0.0 ]);
+                        ui.checkbox(obfstr!("Escape Closes UI"), &mut settings.escape_close);
+                        ui.separator();
                         ui.button_key_optional(obfstr!("ESP toggle"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
                     }
 
@@ -172,6 +174,10 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Show Background"), &mut settings.bomb_timer_decor);
+                        ui.checkbox(obfstr!("Show Colors"), &mut settings.bomb_timer_color);
+
+                        ui.separator();
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 

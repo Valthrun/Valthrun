@@ -41,10 +41,7 @@ use cs2::{
     Globals,
 };
 use enhancements::Enhancement;
-use imgui::{
-    Condition,
-    Ui,
-};
+use imgui::{Condition, Key, Ui};
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -118,6 +115,13 @@ pub struct UpdateContext<'a> {
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
+}
+
+pub struct RenderContext<'a> {
+    pub app: &'a Application,
+    pub settings: &'a AppSettings,
+    pub ui: &'a Ui,
+    pub view: &'a ViewController
 }
 
 pub struct Application {
@@ -202,8 +206,12 @@ impl Application {
         }
 
         let settings = self.settings.borrow();
-        if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
-            log::debug!("Toogle settings");
+        let escape_close = self.settings_visible
+            && settings.escape_close
+            && ui.is_key_pressed_no_repeat(Key::Escape);
+
+        if ui.is_key_pressed_no_repeat(settings.key_settings.0) || escape_close {
+            log::debug!("Toogle settings; escaped {}", escape_close);
             self.settings_visible = !self.settings_visible;
 
             if !self.settings_visible {
@@ -312,7 +320,12 @@ impl Application {
 
         for hack in self.enhancements.iter() {
             let hack = hack.borrow();
-            hack.render(&*settings, ui, &self.view_controller);
+            hack.render(RenderContext {
+                app: self,
+                settings: &*settings,
+                ui: &*ui,
+                view: &self.view_controller,
+            });
         }
     }
 }

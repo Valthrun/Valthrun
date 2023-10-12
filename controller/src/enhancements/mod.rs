@@ -10,7 +10,7 @@ pub trait Enhancement {
         Ok(false)
     }
 
-    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController);
+    fn render(&self, ctx: RenderContext);
     fn render_debug_window(&mut self, _settings: &mut AppSettings, _ui: &imgui::Ui) {}
 }
 
@@ -30,6 +30,6 @@ mod aim;
 pub use aim::*;
 
 use crate::{
-    view::ViewController,
     UpdateContext,
+    RenderContext
 };

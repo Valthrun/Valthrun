@@ -12,14 +12,7 @@ use rand::{
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
-use crate::{
-    settings::AppSettings,
-    view::{
-        LocalCrosshair,
-        ViewController,
-    },
-    UpdateContext,
-};
+use crate::{view::LocalCrosshair, UpdateContext, RenderContext};
 
 enum TriggerState {
     Idle,
@@ -171,7 +164,7 @@ impl Enhancement for TriggerBot {
         Ok(())
     }
 
-    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {
+    fn render(&self, _ctx: RenderContext) {
         /* We have nothing to render */
     }
 }
