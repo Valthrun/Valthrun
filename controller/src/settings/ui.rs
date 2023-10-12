@@ -34,10 +34,13 @@ impl SettingsUI {
     }
 
     pub fn render(&mut self, app: &Application, ui: &imgui::Ui) {
+        let content_font = ui.current_font().id();
+        let _title_font = ui.push_font(app.fonts.valthrun);
         ui.window(obfstr!("Valthrun"))
             .size([600.0, 300.0], Condition::FirstUseEver)
             .build(|| {
-                let mut settings = self.settings.borrow_mut();
+                let _content_font = ui.push_font(content_font);
+                let mut settings: std::cell::RefMut<'_, AppSettings> = self.settings.borrow_mut();
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
