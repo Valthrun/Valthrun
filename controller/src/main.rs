@@ -428,8 +428,8 @@ fn main_overlay() -> anyhow::Result<()> {
     );
 
     if unsafe { IsUserAnAdmin().as_bool() } {
-        show_critical_error("Please do not run this as administrator!\nRunning the controller as administrator might cause failures with your graphic drivers.");
-        return Ok(());
+        log::warn!("Please do not run this as administrator!");
+        log::warn!("Running the controller as administrator might cause failures with your graphic drivers.");
     }
 
     let settings = load_app_settings()?;
