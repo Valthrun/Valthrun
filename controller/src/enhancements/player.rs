@@ -35,6 +35,7 @@ use crate::{
         EspInfoWeaponColorType,
         EspSkeletonEnemyColorType,
         EspSkeletonTeamColorType,
+        LineStartPosition,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -645,6 +646,24 @@ impl Enhancement for PlayerESP {
                     }
 
                     ui.set_window_font_scale(1.0);
+                }
+            }
+
+            if settings.esp_lines {
+                if let Some(player_screen_pos) = view.world_to_screen(&entry.position, false) {
+                    let screen_size = [view.screen_bounds.x, view.screen_bounds.y];
+                    let start_pos = match settings.esp_lines_position {
+                        LineStartPosition::TopLeft => [0.0, 0.0],
+                        LineStartPosition::TopCenter => [screen_size[0] / 2.0, 0.0],
+                        LineStartPosition::TopRight => [screen_size[0], 0.0],
+                        LineStartPosition::Center => [screen_size[0] / 2.0, screen_size[1] / 2.0],
+                        LineStartPosition::BottomLeft => [0.0, screen_size[1]],
+                        LineStartPosition::BottomCenter => [screen_size[0] / 2.0, screen_size[1]],
+                        LineStartPosition::BottomRight => [screen_size[0], screen_size[1]],
+                    };
+                    draw.add_line(start_pos, player_screen_pos, *esp_color)
+                        .thickness(1.0)
+                        .build();
                 }
             }
         }

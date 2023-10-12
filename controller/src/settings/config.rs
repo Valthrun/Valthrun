@@ -93,6 +93,9 @@ fn default_esp_info_weapon_color_type() -> EspInfoWeaponColorType {
 fn default_esp_health_bar_size() -> f32 {
     5.0
 }
+fn default_esp_line_position() -> LineStartPosition {
+    LineStartPosition::Center
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
@@ -140,6 +143,16 @@ pub enum EspInfoWeaponColorType {
     Static,
     TeamBased,
     HealthBased,
+}
+
+pub enum LineStartPosition {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    Center,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -209,6 +222,12 @@ pub struct AppSettings {
 
     #[serde(default = "default_esp_info_weapon_color")]
     pub esp_info_weapon_color: [f32; 4],
+    
+    #[serde(default = "bool_false")]
+    pub esp_lines: bool,
+
+    #[serde(default = "default_esp_line_position")]
+    pub esp_lines_position: LineStartPosition,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,

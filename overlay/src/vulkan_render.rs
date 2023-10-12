@@ -229,18 +229,22 @@ fn create_vulkan_instance(
     let engine_name = CString::new("No Engine")?;
     let app_info = vk::ApplicationInfo::builder()
         .application_name(app_name.as_c_str())
-        .application_version(0)
+        .application_version(vk::make_api_version(0, 1, 0, 0))
         .engine_name(engine_name.as_c_str())
-        .engine_version(0)
-        .api_version(vk::make_api_version(0, 0, 1, 0));
+        .engine_version(vk::make_api_version(0, 1, 0, 0))
+        .api_version(vk::make_api_version(0, 1, 0, 0));
 
     let mut extension_names =
         ash_window::enumerate_required_extensions(window.raw_display_handle())?.to_vec();
     extension_names.push(DebugUtils::name().as_ptr());
 
+    let enabled_layer_names = Vec::new();
+    /* If debug, may add some extra layers here */
+
     let instance_create_info = vk::InstanceCreateInfo::builder()
         .application_info(&app_info)
-        .enabled_extension_names(&extension_names);
+        .enabled_extension_names(&extension_names)
+        .enabled_layer_names(&enabled_layer_names);
 
     log::debug!("Creating Vulkan instance");
     let instance = unsafe {
