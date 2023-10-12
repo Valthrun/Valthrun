@@ -1,7 +1,8 @@
 - [Home](README.md)
 - Contributing
-  - [Building from source](build.md)
-  - [Offsets](offsets.md)
+  - [Adding Wiki contents](contributing/wiki.md)
+  - [Building from source](contributing/build.md)
+  - [Offsets](contributing/offsets.md)
 - Troubleshooting
   - [General Information](troubleshooting/readme.md)
   - [Valthrun Driver](troubleshooting/kernel/000_readme.md)
