@@ -378,7 +378,7 @@ impl Enhancement for PlayerESP {
                                 .thickness(settings.esp_boxes_thickness + 1.0)
                                 .build();
 
-                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], [1.0, 1.0, 1.0, 0.8])
+                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
 
