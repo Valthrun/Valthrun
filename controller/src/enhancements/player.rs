@@ -373,9 +373,15 @@ impl Enhancement for PlayerESP {
                             &(entry.model.vhull_min + entry.position),
                             &(entry.model.vhull_max + entry.position),
                         ) {
-                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
+
+                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], [0.0, 0.0, 0.0, 0.8])
+                                .thickness(settings.esp_boxes_thickness + 1.0)
+                                .build();
+
+                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], [1.0, 1.0, 1.0, 0.8])
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
+
 
                             if settings.esp_health_bar {
                                 let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0
