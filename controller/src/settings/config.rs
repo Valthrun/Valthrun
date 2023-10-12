@@ -34,7 +34,6 @@ fn default_esp_skeleton_thickness() -> f32 {
 fn default_esp_boxes_thickness() -> f32 {
     3.0
 }
-
 fn default_u32<const V: u32>() -> u32 {
     V
 }
@@ -54,11 +53,28 @@ fn default_key_none() -> Option<HotKey> {
 fn default_esp_box_type() -> EspBoxType {
     EspBoxType::Box3D
 }
+fn default_esp_health_bar_size() -> f32 {
+    5.0
+}
+fn default_esp_line_position() -> LineStartPosition {
+    LineStartPosition::Center
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
     Box2D,
     Box3D,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum LineStartPosition {
+    TopLeft,
+    TopCenter,
+    TopRight,
+    Center,
+    BottomLeft,
+    BottomCenter,
+    BottomRight,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -88,13 +104,31 @@ pub struct AppSettings {
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
-    pub esp_info_health: bool,
+    pub esp_health_bar: bool,
+
+    #[serde(default = "default_esp_health_bar_size")]
+    pub esp_health_bar_size: f32,
+
+    #[serde(default = "bool_false")]
+    pub esp_health_bar_rainbow: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_info_kit: bool,
 
     #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
+    #[serde(default = "bool_false")]
+    pub esp_lines: bool,
+
+    #[serde(default = "default_esp_line_position")]
+    pub esp_lines_position: LineStartPosition,
+
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_false")]
+    pub spectators_list: bool,
 
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,

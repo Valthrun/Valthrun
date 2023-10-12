@@ -13,6 +13,7 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
+        LineStartPosition,
     },
     utils::ImGuiKey,
     Application,
@@ -98,6 +99,14 @@ impl SettingsUI {
                                 ui.slider_config(obfstr!("Thickness"), 0.1, 10.0)
                                     .build(&mut settings.esp_boxes_thickness);
                             }
+                            if settings.esp_box_type == EspBoxType::Box2D {
+                                ui.checkbox(obfstr!("2DBOX: Show Health Bar"), &mut settings.esp_health_bar);
+                                if settings.esp_health_bar {
+                                    ui.same_line();
+                                    ui.slider("Bar Width", 2.0, 20.0, &mut settings.esp_health_bar_size);
+                                    ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.esp_health_bar_rainbow);
+                                }
+                            }
 
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
                             if settings.esp_skeleton {
@@ -105,8 +114,36 @@ impl SettingsUI {
                                     .build(&mut settings.esp_skeleton_thickness);
                             }
 
-                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
+                            ui.checkbox(obfstr!("Display if player has kit"), &mut settings.esp_info_kit);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
+                            ui.checkbox(obfstr!("Show lines"), &mut settings.esp_lines);
+                            if settings.esp_lines {
+                                ui.set_next_item_width(120.0);
+                                const LINE_START_POSITIONS: [LineStartPosition; 7] = [
+                                    LineStartPosition::TopLeft,
+                                    LineStartPosition::TopCenter,
+                                    LineStartPosition::TopRight,
+                                    LineStartPosition::Center,
+                                    LineStartPosition::BottomLeft,
+                                    LineStartPosition::BottomCenter,
+                                    LineStartPosition::BottomRight,
+                                ];
+                                fn line_start_position_name(value: &LineStartPosition) -> Cow<'_, str> {
+                                    match value {
+                                        LineStartPosition::TopLeft => "Top Left".into(),
+                                        LineStartPosition::TopCenter => "Top Center".into(),
+                                        LineStartPosition::TopRight => "Top Right".into(),
+                                        LineStartPosition::Center => "Center".into(),
+                                        LineStartPosition::BottomLeft => "Bottom Left".into(),
+                                        LineStartPosition::BottomCenter => "Bottom Center".into(),
+                                        LineStartPosition::BottomRight => "Bottom Right".into(),
+                                    }
+                                }
+                                let mut line_position_index = LINE_START_POSITIONS.iter().position(|v| *v == settings.esp_lines_position).unwrap_or_default();
+                                if ui.combo(obfstr!("Start Position"), &mut line_position_index, &LINE_START_POSITIONS, &line_start_position_name) {
+                                    settings.esp_lines_position = LINE_START_POSITIONS[line_position_index];
+                                }
+                            }
 
                             ui.checkbox(obfstr!("ESP Team"), &mut settings.esp_enabled_team);
                             if settings.esp_enabled_team {
@@ -135,6 +172,7 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
@@ -165,7 +203,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        // ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        //ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
 

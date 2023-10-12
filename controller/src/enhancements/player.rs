@@ -17,6 +17,7 @@ use cs2_schema_declaration::{
     Ptr,
 };
 use cs2_schema_generated::cs2::client::{
+    CCSPlayer_ItemServices,
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
@@ -28,6 +29,7 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
+        LineStartPosition,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -38,6 +40,7 @@ pub struct PlayerInfo {
     pub team_id: u8,
 
     pub player_health: i32,
+    pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
 
@@ -145,6 +148,12 @@ impl PlayerESP {
             "unknown".to_string()
         };
 
+        let player_has_defuser = player_pawn
+            .m_pItemServices()?
+            .cast::<CCSPlayer_ItemServices>()
+            .reference_schema()?
+            .m_bHasDefuser()?;
+
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
@@ -178,6 +187,7 @@ impl PlayerESP {
             team_id: player_team,
 
             player_name,
+            player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
@@ -186,8 +196,29 @@ impl PlayerESP {
             model: model.clone(),
         }))
     }
+
+    pub fn calculate_rainbow_color(value: f32, alpha: f32) -> [f32; 4] {
+        let sin_value =
+            |offset: f32| (2.0 * std::f32::consts::PI * value * 0.75 + offset).sin() * 0.5 + 1.0;
+        let r: f32 = sin_value(0.0);
+        let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
+        let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
+        [r, g, b, alpha]
+    }
+
+    pub fn calculate_health_color(health_percentage: f32, alpha: f32) -> [f32; 4] {
+        let clamped_percentage = health_percentage.clamp(0.0, 1.0);
+
+        let r = 1.0 - clamped_percentage;
+        let g = clamped_percentage;
+        let b = 0.0;
+
+        [r, g, b, alpha]
+    }
 }
 
+const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
+const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update_settings(
         &mut self,
@@ -210,11 +241,7 @@ impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
 
-        if !ctx.settings.esp
-            || !(ctx.settings.esp_boxes
-                || ctx.settings.esp_skeleton
-                || ctx.settings.esp_info_health)
-        {
+        if !ctx.settings.esp || !(ctx.settings.esp_boxes || ctx.settings.esp_skeleton) {
             return Ok(());
         }
 
@@ -349,6 +376,60 @@ impl Enhancement for PlayerESP {
                             draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
+
+                            if settings.esp_health_bar {
+                                let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0
+                                    + HEALTH_BAR_BORDER_WIDTH / 2.0;
+                                let bar_x =
+                                    vmin.x - settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
+
+                                let bar_height = vmax.y - vmin.y + settings.esp_boxes_thickness;
+                                let bar_width = settings.esp_health_bar_size;
+
+                                /* player health in [0.0; 1.0] */
+                                let normalized_player_health = (entry.player_health as f32)
+                                    .clamp(0.0, HEALTH_BAR_MAX_HEALTH)
+                                    / HEALTH_BAR_MAX_HEALTH;
+
+                                let bar_color = if settings.esp_health_bar_rainbow {
+                                    Self::calculate_rainbow_color(
+                                        normalized_player_health,
+                                        esp_color[3],
+                                    )
+                                } else {
+                                    Self::calculate_health_color(
+                                        normalized_player_health,
+                                        esp_color[3],
+                                    )
+                                };
+
+                                draw.add_rect(
+                                    [
+                                        bar_x + HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y
+                                            + HEALTH_BAR_BORDER_WIDTH
+                                            + bar_height * (1.0 - normalized_player_health),
+                                    ],
+                                    [
+                                        bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH * 2.0,
+                                    ],
+                                    bar_color,
+                                )
+                                .filled(true)
+                                .build();
+
+                                draw.add_rect(
+                                    [bar_x, bar_y],
+                                    [
+                                        bar_x + bar_width - HEALTH_BAR_BORDER_WIDTH,
+                                        bar_y + bar_height - HEALTH_BAR_BORDER_WIDTH,
+                                    ],
+                                    [0.0, 0.0, 0.0, esp_color[3]],
+                                )
+                                .thickness(HEALTH_BAR_BORDER_WIDTH)
+                                .build();
+                            }
                         }
                     }
                     EspBoxType::Box3D => {
@@ -363,7 +444,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon {
+            if settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -371,7 +452,7 @@ impl Enhancement for PlayerESP {
                     ui.set_window_font_scale(target_scale);
 
                     let mut y_offset = 0.0;
-                    if settings.esp_info_health {
+                    {
                         let text = format!("{} HP", entry.player_health);
                         let [text_width, _] = ui.calc_text_size(&text);
 
@@ -393,10 +474,39 @@ impl Enhancement for PlayerESP {
 
                         draw.add_text(pos, esp_color.clone(), text);
 
-                        // y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if entry.player_has_defuser && settings.esp_info_kit {
+                        let text = "KIT";
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        draw.add_text(pos, esp_color.clone(), text);
+
+                        //y_offset += ui.text_line_height_with_spacing() * target_scale;
                     }
 
                     ui.set_window_font_scale(1.0);
+                }
+            }
+
+            if settings.esp_lines {
+                if let Some(player_screen_pos) = view.world_to_screen(&entry.position, false) {
+                    let screen_size = [view.screen_bounds.x, view.screen_bounds.y];
+                    let start_pos = match settings.esp_lines_position {
+                        LineStartPosition::TopLeft => [0.0, 0.0],
+                        LineStartPosition::TopCenter => [screen_size[0] / 2.0, 0.0],
+                        LineStartPosition::TopRight => [screen_size[0], 0.0],
+                        LineStartPosition::Center => [screen_size[0] / 2.0, screen_size[1] / 2.0],
+                        LineStartPosition::BottomLeft => [0.0, screen_size[1]],
+                        LineStartPosition::BottomCenter => [screen_size[0] / 2.0, screen_size[1]],
+                        LineStartPosition::BottomRight => [screen_size[0], screen_size[1]],
+                    };
+                    draw.add_line(start_pos, player_screen_pos, *esp_color)
+                        .thickness(1.0)
+                        .build();
                 }
             }
         }
