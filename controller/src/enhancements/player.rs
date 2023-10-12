@@ -17,6 +17,7 @@ use cs2_schema_declaration::{
     Ptr,
 };
 use cs2_schema_generated::cs2::client::{
+    CCSPlayerController,
     CCSPlayer_ItemServices,
     CModelState,
     CSkeletonInstance,
@@ -35,6 +36,28 @@ use crate::{
     weapon::WeaponId,
 };
 
+const RANKS: [&str; 19] = [
+    "Unranked",
+    "Silver I",
+    "Silver II",
+    "Silver III",
+    "Silver IV",
+    "Silver Elite",
+    "Silver Elite Master",
+    "Gold Nova I",
+    "Gold Nova II",
+    "Gold Nova III",
+    "Gold Nova Master",
+    "Master Guardian I",
+    "Master Guardian II",
+    "Master Guardian Elite",
+    "Distinguished Master Guardian",
+    "Legendary Eagle",
+    "Legendary Eagle Master",
+    "Supreme Master First Class",
+    "The Global Elite",
+];
+
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
     pub team_id: u8,
@@ -42,6 +65,7 @@ pub struct PlayerInfo {
     pub player_health: i32,
     pub player_has_defuser: bool,
     pub player_name: String,
+    pub player_rank: Result<String>,
     pub weapon: WeaponId,
 
     pub position: nalgebra::Vector3<f32>,
@@ -114,6 +138,7 @@ impl PlayerESP {
         &self,
         ctx: &crate::UpdateContext,
         player_pawn: &Ptr<C_CSPlayerPawn>,
+        player_controller: &Ptr<CCSPlayerController>,
     ) -> anyhow::Result<Option<PlayerInfo>> {
         let player_pawn = player_pawn
             .read_schema()
@@ -135,6 +160,23 @@ impl PlayerESP {
 
         let controller_handle = player_pawn.m_hController()?;
         let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
+
+        let player_resource = player_controller
+            .read_schema()
+            .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
+
+        let player_rank_index = player_resource.m_iCompetitiveRanking()? as usize;
+        let player_rank = if player_rank_index < RANKS.len() {
+            Ok(RANKS[player_rank_index].to_string())
+        } else {
+            let error_message = format!("Invalid rank index: {}", player_rank_index);
+            log::warn!(
+                "Failed to generate player rank info for {:X}: {}",
+                player_controller.address()?,
+                error_message
+            );
+            Err(anyhow::anyhow!(error_message))
+        };
 
         let player_team = player_pawn.m_iTeamNum()?;
         let player_name = if let Some(identity) = &current_controller {
@@ -189,6 +231,7 @@ impl PlayerESP {
             player_name,
             player_has_defuser,
             player_health,
+            player_rank,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
             position,
@@ -302,7 +345,8 @@ impl Enhancement for PlayerESP {
             }
 
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
-            match self.generate_player_info(ctx, &player_pawn) {
+            let player_controller = entity_identity.entity_ptr::<CCSPlayerController>()?;
+            match self.generate_player_info(ctx, &player_pawn, &player_controller) {
                 Ok(Some(info)) => self.players.push(info),
                 Ok(None) => {}
                 Err(error) => {
@@ -311,6 +355,11 @@ impl Enhancement for PlayerESP {
                         player_pawn.address()?,
                         error
                     );
+                    log::warn!(
+                        "Failed to generate player controller info for {:X}: {:#}",
+                        player_controller.address()?,
+                        error
+                    )
                 }
             }
         }
@@ -508,6 +557,18 @@ impl Enhancement for PlayerESP {
                         .thickness(1.0)
                         .build();
                 }
+            }
+
+            if settings.show_competitive_rank {
+                let player_rank_text = match &entry.player_rank {
+                    Ok(rank) => rank.to_string(),
+                    Err(_) => "N/A".to_string(),
+                };
+
+                ui.text_colored(
+                    [0.0, 0.0, 0.0, 1.0],
+                    &format!("Player rank {} by {}", entry.player_name, player_rank_text,),
+                );
             }
         }
     }

@@ -172,6 +172,7 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Show Competitive Rank"), &mut settings.show_competitive_rank);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
