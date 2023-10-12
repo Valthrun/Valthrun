@@ -373,15 +373,9 @@ impl Enhancement for PlayerESP {
                             &(entry.model.vhull_min + entry.position),
                             &(entry.model.vhull_max + entry.position),
                         ) {
-
-                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], [0.0, 0.0, 0.0, 0.8])
-                                .thickness(settings.esp_boxes_thickness + 1.0)
-                                .build();
-
                             draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
                                 .thickness(settings.esp_boxes_thickness)
                                 .build();
-
 
                             if settings.esp_health_bar {
                                 let bar_y = vmin.y - settings.esp_boxes_thickness / 2.0
@@ -475,10 +469,8 @@ impl Enhancement for PlayerESP {
                         let [text_width, _] = ui.calc_text_size(&text);
 
                         let mut pos = pos.clone();
-                        pos.x += entry_height / 2.0;
-                        pos.x += box_width / 2.0;
-                        pos.x += text_width;
-                        pos.y -= text_height;
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
 
                         draw.add_text(pos, esp_color.clone(), text);
 
