@@ -302,7 +302,7 @@ impl Enhancement for PlayerESP {
                 Ok(Some(info)) => self.players.push(info),
                 Ok(None) => {}
                 Err(error) => {
-                    log::warn!(
+                    log::debug!(
                         "Failed to generate player pawn ESP info for {:X}: {:#}",
                         player_pawn.address()?,
                         error
@@ -440,7 +440,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if ctx.settings.esp_info_weapon || ctx.settings.esp_info_kit {
+            if ctx.settings.esp_info_health || ctx.settings.esp_info_weapon || ctx.settings.esp_info_kit {
                 if let Some(pos) = ctx.view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(ctx.view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / ctx.view.screen_bounds.y;
@@ -448,7 +448,7 @@ impl Enhancement for PlayerESP {
                     ctx.ui.set_window_font_scale(target_scale);
 
                     let mut y_offset = 0.0;
-                    {
+                    if ctx.settings.esp_info_health {
                         let text = format!("{} HP", entry.player_health);
                         let [text_width, _] = ctx.ui.calc_text_size(&text);
 

@@ -166,7 +166,13 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
     Ok(window)
 }
 
-fn create_imgui_context() -> Result<(WinitPlatform, imgui::Context)> {
+pub struct OverlayOptions {
+    pub title: String,
+    pub target: OverlayTarget,
+    pub font_init: Option<Box<dyn Fn(&mut imgui::Context) -> ()>>,
+}
+
+fn create_imgui_context(options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
 
@@ -199,6 +205,9 @@ fn create_imgui_context() -> Result<(WinitPlatform, imgui::Context)> {
             ..FontConfig::default()
         }),
     }]);
+    if let Some(callback) = &options.font_init {
+        callback(&mut imgui);
+    }
 
     Ok((platform, imgui))
 }
@@ -222,13 +231,13 @@ pub struct System {
     pub window_tracker: WindowTracker,
 }
 
-pub fn init(title: &str, target: OverlayTarget) -> Result<System> {
-    let window_tracker = WindowTracker::new(target)?;
+pub fn init(options: &OverlayOptions) -> Result<System> {
+    let window_tracker = WindowTracker::new(&options.target)?;
 
     let event_loop = EventLoop::new();
-    let window = create_window(&event_loop, title)?;
+    let window = create_window(&event_loop, &options.title)?;
 
-    let vulkan_context = VulkanContext::new(&window, title)?;
+    let vulkan_context = VulkanContext::new(&window, &options.title)?;
     let command_buffer = {
         let allocate_info = vk::CommandBufferAllocateInfo::builder()
             .command_pool(vulkan_context.command_pool)
@@ -264,7 +273,7 @@ pub fn init(title: &str, target: OverlayTarget) -> Result<System> {
         unsafe { vulkan_context.device.create_fence(&fence_info, None)? }
     };
 
-    let (mut platform, mut imgui) = create_imgui_context()?;
+    let (mut platform, mut imgui) = create_imgui_context(&options)?;
     platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
 
     let renderer = Renderer::with_default_allocator(
