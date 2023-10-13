@@ -1,4 +1,4 @@
-![Valthrun CS2 Logo](./docs/_media/logo.svg)
+![Valthrun CS2 Logo](./img/logo.svg)
 <p align="right">
 <a href="https://discord.gg/ecKbpAPW5T">
 <img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
@@ -17,7 +17,7 @@ This project is mainly a fun example for exploring the Windows Kernel with [Rust
 
 # WARNING
 Valthrun is **not** plug 'n play.  
-Please read [How to use](#how-to-use) carefully and try troubleshooting issues on your own.  
+Please read [How to use](https://wiki.valth.run/#/010_getting-started/010_overview) carefully and try troubleshooting issues on your own.  
 The goal is to achieve maximum stealth in order to avoid being detected.
   
 # Features
@@ -52,43 +52,9 @@ Click [here](https://github.com/WolverinDEV/Valthrun/releases) to view all relea
   
 Once downloaded read [How to use](#how-to-use) to get started!
 
-# How to use
-The following steps need to be done to enable the overlay.
-1. Load the kernel driver  
-   The overlay requires the kernel driver for all memory reads and writes.
-   Therefore we need to load the driver before we can start the overlay. It's not strictly required to load the driver before starting CS2 but logically it makes sense to start with the driver.
-     
-   There are two common options to load the kernel driver:
-   1. Manually map the driver using a vulnerable driver
-      The Valthrun kernel driver fully supports manual driver mapping using a vulnerable driver. In order to detect the manual mapping the second driver entry argument (the registry patch) must be a nullptr.  
-      The kernel driver will automatically allocate a new driver for io communication.  
-
-      In order to manually map the Valthrun driver you can use tools like  
-      - [kdmapper](https://github.com/TheCruZ/kdmapper) (recommended)
-      - [KDU](https://github.com/hfiref0x/KDU) (unstable)
-
-   2. Setting Windows into test-signing mode  
-      TODO: Explain how to set Windows into test signing
-      Helpful guide: https://github.com/dretax/GarHal_CSGO#starting-driver
-   
-2. Start Counter-Strike 2  
-After loading the driver you can start Counter-Strike 2 as usual.  
-
-3. Start Overlay  
-With an open instance of Counter-Strike 2 you can start the overlay.  
-Attention: You *must* start the overlay as administrator!  
-  
-To explore all command line options of the controller, start the controller from the terminal and pass `-h` to display the command line interface:
-```ps1
-.\controller.exe -h
-```
-
-If you want a verbose output (useful for troubleshooting), start the overlay from the terminal and previously set the `RUST_LOG` environment variable.  
-Example for executing the overlay with trace output:  
-```ps1
-$env:RUST_LOG="trace"
-.\controller.exe
-```
+# How to use / Getting started
+Please follow this guide to get started:  
+https://wiki.valth.run/#/010_getting-started/010_overview
 
 # Troubleshooting
 If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/#/):  
@@ -101,14 +67,9 @@ The same considerations as mentioned in [this link](https://github.com/dretax/Ga
 With these precautions and some minor improvements, such as omitting the Valthrun identifier and using xor encryption for strings, the driver/overlay should avoid VAC detection. However, I must clarify that I haven't extensively studied VAC, so my conclusion is speculative. Personally, I have been using a C based driver/overlay like this with CSGO for several years without ever getting VAC banned. But be aware of overwatch!  
 With VAC live being enabled now, use this with caution. As always take the necessary precautions into consideration.
 
-# Supported Windows Versions
-All recent Windows versions should be supported as all functions / struct offsets are resolved dynamically.  
-The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback suggests, Windows versions as far back as 20H2 are working.
-If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
-  
 # Screenshots
-![](./docs/_media/showcase_01.png)
-![](./docs/_media/showcase_02.png)
+![](./img/showcase_01.png)
+![](./img/showcase_02.png)
 
 # Help
 You can find help on the official Valthrun Discord server:  
