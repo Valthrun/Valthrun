@@ -3,6 +3,7 @@ Some AMD users may experience some issues when trying to run the Valthrun contro
 This issue manifest in various error messages, but two common ones are:
 - `Unable to find a Vulkan driver`
 - `Failed to load vulkan-1.dll (os error 14001)`
+- The overlay is just black instead of being transparent
 
 The precise cause of these issues remains unknown, leading to an absence of a universally accepted solution.  
 However, various methods have been reported by some users as effective in addressing these problems.  
