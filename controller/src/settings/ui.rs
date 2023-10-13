@@ -41,10 +41,28 @@ impl SettingsUI {
 
     pub fn render(&mut self, app: &Application, ui: &imgui::Ui) {
         let content_font = ui.current_font().id();
-        let _title_font = ui.push_font(app.fonts.valthrun);
-        ui.window(obfstr!("Valthrun"))
+        //let _title_font = ui.push_font(app.fonts.valthrun);
+        ui.window("controller")
             .size([600.0, 300.0], Condition::FirstUseEver)
+            .title_bar(false)
             .build(|| {
+                let _title_font = ui.push_font(app.fonts.valthrun);
+                ui.text_colored([0.81, 0.69, 0.06, 1.0], "V");
+                ui.same_line();
+                ui.text_colored([0.84, 0.61, 0.15, 1.0], "a");
+                ui.same_line();
+                ui.text_colored([0.86, 0.52, 0.24, 1.0], "l");
+                ui.same_line();
+                ui.text_colored([0.89, 0.44, 0.33, 1.0], "t");
+                ui.same_line();
+                ui.text_colored([0.92, 0.36, 0.41, 1.0], "h");
+                ui.same_line();
+                ui.text_colored([0.95, 0.27, 0.50, 1.0], "r");
+                ui.same_line();
+                ui.text_colored([0.97, 0.19, 0.59, 1.0], "u");
+                ui.same_line();
+                ui.text_colored([1.00, 0.11, 0.68, 1.0], "n");
+                ui.new_line();
                 let _content_font = ui.push_font(content_font);
                 let mut settings: std::cell::RefMut<'_, AppSettings> = self.settings.borrow_mut();
                 if let Some(_tab_bar) = ui.tab_bar("main") {
@@ -423,7 +441,7 @@ impl SettingsUI {
 
 
                     if let Some(_) = ui.tab_item("Misc") {
-                        ui.checkbox(obfstr!("Valthrun Watermark"), &mut settings.valthrun_watermark);
+                        ui.checkbox(obfstr!("Valthrun Watermark"), &mut settings.watermark);
 
                         if ui.checkbox(obfstr!("Hide overlay from screen capture"), &mut settings.hide_overlay_from_screen_capture) {
                             app.settings_screen_capture_changed.store(true, Ordering::Relaxed);

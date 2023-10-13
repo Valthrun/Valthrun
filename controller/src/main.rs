@@ -291,7 +291,7 @@ impl Application {
     fn render_overlay(&self, ui: &imgui::Ui) {
         let settings = self.settings.borrow();
 
-        if settings.valthrun_watermark {
+        if settings.watermark {
             {
                 let text_buf;
                 let text = obfstr!(text_buf = "Valthrun Overlay");
@@ -367,7 +367,7 @@ fn main() {
 }
 
 #[derive(Debug, Parser)]
-#[clap(name = "Valthrun", version)]
+#[clap(name = "Controller", version)]
 struct AppArgs {
     /// Enable verbose logging ($env:RUST_LOG="trace")
     #[clap(short, long)]
@@ -421,7 +421,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
-        "Valthrun v{} ({}). Windows build {}.",
+        "Controller v{} ({}). Windows build {}.",
         env!("CARGO_PKG_VERSION"),
         env!("GIT_HASH"),
         build_info.dwBuildNumber
@@ -440,7 +440,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting."));
                         return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
@@ -484,7 +484,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
                 let font_size = 18.0;
                 let valthrun_font = imgui.fonts().add_font(&[FontSource::TtfData {
-                    data: include_bytes!("../resources/Valthrun-Regular.ttf"),
+                    data: include_bytes!("../resources/Controller-Regular.otf"),
                     size_pixels: font_size,
                     config: Some(FontConfig {
                         rasterizer_multiply: 1.5,

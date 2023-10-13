@@ -237,7 +237,7 @@ pub struct AppSettings {
     pub spectators_list: bool,
 
     #[serde(default = "bool_true")]
-    pub valthrun_watermark: bool,
+    pub watermark: bool,
 
     #[serde(default = "default_esp_color_team")]
     pub esp_color_team: [f32; 4],
