@@ -117,7 +117,7 @@ pub struct WindowTracker {
 }
 
 impl WindowTracker {
-    pub fn new(target: OverlayTarget) -> Result<Self> {
+    pub fn new(target: &OverlayTarget) -> Result<Self> {
         let hwnd = target.resolve_target_window()?;
         if hwnd.0 == 0 {
             return Err(OverlayError::WindowNotFound);

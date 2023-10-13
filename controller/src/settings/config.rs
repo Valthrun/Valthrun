@@ -219,6 +219,9 @@ pub struct AppSettings {
     pub esp_info_health_color: [f32; 4],
 
     #[serde(default = "bool_false")]
+    pub esp_info_health: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "default_esp_info_weapon_color")]
