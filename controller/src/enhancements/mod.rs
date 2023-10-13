@@ -30,6 +30,6 @@ mod aim;
 pub use aim::*;
 
 use crate::{
+    RenderContext,
     UpdateContext,
-    RenderContext
 };

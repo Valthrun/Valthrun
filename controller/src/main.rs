@@ -129,7 +129,7 @@ pub struct RenderContext<'a> {
     pub app: &'a Application,
     pub settings: &'a AppSettings,
     pub ui: &'a Ui,
-    pub view: &'a ViewController
+    pub view: &'a ViewController,
 }
 
 pub struct AppFonts {

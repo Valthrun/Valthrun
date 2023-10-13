@@ -1,22 +1,21 @@
 use std::ffi::CStr;
 
 use anyhow::Context;
+use cs2::CEntityIdentityEx;
+use cs2_schema_generated::cs2::client::{
+    CCSPlayer_ItemServices,
+    C_CSGameRulesProxy,
+    C_CSPlayerPawn,
+    C_PlantedC4,
+};
 use imgui::Condition;
 use mint::Vector4;
 use obfstr::obfstr;
 
-use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::{
-    C_CSGameRulesProxy,
-    C_CSPlayerPawn,
-    C_PlantedC4,
-    CCSPlayer_ItemServices
-};
-
 use super::Enhancement;
 use crate::{
     RenderContext,
-    UpdateContext
+    UpdateContext,
 };
 
 #[derive(Debug)]
@@ -56,7 +55,7 @@ pub enum C4State {
     Defused,
 
     /// Bomb has been dropped
-    Dropped
+    Dropped,
 }
 
 pub struct BombInfo {
@@ -75,7 +74,7 @@ impl BombInfo {
         Self {
             num_kit: 0,
             local_team: 0,
-            bomb_state: None
+            bomb_state: None,
         }
     }
 
@@ -99,10 +98,7 @@ impl BombInfo {
                     .read_schema()
                     .context("game rules missing")?;
 
-                let game_rules = rules_proxy
-                    .m_pGameRules()?
-                    .read_schema()
-                    .unwrap();
+                let game_rules = rules_proxy.m_pGameRules()?.read_schema().unwrap();
 
                 if game_rules.m_bBombDropped().unwrap_or_default() {
                     return Ok(Some(C4Info {
@@ -213,7 +209,8 @@ impl Enhancement for BombInfo {
                 continue;
             }
 
-            let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?
+            let player_pawn = entity_identity
+                .entity_ptr::<C_CSPlayerPawn>()?
                 .read_schema()
                 .unwrap();
 
@@ -246,10 +243,7 @@ impl Enhancement for BombInfo {
         Ok(())
     }
 
-    fn render(
-        &self,
-        ctx: RenderContext,
-    ) {
+    fn render(&self, ctx: RenderContext) {
         if !ctx.settings.bomb_timer {
             return;
         }
@@ -262,7 +256,8 @@ impl Enhancement for BombInfo {
         let show_bg = ctx.settings.bomb_timer_decor || ctx.app.settings_visible;
         let show_bg2 = show_bg && ctx.app.settings_visible;
 
-        ctx.ui.window(obfstr!("Bomb Info"))
+        ctx.ui
+            .window(obfstr!("Bomb Info"))
             .size([250.0, 125.0], Condition::Appearing)
             // Disable all window decorations.
             .resizable(show_bg2)
@@ -285,23 +280,26 @@ impl Enhancement for BombInfo {
                 }
 
                 // Helper Function
-                fn helper_text_color(ctx: &RenderContext,
-                                     player_team: &u8,
-                                     color_t: impl Into<Vector4<f32>>,
-                                     text_t: &str,
-                                     color_ct: impl Into<Vector4<f32>>,
-                                     text_ct: &str,
+                fn helper_text_color(
+                    ctx: &RenderContext,
+                    player_team: &u8,
+                    color_t: impl Into<Vector4<f32>>,
+                    text_t: &str,
+                    color_ct: impl Into<Vector4<f32>>,
+                    text_ct: &str,
                 ) {
                     match &player_team {
-                        2 => { // Terrorists
+                        2 => {
+                            // Terrorists
                             ctx.ui.text_colored(color_t, text_t)
-                        },
-                        3 => { // Counter-Terrorists
+                        }
+                        3 => {
+                            // Counter-Terrorists
                             ctx.ui.text_colored(color_ct, text_ct)
-                        },
+                        }
                         &_ => {
                             log::warn!("weird team id! {}", &player_team)
-                        },
+                        }
                     }
                 }
 
@@ -311,16 +309,13 @@ impl Enhancement for BombInfo {
                         if bomb_info.bomb_site == 0 { "A" } else { "B" }
                     );
 
-                    helper_text_color(&ctx, &self.local_team,
-                                      green, plant_str,
-                                      red, plant_str
-                    );
+                    helper_text_color(&ctx, &self.local_team, green, plant_str, red, plant_str);
                 }
 
                 match &bomb_info.state {
                     C4State::Active {
                         time_detonation,
-                        defuse
+                        defuse,
                     } => {
                         let ten_seconds = *time_detonation < 10f32;
                         let five_seconds = *time_detonation < 5f32;
@@ -331,22 +326,27 @@ impl Enhancement for BombInfo {
                         if *&self.num_kit > 0 {
                             if is_terrorist {
                                 boom_color = red;
-                                if ten_seconds { boom_color = orange; }
-                                if five_seconds { boom_color = green; }
+                                if ten_seconds {
+                                    boom_color = orange;
+                                }
+                                if five_seconds {
+                                    boom_color = green;
+                                }
                             } else {
                                 boom_color = green;
-                                if ten_seconds { boom_color = orange; }
-                                if five_seconds { boom_color = red; }
+                                if ten_seconds {
+                                    boom_color = orange;
+                                }
+                                if five_seconds {
+                                    boom_color = red;
+                                }
                             }
-                        } else if ten_seconds  {
-                            boom_color = if is_terrorist {
-                                green
-                            } else {
-                                red
-                            };
+                        } else if ten_seconds {
+                            boom_color = if is_terrorist { green } else { red };
                         }
 
-                        ctx.ui.text_colored(boom_color, &format!("Time: {:.3}", time_detonation));
+                        ctx.ui
+                            .text_colored(boom_color, &format!("Time: {:.3}", time_detonation));
 
                         if let Some(defuse) = defuse.as_ref() {
                             let defuse_str = &format!(
@@ -355,44 +355,40 @@ impl Enhancement for BombInfo {
                             );
 
                             if defuse.time_remaining > *time_detonation {
-                                helper_text_color(&ctx, &self.local_team,
-                                                  green, defuse_str,
-                                                  red, defuse_str
+                                helper_text_color(
+                                    &ctx,
+                                    &self.local_team,
+                                    green,
+                                    defuse_str,
+                                    red,
+                                    defuse_str,
                                 );
                             } else {
-                                helper_text_color(&ctx, &self.local_team,
-                                                  red, defuse_str,
-                                                  green, defuse_str
+                                helper_text_color(
+                                    &ctx,
+                                    &self.local_team,
+                                    red,
+                                    defuse_str,
+                                    green,
+                                    defuse_str,
                                 );
                             };
                         } else {
                             let text = "Not being defused";
-                            helper_text_color(&ctx, &self.local_team,
-                                              green, text,
-                                              red, text
-                            );
+                            helper_text_color(&ctx, &self.local_team, green, text, red, text);
                         }
                     }
                     C4State::Defused => {
                         let text = "Bomb has been defused";
-                        helper_text_color(&ctx, &self.local_team,
-                                          red, text,
-                                          green, text
-                        );
+                        helper_text_color(&ctx, &self.local_team, red, text, green, text);
                     }
                     C4State::Detonated => {
                         let text = "Bomb has been detonated";
-                        helper_text_color(&ctx, &self.local_team,
-                                          green, text,
-                                          red, text
-                        );
+                        helper_text_color(&ctx, &self.local_team, green, text, red, text);
                     }
                     C4State::Dropped => {
                         let text = "Bomb has been dropped";
-                        helper_text_color(&ctx, &self.local_team,
-                                          red, text,
-                                          orange, text
-                        );
+                        helper_text_color(&ctx, &self.local_team, red, text, orange, text);
                     }
                 }
             });

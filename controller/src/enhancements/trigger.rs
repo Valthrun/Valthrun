@@ -12,7 +12,11 @@ use rand::{
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
-use crate::{view::LocalCrosshair, UpdateContext, RenderContext};
+use crate::{
+    view::LocalCrosshair,
+    RenderContext,
+    UpdateContext,
+};
 
 enum TriggerState {
     Idle,

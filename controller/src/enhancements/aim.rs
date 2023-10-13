@@ -1,8 +1,8 @@
 use anyhow::Context;
 use valthrun_kernel_interface::MouseState;
-use crate::RenderContext;
 
 use super::Enhancement;
+use crate::RenderContext;
 
 pub struct AntiAimPunsh {
     mouse_sensitivity: f32,

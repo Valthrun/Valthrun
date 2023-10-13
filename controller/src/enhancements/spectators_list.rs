@@ -7,9 +7,9 @@ use cs2_schema_generated::cs2::client::{
     C_CSPlayerPawnBase,
 };
 use obfstr::obfstr;
-use crate::RenderContext;
 
 use super::Enhancement;
+use crate::RenderContext;
 
 pub struct SpectatorInfo {
     pub spectator_name: String,
@@ -186,10 +186,7 @@ impl Enhancement for SpectatorsList {
         Ok(())
     }
 
-    fn render(
-        &self,
-        ctx: RenderContext,
-    ) {
+    fn render(&self, ctx: RenderContext) {
         if !ctx.settings.spectators_list {
             return;
         }
@@ -204,7 +201,8 @@ impl Enhancement for SpectatorsList {
         let mut offset_y = offset_y;
 
         ctx.ui.set_cursor_pos([offset_x, offset_y]);
-        ctx.ui.text(&format!("Spectator(s): {}", &self.spectators.len()));
+        ctx.ui
+            .text(&format!("Spectator(s): {}", &self.spectators.len()));
         offset_y += ctx.ui.text_line_height_with_spacing();
 
         for spectator in &self.spectators {

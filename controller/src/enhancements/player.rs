@@ -25,11 +25,16 @@ use cs2_schema_generated::cs2::client::{
 use obfstr::obfstr;
 
 use super::Enhancement;
-use crate::{RenderContext, settings::{
-    AppSettings,
-    EspBoxType,
-    LineStartPosition,
-}, view::ViewController, weapon::WeaponId};
+use crate::{
+    settings::{
+        AppSettings,
+        EspBoxType,
+        LineStartPosition,
+    },
+    view::ViewController,
+    weapon::WeaponId,
+    RenderContext,
+};
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -345,7 +350,8 @@ impl Enhancement for PlayerESP {
                         continue;
                     };
 
-                    let parent_position = match ctx.view
+                    let parent_position = match ctx
+                        .view
                         .world_to_screen(&entry.bone_states[parent_index].position, true)
                     {
                         Some(position) => position,
@@ -376,8 +382,9 @@ impl Enhancement for PlayerESP {
                             if ctx.settings.esp_health_bar {
                                 let bar_y = vmin.y - ctx.settings.esp_boxes_thickness / 2.0
                                     + HEALTH_BAR_BORDER_WIDTH / 2.0;
-                                let bar_x =
-                                    vmin.x - ctx.settings.esp_health_bar_size - HEALTH_BAR_BORDER_WIDTH;
+                                let bar_x = vmin.x
+                                    - ctx.settings.esp_health_bar_size
+                                    - HEALTH_BAR_BORDER_WIDTH;
 
                                 let bar_height = vmax.y - vmin.y + ctx.settings.esp_boxes_thickness;
                                 let bar_width = ctx.settings.esp_health_bar_size;
@@ -440,7 +447,10 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if ctx.settings.esp_info_health || ctx.settings.esp_info_weapon || ctx.settings.esp_info_kit {
+            if ctx.settings.esp_info_health
+                || ctx.settings.esp_info_weapon
+                || ctx.settings.esp_info_kit
+            {
                 if let Some(pos) = ctx.view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(ctx.view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / ctx.view.screen_bounds.y;
