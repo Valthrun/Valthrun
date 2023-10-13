@@ -29,7 +29,8 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
-        LineStartPosition,
+        LineStartPosition, 
+        CrosshairType,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -507,6 +508,56 @@ impl Enhancement for PlayerESP {
                     draw.add_line(start_pos, player_screen_pos, *esp_color)
                         .thickness(1.0)
                         .build();
+                }
+            }
+            if settings.show_crosshair {
+                let crosshair_size = settings.crosshair_size;
+
+                let window_size = [view.screen_bounds.x, view.screen_bounds.y];
+                let center_x = window_size[0] / 2.0;
+                let center_y = window_size[1] / 2.0;
+
+                let crosshair_color = settings.crosshair_color;
+                match settings.crosshair_type {
+                    CrosshairType::Circle => {
+                            let circle_radius = crosshair_size;
+                        
+                            draw.add_circle(
+                                [center_x, center_y],
+                                circle_radius,
+                                crosshair_color,
+                            )
+                            .num_segments(32) 
+                            .thickness(1.0)
+                            .build();
+                        if settings.circle_crosshair_filled {
+                            draw.add_circle(
+                                [center_x, center_y],
+                                circle_radius,
+                                crosshair_color,
+                            )
+                            .num_segments(32) 
+                            .thickness(1.0)
+                            .filled(true)
+                            .build();
+                        }
+                    } CrosshairType::Arrow => {
+                        draw.add_line(
+                            [center_x - crosshair_size, center_y],
+                            [center_x + crosshair_size, center_y],
+                            crosshair_color,
+                        )
+                        .thickness(1.0)
+                        .build();
+
+                        draw.add_line(
+                            [center_x, center_y - crosshair_size],
+                            [center_x, center_y + crosshair_size],
+                            crosshair_color,
+                        )
+                        .thickness(1.0)
+                        .build();
+                    }
                 }
             }
         }

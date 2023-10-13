@@ -59,11 +59,25 @@ fn default_esp_health_bar_size() -> f32 {
 fn default_esp_line_position() -> LineStartPosition {
     LineStartPosition::Center
 }
-
+fn default_crosshair_type() -> CrosshairType {
+    CrosshairType::Circle
+}
+fn default_crosshair_size() -> f32 {
+    5.0
+}
+fn default_crosshair_color() -> [f32; 4] {
+    [0.0, 0.0, 0.0, 1.0]
+}
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
     Box2D,
     Box3D,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum CrosshairType {
+    Circle,
+    Arrow,
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
@@ -126,6 +140,21 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_false")]
+    pub show_crosshair: bool,
+
+    #[serde(default = "default_crosshair_type")]
+    pub crosshair_type: CrosshairType,
+
+    #[serde(default = "default_crosshair_size")]
+    pub crosshair_size: f32,
+
+    #[serde(default = "bool_true")]
+    pub circle_crosshair_filled: bool,
+
+    #[serde(default = "default_crosshair_color")]
+    pub crosshair_color: [f32; 4],
 
     #[serde(default = "bool_false")]
     pub spectators_list: bool,

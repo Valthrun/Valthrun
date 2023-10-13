@@ -14,6 +14,7 @@ use crate::{
         AppSettings,
         EspBoxType,
         LineStartPosition,
+        CrosshairType,
     },
     utils::ImGuiKey,
     Application,
@@ -209,6 +210,38 @@ impl SettingsUI {
 
                     if let Some(_) = ui.tab_item("Misc") {
                         ui.checkbox(obfstr!("Valthrun Watermark"), &mut settings.valthrun_watermark);
+                        ui.checkbox(obfstr!("Crosshair"), &mut settings.show_crosshair);
+                            if settings.show_crosshair {
+                                ui.set_next_item_width(120.0);
+                                const CROSSHAIR_TYPES: [ CrosshairType; 2 ] = [ CrosshairType::Circle, CrosshairType::Arrow];
+
+                                fn crosshair_type_name(value: &CrosshairType) -> Cow<'_, str> {
+                                    match value {
+                                        CrosshairType::Circle => "Circle",
+                                        CrosshairType::Arrow => "Arrow",
+                                    }.into()
+                                }
+
+                                let mut type_index = CROSSHAIR_TYPES.iter().position(|v| *v == settings.crosshair_type).unwrap_or_default();
+                                if ui.combo(obfstr!("Type"), &mut type_index, &CROSSHAIR_TYPES, &crosshair_type_name) {
+                                    settings.crosshair_type = CROSSHAIR_TYPES[type_index];
+                                }
+
+                                ui.same_line();
+                                ui.slider_config(obfstr!("Size"), 0.1, 10.0)
+                                    .build(&mut settings.crosshair_size);
+                                ui.color_edit4_config(obfstr!("Crosshair Color"), &mut settings.crosshair_color)
+                                .alpha_bar(true)
+                                .inputs(false)
+                                .label(false)
+                                .build();
+                                ui.same_line();
+                                ui.text(obfstr!("Crosshair Color"));
+                                ui.same_line();
+                                if settings.crosshair_type == CrosshairType::Circle {
+                                    ui.checkbox(obfstr!("Circle filled"), &mut settings.circle_crosshair_filled);
+                                }
+                            }
 
                         if ui.checkbox(obfstr!("Hide overlay from screen capture"), &mut settings.hide_overlay_from_screen_capture) {
                             app.settings_screen_capture_changed.store(true, Ordering::Relaxed);
@@ -217,8 +250,8 @@ impl SettingsUI {
                         if ui.checkbox(obfstr!("Show render debug overlay"), &mut settings.render_debug_window) {
                             app.settings_render_debug_window_changed.store(true, Ordering::Relaxed);
                         }
-                    }
                 }
-            });
+            }
+        });
     }
 }
