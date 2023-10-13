@@ -554,10 +554,11 @@ impl Enhancement for PlayerESP {
                                         esp_color[3],
                                     )
                                 } else {
-                                    Self::calculate_health_color_bar(
+                                    Self::calculate_health_color(entry.player_health)
+                                    /* Self::calculate_health_color_bar(
                                         normalized_player_health,
                                         esp_color[3],
-                                    )
+                                    ) */
                                 };
 
                                 draw.add_rect(

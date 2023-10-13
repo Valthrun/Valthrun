@@ -262,8 +262,7 @@ impl SettingsUI {
                                 ui.separator();
                             }
 
-                            ui.checkbox(obfstr!("Display player health"), &mut settings.esp_info_health);
-
+                            ui.checkbox(obfstr!("Show player health"), &mut settings.esp_info_health);
                             if settings.esp_info_health {
                                 ui.same_line();
                                 ui.set_next_item_width(120.0);
@@ -297,7 +296,6 @@ impl SettingsUI {
                                 }
                             }
 
-                            ui.checkbox(obfstr!("Show player health"), &mut settings.esp_info_health);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
                             if settings.esp_info_weapon {
                                 ui.same_line();
