@@ -12,9 +12,9 @@ use obfstr::obfstr;
 use crate::{
     settings::{
         AppSettings,
+        CrosshairType,
         EspBoxType,
         LineStartPosition,
-        CrosshairType,
     },
     utils::ImGuiKey,
     Application,

@@ -28,9 +28,9 @@ use super::Enhancement;
 use crate::{
     settings::{
         AppSettings,
-        EspBoxType,
-        LineStartPosition, 
         CrosshairType,
+        EspBoxType,
+        LineStartPosition,
     },
     view::ViewController,
     weapon::WeaponId,
@@ -520,28 +520,21 @@ impl Enhancement for PlayerESP {
                 let crosshair_color = settings.crosshair_color;
                 match settings.crosshair_type {
                     CrosshairType::Circle => {
-                            let circle_radius = crosshair_size;
-                        
-                            draw.add_circle(
-                                [center_x, center_y],
-                                circle_radius,
-                                crosshair_color,
-                            )
-                            .num_segments(32) 
+                        let circle_radius = crosshair_size;
+
+                        draw.add_circle([center_x, center_y], circle_radius, crosshair_color)
+                            .num_segments(32)
                             .thickness(1.0)
                             .build();
                         if settings.circle_crosshair_filled {
-                            draw.add_circle(
-                                [center_x, center_y],
-                                circle_radius,
-                                crosshair_color,
-                            )
-                            .num_segments(32) 
-                            .thickness(1.0)
-                            .filled(true)
-                            .build();
+                            draw.add_circle([center_x, center_y], circle_radius, crosshair_color)
+                                .num_segments(32)
+                                .thickness(1.0)
+                                .filled(true)
+                                .build();
                         }
-                    } CrosshairType::Arrow => {
+                    }
+                    CrosshairType::Arrow => {
                         draw.add_line(
                             [center_x - crosshair_size, center_y],
                             [center_x + crosshair_size, center_y],
