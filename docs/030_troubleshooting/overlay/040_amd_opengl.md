@@ -23,4 +23,7 @@ To install the AMD pro drivers, use DDU (Display Driver Uninstaller) and install
 
 ## 3. **Copying vulkan-1.dll from Chrome**
 Another approach that has been successful for some users is copying the "vulkan-1.dll" file from their local installation of the Google Chrome web browser and pasting it into the directory where the "controller.exe" for Valthrun is located. 
-This method has resolved the issue for some, making it a potential workaround for those experiencing driver-related problems.
+This method has resolved the issue for some, making it a potential workaround for those experiencing driver-related problems.  
+  
+The `vulkan-1.dll` shipped with Chrome can usually be found in the following folder:  
+`C:\Program Files (x86)\Google\Chrome\Application\` followed by a folder with the Chrome version number.  
