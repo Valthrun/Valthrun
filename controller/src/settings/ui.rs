@@ -109,6 +109,9 @@ impl SettingsUI {
                                     ui.slider("Bar Width", 2.0, 20.0, &mut settings.esp_health_bar_size);
                                     ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.esp_health_bar_rainbow);
                                 }
+
+                                ui.checkbox(obfstr!("Show Name"), &mut settings.esp_name);
+                                ui.checkbox(obfstr!("Bottom health bar"), &mut settings.esp_health_bar_bottom);
                             }
 
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
