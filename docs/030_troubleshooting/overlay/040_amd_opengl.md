@@ -27,3 +27,7 @@ This method has resolved the issue for some, making it a potential workaround fo
   
 The `vulkan-1.dll` shipped with Chrome can usually be found in the following folder:  
 `C:\Program Files (x86)\Google\Chrome\Application\` followed by a folder with the Chrome version number.  
+  
+**Note:**  
+If this does not solves your issue, ensure you're deleting the `vulkan-1.dll` located along with the `controller.exe`.  
+Keeping the `vulkan-1.dll` may cause some issues on its own.
