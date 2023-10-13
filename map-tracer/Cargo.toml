@@ -1,0 +1,20 @@
+[package]
+name = "map-tracer"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+log = "0.4.19"
+thiserror = "1.0.44"
+obfstr = "0.4.3"
+serde_json = "1.0.104"
+nalgebra = "0.32.3"
+byteorder = "1.4.3"
+crc = "3.0.1"
+zstd = "0.12.4"
+bitflags = "2.4.0"
+serde = { version = "1.0.188", features = ["derive"] }
+
+[dev-dependencies]
+anyhow = "1.0.75"
+env_logger = "0.10.0"

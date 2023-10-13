@@ -398,6 +398,9 @@ impl System {
 
         let mut perf = PerfTracker::new(PERF_RECORDS);
         event_loop.run(move |event, _, control_flow| {
+            /* ensure, that the renderer is dropped before the vulkan context */
+            let renderer = &mut renderer;
+
             *control_flow = ControlFlow::Poll;
             platform.handle_event(runtime_controller.imgui.io_mut(), &window, &event);
 
@@ -543,7 +546,7 @@ impl System {
                             swapchain.framebuffers[image_index as usize],
                             swapchain.render_pass,
                             swapchain.extent,
-                            &mut renderer,
+                            renderer,
                             &draw_data,
                         )
                         .expect("Failed to record command buffer");
@@ -623,7 +626,6 @@ impl SystemRuntimeController {
         self.key_input_system.update(window, self.imgui.io_mut());
         self.active_tracker.update(window, self.imgui.io());
         if !self.window_tracker.update(window) {
-            log::info!("Target window has been closed. Exiting overlay.");
             return false;
         }
 

@@ -6,6 +6,7 @@ members = [
     "cs2-schema/generated",
     "kernel/interface",
     "kernel/shared",
+    "map-tracer",
     "controller",
     "cs2",
     "overlay",

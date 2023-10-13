@@ -24,6 +24,12 @@ pub struct CS2Offsets {
 
     /// Offset for the crosshair entity id in C_CSPlayerPawn
     pub offset_crosshair_id: u64,
+
+    /// Offset of the CNetworkGameClient
+    pub network_game_client_instance: u64,
+
+    /// Offset of the CFileSystem_Stdio
+    pub file_system_stdio: u64,
 }
 
 impl CS2Offsets {
@@ -38,6 +44,10 @@ impl CS2Offsets {
                 .with_context(|| obfstr!("view matrix").to_string())?,
             offset_crosshair_id: Self::find_offset_crosshair_id(cs2)
                 .with_context(|| obfstr!("crosshair id").to_string())?,
+            network_game_client_instance: Self::find_network_game_client_instance(cs2)
+                .with_context(|| obfstr!("network game client instance").to_string())?,
+            file_system_stdio: Self::find_file_studio_instance(cs2)
+                .with_context(|| obfstr!("file system stdio").to_string())?,
         })
     }
 
@@ -98,6 +108,30 @@ impl CS2Offsets {
                 obfstr!("C_CSPlayerPawn crosshair id"),
                 obfstr!("41 89 86 ? ? ? ? 41 89 86"),
                 0x03,
+            ),
+        )
+    }
+
+    fn find_network_game_client_instance(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        cs2.resolve_signature(
+            Module::Engine,
+            &Signature::relative_address(
+                obfstr!("network game client instance"),
+                obfstr!("48 89 1D ? ? ? ? 48 8B CB"),
+                0x03,
+                0x07,
+            ),
+        )
+    }
+
+    fn find_file_studio_instance(cs2: &CS2Handle) -> anyhow::Result<u64> {
+        cs2.resolve_signature(
+            Module::Engine,
+            &Signature::relative_address(
+                obfstr!("file system studio"),
+                obfstr!("48 8B 0D ? ? ? ? 4C 8D 4D 30 45"),
+                0x03,
+                0x07,
             ),
         )
     }

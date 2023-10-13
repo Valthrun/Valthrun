@@ -1,3 +1,4 @@
+#![feature(iterator_try_collect)]
 #![allow(dead_code)]
 
 use std::{
@@ -9,7 +10,10 @@ use std::{
     fmt::Debug,
     fs::File,
     io::BufWriter,
-    path::PathBuf,
+    path::{
+        Path,
+        PathBuf,
+    },
     rc::Rc,
     sync::{
         atomic::{
@@ -48,6 +52,10 @@ use imgui::{
     FontSource,
     Ui,
 };
+use map::{
+    get_current_map,
+    MapInfo,
+};
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -76,6 +84,7 @@ use crate::{
         SpectatorsList,
         TriggerBot,
     },
+    map::get_game_directory,
     settings::save_app_settings,
     view::LocalCrosshair,
     winver::version_info,
@@ -85,6 +94,8 @@ mod build;
 mod cache;
 mod class_name_cache;
 mod enhancements;
+mod map;
+mod physics;
 mod settings;
 mod utils;
 mod view;
@@ -114,6 +125,10 @@ pub struct UpdateContext<'a> {
     pub settings: &'a AppSettings,
     pub input: &'a dyn KeyboardInput,
 
+    pub game_dir: &'a Path,
+    pub current_map: &'a Option<MapInfo>,
+    pub current_map_changed: &'a bool,
+
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,
 
@@ -136,6 +151,10 @@ pub struct Application {
     pub cs2_entities: EntitySystem,
     pub cs2_globals: Option<Globals>,
     pub cs2_build_info: BuildInfo,
+
+    pub game_directory: PathBuf,
+    pub current_map: Option<MapInfo>,
+    pub current_map_changed: bool,
 
     pub model_cache: EntryCache<u64, CS2Model>,
     pub class_name_cache: ClassNameCache,
@@ -232,6 +251,11 @@ impl Application {
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
+        let new_map_info =
+            get_current_map(&self.cs2, self.cs2_offsets.network_game_client_instance)?;
+        self.current_map_changed = self.current_map == new_map_info;
+        self.current_map = new_map_info;
+
         self.cs2_entities
             .read_entities()
             .with_context(|| obfstr!("failed to read global entity list").to_string())?;
@@ -243,6 +267,10 @@ impl Application {
         let update_context = UpdateContext {
             cs2: &self.cs2,
             cs2_entities: &self.cs2_entities,
+
+            game_dir: &self.game_directory,
+            current_map: &self.current_map,
+            current_map_changed: &self.current_map_changed,
 
             settings: &*settings,
             input: ui,
@@ -452,6 +480,7 @@ fn main_overlay() -> anyhow::Result<()> {
             return Err(err);
         }
     };
+
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -468,6 +497,8 @@ fn main_overlay() -> anyhow::Result<()> {
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?,
     );
 
+    let game_directory = get_game_directory(&cs2, cs2_offsets.file_system_stdio)?;
+    log::debug!("Game directory: {:?}", game_directory);
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
 
@@ -537,6 +568,10 @@ fn main_overlay() -> anyhow::Result<()> {
         cs2_globals: None,
         cs2_build_info,
 
+        game_directory,
+        current_map: None,
+        current_map_changed: false,
+
         model_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |model| {
@@ -562,6 +597,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 cs2_offsets.offset_crosshair_id,
             )))),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
+            // Rc::new(RefCell::new(MapVis::new()?)),
         ],
 
         last_total_read_calls: 0,
@@ -575,6 +611,7 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_screen_capture_changed: AtomicBool::new(true),
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
+
     let app = Rc::new(RefCell::new(app));
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));

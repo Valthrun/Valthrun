@@ -38,6 +38,15 @@ impl ViewController {
         vec: &nalgebra::Vector3<f32>,
         allow_of_screen: bool,
     ) -> Option<mint::Vector2<f32>> {
+        self.world_to_screen2(vec, allow_of_screen).map(|(p, _)| p)
+    }
+
+    /// Returning a tuple containing the screen cords as well as the distance from the camera.
+    pub fn world_to_screen2(
+        &self,
+        vec: &nalgebra::Vector3<f32>,
+        allow_of_screen: bool,
+    ) -> Option<(mint::Vector2<f32>, f32)> {
         let screen_coords =
             nalgebra::Vector4::new(vec.x, vec.y, vec.z, 1.0).transpose() * self.view_matrix;
 
@@ -60,7 +69,7 @@ impl ViewController {
         ]);
         screen_pos.x = (screen_pos.x + 1.0) * self.screen_bounds.x / 2.0;
         screen_pos.y = (-screen_pos.y + 1.0) * self.screen_bounds.y / 2.0;
-        Some(screen_pos)
+        Some((screen_pos, screen_coords.z))
     }
 
     pub fn calculate_box_2d(

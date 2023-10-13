@@ -43,11 +43,13 @@ macro_rules! define_schema {
     };
 
     (
+        $(#[$struct_meta:meta])*
         pub struct $name:ident[$size:literal] $(: $parent:ty)? {
             $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:literal, )*
         } $($next:tt)*
     ) => {
         #[derive(Clone)]
+        $(#[$struct_meta])*
         pub struct $name {
             $(parent: $parent,)*
             pub memory: cs2_schema_declaration::MemoryHandle,

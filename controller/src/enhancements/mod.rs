@@ -29,6 +29,9 @@ pub use spectators_list::*;
 mod aim;
 pub use aim::*;
 
+mod map;
+pub use map::*;
+
 use crate::{
     view::ViewController,
     UpdateContext,
