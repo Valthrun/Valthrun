@@ -32,7 +32,7 @@ fn default_esp_skeleton_thickness() -> f32 {
     3.0
 }
 fn default_esp_boxes_thickness() -> f32 {
-    3.0
+    1.5
 }
 fn default_u32<const V: u32>() -> u32 {
     V
@@ -42,7 +42,7 @@ fn default_i32<const V: i32>() -> i32 {
 }
 
 fn default_key_settings() -> HotKey {
-    Key::Pause.into()
+    Key::Home.into()
 }
 fn default_key_trigger_bot() -> Option<HotKey> {
     Some(Key::MouseMiddle.into())
@@ -104,7 +104,13 @@ pub struct AppSettings {
     pub esp_boxes_thickness: f32,
 
     #[serde(default = "bool_false")]
+    pub esp_name: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_health_bar: bool,
+
+    #[serde(default = "bool_false")]
+    pub esp_health_bar_bottom: bool,
 
     #[serde(default = "default_esp_health_bar_size")]
     pub esp_health_bar_size: f32,
