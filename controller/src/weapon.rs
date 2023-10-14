@@ -71,7 +71,6 @@ define_weapons! {
         M4A1 { id: 16, name: "M4A1", flags: WEAPON_FLAG_TYPE_RIFLE },
         Mac10 { id: 17, name: "MAC-10", flags: WEAPON_FLAG_TYPE_SMG },
         P90 { id: 19, name: "P90", flags: WEAPON_FLAG_TYPE_SMG },
-        MP5SD { id: 23, name: "MP5-SD", flags: WEAPON_FLAG_TYPE_SMG },
         Ump45 { id: 24, name: "UMP-45", flags: WEAPON_FLAG_TYPE_SMG },
         XM1014 { id: 25, name: "XM1014", flags: WEAPON_FLAG_TYPE_SHOTGUN },
         Bizon { id: 26, name: "PP-Bizon", flags: WEAPON_FLAG_TYPE_SMG },
