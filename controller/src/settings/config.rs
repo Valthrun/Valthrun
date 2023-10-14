@@ -83,9 +83,6 @@ pub struct AppSettings {
     pub key_settings: HotKey,
 
     #[serde(default = "bool_true")]
-    pub escape_close: bool,
-
-    #[serde(default = "bool_true")]
     pub esp: bool,
 
     #[serde(default = "default_key_none")]

@@ -95,10 +95,14 @@ impl BombInfo {
                 /* The bomb is dropped. */
                 let rules_proxy = entity_identity
                     .entity_ptr::<C_CSGameRulesProxy>()?
-                    .read_schema()
-                    .context("game rules missing")?;
+                    .reference_schema()
+                    .context("rules proxy missing")?;
 
-                let game_rules = rules_proxy.m_pGameRules()?.read_schema().unwrap();
+                let game_rules = rules_proxy
+                    .m_pGameRules()?
+                    .reference_schema()
+                    .context("game rules missing")?;
+                ();
 
                 if game_rules.m_bBombDropped().unwrap_or_default() {
                     return Ok(Some(C4Info {
@@ -211,8 +215,8 @@ impl Enhancement for BombInfo {
 
             let player_pawn = entity_identity
                 .entity_ptr::<C_CSPlayerPawn>()?
-                .read_schema()
-                .unwrap();
+                .reference_schema()
+                .context("missing player pawn")?;
 
             let player_has_defuser = player_pawn
                 .m_pItemServices()?
@@ -225,20 +229,21 @@ impl Enhancement for BombInfo {
             }
         }
 
-        let local_controller = ctx.cs2_entities.get_local_player_controller()?;
-
-        if local_controller.is_null()? {
-            return Ok(());
-        }
-
-        let local_pawn = ctx
+        let local_controller = ctx
             .cs2_entities
-            .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
-            .context("missing local player pawn")?
-            .entity()?
-            .read_schema()?;
+            .get_local_player_controller()?
+            .try_reference_schema()
+            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
 
-        self.local_team = local_pawn.m_iTeamNum().unwrap_or_default();
+        let local_controller = match local_controller {
+            Some(controller) => controller,
+            None => {
+                /* We're currently not connected */
+                return Ok(());
+            }
+        };
+
+        self.local_team = local_controller.m_iPendingTeamNum()?;
         self.bomb_state = self.read_state(ctx)?;
         Ok(())
     }
@@ -264,6 +269,7 @@ impl Enhancement for BombInfo {
             .collapsible(show_bg2)
             .title_bar(show_bg2)
             .draw_background(show_bg)
+            .movable(!show_bg2)
             .build(|| {
                 // Common Colors
                 let white = [1.0, 1.0, 1.0, 1.0]; // White

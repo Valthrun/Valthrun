@@ -221,7 +221,6 @@ impl Application {
 
         let settings = self.settings.borrow();
         let escape_close = self.settings_visible
-            && settings.escape_close
             && ui.is_key_pressed_no_repeat(Key::Escape);
 
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) || escape_close {
@@ -334,12 +333,13 @@ impl Application {
 
         for hack in self.enhancements.iter() {
             let hack = hack.borrow();
-            hack.render(RenderContext {
+            let ctx = RenderContext {
                 app: self,
                 settings: &*settings,
                 ui: &*ui,
                 view: &self.view_controller,
-            });
+            };
+            hack.render(ctx);
         }
     }
 }
