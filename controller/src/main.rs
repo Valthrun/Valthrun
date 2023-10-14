@@ -484,7 +484,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
                 let font_size = 18.0;
                 let valthrun_font = imgui.fonts().add_font(&[FontSource::TtfData {
-                    data: include_bytes!("../resources/Controller-Regular.otf"),
+                    data: include_bytes!("../resources/Controller-Regular.ttf"),
                     size_pixels: font_size,
                     config: Some(FontConfig {
                         rasterizer_multiply: 1.5,
