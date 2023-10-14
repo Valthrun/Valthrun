@@ -145,7 +145,7 @@ impl PlayerESP {
                 .context("invalid player name")?
                 .to_string()
         } else {
-            "unknown".to_string()
+            return Ok(None);
         };
 
         let player_has_defuser = player_pawn
@@ -228,10 +228,17 @@ impl Enhancement for PlayerESP {
         let mut updated = false;
 
         if let Some(hotkey) = &settings.esp_toogle {
-            if ui.is_key_pressed_no_repeat(hotkey.0) {
-                log::debug!("Toggle player ESP");
-                settings.esp = !settings.esp;
-                updated = true;
+            if ui.is_key_down(hotkey.0) {
+                if !settings.esp{
+                    settings.esp = true;
+                    updated = true;
+                }
+            }
+            else {
+                if settings.esp{
+                    settings.esp = false;
+                    updated = true;
+                }
             }
         }
 
