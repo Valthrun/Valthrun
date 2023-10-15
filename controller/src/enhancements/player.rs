@@ -145,7 +145,10 @@ impl PlayerESP {
                 .context("invalid player name")?
                 .to_string()
         } else {
-            log::warn!("Handle at address {:p} has no valid controller!", &controller_handle);
+            log::warn!(
+                "Handle at address {:p} has no valid controller!",
+                &controller_handle
+            );
             return Ok(None);
         };
 
