@@ -66,7 +66,7 @@ impl Enhancement for SpectatorsList {
 
             let local_observer_target_handle = local_obs_pawn
                 .m_pObserverServices()?
-                .read_schema()?
+                .reference_schema()?
                 .m_hObserverTarget()?;
 
             let current_local_observer_target = ctx

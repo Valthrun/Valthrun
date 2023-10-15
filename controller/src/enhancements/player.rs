@@ -145,7 +145,11 @@ impl PlayerESP {
                 .context("invalid player name")?
                 .to_string()
         } else {
-            "unknown".to_string()
+            log::warn!(
+                "Handle at address {:p} has no valid controller!",
+                &controller_handle
+            );
+            return Ok(None);
         };
 
         let player_has_defuser = player_pawn
