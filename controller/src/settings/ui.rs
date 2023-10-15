@@ -178,6 +178,7 @@ impl SettingsUI {
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
+                        ui.checkbox(obfstr!("Local Pos"), &mut settings.show_local_pos);
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {

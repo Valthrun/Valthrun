@@ -2,7 +2,6 @@ use std::{
     ffi::CStr,
     sync::Arc,
 };
-
 use anyhow::{
     Context,
     Result,
@@ -107,7 +106,7 @@ impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
             players: Default::default(),
-            local_team_id: 0,
+            local_team_id: 0, 
         }
     }
 

@@ -160,6 +160,9 @@ pub struct AppSettings {
     pub crosshair_color: [f32; 4],
 
     #[serde(default = "bool_false")]
+    pub show_local_pos: bool,
+
+    #[serde(default = "bool_false")]
     pub spectators_list: bool,
 
     #[serde(default = "bool_true")]
