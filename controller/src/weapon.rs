@@ -68,7 +68,7 @@ define_weapons! {
         G3SG1 { id: 11, name: "G3SG1", flags: WEAPON_FLAG_TYPE_SNIPER_RIFLE },
         Galilar { id: 13, name: "Galil AR", flags: WEAPON_FLAG_TYPE_RIFLE },
         M249 { id: 14, name: "M249", flags: WEAPON_FLAG_TYPE_MACHINE_GUN },
-        M4A1 { id: 16, name: "M4A4", flags: WEAPON_FLAG_TYPE_RIFLE },
+        M4A4 { id: 16, name: "M4A4", flags: WEAPON_FLAG_TYPE_RIFLE },
         Mac10 { id: 17, name: "MAC-10", flags: WEAPON_FLAG_TYPE_SMG },
         P90 { id: 19, name: "P90", flags: WEAPON_FLAG_TYPE_SMG },
         MP5SD { id: 23, name: "MP5-SD", flags: WEAPON_FLAG_TYPE_SMG },
