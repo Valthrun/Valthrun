@@ -319,44 +319,6 @@ impl Enhancement for PlayerESP {
     }
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
-        let draw = ui.get_window_draw_list();
-
-        let text_buf;
-        let text = obfstr!(text_buf = "valthrun [nightly] | fps XXX");
-        let fps = ui.io().framerate as i64;
-
-        // let col_upr_left = [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0, 1.0];
-        // let col_upr_right = [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0, 1.0];
-        // let col_bot_right = [0.0, 0.0, 0.0, 0.0];
-        // let col_bot_left = [0.0, 0.0, 0.0, 0.0];
-
-        // //draw.add_rect_filled_multicolor([10.0, 10.0], [15.0 + ui.calc_text_size(text)[0], 30.0], [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0, 1.0], [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0, 1.0], [0.0, 0.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0])
-        // draw.add_rect_filled_multicolor([10.0, 10.0], [15.0 + ui.calc_text_size(text)[0], 30.0], col_upr_left, col_upr_right, col_bot_right, col_bot_left)
-        //     .build();
-
-        const MULTICOLOR_RECT_CORNER_COLOR1: [f32; 3] =
-            [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0];
-        const MULTICOLOR_RECT_CORNER_COLOR2: [f32; 3] =
-            [245.0 / 255.0, 203.0 / 255.0, 66.0 / 255.0];
-        const MULTICOLOR_RECT_CORNER_COLOR3: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
-        const MULTICOLOR_RECT_CORNER_COLOR4: [f32; 4] = [0.0, 0.0, 0.0, 0.0];
-        draw.add_rect_filled_multicolor(
-            [10.0, 10.0],
-            [15.0 + ui.calc_text_size(text)[0], 30.0],
-            MULTICOLOR_RECT_CORNER_COLOR4,
-            MULTICOLOR_RECT_CORNER_COLOR3,
-            MULTICOLOR_RECT_CORNER_COLOR2,
-            MULTICOLOR_RECT_CORNER_COLOR1,
-        );
-
-        // draw.add_rect([10.0, 10.0], [15.0 + ui.calc_text_size(text)[0], 30.0], [0.0, 0.0, 0.0, 0.9])
-        //     .filled(true)
-        //     .build();
-
-        ui.set_cursor_pos([15.0, 10.0]);
-
-        ui.text(format!("valthrun [nightly] | fps {}", fps));
-
         for entry in self.players.iter() {
             let esp_color = if entry.team_id == self.local_team_id {
                 if !settings.esp_enabled_team {
@@ -492,7 +454,7 @@ impl Enhancement for PlayerESP {
                         Self::calculate_health_color(normalized_player_health, esp_color[3])
                     };
 
-                    // Replace the existing `add_rect` call for the bottom health bar with this code
+
                     draw.add_rect(
                         [
                             bottom_bar_x + HEALTH_BAR_BORDER_WIDTH,
