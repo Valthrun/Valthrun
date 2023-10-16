@@ -60,7 +60,7 @@ pub enum C4State {
 
 pub struct BombInfo {
     /// Number of Counter-Terrorists with kit
-    num_kit: u8,
+    any_kit: bool,
 
     /// Local Team Identifier
     local_team: u8,
@@ -72,7 +72,7 @@ pub struct BombInfo {
 impl BombInfo {
     pub fn new() -> Self {
         Self {
-            num_kit: 0,
+            any_kit: false,
             local_team: 0,
             bomb_state: None,
         }
@@ -224,8 +224,9 @@ impl Enhancement for BombInfo {
                 .reference_schema()?
                 .m_bHasDefuser()?;
 
-            if player_has_defuser {
-                self.num_kit += 1;
+            if player_pawn.m_iHealth().unwrap_or(0) != 0 && player_has_defuser {
+                self.any_kit = true;
+                break;
             }
         }
 
@@ -329,7 +330,7 @@ impl Enhancement for BombInfo {
 
                         let mut boom_color = [0.0, 0.0, 0.0, 0.0];
 
-                        if *&self.num_kit > 0 {
+                        if *&self.any_kit {
                             if is_terrorist {
                                 boom_color = red;
                                 if ten_seconds {

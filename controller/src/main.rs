@@ -125,6 +125,7 @@ pub struct UpdateContext<'a> {
     pub globals: Globals,
 }
 
+#[derive(Clone, Copy)]
 pub struct RenderContext<'a> {
     pub app: &'a Application,
     pub settings: &'a AppSettings,
@@ -331,14 +332,15 @@ impl Application {
             }
         }
 
+        let ctx = RenderContext {
+            app: self,
+            settings: &*settings,
+            ui: &*ui,
+            view: &self.view_controller,
+        };
+
         for hack in self.enhancements.iter() {
             let hack = hack.borrow();
-            let ctx = RenderContext {
-                app: self,
-                settings: &*settings,
-                ui: &*ui,
-                view: &self.view_controller,
-            };
             hack.render(ctx);
         }
     }
