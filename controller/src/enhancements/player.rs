@@ -549,7 +549,7 @@ impl Enhancement for PlayerESP {
                     }
 
                     let settings_list = [
-                        settings.esp_info_kit,
+                        settings.esp_info_kit && entry.player_has_defuser,
                         settings.esp_info_distance,
                         //rest of flags go here
                     ];
