@@ -42,7 +42,7 @@ fn default_i32<const V: i32>() -> i32 {
 }
 
 fn default_key_settings() -> HotKey {
-    Key::Home.into()
+    Key::Pause.into()
 }
 fn default_key_trigger_bot() -> Option<HotKey> {
     Some(Key::MouseMiddle.into())
