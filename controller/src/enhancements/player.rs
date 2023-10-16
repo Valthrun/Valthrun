@@ -459,7 +459,6 @@ impl Enhancement for PlayerESP {
                         Self::calculate_health_color(normalized_player_health, esp_color[3])
                     };
 
-
                     draw.add_rect(
                         [
                             bottom_bar_x + HEALTH_BAR_BORDER_WIDTH,

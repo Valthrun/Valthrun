@@ -301,7 +301,6 @@ impl Application {
                     10.0,
                 ]);
                 ui.text(text);
-                
             }
             {
                 let text = format!("{:.2} FPS", ui.io().framerate);
