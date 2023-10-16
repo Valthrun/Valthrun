@@ -586,7 +586,7 @@ impl Enhancement for PlayerESP {
                         }
 
                         if settings.esp_info_distance {
-                            let text = format!("{:.0}m", distance);
+                            let text = format!("{:.0}m", distance / 100.0);
 
                             let mut pos = pos.clone();
                             pos.x = vmax.x + 3.0;
