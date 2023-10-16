@@ -319,6 +319,7 @@ impl Enhancement for PlayerESP {
     }
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
+        let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
             let esp_color = if entry.team_id == self.local_team_id {
                 if !settings.esp_enabled_team {
