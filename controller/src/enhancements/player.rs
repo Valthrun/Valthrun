@@ -145,7 +145,11 @@ impl PlayerESP {
                 .context("invalid player name")?
                 .to_string()
         } else {
-            "unknown".to_string()
+            log::warn!(
+                "Handle at address {:p} has no valid controller!",
+                &controller_handle
+            );
+            return Ok(None);
         };
 
         let player_has_defuser = player_pawn
@@ -514,7 +518,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_weapon || settings.esp_info_kit {
+            if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
