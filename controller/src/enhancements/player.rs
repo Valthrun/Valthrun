@@ -100,6 +100,7 @@ impl CModelStateEx for CModelState {
 pub struct PlayerESP {
     players: Vec<PlayerInfo>,
     local_team_id: u8,
+    local_pos: nalgebra::Vector3<f32>,
 }
 
 impl PlayerESP {
@@ -107,6 +108,7 @@ impl PlayerESP {
         PlayerESP {
             players: Default::default(),
             local_team_id: 0,
+            local_pos: Default::default(),
         }
     }
 
@@ -264,6 +266,21 @@ impl Enhancement for PlayerESP {
                 return Ok(());
             }
         };
+
+        let local_controller = ctx.cs2_entities.get_local_player_controller()?;
+        if local_controller.is_null()? {
+            return Ok(());
+        }
+
+        let local_pawn = ctx
+            .cs2_entities
+            .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
+            .context("missing local player pawn")?
+            .entity()?
+            .read_schema()?;
+
+        let localpos = nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+        self.local_pos = localpos;
 
         let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
             local_player_controller.m_hPawn()?.get_entity_index()
@@ -519,38 +536,66 @@ impl Enhancement for PlayerESP {
 
             if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
-                    let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
-                    let target_scale = entry_height * 15.0 / view.screen_bounds.y;
-                    let target_scale = target_scale.clamp(0.5, 1.25);
-                    ui.set_window_font_scale(target_scale);
-
-                    let mut y_offset = 0.0;
-
-                    if settings.esp_info_weapon {
-                        let text = entry.weapon.display_name();
-                        let [text_width, _] = ui.calc_text_size(&text);
-
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset + ui.text_line_height_with_spacing() * target_scale;
-
-                        draw.add_text(pos, esp_color.clone(), text);
-
-                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    let dx = entry.position.x - self.local_pos.x;
+                    let dy = entry.position.y - self.local_pos.y;
+                    let dz = entry.position.z - self.local_pos.z;
+                    let distance = (dx * dx + dy * dy + dz * dz).sqrt();
+                    if distance <= 400.0 {
+                        ui.set_window_font_scale(1.0);
+                    } else if distance < 1000.0 {
+                        ui.set_window_font_scale(0.9);
+                    } else {
+                        ui.set_window_font_scale(0.8);
                     }
 
-                    if entry.player_has_defuser && settings.esp_info_kit {
-                        let text = "KIT";
-                        let [text_width, _] = ui.calc_text_size(&text);
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
-                        draw.add_text(pos, esp_color.clone(), text);
+                    let settings_list = [
+                        settings.esp_info_kit,
+                        settings.esp_info_distance,
+                        //rest of flags go here
+                    ];
+                    let num_enabled_settings = settings_list.iter().filter(|&x| *x).count();
+                    let offset =
+                        ui.text_line_height_with_spacing() * (num_enabled_settings as f32 - 1.0);
 
-                        //y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    if let Some((vmin, vmax)) = view.calculate_box_2d(
+                        &(entry.model.vhull_min + entry.position),
+                        &(entry.model.vhull_max + entry.position),
+                    ) {
+                        if settings.esp_info_weapon {
+                            let text = entry.weapon.display_name();
+                            let [text_width, _] = ui.calc_text_size(&text);
+
+                            let mut pos = pos.clone();
+                            pos.x -= text_width / 2.0;
+                            pos.y = vmax.y;
+
+                            if settings.esp_health_bar_bottom {
+                                pos.y += settings.esp_health_bar_size;
+                            }
+
+                            draw.add_text(pos, esp_color.clone(), text);
+                        }
+
+                        if entry.player_has_defuser && settings.esp_info_kit {
+                            let text = "KIT";
+
+                            let mut pos = pos.clone();
+                            pos.x = vmax.x + 3.0;
+                            pos.y = vmin.y;
+                            draw.add_text(pos, esp_color.clone(), text);
+                        }
+
+                        if settings.esp_info_distance {
+                            let text = format!("{:.0}m", distance);
+
+                            let mut pos = pos.clone();
+                            pos.x = vmax.x + 3.0;
+                            pos.y = vmin.y + offset;
+                            draw.add_text(pos, esp_color.clone(), text);
+                        }
+
+                        ui.set_window_font_scale(1.0);
                     }
-
-                    ui.set_window_font_scale(1.0);
                 }
             }
 
