@@ -259,18 +259,20 @@ impl Enhancement for BombInfo {
             None => return,
         };
 
-        let show_bg = ctx.settings.bomb_timer_decor || ctx.app.settings_visible;
-        let show_bg2 = show_bg && ctx.app.settings_visible;
+        let app_visible = ctx.app.settings_visible;
+        let show_bg_game = ctx.settings.bomb_timer_decor || app_visible;
+        let show_bg_menu = show_bg_game && app_visible;
 
         ctx.ui
             .window(obfstr!("Bomb Info"))
             .size([250.0, 125.0], Condition::Appearing)
             // Disable all window decorations.
-            .resizable(show_bg2)
-            .collapsible(show_bg2)
-            .title_bar(show_bg2)
-            .draw_background(show_bg)
-            .movable(!show_bg2)
+            .resizable(show_bg_menu)
+            .collapsible(show_bg_menu)
+            .title_bar(show_bg_menu)
+            .draw_background(show_bg_game)
+            .movable(app_visible)
+            .mouse_inputs(app_visible)
             .build(|| {
                 // Common Colors
                 let white = [1.0, 1.0, 1.0, 1.0]; // White
@@ -295,18 +297,12 @@ impl Enhancement for BombInfo {
                     color_ct: impl Into<Vector4<f32>>,
                     text_ct: &str,
                 ) {
-                    match &player_team {
-                        2 => {
-                            // Terrorists
-                            ctx.ui.text_colored(color_t, text_t)
-                        }
-                        3 => {
-                            // Counter-Terrorists
-                            ctx.ui.text_colored(color_ct, text_ct)
-                        }
-                        &_ => {
-                            log::warn!("weird team id! {}", &player_team)
-                        }
+                    if matches!(&player_team, 2) {
+                        // Terrorists
+                        ctx.ui.text_colored(color_t, text_t)
+                    } else {
+                        // Counter-Terrorists
+                        ctx.ui.text_colored(color_ct, text_ct)
                     }
                 }
 
@@ -328,7 +324,7 @@ impl Enhancement for BombInfo {
                         let five_seconds = *time_detonation < 5f32;
                         let is_terrorist = matches!(&self.local_team, 2);
 
-                        let mut boom_color = [0.0, 0.0, 0.0, 0.0];
+                        let mut boom_color = white; // white by default
 
                         if *&self.any_kit {
                             if is_terrorist {

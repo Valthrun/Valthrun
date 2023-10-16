@@ -221,8 +221,7 @@ impl Application {
         }
 
         let settings = self.settings.borrow();
-        let escape_close = self.settings_visible
-            && ui.is_key_pressed_no_repeat(Key::Escape);
+        let escape_close = self.settings_visible && ui.is_key_pressed_no_repeat(Key::Escape);
 
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) || escape_close {
             log::debug!("Toogle settings; escaped {}", escape_close);
