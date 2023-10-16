@@ -1,6 +1,10 @@
 use std::{
-    io::{self, ErrorKind},
-    process::Command, path::Path,
+    io::{
+        self,
+        ErrorKind,
+    },
+    path::Path,
+    process::Command,
 };
 
 use winres::WindowsResource;
@@ -8,11 +12,7 @@ use winres::WindowsResource;
 fn main() -> io::Result<()> {
     {
         let git_hash = if Path::new("../.git").exists() {
-            match {
-                Command::new("git")
-                    .args(&["rev-parse", "HEAD"])
-                    .output()
-            } {
+            match { Command::new("git").args(&["rev-parse", "HEAD"]).output() } {
                 Ok(output) => String::from_utf8(output.stdout).expect("the git hash to be utf-8"),
                 Err(error) => {
                     if error.kind() == ErrorKind::NotFound {
