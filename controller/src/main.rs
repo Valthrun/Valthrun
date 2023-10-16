@@ -426,6 +426,7 @@ fn main_overlay() -> anyhow::Result<()> {
         env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
+    log::info!("Current executable was built on {}", env!("BUILD_TIME"));
 
     if unsafe { IsUserAnAdmin().as_bool() } {
         log::warn!("Please do not run this as administrator!");

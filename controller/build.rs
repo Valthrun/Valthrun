@@ -7,6 +7,7 @@ use std::{
     process::Command,
 };
 
+use chrono::Utc;
 use winres::WindowsResource;
 
 fn main() -> io::Result<()> {
@@ -30,7 +31,10 @@ fn main() -> io::Result<()> {
             panic!("Expected the git hash to be at least seven characters long");
         }
 
+        let build_time = Utc::now().to_string();
+
         println!("cargo:rustc-env=GIT_HASH={}", &git_hash[0..7]);
+        println!("cargo:rustc-env=BUILD_TIME={}", build_time);
     }
 
     {

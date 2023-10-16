@@ -27,3 +27,4 @@ libloading = "0.7.4" # Same version as used by ash
 
 [build-dependencies]
 winres = "0.1"
+chrono = "0.4.26"
