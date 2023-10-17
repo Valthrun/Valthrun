@@ -183,7 +183,7 @@ impl SettingsUI {
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
                         ui.checkbox(obfstr!("Hold Enable Trigger Bot"), &mut settings.hold_enable_trigger_bot);
                         ui.button_key_optional(obfstr!("Trigger Bot"), &mut settings.key_trigger_bot, [150.0, 0.0]);
-                        if settings.key_trigger_bot.is_some() {
+                        if settings.hold_enable_trigger_bot || settings.key_trigger_bot.is_some() {
                             let mut values_updated = false;
 
                             ui.text(obfstr!("Trigger delay: ")); ui.same_line();
