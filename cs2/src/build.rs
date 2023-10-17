@@ -1,4 +1,4 @@
-use cs2::{
+use crate::{
     CS2Handle,
     EngineBuildInfo,
     Module,

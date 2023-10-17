@@ -25,7 +25,6 @@ use std::{
 };
 
 use anyhow::Context;
-use build::BuildInfo;
 use cache::EntryCache;
 use clap::{
     Args,
@@ -38,7 +37,7 @@ use cs2::{
     CS2Model,
     CS2Offsets,
     EntitySystem,
-    Globals,
+    Globals, BuildInfo,
 };
 use enhancements::Enhancement;
 use imgui::{
@@ -61,11 +60,11 @@ use settings::{
     AppSettings,
     SettingsUI,
 };
-use valthrun_kernel_interface::KInterfaceError;
+use valthrun_kernel_interface::{KInterfaceError, KeyboardState};
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
-    UI::Shell::IsUserAnAdmin,
+    UI::{Shell::IsUserAnAdmin, Input::KeyboardAndMouse::{GetAsyncKeyState, VK_XBUTTON2, VK_MBUTTON}},
 };
 
 use crate::{
@@ -81,7 +80,6 @@ use crate::{
     winver::version_info,
 };
 
-mod build;
 mod cache;
 mod class_name_cache;
 mod enhancements;
@@ -359,6 +357,7 @@ fn main() {
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
         AppCommand::Overlay => main_overlay(),
+        AppCommand::BHop => main_bhop(),
     };
 
     if let Err(error) = result {
@@ -381,6 +380,8 @@ struct AppArgs {
 enum AppCommand {
     /// Start the overlay
     Overlay,
+
+    BHop,
 
     /// Create a schema dump
     DumpSchema(SchemaDumpArgs),
@@ -415,6 +416,11 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     let mut output = BufWriter::new(output);
     serde_json::to_writer_pretty(&mut output, &schema)?;
     log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
+    Ok(())
+}
+
+fn main_bhop() -> anyhow::Result<()> {
+    
     Ok(())
 }
 
