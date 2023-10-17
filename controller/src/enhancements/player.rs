@@ -536,10 +536,7 @@ impl Enhancement for PlayerESP {
 
             if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
-                    let dx = entry.position.x - self.local_pos.x;
-                    let dy = entry.position.y - self.local_pos.y;
-                    let dz = entry.position.z - self.local_pos.z;
-                    let distance = (dx * dx + dy * dy + dz * dz).sqrt();
+                    let distance = (entry.position - self.local_pos).norm();
                     if distance <= 400.0 {
                         ui.set_window_font_scale(1.0);
                     } else if distance < 1000.0 {
