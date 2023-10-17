@@ -18,6 +18,7 @@ use cs2_schema_declaration::{
 };
 use cs2_schema_generated::cs2::client::{
     CCSPlayer_ItemServices,
+    C_BasePlayerWeapon,
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
@@ -40,6 +41,7 @@ pub struct PlayerInfo {
     pub team_id: u8,
 
     pub player_health: i32,
+    pub player_ammo: i32,
     pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
@@ -126,6 +128,16 @@ impl PlayerESP {
             return Ok(None);
         }
 
+        //let ammo_count = player_pawn.m_iAmmo()?;
+
+
+        let player_ammo = player_pawn
+            .m_pWeaponServices()?
+            .cast::<C_BasePlayerWeapon>()
+            .reference_schema()?
+            .m_iClip1()?;
+
+
         /* Will be an instance of CSkeletonInstance */
         let game_screen_node = player_pawn
             .m_pGameSceneNode()?
@@ -195,6 +207,7 @@ impl PlayerESP {
             player_name,
             player_has_defuser,
             player_health,
+            player_ammo,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
             position,
@@ -444,7 +457,7 @@ impl Enhancement for PlayerESP {
                     &(entry.model.vhull_min + entry.position),
                     &(entry.model.vhull_max + entry.position),
                 ) {
-                    let text = format!("{}", entry.player_name);
+                    let text = format!("{} {}", entry.player_name, entry.player_ammo);
                     let [text_width, _] = ui.calc_text_size(&text);
 
                     let mut pos = [
