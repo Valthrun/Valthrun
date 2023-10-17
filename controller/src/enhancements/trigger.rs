@@ -87,13 +87,11 @@ impl TriggerBot {
 
 impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
-        let should_be_active: bool;
-        if ctx.settings.hold_enable_trigger_bot {
-            should_be_active = true;
+        let should_be_active: bool = if ctx.settings.hold_enable_trigger_bot {
             self.crosshair.update(ctx)?;
-            self.should_be_active(ctx)?;
+            self.should_be_active(ctx)?
         } else {
-            should_be_active = if let Some(key) = &ctx.settings.key_trigger_bot {
+            if let Some(key) = &ctx.settings.key_trigger_bot {
                 if ctx.input.is_key_down(key.0) {
                     self.crosshair.update(ctx)?;
                     self.should_be_active(ctx)?
@@ -102,8 +100,8 @@ impl Enhancement for TriggerBot {
                 }
             } else {
                 false
-            };
-        }
+            }
+        };
 
         loop {
             match &self.state {
