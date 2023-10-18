@@ -18,7 +18,6 @@ use cs2_schema_declaration::{
 };
 use cs2_schema_generated::cs2::client::{
     CCSPlayer_ItemServices,
-    C_BasePlayerWeapon,
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
