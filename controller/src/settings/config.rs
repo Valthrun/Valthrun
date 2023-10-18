@@ -152,7 +152,7 @@ pub struct AppSettings {
     pub mouse_x_360: i32,
 
     #[serde(default = "bool_false")]
-    pub hold_enable_trigger_bot: bool,
+    pub trigger_bot_always_active: bool,
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,

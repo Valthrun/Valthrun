@@ -87,7 +87,7 @@ impl TriggerBot {
 
 impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
-        let should_be_active: bool = if ctx.settings.hold_enable_trigger_bot {
+        let should_be_active: bool = if ctx.settings.trigger_bot_always_active {
             self.crosshair.update(ctx)?;
             self.should_be_active(ctx)?
         } else {
