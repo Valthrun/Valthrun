@@ -128,16 +128,6 @@ impl PlayerESP {
             return Ok(None);
         }
 
-        //let ammo_count = player_pawn.m_iAmmo()?;
-
-
-        let player_ammo = player_pawn
-            .m_pWeaponServices()?
-            .cast::<C_BasePlayerWeapon>()
-            .reference_schema()?
-            .m_iClip1()?;
-
-
         /* Will be an instance of CSkeletonInstance */
         let game_screen_node = player_pawn
             .m_pGameSceneNode()?
@@ -191,6 +181,8 @@ impl PlayerESP {
             .collect::<Result<Vec<_>>>()?;
 
         let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+        let current_weapon = player_pawn.m_pClippingWeapon()?.read_schema()?;
+        let player_ammo = current_weapon.m_iClip1()?;
         let weapon_type = if let Some(weapon) = weapon {
             weapon
                 .m_AttributeManager()?
@@ -457,7 +449,7 @@ impl Enhancement for PlayerESP {
                     &(entry.model.vhull_min + entry.position),
                     &(entry.model.vhull_max + entry.position),
                 ) {
-                    let text = format!("{} {}", entry.player_name, entry.player_ammo);
+                    let text = format!("{}", entry.player_name);
                     let [text_width, _] = ui.calc_text_size(&text);
 
                     let mut pos = [
