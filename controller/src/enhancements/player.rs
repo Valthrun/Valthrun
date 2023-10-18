@@ -452,7 +452,11 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit || settings.esp_show_flashed {
+            if settings.esp_info_health
+                || settings.esp_info_weapon
+                || settings.esp_info_kit
+                || settings.esp_show_flashed
+            {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -499,13 +503,12 @@ impl Enhancement for PlayerESP {
                     if settings.esp_show_flashed {
                         let flashbang_time = entry.player_flashtime;
                         if flashbang_time > 0.0 {
-                    
                             let text = "flashed";
                             let [text_width, _] = ui.calc_text_size(&text);
                             let mut pos = pos.clone();
                             pos.x -= text_width / 2.0;
                             pos.y += y_offset;
-                            draw.add_text(pos, *esp_color, text);       
+                            draw.add_text(pos, *esp_color, text);
 
                             //y_offset += ui.text_line_height_with_spacing() * target_scale;
                         }
