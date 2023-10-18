@@ -1468,6 +1468,22 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "711b9620af191e0cdc7468a8d14e709c3dcdb115b36f838e601583af800a370a"
 
 [[package]]
+name = "valthrun-bhop"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cs2",
+ "cs2-schema-cutl",
+ "cs2-schema-declaration",
+ "cs2-schema-generated",
+ "env_logger",
+ "log",
+ "obfstr",
+ "valthrun-kernel-interface",
+ "windows",
+]
+
+[[package]]
 name = "valthrun-driver-shared"
 version = "0.1.0"
 
