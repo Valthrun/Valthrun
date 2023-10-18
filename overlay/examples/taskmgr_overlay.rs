@@ -8,9 +8,9 @@ fn main() -> anyhow::Result<()> {
 
     log::info!("Initialize overlay");
     let overlay = overlay::init(&overlay::OverlayOptions {
-        title: "Task Manager Overlay".to_string(), 
+        title: "Task Manager Overlay".to_string(),
         target: OverlayTarget::WindowTitle("Task Manager".into()),
-        font_init: None
+        font_init: None,
     })?;
     let mut text_input = Default::default();
     overlay.main_loop(

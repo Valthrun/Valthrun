@@ -33,11 +33,12 @@ use clap::{
 };
 use class_name_cache::ClassNameCache;
 use cs2::{
+    BuildInfo,
     CS2Handle,
     CS2Model,
     CS2Offsets,
     EntitySystem,
-    Globals, BuildInfo,
+    Globals,
 };
 use enhancements::Enhancement;
 use imgui::{
@@ -60,11 +61,21 @@ use settings::{
     AppSettings,
     SettingsUI,
 };
-use valthrun_kernel_interface::{KInterfaceError, KeyboardState};
+use valthrun_kernel_interface::{
+    KInterfaceError,
+    KeyboardState,
+};
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
-    UI::{Shell::IsUserAnAdmin, Input::KeyboardAndMouse::{GetAsyncKeyState, VK_XBUTTON2, VK_MBUTTON}},
+    UI::{
+        Input::KeyboardAndMouse::{
+            GetAsyncKeyState,
+            VK_MBUTTON,
+            VK_XBUTTON2,
+        },
+        Shell::IsUserAnAdmin,
+    },
 };
 
 use crate::{
@@ -420,7 +431,6 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
 }
 
 fn main_bhop() -> anyhow::Result<()> {
-    
     Ok(())
 }
 

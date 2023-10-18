@@ -148,7 +148,7 @@ impl PlayerESP {
             /*
              * This is the case for pawns which are not controllel by a player controller.
              * An example would be the main screen player pawns.
-             * 
+             *
              * Note: We're assuming, that uncontroller player pawns are neglectable while being in a match as the do not occurr.
              * Bots (and controller bots) always have a player pawn controller.
              */
