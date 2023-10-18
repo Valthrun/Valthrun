@@ -120,6 +120,7 @@ impl SettingsUI {
                             ui.checkbox(obfstr!("Show player health"), &mut settings.esp_info_health);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
                             ui.checkbox(obfstr!("Display if player has kit"), &mut settings.esp_info_kit);
+                            ui.checkbox(obfstr!("Show if player is flashed"), &mut settings.esp_show_flashed);
                             ui.checkbox(obfstr!("Show lines"), &mut settings.esp_lines);
                             if settings.esp_lines {
                                 ui.set_next_item_width(120.0);

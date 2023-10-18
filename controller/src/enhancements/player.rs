@@ -42,6 +42,7 @@ pub struct PlayerInfo {
     pub player_health: i32,
     pub player_has_defuser: bool,
     pub player_name: String,
+    pub player_flashtime: f32,
     pub weapon: WeaponId,
 
     pub position: nalgebra::Vector3<f32>,
@@ -186,6 +187,8 @@ impl PlayerESP {
             WeaponId::Knife.id()
         };
 
+        let player_flashtime = player_pawn.m_flFlashBangTime()?;
+
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
@@ -193,6 +196,7 @@ impl PlayerESP {
             player_name,
             player_has_defuser,
             player_health,
+            player_flashtime,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
 
             position,
@@ -448,7 +452,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit {
+            if settings.esp_info_health || settings.esp_info_weapon || settings.esp_info_kit || settings.esp_show_flashed {
                 if let Some(pos) = view.world_to_screen(&entry.position, false) {
                     let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
                     let target_scale = entry_height * 15.0 / view.screen_bounds.y;
@@ -489,7 +493,22 @@ impl Enhancement for PlayerESP {
                         pos.y += y_offset;
                         draw.add_text(pos, esp_color.clone(), text);
 
-                        //y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    }
+
+                    if settings.esp_show_flashed {
+                        let flashbang_time = entry.player_flashtime;
+                        if flashbang_time > 0.0 {
+                    
+                            let text = "flashed";
+                            let [text_width, _] = ui.calc_text_size(&text);
+                            let mut pos = pos.clone();
+                            pos.x -= text_width / 2.0;
+                            pos.y += y_offset;
+                            draw.add_text(pos, *esp_color, text);       
+
+                            //y_offset += ui.text_line_height_with_spacing() * target_scale;
+                        }
                     }
 
                     ui.set_window_font_scale(1.0);

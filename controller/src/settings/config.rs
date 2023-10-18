@@ -119,6 +119,9 @@ pub struct AppSettings {
     pub esp_info_health: bool,
 
     #[serde(default = "bool_false")]
+    pub esp_show_flashed: bool,
+
+    #[serde(default = "bool_false")]
     pub esp_info_weapon: bool,
 
     #[serde(default = "bool_false")]
