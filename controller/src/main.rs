@@ -427,11 +427,13 @@ fn main_bhop() -> anyhow::Result<()> {
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
-        "Valthrun v{} ({}). Windows build {}.",
+        "{} v{} ({}). Windows build {}.",
+        obfstr!("Valthrun"),
         env!("CARGO_PKG_VERSION"),
         env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
+    log::info!("Current executable was built on {}", env!("BUILD_TIME"));
 
     if unsafe { IsUserAnAdmin().as_bool() } {
         log::warn!("Please do not run this as administrator!");
