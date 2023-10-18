@@ -25,7 +25,6 @@ use std::{
 };
 
 use anyhow::Context;
-use build::BuildInfo;
 use cache::EntryCache;
 use clap::{
     Args,
@@ -34,6 +33,7 @@ use clap::{
 };
 use class_name_cache::ClassNameCache;
 use cs2::{
+    BuildInfo,
     CS2Handle,
     CS2Model,
     CS2Offsets,
@@ -61,11 +61,21 @@ use settings::{
     AppSettings,
     SettingsUI,
 };
-use valthrun_kernel_interface::KInterfaceError;
+use valthrun_kernel_interface::{
+    KInterfaceError,
+    KeyboardState,
+};
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
-    UI::Shell::IsUserAnAdmin,
+    UI::{
+        Input::KeyboardAndMouse::{
+            GetAsyncKeyState,
+            VK_MBUTTON,
+            VK_XBUTTON2,
+        },
+        Shell::IsUserAnAdmin,
+    },
 };
 
 use crate::{
@@ -81,7 +91,6 @@ use crate::{
     winver::version_info,
 };
 
-mod build;
 mod cache;
 mod class_name_cache;
 mod enhancements;
@@ -359,6 +368,7 @@ fn main() {
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
         AppCommand::Overlay => main_overlay(),
+        AppCommand::BHop => main_bhop(),
     };
 
     if let Err(error) = result {
@@ -381,6 +391,8 @@ struct AppArgs {
 enum AppCommand {
     /// Start the overlay
     Overlay,
+
+    BHop,
 
     /// Create a schema dump
     DumpSchema(SchemaDumpArgs),
@@ -418,14 +430,20 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn main_bhop() -> anyhow::Result<()> {
+    Ok(())
+}
+
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
-        "Valthrun v{} ({}). Windows build {}.",
+        "{} v{} ({}). Windows build {}.",
+        obfstr!("Valthrun"),
         env!("CARGO_PKG_VERSION"),
         env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
+    log::info!("Current executable was built on {}", env!("BUILD_TIME"));
 
     if unsafe { IsUserAnAdmin().as_bool() } {
         log::warn!("Please do not run this as administrator!");
