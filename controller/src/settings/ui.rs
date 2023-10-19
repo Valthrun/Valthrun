@@ -109,6 +109,9 @@ impl SettingsUI {
                                     ui.slider("Bar Width", 2.0, 20.0, &mut settings.esp_health_bar_size);
                                     ui.checkbox(obfstr!("Rainbow Health Bar (Random colors!)"), &mut settings.esp_health_bar_rainbow);
                                 }
+
+                                ui.checkbox(obfstr!("Show Name"), &mut settings.esp_name);
+                                ui.checkbox(obfstr!("Bottom health bar"), &mut settings.esp_health_bar_bottom);
                             }
 
                             ui.checkbox(obfstr!("ESP Skeletons"), &mut settings.esp_skeleton);
@@ -120,6 +123,7 @@ impl SettingsUI {
                             ui.checkbox(obfstr!("Show player health"), &mut settings.esp_info_health);
                             ui.checkbox(obfstr!("Show player weapon"), &mut settings.esp_info_weapon);
                             ui.checkbox(obfstr!("Display if player has kit"), &mut settings.esp_info_kit);
+                            ui.checkbox(obfstr!("Show distance"), &mut settings.esp_info_distance);
                             ui.checkbox(obfstr!("Show lines"), &mut settings.esp_lines);
                             if settings.esp_lines {
                                 ui.set_next_item_width(120.0);
