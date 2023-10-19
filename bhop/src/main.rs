@@ -357,7 +357,7 @@ fn main() -> anyhow::Result<()> {
             log_state = LogState::Armed;
         }
 
-        auto_strafe.update(should_jump)
-            .with_context(|| obfstr!("autostrafe").to_string())?;
+        // auto_strafe.update(should_jump)
+        //     .with_context(|| obfstr!("autostrafe").to_string())?;
     }
 }
