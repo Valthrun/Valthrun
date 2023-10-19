@@ -2,6 +2,7 @@ use anyhow::Context;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
+use crate::RenderContext;
 
 pub struct AntiAimPunsh {
     mouse_sensitivity: f32,
@@ -88,11 +89,7 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(
-        &self,
-        _settings: &crate::settings::AppSettings,
-        _ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
-    ) {
+    fn render(&self, _ctx: RenderContext) {
+        /* We have nothing to render */
     }
 }

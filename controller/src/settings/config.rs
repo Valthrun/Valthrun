@@ -131,6 +131,12 @@ pub struct AppSettings {
     pub bomb_timer: bool,
 
     #[serde(default = "bool_false")]
+    pub bomb_timer_decor: bool,
+
+    #[serde(default = "bool_false")]
+    pub bomb_timer_color: bool,
+
+    #[serde(default = "bool_false")]
     pub spectators_list: bool,
 
     #[serde(default = "bool_true")]

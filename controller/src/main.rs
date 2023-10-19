@@ -46,6 +46,7 @@ use imgui::{
     FontConfig,
     FontId,
     FontSource,
+    Key,
     Ui,
 };
 use obfstr::obfstr;
@@ -131,6 +132,14 @@ pub struct UpdateContext<'a> {
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
+}
+
+#[derive(Clone, Copy)]
+pub struct RenderContext<'a> {
+    pub app: &'a Application,
+    pub settings: &'a AppSettings,
+    pub ui: &'a Ui,
+    pub view: &'a ViewController,
 }
 
 pub struct AppFonts {
@@ -221,8 +230,10 @@ impl Application {
         }
 
         let settings = self.settings.borrow();
-        if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
-            log::debug!("Toogle settings");
+        let escape_close = self.settings_visible && ui.is_key_pressed_no_repeat(Key::Escape);
+
+        if ui.is_key_pressed_no_repeat(settings.key_settings.0) || escape_close {
+            log::debug!("Toogle settings; escaped {}", escape_close);
             self.settings_visible = !self.settings_visible;
 
             if !self.settings_visible {
@@ -329,9 +340,16 @@ impl Application {
             }
         }
 
+        let ctx = RenderContext {
+            app: self,
+            settings: &*settings,
+            ui: &*ui,
+            view: &self.view_controller,
+        };
+
         for hack in self.enhancements.iter() {
             let hack = hack.borrow();
-            hack.render(&*settings, ui, &self.view_controller);
+            hack.render(ctx);
         }
     }
 }

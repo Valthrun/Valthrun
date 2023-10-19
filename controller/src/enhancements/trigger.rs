@@ -13,11 +13,8 @@ use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 use crate::{
-    settings::AppSettings,
-    view::{
-        LocalCrosshair,
-        ViewController,
-    },
+    view::LocalCrosshair,
+    RenderContext,
     UpdateContext,
 };
 
@@ -176,7 +173,7 @@ impl Enhancement for TriggerBot {
         Ok(())
     }
 
-    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {
+    fn render(&self, _ctx: RenderContext) {
         /* We have nothing to render */
     }
 }
