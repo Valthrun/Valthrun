@@ -1,10 +1,11 @@
+use obfstr::obfstr;
+
 use crate::{
     CS2Handle,
     EngineBuildInfo,
     Module,
     Signature,
 };
-use obfstr::obfstr;
 
 #[derive(Debug)]
 pub struct BuildInfo {

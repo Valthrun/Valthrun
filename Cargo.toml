@@ -9,7 +9,7 @@ members = [
     "controller",
     "cs2",
     "overlay",
-    "bhop",
+    "bhop"
 ]
 exclude = [
     "kernel/driver"
