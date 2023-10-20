@@ -176,6 +176,7 @@ impl SettingsUI {
                         }
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Bomb Position ESP"), &mut settings.bomb_pos);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 

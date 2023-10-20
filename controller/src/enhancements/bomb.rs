@@ -28,6 +28,8 @@ pub struct C4Info {
 
     /// Current state of the C4
     state: C4State,
+
+    bomb_pos: nalgebra::Vector3<f32>,
 }
 
 #[derive(Debug)]
@@ -82,12 +84,18 @@ impl BombInfo {
                 /* This bomb hasn't been activated (yet) */
                 continue;
             }
+            let game_screen_node = bomb
+            .m_pGameSceneNode()?
+            .read_schema()?;
+            
+            let bomb_pos = nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
             let bomb_site = bomb.m_nBombSite()? as u8;
             if bomb.m_bBombDefused()? {
                 return Ok(Some(C4Info {
                     bomb_site,
                     state: C4State::Defused,
+                    bomb_pos,
                 }));
             }
 
@@ -97,6 +105,7 @@ impl BombInfo {
                 return Ok(Some(C4Info {
                     bomb_site,
                     state: C4State::Detonated,
+                    bomb_pos,
                 }));
             }
 
@@ -141,6 +150,7 @@ impl BombInfo {
                     time_detonation: time_blow - ctx.globals.time_2()?,
                     defuse: defusing,
                 },
+                bomb_pos,
             }));
         }
 
@@ -168,7 +178,7 @@ impl Enhancement for BombInfo {
         &self,
         settings: &crate::settings::AppSettings,
         ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
+        view: &crate::view::ViewController,
     ) {
         if !settings.bomb_timer {
             return;
@@ -204,8 +214,21 @@ impl Enhancement for BombInfo {
                 time_detonation,
                 defuse,
             } => {
+                let mut y_offset = 0.0;
+                let draw = ui.get_window_draw_list();
                 ui.set_cursor_pos_x(offset_x);
                 ui.text(&format!("Time: {:.3}", time_detonation));
+                if settings.bomb_pos {
+                    if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
+                        let text = "BOMB";
+                        let [text_width, _] = ui.calc_text_size(&text);
+                        let mut pos = pos.clone();
+                        pos.x -= text_width / 2.0;
+                        pos.y += y_offset;
+                        ui.set_cursor_pos_x(offset_x);
+                        draw.add_text(pos, [0.11, 0.79, 0.26, 1.0], text);
+                    }
+                }
                 if let Some(defuse) = defuse.as_ref() {
                     let color = if defuse.time_remaining > *time_detonation {
                         [0.79, 0.11, 0.11, 1.0]
