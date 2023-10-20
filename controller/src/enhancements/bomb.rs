@@ -84,11 +84,10 @@ impl BombInfo {
                 /* This bomb hasn't been activated (yet) */
                 continue;
             }
-            let game_screen_node = bomb
-            .m_pGameSceneNode()?
-            .read_schema()?;
-            
-            let bomb_pos = nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
+            let game_screen_node = bomb.m_pGameSceneNode()?.read_schema()?;
+
+            let bomb_pos =
+                nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
             let bomb_site = bomb.m_nBombSite()? as u8;
             if bomb.m_bBombDefused()? {
