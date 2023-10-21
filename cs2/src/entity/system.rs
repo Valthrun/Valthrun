@@ -84,6 +84,10 @@ impl EntitySystem {
             .reference_schema::<Ptr<CCSPlayerController>>(&[self.offsets.local_controller])
     }
 
+    pub fn get_local_player_controller_val(&self) -> anyhow::Result<u32> {             //test
+        self.cs2
+            .reference_schema::<u32>(&[self.offsets.local_controller])
+    }
     pub fn all_identities(&self) -> &[CEntityIdentity] {
         self.entity_list.entities()
     }

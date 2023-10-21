@@ -47,6 +47,7 @@ pub struct PlayerInfo {
     pub position: nalgebra::Vector3<f32>,
     pub model: Arc<CS2Model>,
     pub bone_states: Vec<BoneStateData>,
+    pub is_visible: bool,
 }
 
 impl PlayerInfo {
@@ -193,6 +194,20 @@ impl PlayerESP {
             WeaponId::Knife.id()
         };
 
+        let local_player_controller = ctx //test
+            .cs2_entities
+            .get_local_player_controller_val()?;
+
+
+        let local_player_controller_value: u32 = local_player_controller; //test
+
+        let is_visible_mask = player_pawn //test
+            .m_entitySpottedState()?
+            .m_bSpottedByMask()?;
+
+        let is_visible = (is_visible_mask[0] & (1u32 << local_player_controller_value)) != 0 || (is_visible_mask[1] & (1u32 << local_player_controller_value)) != 0; //test
+
+
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
@@ -205,6 +220,7 @@ impl PlayerESP {
             position,
             bone_states,
             model: model.clone(),
+            is_visible,
         }))
     }
 
@@ -343,7 +359,11 @@ impl Enhancement for PlayerESP {
                     continue;
                 }
 
-                &settings.esp_color_enemy
+                if entry.is_visible {
+                    &settings.esp_color_visible
+                }
+
+                else { &settings.esp_color_enemy }
             };
 
             if settings.esp_skeleton {

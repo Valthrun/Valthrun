@@ -172,6 +172,18 @@ impl SettingsUI {
                                 ui.same_line();
                                 ui.text(obfstr!("Enemy Color"));
                             }
+
+                            ui.checkbox(obfstr!("EZP Enemi Color when visible"), &mut settings.esp_visible_enemy_change_color);
+                            if settings.esp_visible_enemy_change_color {
+                                ui.same_line();
+                                ui.color_edit4_config(obfstr!("Visible Enemi Color"), &mut settings.esp_color_visible)
+                                    .alpha_bar(true)
+                                    .inputs(false)
+                                    .label(false)
+                                    .build();
+                                ui.same_line();
+                                ui.text(obfstr!("Visible Enemi Color"));
+                            }
                             ui.separator();
                         }
 

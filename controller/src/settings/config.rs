@@ -28,6 +28,7 @@ fn default_esp_color_team() -> [f32; 4] {
 fn default_esp_color_enemy() -> [f32; 4] {
     [1.0, 0.0, 0.0, 0.75]
 }
+fn default_esp_color_visible() -> [f32; 4] { [1.0,1.0,0.0,0.53] }
 fn default_esp_skeleton_thickness() -> f32 {
     3.0
 }
@@ -144,6 +145,12 @@ pub struct AppSettings {
 
     #[serde(default = "default_esp_color_enemy")]
     pub esp_color_enemy: [f32; 4],
+
+    #[serde(default = "default_esp_color_visible")]
+    pub esp_color_visible: [f32; 4],
+
+    #[serde(default = "bool_true")]
+    pub esp_visible_enemy_change_color: bool,
 
     #[serde(default = "bool_true")]
     pub esp_enabled_enemy: bool,
