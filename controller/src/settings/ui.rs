@@ -44,7 +44,7 @@ impl SettingsUI {
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
-                        ui.text(&format!("{} Version {}", obfstr!("Valthrun"), VERSION));
+                        ui.text(&format!("{} Version {} ({})", obfstr!("Valthrun"), VERSION, env!("BUILD_TIME")));
                         ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
 
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.0 - 12.0;
@@ -181,8 +181,9 @@ impl SettingsUI {
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
+                        ui.checkbox(obfstr!("Trigger Bot Always Active"), &mut settings.trigger_bot_always_active);
                         ui.button_key_optional(obfstr!("Trigger Bot"), &mut settings.key_trigger_bot, [150.0, 0.0]);
-                        if settings.key_trigger_bot.is_some() {
+                        if settings.trigger_bot_always_active || settings.key_trigger_bot.is_some() {
                             let mut values_updated = false;
 
                             ui.text(obfstr!("Trigger delay: ")); ui.same_line();
