@@ -183,6 +183,7 @@ impl SettingsUI {
                                     .build();
                                 ui.same_line();
                                 ui.text(obfstr!("Visible Enemi Color"));
+                                ui.checkbox(obfstr!("Only when visible"), &mut settings.esp_only_visible_enemy_change_color);
                             }
                             ui.separator();
                         }

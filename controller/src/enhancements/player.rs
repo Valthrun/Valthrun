@@ -355,7 +355,7 @@ impl Enhancement for PlayerESP {
 
                 &settings.esp_color_team
             } else {
-                if !settings.esp_enabled_enemy {
+                if !settings.esp_enabled_enemy || (settings.esp_only_visible_enemy_change_color && !entry.is_visible){
                     continue;
                 }
 

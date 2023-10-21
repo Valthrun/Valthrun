@@ -153,6 +153,9 @@ pub struct AppSettings {
     pub esp_visible_enemy_change_color: bool,
 
     #[serde(default = "bool_true")]
+    pub esp_only_visible_enemy_change_color: bool,
+
+    #[serde(default = "bool_true")]
     pub esp_enabled_enemy: bool,
 
     #[serde(default = "default_i32::<16364>")]
