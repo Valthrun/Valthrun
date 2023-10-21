@@ -446,11 +446,15 @@ fn main_overlay() -> anyhow::Result<()> {
         env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
-    log::info!("Current executable was built on {}", env!("BUILD_TIME"));
+    log::info!(
+        "{} {}",
+        obfstr!("Current executable was built on"),
+        env!("BUILD_TIME")
+    );
 
     if unsafe { IsUserAnAdmin().as_bool() } {
-        log::warn!("Please do not run this as administrator!");
-        log::warn!("Running the controller as administrator might cause failures with your graphic drivers.");
+        log::warn!("{}", obfstr!("Please do not run this as administrator!"));
+        log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
     }
 
     let settings = load_app_settings()?;
@@ -461,11 +465,11 @@ fn main_overlay() -> anyhow::Result<()> {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
                         return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
-                    show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
+                    show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
                     return Ok(());
                 }
             }
