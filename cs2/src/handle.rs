@@ -140,6 +140,15 @@ impl CS2Handle {
         Ok(())
     }
 
+    pub fn add_metrics_record(&self, record_type: &str, record_payload: &str) {
+        if !self.metrics {
+            /* user opted out */
+            return;
+        }
+
+        let _ = self.ke_interface.add_metrics_record(record_type, record_payload);
+    }
+
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
         let module = module.get_base_offset(&self.module_info)?;
         if (address as usize) < module.base_address

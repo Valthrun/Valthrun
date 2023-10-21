@@ -90,6 +90,16 @@ mod view;
 mod weapon;
 mod winver;
 
+pub trait MetricsClient {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str);
+}
+
+impl MetricsClient for CS2Handle {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str) {
+        self.add_metrics_record(record_type, record_payload)
+    }
+}
+
 pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
@@ -167,6 +177,11 @@ impl Application {
             self.settings_dirty = false;
             let mut settings = self.settings.borrow_mut();
 
+            settings.imgui = None;
+            if let Ok(value) = serde_json::to_string(&*settings) {
+                self.cs2.add_metrics_record("settings-updated", &value);
+            }
+
             let mut imgui_settings = String::new();
             controller.imgui.save_ini_settings(&mut imgui_settings);
             settings.imgui = Some(imgui_settings);
@@ -214,6 +229,10 @@ impl Application {
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
+            self.cs2.add_metrics_record(
+                "settings-toggled",
+                &format!("visible: {}", self.settings_visible),
+            );
 
             if !self.settings_visible {
                 /* overlay has just been closed */
@@ -453,6 +472,8 @@ fn main_overlay() -> anyhow::Result<()> {
             return Err(err);
         }
     };
+    cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
+
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -577,6 +598,17 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
     let app = Rc::new(RefCell::new(app));
+
+    cs2.add_metrics_record(
+        obfstr!("controller-status"),
+        &format!(
+            "initialized, version: {}, git-hash: {}, win-build: {}",
+            env!("CARGO_PKG_VERSION"),
+            env!("GIT_HASH"),
+            build_info.dwBuildNumber
+        ),
+    );
+    cs2.add_metrics_record(obfstr!("cs2-version"), "initialized");
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
