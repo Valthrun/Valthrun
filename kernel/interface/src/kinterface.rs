@@ -15,16 +15,23 @@ use valthrun_driver_shared::{
         DriverInfo,
         DriverRequest,
         MemoryAccessMode,
+        RequestCSModule,
         RequestInitialize,
+        RequestKeyboardState,
+        RequestMouseMove,
+        RequestProtectionToggle,
         RequestRead,
         RequestReportSend,
         RequestWrite,
+        ResponseCsModule,
         ResponseRead,
         ResponseWrite,
         INIT_STATUS_CONTROLLER_OUTDATED,
         INIT_STATUS_DRIVER_OUTDATED,
         INIT_STATUS_SUCCESS,
     },
+    KeyboardState,
+    MouseState,
     IO_MAX_DEREF_COUNT,
 };
 use windows::{
@@ -81,6 +88,33 @@ impl KernelInterface {
         Ok(interface)
     }
 
+    /// Execute an action with kernel privilidges
+    /// Note: It's unsafe, as the caller must validate all parameters given for the target action.
+    #[must_use]
+    unsafe fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
+        let mut result: R::Result = Default::default();
+        let success = unsafe {
+            DeviceIoControl(
+                self.driver_handle,
+                R::control_code(),
+                Some(payload as *const _ as *const c_void),
+                std::mem::size_of::<R>() as u32,
+                Some(&mut result as *mut _ as *mut c_void),
+                std::mem::size_of::<R::Result>() as u32,
+                None,
+                None,
+            )
+            .as_bool()
+        };
+
+        if success {
+            Ok(result)
+        } else {
+            /* TOOD: GetLastErrorCode? */
+            Err(KInterfaceError::RequestFailed)
+        }
+    }
+
     fn initialize(&mut self) -> KResult<()> {
         let controller_info = ControllerInfo {};
         let mut driver_info = DriverInfo {};
@@ -129,33 +163,6 @@ impl KernelInterface {
     #[must_use]
     pub fn total_read_calls(&self) -> usize {
         self.read_calls.load(Ordering::Relaxed)
-    }
-
-    /// Execute an action with kernel privilidges
-    /// Note: It's unsafe, as the caller must validate all parameters given for the target action.
-    #[must_use]
-    pub unsafe fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
-        let mut result: R::Result = Default::default();
-        let success = unsafe {
-            DeviceIoControl(
-                self.driver_handle,
-                R::control_code(),
-                Some(payload as *const _ as *const c_void),
-                std::mem::size_of::<R>() as u32,
-                Some(&mut result as *mut _ as *mut c_void),
-                std::mem::size_of::<R::Result>() as u32,
-                None,
-                None,
-            )
-            .as_bool()
-        };
-
-        if success {
-            Ok(result)
-        } else {
-            /* TOOD: GetLastErrorCode? */
-            Err(KInterfaceError::RequestFailed)
-        }
     }
 
     #[must_use]
@@ -313,5 +320,36 @@ impl KernelInterface {
         }?;
 
         Ok(())
+    }
+
+    pub fn toggle_process_protection(&self, enabled: bool) -> KResult<()> {
+        unsafe {
+            self.execute_request(&RequestProtectionToggle { enabled })
+                .map(|_| ())
+        }
+    }
+
+    pub fn request_cs2_modules(&self) -> KResult<ResponseCsModule> {
+        unsafe { self.execute_request(&RequestCSModule) }
+    }
+
+    pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> KResult<()> {
+        unsafe {
+            self.execute_request(&RequestKeyboardState {
+                buffer: states.as_ptr(),
+                state_count: states.len(),
+            })
+            .map(|_| ())
+        }
+    }
+
+    pub fn send_mouse_state(&self, states: &[MouseState]) -> KResult<()> {
+        unsafe {
+            self.execute_request(&RequestMouseMove {
+                buffer: states.as_ptr(),
+                state_count: states.len(),
+            })
+            .map(|_| ())
+        }
     }
 }

@@ -178,6 +178,9 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub render_debug_window: bool,
 
+    #[serde(default = "bool_true")]
+    pub metrics: bool,
+
     #[serde(default)]
     pub imgui: Option<String>,
 }

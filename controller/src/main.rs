@@ -61,21 +61,11 @@ use settings::{
     AppSettings,
     SettingsUI,
 };
-use valthrun_kernel_interface::{
-    KInterfaceError,
-    KeyboardState,
-};
+use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
-    UI::{
-        Input::KeyboardAndMouse::{
-            GetAsyncKeyState,
-            VK_MBUTTON,
-            VK_XBUTTON2,
-        },
-        Shell::IsUserAnAdmin,
-    },
+    UI::Shell::IsUserAnAdmin,
 };
 
 use crate::{
@@ -368,7 +358,6 @@ fn main() {
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
         AppCommand::Overlay => main_overlay(),
-        AppCommand::BHop => main_bhop(),
     };
 
     if let Err(error) = result {
@@ -392,8 +381,6 @@ enum AppCommand {
     /// Start the overlay
     Overlay,
 
-    BHop,
-
     /// Create a schema dump
     DumpSchema(SchemaDumpArgs),
 }
@@ -415,7 +402,7 @@ fn is_console_invoked() -> bool {
 fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = CS2Handle::create(true)?;
     let schema = cs2::dump_schema(&cs2)?;
 
     let output = File::options()
@@ -427,10 +414,6 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     let mut output = BufWriter::new(output);
     serde_json::to_writer_pretty(&mut output, &schema)?;
     log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
-    Ok(())
-}
-
-fn main_bhop() -> anyhow::Result<()> {
     Ok(())
 }
 
@@ -451,7 +434,7 @@ fn main_overlay() -> anyhow::Result<()> {
     }
 
     let settings = load_app_settings()?;
-    let cs2 = match CS2Handle::create() {
+    let cs2 = match CS2Handle::create(settings.metrics) {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {

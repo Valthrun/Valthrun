@@ -18,13 +18,7 @@ use cs2_schema_declaration::{
 };
 use obfstr::obfstr;
 use valthrun_kernel_interface::{
-    requests::{
-        RequestCSModule,
-        RequestKeyboardState,
-        RequestMouseMove,
-        RequestProtectionToggle,
-        ResponseCsModule,
-    },
+    requests::ResponseCsModule,
     CS2ModuleInfo,
     KInterfaceError,
     KernelInterface,
@@ -84,13 +78,14 @@ impl Module {
 /// Handle to the CS2 process
 pub struct CS2Handle {
     weak_self: Weak<Self>,
+    metrics: bool,
 
     pub ke_interface: KernelInterface,
     pub module_info: CS2ModuleInfo,
 }
 
 impl CS2Handle {
-    pub fn create() -> anyhow::Result<Arc<Self>> {
+    pub fn create(metrics: bool) -> anyhow::Result<Arc<Self>> {
         let interface = KernelInterface::create(obfstr!("\\\\.\\GLOBALROOT\\Device\\valthrun"))?;
 
         /*
@@ -99,10 +94,9 @@ impl CS2Handle {
          *
          * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
          */
-        unsafe { interface.execute_request(&RequestProtectionToggle { enabled: true }) }?;
+        interface.toggle_process_protection(true)?;
 
-        let module_info =
-            unsafe { interface.execute_request::<RequestCSModule>(&RequestCSModule {}) }?;
+        let module_info = interface.request_cs2_modules()?;
         let module_info = match module_info {
             ResponseCsModule::Success(info) => info,
             ResponseCsModule::NoProcess => return Err(KInterfaceError::ProcessDoesNotExists.into()),
@@ -129,39 +123,20 @@ impl CS2Handle {
 
         Ok(Arc::new_cyclic(|weak_self| Self {
             weak_self: weak_self.clone(),
+            metrics,
 
             ke_interface: interface,
             module_info,
         }))
     }
 
-    pub fn protect_process(&self) -> anyhow::Result<()> {
-        unsafe {
-            self.ke_interface
-                .execute_request(&RequestProtectionToggle { enabled: true })
-        }?;
-        Ok(())
-    }
-
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> anyhow::Result<()> {
-        unsafe {
-            self.ke_interface.execute_request(&RequestKeyboardState {
-                buffer: states.as_ptr(),
-                state_count: states.len(),
-            })
-        }?;
-
+        self.ke_interface.send_keyboard_state(states)?;
         Ok(())
     }
 
     pub fn send_mouse_state(&self, states: &[MouseState]) -> anyhow::Result<()> {
-        unsafe {
-            self.ke_interface.execute_request(&RequestMouseMove {
-                buffer: states.as_ptr(),
-                state_count: states.len(),
-            })
-        }?;
-
+        self.ke_interface.send_mouse_state(states)?;
         Ok(())
     }
 
