@@ -73,9 +73,30 @@ impl SettingsUI {
     pub fn render(&mut self, app: &Application, ui: &imgui::Ui) {
         let content_font = ui.current_font().id();
         let _title_font = ui.push_font(app.fonts.valthrun);
+
         ui.window(obfstr!("Valthrun"))
             .size([600.0, 300.0], Condition::FirstUseEver)
+            .title_bar(false)
             .build(|| {
+                {
+                    for (text, color) in [
+                        ("V", [0.81, 0.69, 0.06, 1.0]),
+                        ("a", [0.84, 0.61, 0.15, 1.0]),
+                        ("l", [0.86, 0.52, 0.24, 1.0]),
+                        ("t", [0.89, 0.44, 0.33, 1.0]),
+                        ("h", [0.92, 0.36, 0.41, 1.0]),
+                        ("r", [0.95, 0.27, 0.50, 1.0]),
+                        ("u", [0.97, 0.19, 0.59, 1.0]),
+                        ("n", [1.00, 0.11, 0.68, 1.0]),
+                    ] {
+                        ui.text_colored(color, text);
+                        ui.same_line();
+                    }
+
+                    ui.new_line();
+                    ui.dummy([ 0.0, 5.0 ]);
+                }
+
                 let _content_font = ui.push_font(content_font);
                 let settings = self.settings.clone();
                 let mut settings: std::cell::RefMut<'_, AppSettings> = settings.borrow_mut();
