@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::settings::HotKey;
 
 pub trait ImguiUiEx {
@@ -33,6 +35,40 @@ impl ImGuiKey for imgui::Ui {
 
     fn button_key_optional(&self, label: &str, key: &mut Option<HotKey>, size: [f32; 2]) -> bool {
         hotkey::render_button_key(self, label, key, size, true)
+    }
+}
+
+pub trait ImguiComboEnum {
+    fn combo_enum<T: PartialEq + Copy>(
+        &self,
+        label: impl AsRef<str>,
+        values: &[(T, &'static str)],
+        value: &mut T,
+    ) -> bool;
+}
+
+impl ImguiComboEnum for imgui::Ui {
+    fn combo_enum<T: PartialEq + Copy>(
+        &self,
+        label: impl AsRef<str>,
+        values: &[(T, &'static str)],
+        value: &mut T,
+    ) -> bool {
+        let mut type_index = values
+            .iter()
+            .position(|(enum_value, _)| enum_value == value)
+            .unwrap_or_default();
+
+        fn display_name<'a, T>(entry: &'a (T, &'static str)) -> Cow<'a, str> {
+            entry.1.into()
+        }
+
+        if self.combo(label, &mut type_index, values, &display_name) {
+            *value = values[type_index].0;
+            true
+        } else {
+            false
+        }
     }
 }
 

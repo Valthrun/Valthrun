@@ -146,7 +146,9 @@ impl CS2Handle {
             return;
         }
 
-        let _ = self.ke_interface.add_metrics_record(record_type, record_payload);
+        let _ = self
+            .ke_interface
+            .add_metrics_record(record_type, record_payload);
     }
 
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {

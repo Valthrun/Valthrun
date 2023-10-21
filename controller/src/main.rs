@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(const_fn_floating_point_arithmetic)]
 
 use std::{
     cell::{

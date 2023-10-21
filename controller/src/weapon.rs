@@ -26,6 +26,12 @@ macro_rules! define_weapons {
         }
 
         impl $struct_name {
+            pub fn all_weapons() -> Vec<Self> {
+                vec![
+                    $(Self::$member_name, )*
+                ]
+            }
+
             pub fn from_id(id: u16) -> Option<Self> {
                 match id {
                     $($id => Some(Self::$member_name),)*
@@ -36,6 +42,12 @@ macro_rules! define_weapons {
             pub fn id(&self) -> u16 {
                 match self {
                     $(Self::$member_name => $id,)*
+                }
+            }
+
+            pub fn name(&self) -> &'static str {
+                match self {
+                    $(Self::$member_name => stringify!($member_name),)*
                 }
             }
 
@@ -55,6 +67,7 @@ macro_rules! define_weapons {
 }
 
 define_weapons! {
+    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
     pub enum WeaponId {
         Unknown { id: 0, name: "Unknown", flags: WEAPON_FLAG_TYPE_KNIFE },
         Deagle { id: 1, name: "Desert Eagle", flags: WEAPON_FLAG_TYPE_PISTOL },
