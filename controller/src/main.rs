@@ -89,6 +89,7 @@ mod settings;
 mod utils;
 mod view;
 mod weapon;
+mod web_radar;
 mod winver;
 
 pub trait MetricsClient {
@@ -356,7 +357,9 @@ fn show_critical_error(message: &str) {
     }
 }
 
-fn main() {
+
+#[actix_web::main]
+async fn main() {
     let args = match AppArgs::try_parse() {
         Ok(args) => args,
         Err(error) => {
@@ -377,7 +380,7 @@ fn main() {
     let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
-        AppCommand::Overlay => main_overlay(),
+        AppCommand::Overlay => main_overlay().await,
     };
 
     if let Err(error) = result {
@@ -437,7 +440,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn main_overlay() -> anyhow::Result<()> {
+async fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
         "{} v{} ({}). Windows build {}.",
@@ -614,6 +617,11 @@ fn main_overlay() -> anyhow::Result<()> {
         ),
     );
     cs2.add_metrics_record(obfstr!("cs2-version"), "initialized");
+    let server_handle = std::thread::spawn(|| {
+        let runtime = tokio::runtime::Runtime::new().unwrap();
+        runtime.block_on(web_radar::run_server())
+    });
+    /*web_radar::run_server().await.expect("Failed to start server");*/
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
@@ -658,6 +666,6 @@ fn main_overlay() -> anyhow::Result<()> {
 
             app.render(ui);
             true
-        },
+        }
     )
 }

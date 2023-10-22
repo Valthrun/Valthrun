@@ -66,6 +66,34 @@ impl PlayerInfo {
     }
 }
 
+pub struct WebPlayerInfo {
+    pub controller_entity_id: u32,
+    pub team_id: u8,
+
+    pub player_health: i32,
+    pub player_has_defuser: bool,
+    pub player_name: String,
+    pub weapon: WeaponId,
+
+    pub position: nalgebra::Vector3<f32>,
+}
+
+impl From<&PlayerInfo> for WebPlayerInfo {
+    fn from(player_info: &PlayerInfo) -> Self {
+        WebPlayerInfo {
+            controller_entity_id: player_info.controller_entity_id,
+            team_id: player_info.team_id,
+
+            player_health: player_info.player_health,
+            player_has_defuser: player_info.player_has_defuser,
+            player_name: player_info.player_name.clone(),
+            weapon: player_info.weapon,
+
+            position: player_info.position,
+        }
+    }
+}
+
 pub struct BoneStateData {
     pub position: nalgebra::Vector3<f32>,
 }
