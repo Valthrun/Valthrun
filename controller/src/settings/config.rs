@@ -16,9 +16,8 @@ use serde::{
 };
 
 use super::{
-    EspBoxType,
     EspConfig,
-    EspTracePosition,
+    EspMode,
     HotKey,
 };
 
@@ -27,18 +26,6 @@ fn bool_true() -> bool {
 }
 fn bool_false() -> bool {
     false
-}
-fn default_esp_color_team() -> [f32; 4] {
-    [0.0, 1.0, 0.0, 0.75]
-}
-fn default_esp_color_enemy() -> [f32; 4] {
-    [1.0, 0.0, 0.0, 0.75]
-}
-fn default_esp_skeleton_thickness() -> f32 {
-    3.0
-}
-fn default_esp_boxes_thickness() -> f32 {
-    3.0
 }
 fn default_u32<const V: u32>() -> u32 {
     V
@@ -56,14 +43,9 @@ fn default_key_trigger_bot() -> Option<HotKey> {
 fn default_key_none() -> Option<HotKey> {
     None
 }
-fn default_esp_box_type() -> EspBoxType {
-    EspBoxType::Box3D
-}
-fn default_esp_health_bar_size() -> f32 {
-    5.0
-}
-fn default_esp_line_position() -> EspTracePosition {
-    EspTracePosition::Center
+
+fn default_esp_mode() -> EspMode {
+    EspMode::AlwaysOn
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -71,8 +53,8 @@ pub struct AppSettings {
     #[serde(default = "default_key_settings")]
     pub key_settings: HotKey,
 
-    #[serde(default = "bool_true")]
-    pub esp: bool,
+    #[serde(default = "default_esp_mode")]
+    pub esp_mode: EspMode,
 
     #[serde(default = "default_key_none")]
     pub esp_toogle: Option<HotKey>,

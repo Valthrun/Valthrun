@@ -15,6 +15,15 @@ use crate::weapon::{
     WEAPON_FLAG_TYPE_SNIPER_RIFLE,
 };
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspMode {
+    AlwaysOn,
+    Toggle,
+    Trigger,
+    TriggerInverted,
+    Off,
+}
+
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct Color(u32);
 impl Color {
