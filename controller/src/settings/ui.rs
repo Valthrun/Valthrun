@@ -146,7 +146,7 @@ impl SettingsUI {
                         if !settings.esp {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text("ESP has been disabled.");
-                            ui.text("Please disable ESP under \"Visuals\" \"ESP\"");
+                            ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
                         } else {
                             self.render_esp_settings(&mut *settings, ui);
                         }
