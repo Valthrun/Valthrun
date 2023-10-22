@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![feature(const_fn_floating_point_arithmetic)]
 
 use std::{
     cell::{
@@ -61,21 +62,11 @@ use settings::{
     AppSettings,
     SettingsUI,
 };
-use valthrun_kernel_interface::{
-    KInterfaceError,
-    KeyboardState,
-};
+use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
-    UI::{
-        Input::KeyboardAndMouse::{
-            GetAsyncKeyState,
-            VK_MBUTTON,
-            VK_XBUTTON2,
-        },
-        Shell::IsUserAnAdmin,
-    },
+    UI::Shell::IsUserAnAdmin,
 };
 
 use crate::{
@@ -99,6 +90,16 @@ mod utils;
 mod view;
 mod weapon;
 mod winver;
+
+pub trait MetricsClient {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str);
+}
+
+impl MetricsClient for CS2Handle {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str) {
+        self.add_metrics_record(record_type, record_payload)
+    }
+}
 
 pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -177,6 +178,11 @@ impl Application {
             self.settings_dirty = false;
             let mut settings = self.settings.borrow_mut();
 
+            settings.imgui = None;
+            if let Ok(value) = serde_json::to_string(&*settings) {
+                self.cs2.add_metrics_record("settings-updated", &value);
+            }
+
             let mut imgui_settings = String::new();
             controller.imgui.save_ini_settings(&mut imgui_settings);
             settings.imgui = Some(imgui_settings);
@@ -224,6 +230,10 @@ impl Application {
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
+            self.cs2.add_metrics_record(
+                "settings-toggled",
+                &format!("visible: {}", self.settings_visible),
+            );
 
             if !self.settings_visible {
                 /* overlay has just been closed */
@@ -368,7 +378,6 @@ fn main() {
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
         AppCommand::Overlay => main_overlay(),
-        AppCommand::BHop => main_bhop(),
     };
 
     if let Err(error) = result {
@@ -392,8 +401,6 @@ enum AppCommand {
     /// Start the overlay
     Overlay,
 
-    BHop,
-
     /// Create a schema dump
     DumpSchema(SchemaDumpArgs),
 }
@@ -415,7 +422,7 @@ fn is_console_invoked() -> bool {
 fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = CS2Handle::create(true)?;
     let schema = cs2::dump_schema(&cs2)?;
 
     let output = File::options()
@@ -430,10 +437,6 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-fn main_bhop() -> anyhow::Result<()> {
-    Ok(())
-}
-
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
@@ -443,26 +446,30 @@ fn main_overlay() -> anyhow::Result<()> {
         env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
-    log::info!("Current executable was built on {}", env!("BUILD_TIME"));
+    log::info!(
+        "{} {}",
+        obfstr!("Current executable was built on"),
+        env!("BUILD_TIME")
+    );
 
     if unsafe { IsUserAnAdmin().as_bool() } {
-        log::warn!("Please do not run this as administrator!");
-        log::warn!("Running the controller as administrator might cause failures with your graphic drivers.");
+        log::warn!("{}", obfstr!("Please do not run this as administrator!"));
+        log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
     }
 
     let settings = load_app_settings()?;
-    let cs2 = match CS2Handle::create() {
+    let cs2 = match CS2Handle::create(settings.metrics) {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
                         return Ok(());
                     }
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
-                    show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
+                    show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
                     return Ok(());
                 }
             }
@@ -470,6 +477,8 @@ fn main_overlay() -> anyhow::Result<()> {
             return Err(err);
         }
     };
+    cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
+
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -594,6 +603,17 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
     let app = Rc::new(RefCell::new(app));
+
+    cs2.add_metrics_record(
+        obfstr!("controller-status"),
+        &format!(
+            "initialized, version: {}, git-hash: {}, win-build: {}",
+            env!("CARGO_PKG_VERSION"),
+            env!("GIT_HASH"),
+            build_info.dwBuildNumber
+        ),
+    );
+    cs2.add_metrics_record(obfstr!("cs2-version"), "initialized");
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
