@@ -640,7 +640,7 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_kit {
+                if esp_settings.info_kit && entry.player_has_defuser {
                     player_info.add_line(
                         esp_settings
                             .info_kit_color
