@@ -468,6 +468,36 @@ fn main_overlay() -> anyhow::Result<()> {
                         show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
                         return Ok(());
                     }
+                } else if let KInterfaceError::DriverTooOld {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too old.\nPlease ensure you installed/mapped the latest Valthrun driver.\nATTENTION: If you have manually mapped the driver, you have to restart your PC in order to load the new version."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
+                } else if let KInterfaceError::DriverTooNew {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too new.\nPlease ensure you're using the lattest controller."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
                     show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
                     return Ok(());
@@ -477,6 +507,7 @@ fn main_overlay() -> anyhow::Result<()> {
             return Err(err);
         }
     };
+
     cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
 
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
@@ -488,6 +519,10 @@ fn main_overlay() -> anyhow::Result<()> {
         obfstr!("Counter-Strike 2"),
         cs2_build_info.revision,
         cs2_build_info.build_datetime
+    );
+    cs2.add_metrics_record(
+        obfstr!("cs2-version"),
+        &format!("revision: {}", cs2_build_info.revision),
     );
 
     let cs2_offsets = Arc::new(
@@ -502,7 +537,7 @@ fn main_overlay() -> anyhow::Result<()> {
     let app_fonts: Rc<RefCell<Option<AppFonts>>> = Default::default();
     let overlay_options = OverlayOptions {
         title: obfstr!("CS2 Overlay").to_string(),
-        target: OverlayTarget::WindowOfProcess(cs2.module_info.process_id as u32),
+        target: OverlayTarget::WindowOfProcess(cs2.process_id() as u32),
         font_init: Some(Box::new({
             let app_fonts = app_fonts.clone();
 
@@ -613,7 +648,6 @@ fn main_overlay() -> anyhow::Result<()> {
             build_info.dwBuildNumber
         ),
     );
-    cs2.add_metrics_record(obfstr!("cs2-version"), "initialized");
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;

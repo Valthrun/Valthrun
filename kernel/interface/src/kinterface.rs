@@ -31,8 +31,10 @@ use valthrun_driver_shared::{
         INIT_STATUS_SUCCESS,
     },
     KeyboardState,
+    ModuleInfo,
     MouseState,
     IO_MAX_DEREF_COUNT,
+    KINTERFACE_MIN_VERSION,
 };
 use windows::{
     core::PCSTR,
@@ -59,6 +61,15 @@ pub struct KernelInterface {
     driver_version: u32,
 
     read_calls: AtomicUsize,
+}
+
+fn driver_version_string(driver_version: u32) -> String {
+    format!(
+        "{}.{}.{}",
+        (driver_version >> 24) & 0xFF,
+        (driver_version >> 16) & 0xFF,
+        (driver_version >> 8) & 0xFF
+    )
 }
 
 impl KernelInterface {
@@ -119,9 +130,10 @@ impl KernelInterface {
         let controller_info = ControllerInfo {};
         let mut driver_info = DriverInfo {};
 
+        let requested_version = KINTERFACE_MIN_VERSION;
         let result = unsafe {
             self.execute_request(&RequestInitialize {
-                target_version: 0x00_02_00_00,
+                target_version: requested_version,
 
                 controller_info: &controller_info,
                 controller_info_length: core::mem::size_of_val(&controller_info),
@@ -136,11 +148,19 @@ impl KernelInterface {
             INIT_STATUS_CONTROLLER_OUTDATED => {
                 return Err(KInterfaceError::DriverTooNew {
                     driver_version: result.driver_version,
+                    driver_version_string: driver_version_string(result.driver_version),
+
+                    requested_version,
+                    requested_version_string: driver_version_string(requested_version),
                 })
             }
             INIT_STATUS_DRIVER_OUTDATED => {
                 return Err(KInterfaceError::DriverTooOld {
                     driver_version: result.driver_version,
+                    driver_version_string: driver_version_string(result.driver_version),
+
+                    requested_version,
+                    requested_version_string: driver_version_string(requested_version),
                 })
             }
             status => return Err(KInterfaceError::InitializeInvalidStatus(status)),
@@ -148,10 +168,8 @@ impl KernelInterface {
 
         self.driver_version = result.driver_version;
         log::debug!(
-            "Successfully initialized kernel interface with driver version: {}.{}.{}",
-            (result.driver_version >> 24) & 0xFF,
-            (result.driver_version >> 16) & 0xFF,
-            (result.driver_version >> 8) & 0xFF
+            "Successfully initialized kernel interface with driver version: {}",
+            driver_version_string(self.driver_version)
         );
         Ok(())
     }
@@ -329,8 +347,39 @@ impl KernelInterface {
         }
     }
 
-    pub fn request_cs2_modules(&self) -> KResult<ResponseCsModule> {
-        unsafe { self.execute_request(&RequestCSModule) }
+    pub fn request_cs2_modules(&self) -> KResult<(i32, Vec<ModuleInfo>)> {
+        let mut buffer = Vec::with_capacity(128);
+        buffer.resize_with(128, Default::default);
+
+        let mut retry = 0;
+        loop {
+            let response = unsafe {
+                self.execute_request(&RequestCSModule {
+                    module_buffer: buffer.as_mut_ptr(),
+                    module_buffer_length: buffer.len(),
+                })?
+            };
+
+            return match response {
+                ResponseCsModule::Success(info) => {
+                    buffer.truncate(info.module_count);
+                    Ok((info.process_id, buffer))
+                }
+                ResponseCsModule::BufferTooSmall { expected } => {
+                    buffer.resize_with(expected, Default::default);
+                    if retry >= 3 {
+                        return Err(KInterfaceError::RequestFailed);
+                    }
+
+                    retry += 1;
+                    continue;
+                }
+                ResponseCsModule::UbiquitousProcesses(_) => {
+                    Err(KInterfaceError::ProcessNotUbiquitous)
+                }
+                ResponseCsModule::NoProcess => Err(KInterfaceError::ProcessDoesNotExists),
+            };
+        }
     }
 
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> KResult<()> {

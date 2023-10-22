@@ -18,9 +18,6 @@ use cs2_schema_declaration::{
 };
 use obfstr::obfstr;
 use valthrun_kernel_interface::{
-    requests::ResponseCsModule,
-    CS2ModuleInfo,
-    KInterfaceError,
     KernelInterface,
     KeyboardState,
     ModuleInfo,
@@ -59,19 +56,17 @@ pub enum Module {
     Client,
     Engine,
     Schemasystem,
+    Tier0,
 }
 
-static EMPTY_MODULE_INFO: ModuleInfo = ModuleInfo {
-    base_address: 0,
-    module_size: usize::MAX,
-};
 impl Module {
-    pub fn get_base_offset<'a>(&self, module_info: &'a CS2ModuleInfo) -> Option<&'a ModuleInfo> {
-        Some(match self {
-            Module::Client => &module_info.client,
-            Module::Engine => &module_info.engine,
-            Module::Schemasystem => &module_info.schemasystem,
-        })
+    fn get_module_name<'a>(&self) -> &'static str {
+        match self {
+            Module::Client => "client.dll",
+            Module::Engine => "engine2.dll",
+            Module::Schemasystem => "schemasystem.dll",
+            Module::Tier0 => "tier0.dll",
+        }
     }
 }
 
@@ -80,8 +75,10 @@ pub struct CS2Handle {
     weak_self: Weak<Self>,
     metrics: bool,
 
+    modules: Vec<ModuleInfo>,
+    process_id: i32,
+
     pub ke_interface: KernelInterface,
-    pub module_info: CS2ModuleInfo,
 }
 
 impl CS2Handle {
@@ -96,38 +93,41 @@ impl CS2Handle {
          */
         interface.toggle_process_protection(true)?;
 
-        let module_info = interface.request_cs2_modules()?;
-        let module_info = match module_info {
-            ResponseCsModule::Success(info) => info,
-            ResponseCsModule::NoProcess => return Err(KInterfaceError::ProcessDoesNotExists.into()),
-            error => anyhow::bail!("failed to load module info: {:?}", error),
-        };
-
+        let (process_id, modules) = interface.request_cs2_modules()?;
         log::debug!(
             "{}. Process id {}",
             obfstr!("Successfully initialized CS2 handle"),
-            module_info.process_id
+            process_id
         );
-        log::debug!(
-            "  {} located at {:X} ({:X} bytes)",
-            obfstr!("client.dll"),
-            module_info.client.base_address,
-            module_info.client.module_size
-        );
-        log::debug!(
-            "  {} located at {:X} ({:X} bytes)",
-            obfstr!("engine2.dll"),
-            module_info.engine.base_address,
-            module_info.engine.module_size
-        );
+
+        log::trace!("{} ({})", obfstr!("CS2 modules"), modules.len());
+        for module in modules.iter() {
+            log::trace!(
+                "  - {} ({:X} - {:X})",
+                module.base_dll_name(),
+                module.base_address,
+                module.base_address + module.module_size
+            );
+        }
 
         Ok(Arc::new_cyclic(|weak_self| Self {
             weak_self: weak_self.clone(),
             metrics,
+            modules,
+            process_id,
 
             ke_interface: interface,
-            module_info,
         }))
+    }
+
+    fn get_module_info(&self, target: Module) -> Option<&ModuleInfo> {
+        self.modules
+            .iter()
+            .find(|module| module.base_dll_name() == target.get_module_name())
+    }
+
+    pub fn process_id(&self) -> i32 {
+        self.process_id
     }
 
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> anyhow::Result<()> {
@@ -152,7 +152,7 @@ impl CS2Handle {
     }
 
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
-        let module = module.get_base_offset(&self.module_info)?;
+        let module = self.get_module_info(module)?;
         if (address as usize) < module.base_address
             || (address as usize) >= (module.base_address + module.module_size)
         {
@@ -163,23 +163,21 @@ impl CS2Handle {
     }
 
     pub fn memory_address(&self, module: Module, offset: u64) -> anyhow::Result<u64> {
-        Ok(module
-            .get_base_offset(&self.module_info)
+        Ok(self
+            .get_module_info(module)
             .context("invalid module")?
             .base_address as u64
             + offset)
     }
 
     pub fn read_sized<T: Copy>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        Ok(self
-            .ke_interface
-            .read(self.module_info.process_id, offsets)?)
+        Ok(self.ke_interface.read(self.process_id, offsets)?)
     }
 
     pub fn read_slice<T: Copy>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
         Ok(self
             .ke_interface
-            .read_slice(self.module_info.process_id, offsets, buffer)?)
+            .read_slice(self.process_id, offsets, buffer)?)
     }
 
     pub fn read_string(
@@ -244,14 +242,12 @@ impl CS2Handle {
 
     pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
         log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
-        let module_info = module
-            .get_base_offset(&self.module_info)
-            .context("invalid module")?;
+        let module_info = self.get_module_info(module).context("invalid module")?;
 
         let inst_offset = self
             .ke_interface
             .find_pattern(
-                self.module_info.process_id,
+                self.process_id,
                 module_info.base_address as u64,
                 module_info.module_size,
                 &*signature.pattern,
