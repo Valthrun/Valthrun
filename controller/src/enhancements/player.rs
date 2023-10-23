@@ -431,7 +431,8 @@ impl Enhancement for PlayerESP {
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
             if let Some(local_pos) = self.local_pos {
-                let distance = (entry.position - local_pos).norm() * 0.01905; //U to M
+                const UNITS_TO_METERS: f32 = 0.01905;
+                let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
                 let esp_settings = match self.resolve_esp_player_config(settings, entry) {
                     Some(settings) => settings,
                     None => continue,
@@ -670,7 +671,7 @@ impl Enhancement for PlayerESP {
                     }
 
                     if esp_settings.info_distance {
-                        let text = format!("[{}]m", distance);
+                        let text = format!("[{:.0}]m", distance);
                         player_info.add_line(
                             esp_settings
                                 .info_kit_color
