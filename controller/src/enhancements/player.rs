@@ -391,11 +391,11 @@ impl Enhancement for PlayerESP {
             if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
                 /* current pawn we control/observe */
                 let local_pawn = entity_identity
-                .entity_ptr::<C_CSPlayerPawn>()?
-                .read_schema()?;
-            let local_pos =
-                nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
-            self.local_pos = Some(local_pos);
+                    .entity_ptr::<C_CSPlayerPawn>()?
+                    .read_schema()?;
+                let local_pos =
+                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+                self.local_pos = Some(local_pos);
                 continue;
             }
 
@@ -488,7 +488,9 @@ impl Enhancement for PlayerESP {
                             draw.add_rect(
                                 [vmin.x, vmin.y],
                                 [vmax.x, vmax.y],
-                                esp_settings.box_color.calculate_color(player_rel_health, distance),
+                                esp_settings
+                                    .box_color
+                                    .calculate_color(player_rel_health, distance),
                             )
                             .thickness(esp_settings.box_width)
                             .build();
@@ -513,8 +515,9 @@ impl Enhancement for PlayerESP {
                     let box_bounds = match esp_settings.health_bar {
                         EspHealthBar::None => None,
                         EspHealthBar::Left => {
-                            let xoffset =
-                                vmin.x - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
+                            let xoffset = vmin.x
+                                - esp_settings.box_width / 2.0
+                                - esp_settings.health_bar_width;
 
                             Some([
                                 xoffset,
@@ -534,8 +537,9 @@ impl Enhancement for PlayerESP {
                             ])
                         }
                         EspHealthBar::Top => {
-                            let yoffset =
-                                vmin.y - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
+                            let yoffset = vmin.y
+                                - esp_settings.box_width / 2.0
+                                - esp_settings.health_bar_width;
 
                             Some([
                                 vmin.x - esp_settings.box_width / 2.0,
@@ -556,7 +560,8 @@ impl Enhancement for PlayerESP {
                         }
                     };
 
-                    if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds {
+                    if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds
+                    {
                         const BORDER_WIDTH: f32 = 1.0;
                         draw.add_rect(
                             [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
@@ -665,14 +670,13 @@ impl Enhancement for PlayerESP {
                     }
 
                     if esp_settings.info_distance {
-                            let text = format!("[{}]m", distance);
-                            player_info.add_line(
-                                esp_settings
-                                    .info_kit_color
-                                    .calculate_color(player_rel_health, distance),
-                                &text,
-                            );
-                        
+                        let text = format!("[{}]m", distance);
+                        player_info.add_line(
+                            esp_settings
+                                .info_kit_color
+                                .calculate_color(player_rel_health, distance),
+                            &text,
+                        );
                     }
                 }
 

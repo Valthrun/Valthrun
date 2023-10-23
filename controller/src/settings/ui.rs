@@ -430,7 +430,8 @@ impl SettingsUI {
                 ui.checkbox(obfstr!("Kit"), &mut config.info_kit);
                 ui.checkbox(obfstr!("Near only"), &mut config.near_players);
                 ui.same_line();
-                ui.slider_config("Max distance", 0.0, 50.0).build(&mut config.near_players_distance);
+                ui.slider_config("Max distance", 0.0, 50.0)
+                    .build(&mut config.near_players_distance);
             }
         }
 

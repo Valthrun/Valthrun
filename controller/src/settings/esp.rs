@@ -108,10 +108,10 @@ impl EspColor {
 
                 let color_near = [1.0, 0.0, 0.0, 0.75];
                 let color_far = [0.0, 1.0, 0.0, 0.75];
-    
+
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
-    
+
                 [
                     color_near[0] + t * (color_far[0] - color_near[0]),
                     color_near[1] + t * (color_far[1] - color_near[1]),
