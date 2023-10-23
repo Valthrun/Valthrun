@@ -24,6 +24,7 @@ use super::{
     EspColor,
     EspColorType,
     EspConfig,
+    EspMode,
     EspSelector,
 };
 use crate::{
@@ -133,17 +134,29 @@ impl SettingsUI {
 
                     if let Some(_) = ui.tab_item("Hotkeys") {
                         ui.button_key(obfstr!("Toggle Settings"), &mut settings.key_settings, [150.0, 0.0]);
-                        ui.button_key_optional(obfstr!("ESP toggle"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
+
+                        {
+                            let _enabled = ui.begin_enabled(matches!(settings.esp_mode, EspMode::Toggle | EspMode::Trigger));
+                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
+                        }
                     }
 
                     if let Some(_tab) = ui.tab_item("Visuals") {
-                        ui.checkbox(obfstr!("ESP"), &mut settings.esp);
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum(obfstr!("ESP"), &[
+                            (EspMode::Off, "Always Off"),
+                            (EspMode::Trigger, "Trigger"),
+                            (EspMode::TriggerInverted, "Trigger Inverted"),
+                            (EspMode::Toggle, "Toggle"),
+                            (EspMode::AlwaysOn, "Always On"),
+                        ], &mut settings.esp_mode);
+
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
                     if let Some(_tab) = ui.tab_item("ESP") {
-                        if !settings.esp {
+                        if settings.esp_mode == EspMode::Off {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text("ESP has been disabled.");
                             ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
@@ -706,19 +719,17 @@ impl SettingsUI {
         let tree_width = (content_region[0] * 0.25).max(150.0);
         let content_width = (content_region[0] - tree_width - 5.0).max(300.0);
 
-        {
+        ui.text("ESP Target");
+        ui.same_line_with_pos(
+            original_style.window_padding[0] * 2.0 + tree_width + original_style.window_border_size,
+        );
+        if !matches!(self.esp_selected_target, EspSelector::None) {
             let target_key = self.esp_selected_target.config_key();
             let target_enabled = settings
                 .esp_settings_enabled
                 .entry(target_key.to_string())
                 .or_insert(false);
 
-            ui.text("ESP Target");
-            ui.same_line_with_pos(
-                original_style.window_padding[0] * 2.0
-                    + tree_width
-                    + original_style.window_border_size,
-            );
             ui.checkbox(self.esp_selected_target.config_title(), target_enabled);
 
             let reset_text = "Reset config";
@@ -732,6 +743,8 @@ impl SettingsUI {
                 /* just removing the key will work as a default config will be emplaced later */
                 settings.esp_settings.remove(&target_key);
             }
+        } else {
+            ui.text("Target Configuration");
         };
 
         //ui.dummy([0.0, 10.0]);
@@ -769,7 +782,7 @@ impl SettingsUI {
                 .begin()
         } {
             match &self.esp_selected_target {
-                EspSelector::None => { /* render info box maybe */ }
+                EspSelector::None => {}
                 EspSelector::Player
                 | EspSelector::PlayerTeam { .. }
                 | EspSelector::PlayerTeamVisibility { .. } => {

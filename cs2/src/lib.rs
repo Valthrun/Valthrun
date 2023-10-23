@@ -23,3 +23,6 @@ pub use globals::*;
 
 mod signature;
 pub use signature::*;
+
+mod convar;
+pub use convar::*;

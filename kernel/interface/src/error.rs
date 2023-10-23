@@ -8,11 +8,23 @@ pub enum KInterfaceError {
     #[error("initialization returned invalid status code ({0:X})")]
     InitializeInvalidStatus(u32),
 
-    #[error("kernel driver is too old (version: {driver_version:X})")]
-    DriverTooOld { driver_version: u32 },
+    #[error("kernel driver is too old (version: {driver_version_string}, requested: {requested_version_string})")]
+    DriverTooOld {
+        driver_version: u32,
+        driver_version_string: String,
 
-    #[error("kernel driver (version: {driver_version:X}) is newer then expected and does not support the requested version")]
-    DriverTooNew { driver_version: u32 },
+        requested_version: u32,
+        requested_version_string: String,
+    },
+
+    #[error("kernel driver (version: {driver_version_string}) is newer then the requested version {requested_version_string} and does not support the requested version")]
+    DriverTooNew {
+        driver_version: u32,
+        driver_version_string: String,
+
+        requested_version: u32,
+        requested_version_string: String,
+    },
 
     #[error("kernel interface path contains invalid characters")]
     DeviceInvalidPath(NulError),
@@ -41,6 +53,9 @@ pub enum KInterfaceError {
 
     #[error("the target process does no longer exists")]
     ProcessDoesNotExists,
+
+    #[error("could not identify process as the name is not ubiquitous")]
+    ProcessNotUbiquitous,
 
     #[error("the requested memory access mode is unavailable")]
     AccessModeUnavailable,
