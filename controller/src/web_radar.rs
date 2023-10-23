@@ -1,44 +1,81 @@
+use actix::{Actor, StreamHandler, prelude::*};
 use actix_web::{middleware::Logger, web, App, Error, HttpRequest, HttpResponse, HttpServer};
-use actix_ws::Message;
-use futures_util::stream::StreamExt;
+use actix_web_actors::ws;
+use std::sync::{Arc, Mutex};
 
-async fn index() -> HttpResponse {
-    HttpResponse::Ok().content_type("text/html").body(include_str!("web_radar/index.html"))
+pub struct RadarAddress {
+    pub radar_addr: Option<Addr<WebRadar>>,
 }
 
-async fn ws(req: HttpRequest, body: web::Payload) -> Result<HttpResponse, Error> {
-    let (response, mut session, mut msg_stream) = actix_ws::handle(&req, body)?;
-
-    actix_rt::spawn(async move {
-        // Send a message to the client
-        if session.text("Hello from the server!").await.is_err() {
-            return;
-        }
-
-        while let Some(Ok(msg)) = msg_stream.next().await {
-            match msg {
-                Message::Ping(bytes) => {
-                    if session.pong(&bytes).await.is_err() {
-                        return;
-                    }
-                }
-                Message::Text(s) => println!("Got text, {}", s),
-                _ => break,
-            }
-        }
-
-        let _ = session.close(None).await;
-    });
-
-    Ok(response)
+impl RadarAddress {
+    pub fn new() -> Self {
+        RadarAddress { radar_addr: None }
+    }
 }
 
-pub async fn run_server() -> Result<(), anyhow::Error> {
+/// Define HTTP actor
+pub struct WebRadar {
+    address: Arc<Mutex<RadarAddress>>,
+}
+
+impl WebRadar {
+    pub fn new(address: Arc<Mutex<RadarAddress>>) -> Self {
+        WebRadar { address: address }
+    }
+}
+
+impl Actor for WebRadar {
+    type Context = ws::WebsocketContext<Self>;
+
+    fn started(&mut self, ctx: &mut Self::Context) {
+        let mut address = self.address.lock().unwrap();
+        address.radar_addr = Some(ctx.address());
+    }
+}
+
+/// Handler for ws::Message message
+impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebRadar {
+    fn handle(&mut self, msg: Result<ws::Message, ws::ProtocolError>, ctx: &mut Self::Context) {
+        match msg {
+            Ok(ws::Message::Ping(msg)) => ctx.pong(&msg),
+            Ok(ws::Message::Text(text)) => ctx.text(text),
+            Ok(ws::Message::Binary(bin)) => ctx.binary(bin),
+            _ => (),
+        }
+    }
+}
+
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct PlayersData {
+    pub data: String,
+}
+
+pub static CLIENTS: once_cell::sync::Lazy<Arc<Mutex<Vec<Addr<WebRadar>>>>> =
+    once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
+
+impl Handler<PlayersData> for WebRadar {
+    type Result = ();
+
+    fn handle(&mut self, msg: PlayersData, ctx: &mut Self::Context) {
+        // Send the data to the WebSocket client
+        ctx.text(msg.data);
+    }
+}
+
+async fn ws(req: HttpRequest, stream: web::Payload, radar_address: web::Data<Arc<Mutex<RadarAddress>>>) -> Result<HttpResponse, Error> {
+    let resp = ws::start(WebRadar::new(radar_address.get_ref().clone()), &req, stream);
+    println!("{:?}", resp);
+    resp
+}
+
+pub async fn run_server(radar_address: Arc<Mutex<RadarAddress>>) -> Result<(), anyhow::Error> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .route("/", web::get().to(index))
+            .app_data(web::Data::new(radar_address.clone()))
             .route("/ws", web::get().to(ws))
+            .service(actix_files::Files::new("/", "./").index_file("index.html"))
     })
         .bind("0.0.0.0:6969")?
         .run()

@@ -3,27 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles/styles.css">
     <title>WebSocket Test</title>
 </head>
 <body>
-    <script>
-        var ws = new WebSocket('ws://localhost:6969/ws');
-
-        ws.onopen = function() {
-            console.log('Connected to the WebSocket');
-        };
-
-        ws.onmessage = function(event) {
-            console.log('Received:', event.data);
-        };
-
-        ws.onclose = function(event) {
-            console.log('WebSocket closed:', event.code, event.reason);
-        };
-
-        ws.onerror = function(error) {
-            console.log('WebSocket Error:', error);
-        };
-    </script>
+    <div class="map-container">
+        <img src="maps/de_mirage/radar.png" alt="Map" class="map">
+    </div>
+    <script src="js/index.js"></script>
 </body>
 </html>

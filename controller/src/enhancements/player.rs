@@ -25,6 +25,7 @@ use cs2_schema_generated::cs2::client::{
 };
 use imgui::ImColor32;
 use obfstr::obfstr;
+use serde::Serialize;
 
 use super::Enhancement;
 use crate::{
@@ -41,6 +42,7 @@ use crate::{
     view::ViewController,
     weapon::WeaponId,
 };
+use crate::web_radar::PlayersData;
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -68,6 +70,7 @@ impl PlayerInfo {
     }
 }
 
+#[derive(Serialize)]
 pub struct WebPlayerInfo {
     pub controller_entity_id: u32,
     pub team_id: u8,
@@ -469,6 +472,18 @@ impl Enhancement for PlayerESP {
                     );
                 }
             }
+        }
+
+        let mut web_players_info: Vec<WebPlayerInfo>;
+        for player in self.players {
+            web_players_info.push(WebPlayerInfo::from(&player));
+        }
+
+        let data = serde_json::to_string(&web_players_info).unwrap();
+        let address = ctx.radar_address.clone();
+        let radar_address = address.lock().unwrap();
+        if let Some(radar_addr) = &radar_address.radar_addr {
+            radar_addr.do_send(PlayersData { data });
         }
 
         Ok(())

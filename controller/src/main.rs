@@ -18,6 +18,7 @@ use std::{
             Ordering,
         },
         Arc,
+        Mutex
     },
     time::{
         Duration,
@@ -132,6 +133,8 @@ pub struct UpdateContext<'a> {
     pub class_name_cache: &'a ClassNameCache,
     pub view_controller: &'a ViewController,
 
+    pub radar_address: &'a Arc<Mutex<web_radar::RadarAddress>>,
+
     pub globals: Globals,
 }
 
@@ -153,6 +156,7 @@ pub struct Application {
     pub view_controller: ViewController,
 
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
+    pub radar_address: Arc<Mutex<web_radar::RadarAddress>>,
 
     pub frame_read_calls: usize,
     pub last_total_read_calls: usize,
@@ -260,6 +264,8 @@ impl Application {
             .update_cache(self.cs2_entities.all_identities())
             .with_context(|| obfstr!("failed to update class name cache").to_string())?;
 
+
+
         let update_context = UpdateContext {
             cs2: &self.cs2,
             cs2_entities: &self.cs2_entities,
@@ -268,6 +274,7 @@ impl Application {
             input: ui,
 
             globals,
+            radar_address: &self.radar_address,
             class_name_cache: &self.class_name_cache,
             view_controller: &self.view_controller,
             model_cache: &self.model_cache,
@@ -628,6 +635,7 @@ async fn main_overlay() -> anyhow::Result<()> {
             )))),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
         ],
+        radar_address: Arc::new(Mutex::new(web_radar::RadarAddress::new())),
 
         last_total_read_calls: 0,
         frame_read_calls: 0,
@@ -652,11 +660,11 @@ async fn main_overlay() -> anyhow::Result<()> {
         ),
     );
 
-    let server_handle = std::thread::spawn(|| {
+    let radar_address = app.borrow().radar_address.clone();
+    std::thread::spawn(move || {
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(web_radar::run_server())
+        runtime.block_on(web_radar::run_server(radar_address))
     });
-    /*web_radar::run_server().await.expect("Failed to start server");*/
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;
