@@ -429,10 +429,14 @@ impl Enhancement for PlayerESP {
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
+        const UNITS_TO_METERS: f32 = 0.01905;
         for entry in self.players.iter() {
-            if let Some(local_pos) = self.local_pos {
-                const UNITS_TO_METERS: f32 = 0.01905;
+            let distance = if let Some(local_pos) = self.local_pos {
                 let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
+                distance
+                } else {
+                    0.0
+                };
                 let esp_settings = match self.resolve_esp_player_config(settings, entry) {
                     Some(settings) => settings,
                     None => continue,
@@ -711,7 +715,6 @@ impl Enhancement for PlayerESP {
                         .build();
                     }
                 }
-            }
         }
     }
 }
