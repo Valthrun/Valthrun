@@ -435,236 +435,233 @@ impl Enhancement for PlayerESP {
             let distance = if let Some(local_pos) = self.local_pos {
                 let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
                 distance
-                } else {
-                    0.0
-                };
-                let esp_settings = match self.resolve_esp_player_config(settings, entry) {
-                    Some(settings) => settings,
-                    None => continue,
-                };
-                if esp_settings.near_players {
-                    if distance > esp_settings.near_players_distance {
+            } else {
+                0.0
+            };
+            let esp_settings = match self.resolve_esp_player_config(settings, entry) {
+                Some(settings) => settings,
+                None => continue,
+            };
+            if esp_settings.near_players {
+                if distance > esp_settings.near_players_distance {
+                    continue;
+                }
+            }
+
+            let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
+            let player_2d_box = entry.calculate_player_box(view);
+
+            if esp_settings.skeleton {
+                let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
+
+                for (bone, state) in bones {
+                    if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
                         continue;
                     }
-                }
 
-                let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
-                let player_2d_box = entry.calculate_player_box(view);
-
-                if esp_settings.skeleton {
-                    let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
-
-                    for (bone, state) in bones {
-                        if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
-                            continue;
-                        }
-
-                        let parent_index = if let Some(parent) = bone.parent {
-                            parent
-                        } else {
-                            continue;
-                        };
-
-                        let parent_position = match view
-                            .world_to_screen(&entry.bone_states[parent_index].position, true)
-                        {
-                            Some(position) => position,
-                            None => continue,
-                        };
-                        let bone_position = match view.world_to_screen(&state.position, true) {
-                            Some(position) => position,
-                            None => continue,
-                        };
-
-                        draw.add_line(
-                            parent_position,
-                            bone_position,
-                            esp_settings
-                                .skeleton_color
-                                .calculate_color(player_rel_health, distance),
-                        )
-                        .thickness(esp_settings.skeleton_width)
-                        .build();
-                    }
-                }
-
-                match esp_settings.box_type {
-                    EspBoxType::Box2D => {
-                        if let Some((vmin, vmax)) = &player_2d_box {
-                            draw.add_rect(
-                                [vmin.x, vmin.y],
-                                [vmax.x, vmax.y],
-                                esp_settings
-                                    .box_color
-                                    .calculate_color(player_rel_health, distance),
-                            )
-                            .thickness(esp_settings.box_width)
-                            .build();
-                        }
-                    }
-                    EspBoxType::Box3D => {
-                        view.draw_box_3d(
-                            &draw,
-                            &(entry.model.vhull_min + entry.position),
-                            &(entry.model.vhull_max + entry.position),
-                            esp_settings
-                                .box_color
-                                .calculate_color(player_rel_health, distance)
-                                .into(),
-                            esp_settings.box_width,
-                        );
-                    }
-                    EspBoxType::None => {}
-                }
-
-                if let Some((vmin, vmax)) = &player_2d_box {
-                    let box_bounds = match esp_settings.health_bar {
-                        EspHealthBar::None => None,
-                        EspHealthBar::Left => {
-                            let xoffset = vmin.x
-                                - esp_settings.box_width / 2.0
-                                - esp_settings.health_bar_width;
-
-                            Some([
-                                xoffset,
-                                vmin.y - esp_settings.box_width / 2.0,
-                                esp_settings.health_bar_width,
-                                vmax.y - vmin.y + esp_settings.box_width,
-                            ])
-                        }
-                        EspHealthBar::Right => {
-                            let xoffset = vmax.x + esp_settings.box_width / 2.0;
-
-                            Some([
-                                xoffset,
-                                vmin.y - esp_settings.box_width / 2.0,
-                                esp_settings.health_bar_width,
-                                vmax.y - vmin.y + esp_settings.box_width,
-                            ])
-                        }
-                        EspHealthBar::Top => {
-                            let yoffset = vmin.y
-                                - esp_settings.box_width / 2.0
-                                - esp_settings.health_bar_width;
-
-                            Some([
-                                vmin.x - esp_settings.box_width / 2.0,
-                                yoffset,
-                                vmax.x - vmin.x + esp_settings.box_width,
-                                esp_settings.health_bar_width,
-                            ])
-                        }
-                        EspHealthBar::Bottom => {
-                            let yoffset = vmax.y + esp_settings.box_width / 2.0;
-
-                            Some([
-                                vmin.x - esp_settings.box_width / 2.0,
-                                yoffset,
-                                vmax.x - vmin.x + esp_settings.box_width,
-                                esp_settings.health_bar_width,
-                            ])
-                        }
+                    let parent_index = if let Some(parent) = bone.parent {
+                        parent
+                    } else {
+                        continue;
                     };
 
-                    if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds
+                    let parent_position = match view
+                        .world_to_screen(&entry.bone_states[parent_index].position, true)
                     {
-                        const BORDER_WIDTH: f32 = 1.0;
+                        Some(position) => position,
+                        None => continue,
+                    };
+                    let bone_position = match view.world_to_screen(&state.position, true) {
+                        Some(position) => position,
+                        None => continue,
+                    };
+
+                    draw.add_line(
+                        parent_position,
+                        bone_position,
+                        esp_settings
+                            .skeleton_color
+                            .calculate_color(player_rel_health, distance),
+                    )
+                    .thickness(esp_settings.skeleton_width)
+                    .build();
+                }
+            }
+
+            match esp_settings.box_type {
+                EspBoxType::Box2D => {
+                    if let Some((vmin, vmax)) = &player_2d_box {
                         draw.add_rect(
-                            [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
-                            [
-                                box_x + box_width - BORDER_WIDTH / 2.0,
-                                box_y + box_height - BORDER_WIDTH / 2.0,
-                            ],
-                            [0.0, 0.0, 0.0, 1.0],
+                            [vmin.x, vmin.y],
+                            [vmax.x, vmax.y],
+                            esp_settings
+                                .box_color
+                                .calculate_color(player_rel_health, distance),
                         )
-                        .filled(false)
-                        .thickness(BORDER_WIDTH)
+                        .thickness(esp_settings.box_width)
                         .build();
-
-                        box_x += BORDER_WIDTH / 2.0 + 1.0;
-                        box_y += BORDER_WIDTH / 2.0 + 1.0;
-
-                        box_width -= BORDER_WIDTH + 2.0;
-                        box_height -= BORDER_WIDTH + 2.0;
-
-                        if box_width < box_height {
-                            /* vertical */
-                            let yoffset = box_y + (1.0 - player_rel_health) * box_height;
-                            draw.add_rect(
-                                [box_x, box_y],
-                                [box_x + box_width, yoffset],
-                                [1.0, 0.0, 0.0, 1.0],
-                            )
-                            .filled(true)
-                            .build();
-
-                            draw.add_rect(
-                                [box_x, yoffset],
-                                [box_x + box_width, box_y + box_height],
-                                [0.0, 1.0, 0.0, 1.0],
-                            )
-                            .filled(true)
-                            .build();
-                        } else {
-                            /* horizontal */
-                            let xoffset = box_x + (1.0 - player_rel_health) * box_width;
-                            draw.add_rect(
-                                [box_x, box_y],
-                                [xoffset, box_y + box_height],
-                                [1.0, 0.0, 0.0, 1.0],
-                            )
-                            .filled(true)
-                            .build();
-
-                            draw.add_rect(
-                                [xoffset, box_y],
-                                [box_x + box_width, box_y + box_height],
-                                [0.0, 1.0, 0.0, 1.0],
-                            )
-                            .filled(true)
-                            .build();
-                        }
                     }
                 }
-
-                if let Some((vmin, vmax)) = player_2d_box {
-                    let mut player_info = PlayerInfoLayout::new(
-                        ui,
+                EspBoxType::Box3D => {
+                    view.draw_box_3d(
                         &draw,
-                        view.screen_bounds,
-                        vmin,
-                        vmax,
-                        esp_settings.box_type == EspBoxType::Box2D,
+                        &(entry.model.vhull_min + entry.position),
+                        &(entry.model.vhull_max + entry.position),
+                        esp_settings
+                            .box_color
+                            .calculate_color(player_rel_health, distance)
+                            .into(),
+                        esp_settings.box_width,
                     );
+                }
+                EspBoxType::None => {}
+            }
 
-                    if esp_settings.info_name {
-                        player_info.add_line(
-                            esp_settings
-                                .info_name_color
-                                .calculate_color(player_rel_health, distance),
-                            &entry.player_name,
-                        );
-                    }
+            if let Some((vmin, vmax)) = &player_2d_box {
+                let box_bounds = match esp_settings.health_bar {
+                    EspHealthBar::None => None,
+                    EspHealthBar::Left => {
+                        let xoffset =
+                            vmin.x - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
 
-                    if esp_settings.info_weapon {
-                        let text = entry.weapon.display_name();
-                        player_info.add_line(
-                            esp_settings
-                                .info_weapon_color
-                                .calculate_color(player_rel_health, distance),
-                            &text,
-                        );
+                        Some([
+                            xoffset,
+                            vmin.y - esp_settings.box_width / 2.0,
+                            esp_settings.health_bar_width,
+                            vmax.y - vmin.y + esp_settings.box_width,
+                        ])
                     }
+                    EspHealthBar::Right => {
+                        let xoffset = vmax.x + esp_settings.box_width / 2.0;
 
-                    if esp_settings.info_hp_text {
-                        let text = format!("{} HP", entry.player_health);
-                        player_info.add_line(
-                            esp_settings
-                                .info_hp_text_color
-                                .calculate_color(player_rel_health, distance),
-                            &text,
-                        );
+                        Some([
+                            xoffset,
+                            vmin.y - esp_settings.box_width / 2.0,
+                            esp_settings.health_bar_width,
+                            vmax.y - vmin.y + esp_settings.box_width,
+                        ])
                     }
+                    EspHealthBar::Top => {
+                        let yoffset =
+                            vmin.y - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
+
+                        Some([
+                            vmin.x - esp_settings.box_width / 2.0,
+                            yoffset,
+                            vmax.x - vmin.x + esp_settings.box_width,
+                            esp_settings.health_bar_width,
+                        ])
+                    }
+                    EspHealthBar::Bottom => {
+                        let yoffset = vmax.y + esp_settings.box_width / 2.0;
+
+                        Some([
+                            vmin.x - esp_settings.box_width / 2.0,
+                            yoffset,
+                            vmax.x - vmin.x + esp_settings.box_width,
+                            esp_settings.health_bar_width,
+                        ])
+                    }
+                };
+
+                if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds {
+                    const BORDER_WIDTH: f32 = 1.0;
+                    draw.add_rect(
+                        [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
+                        [
+                            box_x + box_width - BORDER_WIDTH / 2.0,
+                            box_y + box_height - BORDER_WIDTH / 2.0,
+                        ],
+                        [0.0, 0.0, 0.0, 1.0],
+                    )
+                    .filled(false)
+                    .thickness(BORDER_WIDTH)
+                    .build();
+
+                    box_x += BORDER_WIDTH / 2.0 + 1.0;
+                    box_y += BORDER_WIDTH / 2.0 + 1.0;
+
+                    box_width -= BORDER_WIDTH + 2.0;
+                    box_height -= BORDER_WIDTH + 2.0;
+
+                    if box_width < box_height {
+                        /* vertical */
+                        let yoffset = box_y + (1.0 - player_rel_health) * box_height;
+                        draw.add_rect(
+                            [box_x, box_y],
+                            [box_x + box_width, yoffset],
+                            [1.0, 0.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+
+                        draw.add_rect(
+                            [box_x, yoffset],
+                            [box_x + box_width, box_y + box_height],
+                            [0.0, 1.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+                    } else {
+                        /* horizontal */
+                        let xoffset = box_x + (1.0 - player_rel_health) * box_width;
+                        draw.add_rect(
+                            [box_x, box_y],
+                            [xoffset, box_y + box_height],
+                            [1.0, 0.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+
+                        draw.add_rect(
+                            [xoffset, box_y],
+                            [box_x + box_width, box_y + box_height],
+                            [0.0, 1.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+                    }
+                }
+            }
+
+            if let Some((vmin, vmax)) = player_2d_box {
+                let mut player_info = PlayerInfoLayout::new(
+                    ui,
+                    &draw,
+                    view.screen_bounds,
+                    vmin,
+                    vmax,
+                    esp_settings.box_type == EspBoxType::Box2D,
+                );
+
+                if esp_settings.info_name {
+                    player_info.add_line(
+                        esp_settings
+                            .info_name_color
+                            .calculate_color(player_rel_health, distance),
+                        &entry.player_name,
+                    );
+                }
+
+                if esp_settings.info_weapon {
+                    let text = entry.weapon.display_name();
+                    player_info.add_line(
+                        esp_settings
+                            .info_weapon_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
+
+                if esp_settings.info_hp_text {
+                    let text = format!("{} HP", entry.player_health);
+                    player_info.add_line(
+                        esp_settings
+                            .info_hp_text_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
 
                 let mut player_flags = Vec::new();
                 if esp_settings.info_flag_kit && entry.player_has_defuser {
@@ -694,36 +691,36 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-                if let Some(pos) = view.world_to_screen(&entry.position, false) {
-                    let tracer_origin = match esp_settings.tracer_lines {
-                        EspTracePosition::TopLeft => Some([0.0, 0.0]),
-                        EspTracePosition::TopCenter => Some([view.screen_bounds.x / 2.0, 0.0]),
-                        EspTracePosition::TopRight => Some([view.screen_bounds.x, 0.0]),
-                        EspTracePosition::Center => {
-                            Some([view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0])
-                        }
-                        EspTracePosition::BottomLeft => Some([0.0, view.screen_bounds.y]),
-                        EspTracePosition::BottomCenter => {
-                            Some([view.screen_bounds.x / 2.0, view.screen_bounds.y])
-                        }
-                        EspTracePosition::BottomRight => {
-                            Some([view.screen_bounds.x, view.screen_bounds.y])
-                        }
-                        EspTracePosition::None => None,
-                    };
-
-                    if let Some(origin) = tracer_origin {
-                        draw.add_line(
-                            origin,
-                            pos,
-                            esp_settings
-                                .tracer_lines_color
-                                .calculate_color(player_rel_health, distance),
-                        )
-                        .thickness(esp_settings.tracer_lines_width)
-                        .build();
+            if let Some(pos) = view.world_to_screen(&entry.position, false) {
+                let tracer_origin = match esp_settings.tracer_lines {
+                    EspTracePosition::TopLeft => Some([0.0, 0.0]),
+                    EspTracePosition::TopCenter => Some([view.screen_bounds.x / 2.0, 0.0]),
+                    EspTracePosition::TopRight => Some([view.screen_bounds.x, 0.0]),
+                    EspTracePosition::Center => {
+                        Some([view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0])
                     }
+                    EspTracePosition::BottomLeft => Some([0.0, view.screen_bounds.y]),
+                    EspTracePosition::BottomCenter => {
+                        Some([view.screen_bounds.x / 2.0, view.screen_bounds.y])
+                    }
+                    EspTracePosition::BottomRight => {
+                        Some([view.screen_bounds.x, view.screen_bounds.y])
+                    }
+                    EspTracePosition::None => None,
+                };
+
+                if let Some(origin) = tracer_origin {
+                    draw.add_line(
+                        origin,
+                        pos,
+                        esp_settings
+                            .tracer_lines_color
+                            .calculate_color(player_rel_health, distance),
+                    )
+                    .thickness(esp_settings.tracer_lines_width)
+                    .build();
                 }
+            }
         }
     }
 }
