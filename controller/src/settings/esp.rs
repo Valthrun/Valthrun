@@ -195,6 +195,9 @@ pub struct EspPlayerSettings {
 
     pub info_kit: bool,
     pub info_kit_color: EspColor,
+
+    pub info_flashed: bool,
+    pub info_flashed_color: EspColor,
 }
 
 const ESP_COLOR_FRIENDLY: EspColor = EspColor::from_rgba(0.0, 1.0, 0.0, 0.75);
@@ -249,6 +252,9 @@ impl EspPlayerSettings {
 
             info_kit: false,
             info_kit_color: color.clone(),
+
+            info_flashed: false,
+            info_flashed_color: color.clone(),
         }
     }
 }

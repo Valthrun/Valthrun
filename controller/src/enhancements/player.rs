@@ -50,6 +50,7 @@ pub struct PlayerInfo {
     pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
+    pub player_flashtime: f32,
 
     pub position: nalgebra::Vector3<f32>,
     pub model: Arc<CS2Model>,
@@ -209,6 +210,8 @@ impl PlayerESP {
             WeaponId::Knife.id()
         };
 
+        let player_flashtime = player_pawn.m_flFlashBangTime()?;
+
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
@@ -217,6 +220,7 @@ impl PlayerESP {
             player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
+            player_flashtime,
 
             position,
             bone_states,
@@ -667,13 +671,23 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_kit && entry.player_has_defuser {
-                    player_info.add_line(
-                        esp_settings
-                            .info_kit_color
-                            .calculate_color(player_rel_health),
-                        "KIT",
-                    );
+                if esp_settings.info_kit && entry.player_has_defuser || esp_settings.info_flashed {
+                    let flashbang_time = entry.player_flashtime;
+                    if flashbang_time > 0.0 {
+                        player_info.add_line(
+                            esp_settings
+                                .info_flashed_color
+                                .calculate_color(player_rel_health),
+                            &format!("KIT, flashed"),
+                        );
+                    } else {
+                        player_info.add_line(
+                            esp_settings
+                                .info_kit_color
+                                .calculate_color(player_rel_health),
+                            "KIT",
+                        );
+                    }
                 }
 
                 // TODO: Distance
