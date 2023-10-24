@@ -147,7 +147,7 @@ impl SettingsUI {
                             (EspMode::AlwaysOn, "Always On"),
                         ], &mut settings.esp_mode);
 
-                        ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_enabled);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
