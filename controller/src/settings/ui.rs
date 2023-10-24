@@ -138,16 +138,14 @@ impl SettingsUI {
                     }
 
                     if let Some(_tab) = ui.tab_item("Visuals") {
-                        ui.checkbox(obfstr!("ESP"), &mut settings.esp);
-
-
-
-
-
-
-
-
-                        
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum(obfstr!("ESP"), &[
+                            (EspMode::Off, "Always Off"),
+                            (EspMode::Trigger, "Trigger"),
+                            (EspMode::TriggerInverted, "Trigger Inverted"),
+                            (EspMode::Toggle, "Toggle"),
+                            (EspMode::AlwaysOn, "Always On"),
+                        ], &mut settings.esp_mode);
                         ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_enabled);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
