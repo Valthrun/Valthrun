@@ -450,8 +450,8 @@ impl SettingsUI {
                 ui.checkbox(obfstr!("Weapon"), &mut config.info_weapon);
                 ui.checkbox(obfstr!("Distance"), &mut config.info_distance);
                 ui.checkbox(obfstr!("Health"), &mut config.info_hp_text);
-                ui.checkbox(obfstr!("Kit"), &mut config.info_kit);
-                ui.checkbox(obfstr!("Flashed"), &mut config.info_flashed);
+                ui.checkbox(obfstr!("Kit"), &mut config.info_flag_kit);
+                ui.checkbox(obfstr!("Flashed"), &mut config.info_flag_flashed);
             }
         }
 
@@ -577,15 +577,8 @@ impl SettingsUI {
                     ui.table_next_row();
                     Self::render_esp_settings_player_style_color(
                         ui,
-                        obfstr!("Color info kit"),
-                        &mut config.info_kit_color,
-                    );
-
-                    ui.table_next_row();
-                    Self::render_esp_settings_player_style_color(
-                        ui,
-                        obfstr!("Color info flashed"),
-                        &mut config.info_flashed_color,
+                        obfstr!("Color info player flags"),
+                        &mut config.info_flags_color,
                     );
                 }
             }

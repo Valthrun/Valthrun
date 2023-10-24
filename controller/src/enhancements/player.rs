@@ -641,25 +641,23 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_kit && entry.player_has_defuser || esp_settings.info_flashed {
-                    let flashbang_time = entry.player_flashtime;
-                    if flashbang_time > 0.0 {
-                        player_info.add_line(
-                            esp_settings
-                                .info_flashed_color
-                                .calculate_color(player_rel_health),
-                            &format!("KIT, flashed"),
-                        );
-                    } else {
-                        player_info.add_line(
-                            esp_settings
-                                .info_kit_color
-                                .calculate_color(player_rel_health),
-                            "KIT",
-                        );
-                    }
+                let mut player_flags = Vec::new();
+                if esp_settings.info_flag_kit && entry.player_has_defuser {
+                    player_flags.push("Kit");
                 }
 
+                if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
+                    player_flags.push("flashed");
+                }
+
+                if !player_flags.is_empty() {
+                    player_info.add_line(
+                        esp_settings
+                            .info_flags_color
+                            .calculate_color(player_rel_health),
+                        &player_flags.join(", "),
+                    );
+                }
                 // TODO: Distance
             }
 
