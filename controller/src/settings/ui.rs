@@ -139,6 +139,15 @@ impl SettingsUI {
 
                     if let Some(_tab) = ui.tab_item("Visuals") {
                         ui.checkbox(obfstr!("ESP"), &mut settings.esp);
+
+
+
+
+
+
+
+
+                        
                         ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_enabled);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
