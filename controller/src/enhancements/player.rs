@@ -644,21 +644,21 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_kit && entry.player_has_defuser || esp_settings.info_flashed{
+                if esp_settings.info_kit && entry.player_has_defuser || esp_settings.info_flashed {
                     let flashbang_time = entry.player_flashtime;
                     if flashbang_time > 0.0 {
                         player_info.add_line(
                             esp_settings
                                 .info_flashed_color
                                 .calculate_color(player_rel_health),
-                            &format!("KIT, flashed"), 
+                            &format!("KIT, flashed"),
                         );
                     } else {
                         player_info.add_line(
                             esp_settings
                                 .info_kit_color
                                 .calculate_color(player_rel_health),
-                            "KIT", 
+                            "KIT",
                         );
                     }
                 }
