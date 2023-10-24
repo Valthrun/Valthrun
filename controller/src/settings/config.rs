@@ -84,7 +84,7 @@ pub struct AppSettings {
     pub esp_settings_enabled: BTreeMap<String, bool>,
 
     #[serde(default = "bool_true")]
-    pub bomb_timer: bool,
+    pub bomb_enabled: bool,
 
     #[serde(default = "bool_false")]
     pub spectators_list: bool,

@@ -245,6 +245,50 @@ impl EspPlayerSettings {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub struct EspBombSettings {
+    pub bomb_site: bool,
+    pub bomb_site_color: EspColor,
+
+    pub bomb_position: bool,
+    pub bomb_position_color: EspColor,
+
+    pub bomb_status: bool,
+    pub bomb_status_color: EspColor,
+}
+
+impl EspBombSettings {
+    pub fn new(target: &EspSelector) -> Self {
+        let color = match target {
+            EspSelector::PlayerTeam { enemy } => {
+                if *enemy {
+                    ESP_COLOR_ENEMY
+                } else {
+                    ESP_COLOR_FRIENDLY
+                }
+            }
+            EspSelector::PlayerTeamVisibility { enemy, .. } => {
+                if *enemy {
+                    ESP_COLOR_ENEMY
+                } else {
+                    ESP_COLOR_FRIENDLY
+                }
+            }
+            _ => EspColor::from_rgba(1.0, 1.0, 1.0, 0.75),
+        };
+        Self {
+            bomb_site: false,
+            bomb_site_color: color.clone(),
+
+            bomb_position: false,
+            bomb_position_color: color.clone(),
+
+            bomb_status: false,
+            bomb_status_color: color.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct EspChickenSettings {
     pub box_type: EspBoxType,
     pub box_color: EspColor,
@@ -271,6 +315,7 @@ pub enum EspConfig {
     Player(EspPlayerSettings),
     Chicken(EspChickenSettings),
     Weapon(EspWeaponSettings),
+    Bomb(EspBombSettings),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -350,6 +395,7 @@ pub enum EspSelector {
         group: EspWeaponType,
         target: WeaponId,
     },
+    Bomb,
 }
 
 impl EspSelector {
@@ -372,6 +418,8 @@ impl EspSelector {
             EspSelector::WeaponSingle { group, target } => {
                 format!("weapon.{}.{}", group.config_key(), target.name())
             }
+
+            EspSelector::Bomb => "bomb".to_string(),
         }
     }
 
@@ -400,6 +448,8 @@ impl EspSelector {
             EspSelector::Weapon => "Weapons".to_string(),
             EspSelector::WeaponGroup { group } => group.display_name(),
             EspSelector::WeaponSingle { target, .. } => target.display_name().to_string(),
+
+            EspSelector::Bomb => "Bomb".to_string(),
         }
     }
 
@@ -437,6 +487,8 @@ impl EspSelector {
                     target.display_name()
                 )
             }
+
+            EspSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
         }
     }
 
@@ -453,6 +505,8 @@ impl EspSelector {
             Self::Weapon => None,
             Self::WeaponGroup { .. } => Some(Self::Weapon),
             Self::WeaponSingle { group, .. } => Some(Self::WeaponGroup { group: *group }),
+
+            Self::Bomb => None,
         }
     }
 
@@ -507,6 +561,8 @@ impl EspSelector {
                 })
                 .collect(),
             EspSelector::WeaponSingle { .. } => vec![],
+
+            EspSelector::Bomb => vec![],
         }
     }
 }
