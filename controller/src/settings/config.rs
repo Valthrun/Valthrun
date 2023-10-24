@@ -17,7 +17,6 @@ use serde::{
 
 use super::{
     EspConfig,
-    EspMode,
     HotKey,
 };
 
@@ -44,8 +43,21 @@ fn default_key_none() -> Option<HotKey> {
     None
 }
 
-fn default_esp_mode() -> EspMode {
-    EspMode::AlwaysOn
+fn default_esp_mode() -> KeyToggleMode {
+    KeyToggleMode::AlwaysOn
+}
+
+fn default_trigger_bot_mode() -> KeyToggleMode {
+    KeyToggleMode::Trigger
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum KeyToggleMode {
+    AlwaysOn,
+    Toggle,
+    Trigger,
+    TriggerInverted,
+    Off,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -54,7 +66,7 @@ pub struct AppSettings {
     pub key_settings: HotKey,
 
     #[serde(default = "default_esp_mode")]
-    pub esp_mode: EspMode,
+    pub esp_mode: KeyToggleMode,
 
     #[serde(default = "default_key_none")]
     pub esp_toogle: Option<HotKey>,
@@ -77,8 +89,8 @@ pub struct AppSettings {
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
 
-    #[serde(default = "bool_false")]
-    pub trigger_bot_always_active: bool,
+    #[serde(default = "default_trigger_bot_mode")]
+    pub trigger_bot_mode: KeyToggleMode,
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,

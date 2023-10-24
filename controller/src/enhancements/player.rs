@@ -1,7 +1,6 @@
 use std::{
     ffi::CStr,
     sync::Arc,
-    time::Instant,
 };
 
 use anyhow::{
@@ -33,12 +32,14 @@ use crate::{
         EspBoxType,
         EspConfig,
         EspHealthBar,
-        EspMode,
         EspPlayerSettings,
         EspSelector,
         EspTracePosition,
     },
-    view::ViewController,
+    view::{
+        KeyToggle,
+        ViewController,
+    },
     weapon::WeaponId,
 };
 
@@ -109,9 +110,7 @@ impl CModelStateEx for CModelState {
 }
 
 pub struct PlayerESP {
-    esp_enabled: bool,
-    esp_toggle_last: Instant,
-
+    toggle: KeyToggle,
     players: Vec<PlayerInfo>,
     local_team_id: u8,
 }
@@ -119,9 +118,7 @@ pub struct PlayerESP {
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
-            esp_enabled: false,
-            esp_toggle_last: Instant::now(),
-
+            toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
         }
@@ -332,48 +329,21 @@ const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
 const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        let new_esp_state = match ctx.settings.esp_mode {
-            EspMode::AlwaysOn => true,
-            EspMode::Trigger | EspMode::TriggerInverted => {
-                if let Some(hotkey) = &ctx.settings.esp_toogle {
-                    ctx.input.is_key_down(hotkey.0) == (ctx.settings.esp_mode == EspMode::Trigger)
-                } else {
-                    false
-                }
-            }
-            EspMode::Toggle => {
-                if let Some(hotkey) = &ctx.settings.esp_toogle {
-                    if ctx.input.is_key_pressed(hotkey.0, false) {
-                        if self.esp_toggle_last.elapsed().as_millis() > 500 {
-                            self.esp_toggle_last = Instant::now();
-                            !self.esp_enabled
-                        } else {
-                            /* sometimes is_key_pressed with repeating set to false still triggers a few times */
-                            self.esp_enabled
-                        }
-                    } else {
-                        self.esp_enabled
-                    }
-                } else {
-                    false
-                }
-            }
-            EspMode::Off => false,
-        };
-
-        if self.esp_enabled != new_esp_state {
+        if self
+            .toggle
+            .update(&ctx.settings.esp_mode, ctx.input, &ctx.settings.esp_toogle)
+        {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-esp-toggle"),
                 &format!(
                     "enabled: {}, mode: {:?}",
-                    new_esp_state, ctx.settings.esp_mode
+                    self.toggle.enabled, ctx.settings.esp_mode
                 ),
             );
-            self.esp_enabled = new_esp_state;
         }
 
         self.players.clear();
-        if !self.esp_enabled {
+        if !self.toggle.enabled {
             return Ok(());
         }
 

@@ -24,8 +24,8 @@ use super::{
     EspColor,
     EspColorType,
     EspConfig,
-    EspMode,
     EspSelector,
+    KeyToggleMode,
 };
 use crate::{
     settings::{
@@ -136,7 +136,7 @@ impl SettingsUI {
                         ui.button_key(obfstr!("Toggle Settings"), &mut settings.key_settings, [150.0, 0.0]);
 
                         {
-                            let _enabled = ui.begin_enabled(matches!(settings.esp_mode, EspMode::Toggle | EspMode::Trigger));
+                            let _enabled = ui.begin_enabled(matches!(settings.esp_mode, KeyToggleMode::Toggle | KeyToggleMode::Trigger));
                             ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
                         }
                     }
@@ -144,11 +144,11 @@ impl SettingsUI {
                     if let Some(_tab) = ui.tab_item("Visuals") {
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("ESP"), &[
-                            (EspMode::Off, "Always Off"),
-                            (EspMode::Trigger, "Trigger"),
-                            (EspMode::TriggerInverted, "Trigger Inverted"),
-                            (EspMode::Toggle, "Toggle"),
-                            (EspMode::AlwaysOn, "Always On"),
+                            (KeyToggleMode::Off, "Always Off"),
+                            (KeyToggleMode::Trigger, "Trigger"),
+                            (KeyToggleMode::TriggerInverted, "Trigger Inverted"),
+                            (KeyToggleMode::Toggle, "Toggle"),
+                            (KeyToggleMode::AlwaysOn, "Always On"),
                         ], &mut settings.esp_mode);
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
@@ -156,7 +156,7 @@ impl SettingsUI {
                     }
 
                     if let Some(_tab) = ui.tab_item("ESP") {
-                        if settings.esp_mode == EspMode::Off {
+                        if settings.esp_mode == KeyToggleMode::Off {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text("ESP has been disabled.");
                             ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
@@ -166,9 +166,19 @@ impl SettingsUI {
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
-                        ui.checkbox(obfstr!("Trigger Bot Always Active"), &mut settings.trigger_bot_always_active);
-                        ui.button_key_optional(obfstr!("Trigger Bot"), &mut settings.key_trigger_bot, [150.0, 0.0]);
-                        if settings.trigger_bot_always_active || settings.key_trigger_bot.is_some() {
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum(obfstr!("Trigger Bot"), &[
+                            (KeyToggleMode::Off, "Always Off"),
+                            (KeyToggleMode::Trigger, "Trigger"),
+                            (KeyToggleMode::TriggerInverted, "Trigger Inverted"),
+                            (KeyToggleMode::Toggle, "Toggle"),
+                            (KeyToggleMode::AlwaysOn, "Always On"),
+                        ], &mut settings.trigger_bot_mode);
+
+                        if !matches!(settings.trigger_bot_mode, KeyToggleMode::Off | KeyToggleMode::AlwaysOn) {
+                            ui.button_key_optional(obfstr!("Trigger bot key"), &mut settings.key_trigger_bot, [150.0, 0.0]);
+                        }
+                        if !matches!(settings.trigger_bot_mode, KeyToggleMode::Off) {
                             let mut values_updated = false;
 
                             ui.text(obfstr!("Trigger delay: ")); ui.same_line();
