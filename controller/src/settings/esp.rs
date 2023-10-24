@@ -196,6 +196,7 @@ pub struct EspPlayerSettings {
     pub info_kit: bool,
     pub info_kit_color: EspColor,
 
+    // FIXME: Default values!
     pub info_flashed: bool,
     pub info_flashed_color: EspColor,
 }
@@ -281,7 +282,7 @@ pub struct EspWeaponSettings {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum EspConfig {
     Player(EspPlayerSettings),
     Chicken(EspChickenSettings),
