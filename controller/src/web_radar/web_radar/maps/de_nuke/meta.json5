@@ -1,0 +1,51 @@
+{
+	"version": {
+		// The version of this meta file
+		"radar": 2,
+		// The object format version this file is using
+		"format": 3
+	},
+
+	// The amount of in-game units per pixel of the 1024px radar image
+	"resolution": 6.98,
+
+	// How many in-game units is the origin (0,0) of the map from the bottom left point of the radar
+	"offset": {
+		"x": 3290,
+		"y": 5990
+	},
+
+	// Contains any special map splits
+	"splits": [
+		{
+			// The top and bottom y height for this split
+			"bounds": {
+				"top": -482,
+				"bottom": -2500
+			},
+			// The radar offset in percentages to apply when player is in the split
+			"offset": {
+				"x": 0,
+				"y": -46
+			},
+
+			// The minimum and maximum height a player can be within this split
+			"zRange": {
+				"min": -770,
+				"max": -480
+			}
+		}
+	],
+
+	// Position in which advisories should be placed, in percentages from the bottom left
+	"advisoryPosition": {
+		"x": 20,
+		"y": 30
+	},
+
+	// The minimum and maximum height a player can be on the map
+	"zRange": {
+		"min": -480,
+		"max": -20
+	}
+}

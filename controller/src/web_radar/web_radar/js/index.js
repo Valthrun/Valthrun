@@ -24,13 +24,13 @@ ws.onmessage = function(event) {
 
         // Rotate and position the player dot
         // playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-        var size = 2048 * 5.02;
+        var size = 2048 * 3.66;
         var offset = { x: 3240, y: 3410 };
         x = (x + offset.x) / size * 100;
         y = (y + offset.y) / size * 100;
         console.log('Player pos:', x, y);
         playerDot.style.left = `${x}%`;
-        playerDot.style.top = `${y}%`;
+        playerDot.style.top = `${Math.abs(y - 100)}%`;
     });
 
 };
@@ -46,7 +46,8 @@ ws.onerror = function(error) {
 function addPlayerDot(teamID) {
     // Create a new image element
     var playerDot = document.createElement('img');
-    if (teamID === 1)
+    console.log(teamID);
+    if (teamID === 3)
     {
         playerDot.src = 'images/blue_dot.png';
         playerDot.alt = 'Player';

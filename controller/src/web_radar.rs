@@ -3,33 +3,26 @@ use actix_web::{middleware::Logger, web, App, Error, HttpRequest, HttpResponse, 
 use actix_web_actors::ws;
 use std::sync::{Arc, Mutex};
 
-pub struct RadarAddress {
-    pub radar_addr: Option<Addr<WebRadar>>,
-}
-
-impl RadarAddress {
-    pub fn new() -> Self {
-        RadarAddress { radar_addr: None }
-    }
-}
-
 /// Define HTTP actor
-pub struct WebRadar {
-    address: Arc<Mutex<RadarAddress>>,
-}
-
-impl WebRadar {
-    pub fn new(address: Arc<Mutex<RadarAddress>>) -> Self {
-        WebRadar { address: address }
-    }
-}
+pub struct WebRadar {}
 
 impl Actor for WebRadar {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let mut address = self.address.lock().unwrap();
-        address.radar_addr = Some(ctx.address());
+        let address = ctx.address();
+        // Now you can use my_address to add it to the global list or do whatever you need.
+        if let Ok(mut clients) = CLIENTS.lock() {
+            clients.push(address);
+            log::info!("Client connected!");
+        }
+    }
+
+    fn stopped(&mut self, ctx: &mut Self::Context) {
+        if let Ok(mut clients) = CLIENTS.lock() {
+            clients.retain(|addr| *addr != ctx.address());
+            log::info!("Client disconnected!");
+        }
     }
 }
 
@@ -63,19 +56,18 @@ impl Handler<PlayersData> for WebRadar {
     }
 }
 
-async fn ws(req: HttpRequest, stream: web::Payload, radar_address: web::Data<Arc<Mutex<RadarAddress>>>) -> Result<HttpResponse, Error> {
-    let resp = ws::start(WebRadar::new(radar_address.get_ref().clone()), &req, stream);
+async fn ws(req: HttpRequest, stream: web::Payload) -> Result<HttpResponse, Error> {
+    let resp = ws::start(WebRadar {}, &req, stream);
     println!("{:?}", resp);
     resp
 }
 
-pub async fn run_server(radar_address: Arc<Mutex<RadarAddress>>) -> Result<(), anyhow::Error> {
+pub async fn run_server() -> Result<(), anyhow::Error> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .app_data(web::Data::new(radar_address.clone()))
             .route("/ws", web::get().to(ws))
-            .service(actix_files::Files::new("/", "./").index_file("index.html"))
+            .service(actix_files::Files::new("/", "./web_radar").index_file("index.html"))
     })
         .bind("0.0.0.0:6969")?
         .run()

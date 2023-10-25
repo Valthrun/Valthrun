@@ -1,0 +1,31 @@
+{
+	"version": {
+		// The version of this meta file
+		"radar": 3,
+		// The object format version this file is using
+		"format": 3
+	},
+
+	// The amount of in-game units per pixel of the 1024px radar image
+	"resolution": 4.91,
+
+	// How many in-game units is the origin (0,0) of the map from the bottom left point of the radar
+	"offset": {
+		"x": 2090,
+		"y": 1150
+	},
+
+	// Contains any special map splits
+	"splits": [],
+
+	// Position in which advisories should be placed, in percentages from the bottom left
+	"advisoryPosition": {
+		"x": 16,
+		"y": 56
+	},
+
+	"zRange": {
+		"min": 73,
+		"max": 310
+	}
+}

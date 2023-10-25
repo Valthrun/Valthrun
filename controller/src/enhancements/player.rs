@@ -42,7 +42,7 @@ use crate::{
     view::ViewController,
     weapon::WeaponId,
 };
-use crate::web_radar::PlayersData;
+use crate::web_radar::{CLIENTS, PlayersData};
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -80,7 +80,7 @@ pub struct WebPlayerInfo {
     pub player_name: String,
     pub weapon: WeaponId,
 
-    pub position: nalgebra::Vector3<f32>,
+    pub position: [f32; 3],
 }
 
 impl From<&PlayerInfo> for WebPlayerInfo {
@@ -94,7 +94,7 @@ impl From<&PlayerInfo> for WebPlayerInfo {
             player_name: player_info.player_name.clone(),
             weapon: player_info.weapon,
 
-            position: player_info.position,
+            position: [player_info.position.x, player_info.position.y, player_info.position.z],
         }
     }
 }
@@ -474,16 +474,14 @@ impl Enhancement for PlayerESP {
             }
         }
 
-        let mut web_players_info: Vec<WebPlayerInfo>;
-        for player in self.players {
-            web_players_info.push(WebPlayerInfo::from(&player));
+        let mut web_players_info: Vec<WebPlayerInfo> = vec![];
+        for player in &self.players {
+            web_players_info.push(WebPlayerInfo::from(player));
         }
 
         let data = serde_json::to_string(&web_players_info).unwrap();
-        let address = ctx.radar_address.clone();
-        let radar_address = address.lock().unwrap();
-        if let Some(radar_addr) = &radar_address.radar_addr {
-            radar_addr.do_send(PlayersData { data });
+        for client in CLIENTS.lock().unwrap().iter() {
+            client.do_send(PlayersData { data: data.clone() });
         }
 
         Ok(())
