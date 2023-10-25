@@ -18,7 +18,6 @@ use std::{
             Ordering,
         },
         Arc,
-        Mutex
     },
     time::{
         Duration,

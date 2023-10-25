@@ -1,7 +1,6 @@
 use std::{
     ffi::CStr,
     sync::Arc,
-    time::Instant,
 };
 
 use anyhow::{
@@ -34,7 +33,6 @@ use crate::{
         EspBoxType,
         EspConfig,
         EspHealthBar,
-        EspMode,
         EspPlayerSettings,
         EspSelector,
         EspTracePosition,
