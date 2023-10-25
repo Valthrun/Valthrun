@@ -15,15 +15,6 @@ use crate::weapon::{
     WEAPON_FLAG_TYPE_SNIPER_RIFLE,
 };
 
-#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
-pub enum EspMode {
-    AlwaysOn,
-    Toggle,
-    Trigger,
-    TriggerInverted,
-    Off,
-}
-
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct Color(u32);
 impl Color {
@@ -193,8 +184,9 @@ pub struct EspPlayerSettings {
     pub info_hp_text: bool,
     pub info_hp_text_color: EspColor,
 
-    pub info_kit: bool,
-    pub info_kit_color: EspColor,
+    pub info_flag_kit: bool,
+    pub info_flag_flashed: bool,
+    pub info_flags_color: EspColor,
 }
 
 const ESP_COLOR_FRIENDLY: EspColor = EspColor::from_rgba(0.0, 1.0, 0.0, 0.75);
@@ -247,8 +239,9 @@ impl EspPlayerSettings {
             info_weapon: false,
             info_weapon_color: color.clone(),
 
-            info_kit: false,
-            info_kit_color: color.clone(),
+            info_flag_kit: false,
+            info_flag_flashed: false,
+            info_flags_color: color.clone(),
         }
     }
 }
@@ -275,7 +268,7 @@ pub struct EspWeaponSettings {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
-#[serde(untagged)]
+#[serde(tag = "type")]
 pub enum EspConfig {
     Player(EspPlayerSettings),
     Chicken(EspChickenSettings),

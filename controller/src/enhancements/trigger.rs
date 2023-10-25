@@ -5,6 +5,7 @@ use cs2_schema_generated::{
     cs2::client::C_CSPlayerPawn,
     EntityHandle,
 };
+use obfstr::obfstr;
 use rand::{
     distributions::Uniform,
     prelude::Distribution,
@@ -15,6 +16,7 @@ use super::Enhancement;
 use crate::{
     settings::AppSettings,
     view::{
+        KeyToggle,
         LocalCrosshair,
         ViewController,
     },
@@ -28,6 +30,7 @@ enum TriggerState {
 }
 
 pub struct TriggerBot {
+    toggle: KeyToggle,
     state: TriggerState,
     trigger_active: bool,
     crosshair: LocalCrosshair,
@@ -36,9 +39,9 @@ pub struct TriggerBot {
 impl TriggerBot {
     pub fn new(crosshair: LocalCrosshair) -> Self {
         Self {
+            toggle: KeyToggle::new(),
             state: TriggerState::Idle,
             trigger_active: false,
-
             crosshair,
         }
     }
@@ -87,26 +90,31 @@ impl TriggerBot {
 
 impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
-        let should_be_active: bool = if ctx.settings.trigger_bot_always_active {
+        if self.toggle.update(
+            &ctx.settings.trigger_bot_mode,
+            ctx.input,
+            &ctx.settings.key_trigger_bot,
+        ) {
+            ctx.cs2.add_metrics_record(
+                obfstr!("feature-trigger-bot-toggle"),
+                &format!(
+                    "enabled: {}, mode: {:?}",
+                    self.toggle.enabled, ctx.settings.trigger_bot_mode
+                ),
+            );
+        }
+
+        let should_shoot: bool = if self.toggle.enabled {
             self.crosshair.update(ctx)?;
             self.should_be_active(ctx)?
         } else {
-            if let Some(key) = &ctx.settings.key_trigger_bot {
-                if ctx.input.is_key_down(key.0) {
-                    self.crosshair.update(ctx)?;
-                    self.should_be_active(ctx)?
-                } else {
-                    false
-                }
-            } else {
-                false
-            }
+            false
         };
 
         loop {
             match &self.state {
                 TriggerState::Idle => {
-                    if !should_be_active {
+                    if !should_shoot {
                         /* nothing changed */
                         break;
                     }
@@ -142,7 +150,7 @@ impl Enhancement for TriggerBot {
                         break;
                     }
 
-                    if ctx.settings.trigger_bot_check_target_after_delay && !should_be_active {
+                    if ctx.settings.trigger_bot_check_target_after_delay && !should_shoot {
                         self.state = TriggerState::Idle;
                     } else {
                         self.state = TriggerState::Active;
@@ -151,7 +159,7 @@ impl Enhancement for TriggerBot {
                     break;
                 }
                 TriggerState::Active => {
-                    if should_be_active {
+                    if should_shoot {
                         /* nothing changed */
                         break;
                     }
