@@ -681,7 +681,7 @@ impl Enhancement for PlayerESP {
                     );
                 }
                 if esp_settings.info_distance {
-                    let text = format!("[{:.0}]m", distance);
+                    let text = format!("{:.0}m", distance);
                     player_info.add_line(
                         esp_settings
                             .info_distance_color
