@@ -400,9 +400,6 @@ impl Enhancement for PlayerESP {
         }
 
         self.players.clear();
-        if !self.esp_enabled {
-            return Ok(());
-        }
 
         self.players.reserve(16);
 
@@ -488,6 +485,10 @@ impl Enhancement for PlayerESP {
     }
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
+        if !self.esp_enabled {
+            return;
+        }
+
         let draw = ui.get_window_draw_list();
         for entry in self.players.iter() {
             let esp_settings = match self.resolve_esp_player_config(settings, entry) {

@@ -1,5 +1,5 @@
 
-var ws = new WebSocket('ws://localhost:6969/ws');
+var ws = new WebSocket('ws://192.168.1.107:6969/ws');
 
 ws.onopen = function() {
     console.log('Connected to the WebSocket');
@@ -13,7 +13,6 @@ ws.onmessage = function(event) {
     var existingDots = document.querySelectorAll('.player-dot');
     existingDots.forEach(dot => dot.remove());
 
-    console.log('Data received!');
     // Add and position a dot for each player
     players.forEach(player => {
         var playerDot = addPlayerDot(player.team_id);
@@ -24,11 +23,10 @@ ws.onmessage = function(event) {
 
         // Rotate and position the player dot
         // playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-        var size = 2048 * 5.02;
-        var offset = { x: 3240, y: 3410 };
+        const size = 2048 * 2.451;
+        const offset = { x: 3190, y: 3360 };
         x = (x + offset.x) / size * 100;
-        y = (y + offset.y) / size * 100;
-        console.log('Player pos:', x, y);
+        y = Math.abs((y + offset.y) / size * 100 - 100);
         playerDot.style.left = `${x}%`;
         playerDot.style.top = `${y}%`;
     });
@@ -46,7 +44,8 @@ ws.onerror = function(error) {
 function addPlayerDot(teamID) {
     // Create a new image element
     var playerDot = document.createElement('img');
-    if (teamID === 1)
+    console.log(teamID);
+    if (teamID === 3)
     {
         playerDot.src = 'images/blue_dot.png';
         playerDot.alt = 'Player';
@@ -65,3 +64,22 @@ function addPlayerDot(teamID) {
 
     return playerDot; // Return the created element for further manipulation
 }
+
+const image = document.querySelector('.map');
+image.onload = function() {
+    const container = document.querySelector('.map-container');
+    // Calculate the scaled width of the image
+    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    const scaledWidth = container.offsetHeight * aspectRatio;
+
+    // Set the container width to match the scaled width of the image
+    container.style.width = `${scaledWidth}px`;
+};
+
+// Optional: If you want the container to adjust its size when the window is resized
+window.addEventListener('resize', function() {
+    const container = document.querySelector('.map-container');
+    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    const scaledWidth = container.offsetHeight * aspectRatio;
+    container.style.width = `${scaledWidth}px`;
+});
