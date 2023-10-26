@@ -56,32 +56,17 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WebRadar {
 
 #[derive(Message)]
 #[rtype(result = "()")]
-pub struct PlayersData {
-    pub data: String,
-}
-
-#[derive(Message)]
-#[rtype(result = "()")]
-pub struct MapData {
+pub struct MessageData {
     pub data: String,
 }
 
 pub static CLIENTS: once_cell::sync::Lazy<Arc<Mutex<Vec<Addr<WebRadar>>>>> =
     once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
 
-impl Handler<PlayersData> for WebRadar {
+impl Handler<MessageData> for WebRadar {
     type Result = ();
 
-    fn handle(&mut self, msg: PlayersData, ctx: &mut Self::Context) {
-        // Send the data to the WebSocket client
-        ctx.text(msg.data);
-    }
-}
-
-impl Handler<MapData> for WebRadar {
-    type Result = ();
-
-    fn handle(&mut self, msg: MapData, ctx: &mut Self::Context) {
+    fn handle(&mut self, msg: MessageData, ctx: &mut Self::Context) {
         // Send the data to the WebSocket client
         ctx.text(msg.data);
     }

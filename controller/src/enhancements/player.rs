@@ -43,8 +43,7 @@ use crate::{
     },
     weapon::WeaponId,
     web_radar::{
-        MapData,
-        PlayersData,
+        MessageData,
         CLIENTS,
     },
 };
@@ -403,7 +402,7 @@ impl Enhancement for PlayerESP {
             if let Some(current_map) = ctx.current_map {
                 let data = serde_json::to_string(current_map).unwrap();
                 for client in CLIENTS.lock().unwrap().iter() {
-                    client.do_send(MapData { data: data.clone() });
+                    client.do_send(MessageData { data: data.clone() });
                 }
             };
         }
@@ -470,7 +469,7 @@ impl Enhancement for PlayerESP {
 
             let data = serde_json::to_string(&web_players_info).unwrap();
             for client in CLIENTS.lock().unwrap().iter() {
-                client.do_send(PlayersData { data: data.clone() });
+                client.do_send(MessageData { data: data.clone() });
             }
         }
 

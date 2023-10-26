@@ -8,7 +8,17 @@ use serde::Serialize;
 
 #[derive(Debug, PartialEq, PartialOrd, Serialize)]
 pub struct MapInfo {
+    pub type_name: &'static str,
     pub name: String,
+}
+
+impl MapInfo {
+    pub fn new(name: String) -> Self {
+        Self {
+            type_name: "MapInfo",
+            name
+        }
+    }
 }
 
 define_schema! {
@@ -28,7 +38,7 @@ pub fn get_current_map(
 
     if let Some(instance) = network_game_client {
         let name = instance.map_name()?.read_string()?;
-        Ok(Some(MapInfo { name }))
+        Ok(Some(MapInfo::new(name)))
     } else {
         Ok(None)
     }
