@@ -23,6 +23,8 @@ use super::{
     Color,
     EspColor,
     EspColorType,
+    EspBombColor,
+    EspBombColorType,
     EspConfig,
     EspSelector,
 };
@@ -138,16 +140,8 @@ impl SettingsUI {
                     }
 
                     if let Some(_tab) = ui.tab_item("Visuals") {
-                        ui.set_next_item_width(150.0);
-                        ui.combo_enum(obfstr!("ESP"), &[
-                            (EspMode::Off, "Always Off"),
-                            (EspMode::Trigger, "Trigger"),
-                            (EspMode::TriggerInverted, "Trigger Inverted"),
-                            (EspMode::Toggle, "Toggle"),
-                            (EspMode::AlwaysOn, "Always On"),
-                        ], &mut settings.esp_mode);
-
-                        ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_enabled);
+                        ui.checkbox(obfstr!("ESP"), &mut settings.esp);
+                        ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
@@ -158,6 +152,16 @@ impl SettingsUI {
                             ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
                         } else {
                             self.render_esp_settings(&mut *settings, ui);
+                        }
+                    }
+
+                    if let Some(_tab) = ui.tab_item("Bomb") {
+                        if !settings.bomb_timer {
+                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            ui.text("Bomb has been disabled.");
+                            ui.text("Please enable ESP under \"Visuals\" \"Bomb Timer\"");
+                        } else {
+                            self.render_bomb_esp_settings(&mut *settings, ui);
                         }
                     }
 
@@ -208,7 +212,48 @@ impl SettingsUI {
                 }
             });
     }
-
+    
+    fn get_esp_config_player<'a>(
+        settings: &'a mut AppSettings,
+        ui: &'a imgui::Ui,
+        target: EspSelector,
+    ) -> (&'a mut EspPlayerSettings, bool) {
+        let config_key = target.config_key();
+        let config_enabled = settings
+            .esp_settings_enabled
+            .get(&config_key)
+            .cloned()
+            .unwrap_or_default();
+    
+        let config = match settings.esp_settings.entry(config_key.clone()) {
+            Entry::Occupied(entry) => {
+                let value = entry.into_mut();
+                if let EspConfig::Player(value) = value {
+                    value
+                } else {
+                    log::warn!("Detected invalid player config for {}", config_key);
+                    *value = EspConfig::Player(EspPlayerSettings::new(&target));
+                    if let EspConfig::Player(value) = value {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                }
+            }
+            Entry::Vacant(entry) => {
+                if let EspConfig::Player(value) = entry.insert(EspConfig::Player(EspPlayerSettings::new(&target))) {
+                    value
+                } else {
+                    unreachable!()
+                }
+            }
+        };
+        let _ui_enable_token = ui.begin_enabled(config_enabled);
+    
+        (config, config_enabled)
+    }
+    
+    
     fn render_esp_target(
         &mut self,
         settings: &mut AppSettings,
@@ -293,43 +338,13 @@ impl SettingsUI {
 
     fn render_esp_settings_player(
         &mut self,
-        settings: &mut AppSettings,
+        mut settings: &mut AppSettings,
         ui: &imgui::Ui,
         target: EspSelector,
     ) {
-        let config_key = target.config_key();
-        let config_enabled = settings
-            .esp_settings_enabled
-            .get(&config_key)
-            .cloned()
-            .unwrap_or_default();
-
-        let config = match settings.esp_settings.entry(config_key.clone()) {
-            Entry::Occupied(entry) => {
-                let value = entry.into_mut();
-                if let EspConfig::Player(value) = value {
-                    value
-                } else {
-                    log::warn!("Detected invalid player config for {}", config_key);
-                    *value = EspConfig::Player(EspPlayerSettings::new(&target));
-                    if let EspConfig::Player(value) = value {
-                        value
-                    } else {
-                        unreachable!()
-                    }
-                }
-            }
-            Entry::Vacant(entry) => {
-                if let EspConfig::Player(value) =
-                    entry.insert(EspConfig::Player(EspPlayerSettings::new(&target)))
-                {
-                    value
-                } else {
-                    unreachable!()
-                }
-            }
-        };
+        let (config, config_enabled) = Self::get_esp_config_player(&mut settings, &ui, target);
         let _ui_enable_token = ui.begin_enabled(config_enabled);
+
 
         let content_height =
             ui.content_region_avail()[1] - ui.text_line_height_with_spacing() * 2.0 - 16.0;
@@ -686,6 +701,64 @@ impl SettingsUI {
         }
     }
 
+    fn render_esp_settings_bomb_style_color(ui: &imgui::Ui, label: &str, color: &mut EspBombColor) {
+        ui.table_next_column();
+        ui.text(label);
+    
+        ui.table_next_column();
+        {
+            let mut color_type = EspBombColorType::from_bomb_esp_color(color);
+            ui.set_next_item_width(150.0); // Define o tamanho máximo
+            let color_type_changed = ui.combo_enum(
+                &format!("##{}_color_type", ui.table_row_index()),
+                &[
+                    (EspBombColorType::Static, "Static"),
+                    (EspBombColorType::Distance, "Distance"),
+                    (EspBombColorType::TimeDetonation, "Time Detonation"),
+                ],
+                &mut color_type,
+            );
+    
+            if color_type_changed {
+                *color = match color_type {
+                    EspBombColorType::Static => EspBombColor::Static {
+                        value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
+                    },
+                    EspBombColorType::Distance => EspBombColor::Distance,
+                    EspBombColorType::TimeDetonation => EspBombColor::TimeDetonation,
+                }
+            }
+        }
+    
+        ui.table_next_column();
+        ui.same_line(); // Coloca o próximo elemento na mesma linha
+    
+        {
+            match color {
+                EspBombColor::Distance => ui.text("Distance"),
+                EspBombColor::Static { value } => {
+                    let mut color_value = value.as_f32();
+    
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_static_value", ui.table_row_index()),
+                            &mut color_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *value = Color::from_f32(color_value);
+                    }
+                }
+                EspBombColor::TimeDetonation => ui.text("Time Detonation"),
+            }
+        }
+    }
+    
+    
+    
     fn render_esp_settings_chicken(
         &mut self,
         _settings: &mut AppSettings,
@@ -703,28 +776,26 @@ impl SettingsUI {
     ) {
         ui.text("Weapon!");
     }
-
-    fn render_esp_settings_bomb(
-        &mut self,
-        settings: &mut AppSettings,
-        ui: &imgui::Ui,
-        target: EspSelector,
-    ) {
-        let config_key = target.config_key();
+    
+    fn get_or_insert_bomb_config<'a>(
+        settings: &'a mut AppSettings,
+        ui: &'a imgui::Ui,
+    ) -> (&'a mut EspBombSettings, bool) {
+        let config_key = "bomb".to_string();
         let config_enabled = settings
             .esp_settings_enabled
             .get(&config_key)
             .cloned()
             .unwrap_or_default();
-
+    
         let config = match settings.esp_settings.entry(config_key.clone()) {
             Entry::Occupied(entry) => {
                 let value = entry.into_mut();
                 if let EspConfig::Bomb(value) = value {
                     value
                 } else {
-                    log::warn!("Unable to find bomb");
-                    *value = EspConfig::Bomb(EspBombSettings::new(&target));
+                    log::warn!("Detected invalid bomb config for {}", config_key);
+                    *value = EspConfig::Bomb(EspBombSettings::new());
                     if let EspConfig::Bomb(value) = value {
                         value
                     } else {
@@ -733,9 +804,7 @@ impl SettingsUI {
                 }
             }
             Entry::Vacant(entry) => {
-                if let EspConfig::Bomb(value) =
-                    entry.insert(EspConfig::Bomb(EspBombSettings::new(&target)))
-                {
+                if let EspConfig::Bomb(value) = entry.insert(EspConfig::Bomb(EspBombSettings::new())) {
                     value
                 } else {
                     unreachable!()
@@ -743,18 +812,15 @@ impl SettingsUI {
             }
         };
         let _ui_enable_token = ui.begin_enabled(config_enabled);
+    
+        (config, config_enabled)
+    }
 
-        let content_height =
-            ui.content_region_avail()[1] - ui.text_line_height_with_spacing() * 2.0 - 16.0;
-        unsafe {
-            imgui::sys::igSetNextItemOpen(
-                matches!(
-                    self.esp_player_active_header,
-                    EspPlayerActiveHeader::Features
-                ),
-                0,
-            );
-        };
+    fn render_esp_settings_bomb(&mut self, mut settings: &mut AppSettings, ui: &imgui::Ui) {
+        let (mut config, mut config_enabled) = Self::get_or_insert_bomb_config(&mut settings, &ui);
+        let _ui_enable_token = ui.begin_enabled(config_enabled);
+    
+        let content_height = ui.content_region_avail()[1] - ui.text_line_height_with_spacing() * 2.0 - 16.0;
         if ui.collapsing_header("Features", TreeNodeFlags::empty()) {
             self.esp_player_active_header = EspPlayerActiveHeader::Features;
             if let Some(_token) = {
@@ -763,74 +829,27 @@ impl SettingsUI {
                     .begin()
             } {
                 ui.dummy([0.0, 10.0]);
-
+    
                 ui.text("Bomb Info");
+                ui.checkbox(obfstr!("Planted C4 ESP"), &mut config.bomb_position);
                 ui.checkbox(obfstr!("Bomb site"), &mut config.bomb_site);
-                ui.checkbox(obfstr!("Position"), &mut config.bomb_position);
                 ui.checkbox(obfstr!("Bomb status"), &mut config.bomb_status);
             }
-        }
+        
 
-        unsafe {
-            imgui::sys::igSetNextItemOpen(
-                matches!(self.esp_player_active_header, EspPlayerActiveHeader::Style),
-                0,
-            );
-        };
-        if ui.collapsing_header("Style & Colors", TreeNodeFlags::empty()) {
-            self.esp_player_active_header = EspPlayerActiveHeader::Style;
-            if let Some(_token) = {
-                ui.child_window("styles")
-                    .size([0.0, content_height])
-                    .begin()
-            } {
-                ui.indent_by(5.0);
-                ui.dummy([0.0, 5.0]);
-
-                if let Some(_token) = {
-                    let mut column_type = TableColumnSetup::new("Type");
-                    column_type.init_width_or_weight = 100.0;
-                    column_type.flags = TableColumnFlags::WIDTH_FIXED;
-
-                    let mut column_value = TableColumnSetup::new("Value");
-                    column_value.init_width_or_weight = 100.0;
-                    column_value.flags = TableColumnFlags::WIDTH_FIXED;
-
-                    ui.begin_table_header_with_flags(
-                        "styles_table",
-                        [TableColumnSetup::new("Name"), column_type, column_value],
-                        TableFlags::ROW_BG
-                            | TableFlags::BORDERS
-                            | TableFlags::SIZING_STRETCH_PROP
-                            | TableFlags::SCROLL_Y,
-                    )
-                } {
-                    ui.table_next_row();
-                    Self::render_esp_settings_player_style_color(
-                        ui,
-                        obfstr!("Bomb planted color"),
-                        &mut config.bomb_site_color,
-                    );
-
-                    ui.table_next_row();
-                    Self::render_esp_settings_player_style_color(
-                        ui,
-                        obfstr!("Bomb position color"),
-                        &mut config.bomb_position_color,
-                    );
-
-                    ui.table_next_row();
-                    Self::render_esp_settings_player_style_color(
-                        ui,
-                        obfstr!("Bomb time defuse color"),
-                        &mut config.bomb_status_color,
-                    );
-                }
+            if config.bomb_position {
+                Self::render_esp_settings_bomb_style_color(
+                    ui,
+                    obfstr!("Bomb position color"),
+                    &mut config.bomb_position_color,
+                );
             }
         }
-
+    
         drop(_ui_enable_token);
     }
+    
+    
 
     fn render_esp_settings(&mut self, settings: &mut AppSettings, ui: &imgui::Ui) {
         if let Some(target) = self.esp_pending_target.take() {
@@ -895,7 +914,6 @@ impl SettingsUI {
             );
 
             self.render_esp_target(settings, ui, &EspSelector::Player);
-            self.render_esp_target(settings, ui, &EspSelector::Bomb);
             // self.render_esp_target(settings, ui, &EspSelector::Chicken);
             // self.render_esp_target(settings, ui, &EspSelector::Weapon)
         }
@@ -921,10 +939,17 @@ impl SettingsUI {
                 | EspSelector::WeaponSingle { .. } => {
                     self.render_esp_settings_weapon(settings, ui, self.esp_selected_target.clone())
                 }
-                EspSelector::Bomb => {
-                    self.render_esp_settings_bomb(settings, ui, self.esp_selected_target.clone())
-                }
             }
         }
     }
+
+    fn render_bomb_esp_settings(&mut self, settings: &mut AppSettings, ui: &imgui::Ui) {
+
+    
+        let content_region = ui.content_region_avail();
+        let content_width = content_region[0];
+    
+        self.render_esp_settings_bomb(settings, ui);
+    }
+    
 }

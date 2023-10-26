@@ -2,7 +2,7 @@ use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::C_PlantedC4;
+use cs2_schema_generated::cs2::client::{C_PlantedC4, C_CSPlayerPawn};
 use obfstr::obfstr;
 
 use super::Enhancement;
@@ -11,7 +11,6 @@ use crate::{
         AppSettings,
         EspBombSettings,
         EspConfig,
-        EspSelector,
     },
     utils::ImguiUiEx,
     UpdateContext,
@@ -58,11 +57,13 @@ pub enum C4State {
 
 pub struct BombInfo {
     bomb_state: Option<C4Info>,
+    local_pos: Option<nalgebra::Vector3<f32>>,
 }
 
 impl BombInfo {
     pub fn new() -> Self {
-        Self { bomb_state: None }
+        Self { bomb_state: None,
+            local_pos: Default::default(), }
     }
 
     fn read_state(&self, ctx: &UpdateContext) -> anyhow::Result<Option<C4Info>> {
@@ -167,10 +168,7 @@ impl BombInfo {
         &self,
         settings: &'a AppSettings,
     ) -> Option<&'a EspBombSettings> {
-        let mut esp_target = Some(EspSelector::Bomb {});
-
-        while let Some(target) = esp_target.take() {
-            let config_key = target.config_key();
+            let config_key = "bomb".to_string();
 
             if settings
                 .esp_settings_enabled
@@ -184,10 +182,6 @@ impl BombInfo {
                     }
                 }
             }
-
-            esp_target = target.parent();
-        }
-
         None
     }
 }
@@ -200,11 +194,60 @@ const PLAYER_AVATAR_SIZE: f32 = 0.05;
 
 impl Enhancement for BombInfo {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        if !ctx.settings.bomb_enabled {
+        if !ctx.settings.bomb_timer {
             return Ok(());
         }
 
         self.bomb_state = self.read_state(ctx)?;
+        
+        let local_player_controller = ctx
+            .cs2_entities
+            .get_local_player_controller()?
+            .try_reference_schema()
+            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
+
+        let local_player_controller = match local_player_controller {
+            Some(controller) => controller,
+            None => {
+                /* We're currently not connected */
+                return Ok(());
+            }
+        };
+
+        let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
+            local_player_controller.m_hPawn()?.get_entity_index()
+        } else {
+            let local_obs_pawn = match {
+                ctx.cs2_entities
+                    .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
+            } {
+                Some(pawn) => pawn.entity()?.reference_schema()?,
+                None => {
+                    /* this is odd... */
+                    return Ok(());
+                }
+            };
+
+            local_obs_pawn
+                .m_pObserverServices()?
+                .read_schema()?
+                .m_hObserverTarget()?
+                .get_entity_index()
+        };
+
+
+        for entity_identity in ctx.cs2_entities.all_identities() {
+            if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
+                /* current pawn we control/observe */
+                let local_pawn = entity_identity
+                .entity_ptr::<C_CSPlayerPawn>()?
+                .read_schema()?;
+            let local_pos =
+                nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+            self.local_pos = Some(local_pos);
+                continue;
+            }
+        }
         Ok(())
     }
 
@@ -214,101 +257,100 @@ impl Enhancement for BombInfo {
         ui: &imgui::Ui,
         view: &crate::view::ViewController,
     ) {
-        if !settings.bomb_enabled {
+        if !settings.bomb_timer {
             return;
         }
-        let esp_settings = match self.resolve_esp_bomb_config(settings) {
-            Some(settings) => settings,
-            None => return,
-        };
+        let esp_settings = self.resolve_esp_bomb_config(settings);
 
-        let bomb_info = match &self.bomb_state {
-            Some(state) => state,
-            None => return,
-        };
+        let mut color = [1.0, 1.0, 1.0, 1.0];
 
-        let group = ui.begin_group();
 
-        let line_count = match &bomb_info.state {
-            C4State::Active { .. } => 3,
-            C4State::Defused | C4State::Detonated => 2,
-        };
-        let text_height = ui.text_line_height_with_spacing() * line_count as f32;
+        if let (Some(bomb_info), Some(esp_settings)) = (&self.bomb_state, esp_settings) {
+            let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
+            let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
+            let group = ui.begin_group();
+            let line_count = match &bomb_info.state {
+                C4State::Active { .. } => 3,
+                C4State::Defused | C4State::Detonated => 2,
+            };
+            let text_height = ui.text_line_height_with_spacing() * line_count as f32;
+            let offset_y = offset_y + nalgebra::RealField::max(0.0, (ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
 
-        /* align to be on the right side after the players */
-        let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
-        let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
-        let offset_y = offset_y
-            + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
-
-        if esp_settings.bomb_site {
-            ui.set_cursor_pos([offset_x, offset_y]);
-            ui.text(&format!(
-                "Bomb planted {}",
-                if bomb_info.bomb_site == 0 { "A" } else { "B" }
-            ));
-        }
-
-        if esp_settings.bomb_status {
-            if !matches!(
-                bomb_info.state,
-                C4State::Active { .. } | C4State::Defused | C4State::Detonated
-            ) {
-                ui.set_cursor_pos_x(offset_x);
-                ui.text(&format!("Bomb is not planted!"));
+            if esp_settings.bomb_site {
+                ui.set_cursor_pos([offset_x, offset_y]);
+                ui.text(&format!(
+                    "Bomb planted {}",
+                    if bomb_info.bomb_site == 0 { "A" } else { "B" }
+                ));
             }
-            match &bomb_info.state {
-                C4State::Active {
-                    time_detonation,
-                    defuse,
-                } => {
-                    ui.set_cursor_pos_x(offset_x);
-                    ui.text(&format!("Time: {:.3}", time_detonation));
-                    if let Some(defuse) = defuse.as_ref() {
-                        let color = if defuse.time_remaining > *time_detonation {
-                            [0.79, 0.11, 0.11, 1.0]
-                        } else {
-                            [0.11, 0.79, 0.26, 1.0]
-                        };
 
-                        ui.set_cursor_pos_x(offset_x);
-                        ui.text_colored(
-                            color,
-                            &format!(
-                                "Defused in {:.3} by {}",
-                                defuse.time_remaining, defuse.player_name
-                            ),
-                        );
-                    } else {
-                        ui.set_cursor_pos_x(offset_x);
-                        ui.text("Not defusing");
+            if esp_settings.bomb_status {
+                ui.set_cursor_pos_x(offset_x);
+            
+                match &bomb_info.state {
+                    C4State::Active {
+                        time_detonation,
+                        defuse,
+                    } => {
+                        ui.text(&format!("Time: {:.3}", time_detonation));
+            
+                        if let Some(defuse) = defuse.as_ref() {
+                            let color = if defuse.time_remaining > *time_detonation {
+                                [0.79, 0.11, 0.11, 1.0]
+                            } else {
+                                [0.11, 0.79, 0.26, 1.0]
+                            };
+            
+                            ui.text_colored(
+                                color,
+                                &format!(
+                                    "Defused in {:.3} by {}",
+                                    defuse.time_remaining, defuse.player_name
+                                ),
+                            );
+                        } else {
+                            ui.set_cursor_pos_x(offset_x);
+                            ui.text("Not defusing");
+                        }
+                    }
+                    C4State::Defused => {
+                        ui.text("Bomb has been defused");
+                    }
+                    C4State::Detonated => {
+                        ui.text("Bomb has been detonated");
                     }
                 }
-                C4State::Defused => {
-                    ui.set_cursor_pos_x(offset_x);
-                    ui.text("Bomb has been defused");
-                }
-                C4State::Detonated => {
-                    ui.set_cursor_pos_x(offset_x);
-                    ui.text("Bomb has been detonated");
+            }
+            if let C4State::Active { time_detonation, .. } = &bomb_info.state {
+                let pos = &bomb_info.bomb_pos;
+                if let Some(local_pos) = self.local_pos {
+                    let distance = (pos - local_pos).norm() * 0.01905;
+                    color = if esp_settings.bomb_position {
+                        esp_settings.bomb_position_color.calculate_color(distance, *time_detonation)
+                    } else {
+                        [1.0, 1.0, 1.0, 1.0]
+                    };
                 }
             }
-        }
 
-        if esp_settings.bomb_position {
-            let mut y_offset = 0.0;
-            let draw = ui.get_window_draw_list();
-            if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
-                let text = "BOMB";
-                let [text_width, _] = ui.calc_text_size(&text);
-                let mut pos = pos.clone();
-                pos.x -= text_width / 2.0;
-                pos.y += y_offset;
-                ui.set_cursor_pos_x(offset_x);
-                draw.add_text(pos, [0.11, 0.79, 0.26, 1.0], text);
+            if esp_settings.bomb_position {
+                if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
+
+                    let mut y_offset = 0.0;
+                    let draw = ui.get_window_draw_list();
+
+                    let text = "BOMB";
+                    let [text_width, _] = ui.calc_text_size(&text);
+                    let mut pos = pos.clone();
+                    pos.x -= text_width / 2.0;
+                    pos.y += y_offset;
+                    ui.set_cursor_pos_x(offset_x);
+                    draw.add_text(pos, color, text);
+                }
             }
-        }
 
-        group.end();
+            group.end();
+        }
     }
 }
+
