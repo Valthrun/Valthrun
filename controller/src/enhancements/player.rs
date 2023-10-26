@@ -88,6 +88,21 @@ pub struct WebPlayerInfo {
     pub position: [f32; 3],
 }
 
+#[derive(Serialize)]
+pub struct WebPlayersInfo {
+    pub type_name: &'static str,
+    pub players: Vec<WebPlayerInfo>,
+}
+
+impl WebPlayersInfo {
+    pub fn new(players: Vec<WebPlayerInfo>) -> Self {
+        Self {
+            type_name: "WebPlayersInfo",
+            players,
+        }
+    }
+}
+
 impl From<&PlayerInfo> for WebPlayerInfo {
     fn from(player_info: &PlayerInfo) -> Self {
         WebPlayerInfo {
@@ -462,10 +477,11 @@ impl Enhancement for PlayerESP {
         }
 
         if !self.players.is_empty() {
-            let mut web_players_info: Vec<WebPlayerInfo> = vec![];
+            let mut web_players: Vec<WebPlayerInfo> = vec![];
             for player in &self.players {
-                web_players_info.push(WebPlayerInfo::from(player));
+                web_players.push(WebPlayerInfo::from(player));
             }
+            let web_players_info = WebPlayersInfo::new(web_players);
 
             let data = serde_json::to_string(&web_players_info).unwrap();
             for client in CLIENTS.lock().unwrap().iter() {
