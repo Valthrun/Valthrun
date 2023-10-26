@@ -83,6 +83,10 @@ use crate::{
     },
     settings::save_app_settings,
     view::LocalCrosshair,
+    web_radar::{
+        MessageData,
+        CLIENTS,
+    },
     winver::version_info,
 };
 
@@ -266,8 +270,22 @@ impl Application {
         let new_map_info =
             get_current_map(&self.cs2, self.cs2_offsets.network_game_client_instance)?;
 
-        self.current_map_changed = self.current_map != new_map_info;
-        self.current_map = new_map_info;
+        if let Some(new_map) = &new_map_info {
+            self.current_map_changed = self.current_map != new_map_info;
+            if self.current_map_changed {
+                match serde_json::to_string(new_map) {
+                    Ok(data) => {
+                        for client in CLIENTS.lock().unwrap().iter() {
+                            client.do_send(MessageData { data: data.clone() });
+                        }
+                    },
+                    Err(e) => {
+                        log::error!("Failed to create json with error: {}", e);
+                    }
+                };
+                self.current_map = new_map_info;
+            }
+        };
 
         self.cs2_entities
             .read_entities()

@@ -37,7 +37,13 @@ pub fn get_current_map(
         .try_read_schema()?;
 
     if let Some(instance) = network_game_client {
-        let name = instance.map_name()?.read_string()?;
+        let name = if let Ok(map_name) = instance.map_name()?.read_string() {
+            map_name
+        } else {
+            /* Happens during connecting and disconnecting. */
+            return Ok(None);
+        };
+
         Ok(Some(MapInfo::new(name)))
     } else {
         Ok(None)

@@ -413,15 +413,6 @@ impl Enhancement for PlayerESP {
             }
         };
 
-        if ctx.current_map_changed.clone() {
-            if let Some(current_map) = ctx.current_map {
-                let data = serde_json::to_string(current_map).unwrap();
-                for client in CLIENTS.lock().unwrap().iter() {
-                    client.do_send(MessageData { data: data.clone() });
-                }
-            };
-        }
-
         let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
             local_player_controller.m_hPawn()?.get_entity_index()
         } else {

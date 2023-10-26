@@ -1,8 +1,7 @@
-//var ws = new WebSocket('ws://192.168.1.107:6969/ws');
-let allowedMessages = ["WebPlayersInfo", "MapData"];
+let allowedMessages = ["WebPlayersInfo", "MapInfo"];
 
-let mapSize = [0, 0];
-let mapOffset = [0, 0];
+let mapSize = 0;
+let mapOffset = { x:0, y: 0 };
 
 function messageHandlers(){
     this.WebPlayersInfo = function(data)
@@ -21,20 +20,26 @@ function messageHandlers(){
 
             // Rotate and position the player dot
             // playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-            x = (x + map_offset.x) / map_size * 100;
-            y = Math.abs((y + map_offset.y) / map_size * 100 - 100);
+            x = (x + mapOffset.x) / mapSize * 100;
+            y = Math.abs((y + mapOffset.y) / mapSize * 100 - 100);
             playerDot.style.left = `${x}%`;
             playerDot.style.top = `${y}%`;
         });
     }
 
-    this.MapData = function(data)
+    this.MapInfo = function(data)
     {
-        console.log(data.name);
+        fetch(`maps/${data.name}/meta.json`)
+            .then(response => response.json())
+            .then(json => {
+                mapSize = json.resolution * 2048;
+                mapOffset = { x: json.offset.x, y: json.offset.y };
+            });
     }
 }
 
-var ws = new WebSocket('ws://localhost:6969/ws');
+var ws = new WebSocket('ws://192.168.1.107:6969/ws');
+//var ws = new WebSocket('ws://localhost:6969/ws');
 
 ws.onopen = function() {
     console.log('Connected to the WebSocket');
@@ -50,7 +55,7 @@ ws.onmessage = function(event) {
     }
     else
     {
-        console.error("Type not allowed: ", type_name)
+        console.error("Type not allowed: ", type_name);
     }
 };
 
@@ -65,7 +70,6 @@ ws.onerror = function(error) {
 function addPlayerDot(teamID) {
     // Create a new image element
     var playerDot = document.createElement('img');
-    console.log(teamID);
     if (teamID === 3)
     {
         playerDot.src = 'images/blue_dot.png';
