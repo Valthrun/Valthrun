@@ -1,7 +1,23 @@
-use actix::{Actor, StreamHandler, prelude::*};
-use actix_web::{middleware::Logger, web, App, Error, HttpRequest, HttpResponse, HttpServer};
+use std::sync::{
+    Arc,
+    Mutex,
+};
+
+use actix::{
+    prelude::*,
+    Actor,
+    StreamHandler,
+};
+use actix_web::{
+    middleware::Logger,
+    web,
+    App,
+    Error,
+    HttpRequest,
+    HttpResponse,
+    HttpServer,
+};
 use actix_web_actors::ws;
-use std::sync::{Arc, Mutex};
 
 /// Define HTTP actor
 pub struct WebRadar {}
@@ -44,6 +60,12 @@ pub struct PlayersData {
     pub data: String,
 }
 
+#[derive(Message)]
+#[rtype(result = "()")]
+pub struct MapData {
+    pub data: String,
+}
+
 pub static CLIENTS: once_cell::sync::Lazy<Arc<Mutex<Vec<Addr<WebRadar>>>>> =
     once_cell::sync::Lazy::new(|| Arc::new(Mutex::new(Vec::new())));
 
@@ -51,6 +73,15 @@ impl Handler<PlayersData> for WebRadar {
     type Result = ();
 
     fn handle(&mut self, msg: PlayersData, ctx: &mut Self::Context) {
+        // Send the data to the WebSocket client
+        ctx.text(msg.data);
+    }
+}
+
+impl Handler<MapData> for WebRadar {
+    type Result = ();
+
+    fn handle(&mut self, msg: MapData, ctx: &mut Self::Context) {
         // Send the data to the WebSocket client
         ctx.text(msg.data);
     }
@@ -69,9 +100,9 @@ pub async fn run_server() -> Result<(), anyhow::Error> {
             .route("/ws", web::get().to(ws))
             .service(actix_files::Files::new("/", "./web_radar").index_file("index.html"))
     })
-        .bind("0.0.0.0:6969")?
-        .run()
-        .await?;
+    .bind("0.0.0.0:6969")?
+    .run()
+    .await?;
 
     Ok(())
 }

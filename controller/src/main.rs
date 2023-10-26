@@ -49,6 +49,10 @@ use imgui::{
     FontSource,
     Ui,
 };
+use map::{
+    get_current_map,
+    MapInfo,
+};
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -85,6 +89,7 @@ use crate::{
 mod cache;
 mod class_name_cache;
 mod enhancements;
+mod map;
 mod settings;
 mod utils;
 mod view;
@@ -125,6 +130,9 @@ pub struct UpdateContext<'a> {
     pub settings: &'a AppSettings,
     pub input: &'a dyn KeyboardInput,
 
+    pub current_map: &'a Option<MapInfo>,
+    pub current_map_changed: &'a bool,
+
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,
 
@@ -147,6 +155,9 @@ pub struct Application {
     pub cs2_entities: EntitySystem,
     pub cs2_globals: Option<Globals>,
     pub cs2_build_info: BuildInfo,
+
+    pub current_map: Option<MapInfo>,
+    pub current_map_changed: bool,
 
     pub model_cache: EntryCache<u64, CS2Model>,
     pub class_name_cache: ClassNameCache,
@@ -252,6 +263,12 @@ impl Application {
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
+        let new_map_info =
+            get_current_map(&self.cs2, self.cs2_offsets.network_game_client_instance)?;
+
+        self.current_map_changed = self.current_map != new_map_info;
+        self.current_map = new_map_info;
+
         self.cs2_entities
             .read_entities()
             .with_context(|| obfstr!("failed to read global entity list").to_string())?;
@@ -260,11 +277,12 @@ impl Application {
             .update_cache(self.cs2_entities.all_identities())
             .with_context(|| obfstr!("failed to update class name cache").to_string())?;
 
-
-
         let update_context = UpdateContext {
             cs2: &self.cs2,
             cs2_entities: &self.cs2_entities,
+
+            current_map: &self.current_map,
+            current_map_changed: &self.current_map_changed,
 
             settings: &*settings,
             input: ui,
@@ -358,7 +376,6 @@ fn show_critical_error(message: &str) {
         overlay::show_error_message(obfstr!("Valthrun Controller"), message);
     }
 }
-
 
 #[actix_web::main]
 async fn main() {
@@ -603,6 +620,9 @@ async fn main_overlay() -> anyhow::Result<()> {
         cs2_offsets: cs2_offsets.clone(),
         cs2_globals: None,
         cs2_build_info,
+
+        current_map: None,
+        current_map_changed: false,
 
         model_cache: EntryCache::new({
             let cs2 = cs2.clone();

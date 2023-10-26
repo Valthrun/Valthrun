@@ -8,11 +8,11 @@ ws.onopen = function() {
 ws.onmessage = function(event) {
     // Assuming you parse the event.data to get an array of player data
     var players = JSON.parse(event.data);
+    console.log(players);
 
     // Remove all existing player dots
     var existingDots = document.querySelectorAll('.player-dot');
     existingDots.forEach(dot => dot.remove());
-
     // Add and position a dot for each player
     players.forEach(player => {
         var playerDot = addPlayerDot(player.team_id);

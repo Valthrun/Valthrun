@@ -42,8 +42,12 @@ use crate::{
         ViewController,
     },
     weapon::WeaponId,
+    web_radar::{
+        MapData,
+        PlayersData,
+        CLIENTS,
+    },
 };
-use crate::web_radar::{CLIENTS, PlayersData};
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
@@ -96,7 +100,11 @@ impl From<&PlayerInfo> for WebPlayerInfo {
             player_name: player_info.player_name.clone(),
             weapon: player_info.weapon,
 
-            position: [player_info.position.x, player_info.position.y, player_info.position.z],
+            position: [
+                player_info.position.x,
+                player_info.position.y,
+                player_info.position.z,
+            ],
         }
     }
 }
@@ -374,9 +382,6 @@ impl Enhancement for PlayerESP {
         }
 
         self.players.clear();
-        if !self.toggle.enabled {
-            return Ok(());
-        }
 
         self.players.reserve(16);
 
@@ -393,6 +398,15 @@ impl Enhancement for PlayerESP {
                 return Ok(());
             }
         };
+
+        if ctx.current_map_changed.clone() {
+            if let Some(current_map) = ctx.current_map {
+                let data = serde_json::to_string(current_map).unwrap();
+                for client in CLIENTS.lock().unwrap().iter() {
+                    client.do_send(MapData { data: data.clone() });
+                }
+            };
+        }
 
         let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
             local_player_controller.m_hPawn()?.get_entity_index()
@@ -448,14 +462,16 @@ impl Enhancement for PlayerESP {
             }
         }
 
-        let mut web_players_info: Vec<WebPlayerInfo> = vec![];
-        for player in &self.players {
-            web_players_info.push(WebPlayerInfo::from(player));
-        }
+        if !self.players.is_empty() {
+            let mut web_players_info: Vec<WebPlayerInfo> = vec![];
+            for player in &self.players {
+                web_players_info.push(WebPlayerInfo::from(player));
+            }
 
-        let data = serde_json::to_string(&web_players_info).unwrap();
-        for client in CLIENTS.lock().unwrap().iter() {
-            client.do_send(PlayersData { data: data.clone() });
+            let data = serde_json::to_string(&web_players_info).unwrap();
+            for client in CLIENTS.lock().unwrap().iter() {
+                client.do_send(PlayersData { data: data.clone() });
+            }
         }
 
         Ok(())
