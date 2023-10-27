@@ -440,51 +440,6 @@ impl EspWeaponType {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
-pub enum BombSelector {
-    Bomb,
-    None,
-}
-
-impl BombSelector {
-    pub fn config_key(&self) -> String {
-        match self {
-            BombSelector::Bomb => "bomb".to_string(),
-            BombSelector::None => "invalid".to_string(),
-        }
-    }
-
-    pub fn config_display(&self) -> String {
-        match self {
-            BombSelector::None => "None".to_string(),
-
-            BombSelector::Bomb => "Bomb".to_string(),
-        }
-    }
-
-    pub fn config_title(&self) -> String {
-        match self {
-            BombSelector::None => obfstr!("ESP Configuration").to_string(),
-
-            BombSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
-        }
-    }
-
-    pub fn parent(&self) -> Option<Self> {
-        match self {
-            Self::None => None,
-
-            Self::Bomb => None,
-        }
-    }
-
-    pub fn children(&self) -> Vec<Self> {
-        match self {
-            BombSelector::None => vec![],
-            BombSelector::Bomb => vec![],
-        }
-    }
-}
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum EspSelector {

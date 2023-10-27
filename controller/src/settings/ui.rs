@@ -20,7 +20,6 @@ use imgui::{
 use obfstr::obfstr;
 
 use super::{
-    BombSelector,
     Color,
     EspBombColor,
     EspBombColorType,
@@ -58,9 +57,6 @@ pub struct SettingsUI {
     esp_selected_target: EspSelector,
     esp_pending_target: Option<EspSelector>,
 
-    bomb_selected: BombSelector,
-    bomb_pending_target: Option<BombSelector>,
-
     esp_player_active_header: EspPlayerActiveHeader,
 }
 
@@ -73,9 +69,6 @@ impl SettingsUI {
 
             esp_selected_target: EspSelector::None,
             esp_pending_target: None,
-
-            bomb_selected: BombSelector::Bomb,
-            bomb_pending_target: None,
 
             esp_player_active_header: EspPlayerActiveHeader::Features,
         }
