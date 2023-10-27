@@ -2,7 +2,10 @@ use std::ffi::CStr;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
-use cs2_schema_generated::cs2::client::{C_PlantedC4, C_CSPlayerPawn};
+use cs2_schema_generated::cs2::client::{
+    C_CSPlayerPawn,
+    C_PlantedC4,
+};
 use obfstr::obfstr;
 
 use super::Enhancement;
@@ -58,8 +61,10 @@ pub struct BombInfo {
 
 impl BombInfo {
     pub fn new() -> Self {
-        Self { bomb_state: None,
-            local_pos: Default::default(), }
+        Self {
+            bomb_state: None,
+            local_pos: Default::default(),
+        }
     }
 
     fn read_state(&self, ctx: &UpdateContext) -> anyhow::Result<Option<C4Info>> {
@@ -158,7 +163,7 @@ impl BombInfo {
         }
 
         return Ok(None);
-    }   
+    }
 }
 /// % of the screens height
 const PLAYER_AVATAR_TOP_OFFSET: f32 = 0.004;
@@ -173,7 +178,7 @@ impl Enhancement for BombInfo {
         }
 
         self.bomb_state = self.read_state(ctx)?;
-        
+
         let local_player_controller = ctx
             .cs2_entities
             .get_local_player_controller()?
@@ -209,16 +214,15 @@ impl Enhancement for BombInfo {
                 .get_entity_index()
         };
 
-
         for entity_identity in ctx.cs2_entities.all_identities() {
             if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
                 /* current pawn we control/observe */
                 let local_pawn = entity_identity
-                .entity_ptr::<C_CSPlayerPawn>()?
-                .read_schema()?;
-            let local_pos =
-                nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
-            self.local_pos = Some(local_pos);
+                    .entity_ptr::<C_CSPlayerPawn>()?
+                    .read_schema()?;
+                let local_pos =
+                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+                self.local_pos = Some(local_pos);
                 continue;
             }
         }
@@ -239,7 +243,6 @@ impl Enhancement for BombInfo {
         if let Some(bomb_settings) = bomb_settings {
             let mut color = [1.0, 1.0, 1.0, 1.0];
 
-
             if let (Some(bomb_info), esp_settings) = (&self.bomb_state, bomb_settings) {
                 let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
                 let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
@@ -249,7 +252,11 @@ impl Enhancement for BombInfo {
                     C4State::Defused | C4State::Detonated => 2,
                 };
                 let text_height = ui.text_line_height_with_spacing() * line_count as f32;
-                let offset_y = offset_y + nalgebra::RealField::max(0.0, (ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
+                let offset_y = offset_y
+                    + nalgebra::RealField::max(
+                        0.0,
+                        (ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0,
+                    );
 
                 if esp_settings.bomb_site {
                     ui.set_cursor_pos([offset_x, offset_y]);
@@ -269,14 +276,14 @@ impl Enhancement for BombInfo {
                             defuse,
                         } => {
                             ui.text(&format!("Time: {:.3}", time_detonation));
-                
+
                             if let Some(defuse) = defuse.as_ref() {
                                 let color = if defuse.time_remaining > *time_detonation {
                                     [0.79, 0.11, 0.11, 1.0]
                                 } else {
                                     [0.11, 0.79, 0.26, 1.0]
                                 };
-                
+
                                 ui.text_colored(
                                     color,
                                     &format!(
@@ -297,12 +304,17 @@ impl Enhancement for BombInfo {
                         }
                     }
                 }
-                if let C4State::Active { time_detonation, .. } = &bomb_info.state {
+                if let C4State::Active {
+                    time_detonation, ..
+                } = &bomb_info.state
+                {
                     let pos = &bomb_info.bomb_pos;
                     if let Some(local_pos) = self.local_pos {
                         let distance = (pos - local_pos).norm() * 0.01905;
                         color = if esp_settings.bomb_position {
-                            esp_settings.bomb_position_color.calculate_color(distance, *time_detonation)
+                            esp_settings
+                                .bomb_position_color
+                                .calculate_color(distance, *time_detonation)
                         } else {
                             [1.0, 1.0, 1.0, 1.0]
                         };
@@ -311,7 +323,6 @@ impl Enhancement for BombInfo {
 
                 if esp_settings.bomb_position {
                     if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
-
                         let y_offset = 0.0;
                         let draw = ui.get_window_draw_list();
 
@@ -330,4 +341,3 @@ impl Enhancement for BombInfo {
         }
     }
 }
-

@@ -83,7 +83,7 @@ impl EspBombColor {
             Self::Distance => {
                 let min_distance = 0.0;
                 let max_distance = 80.0;
-                let color_at_min = [1.0, 0.0, 0.0, 1.0]; // Red at min 
+                let color_at_min = [1.0, 0.0, 0.0, 1.0]; // Red at min
                 let color_at_max = [0.0, 1.0, 0.0, 1.0]; // Green at max
 
                 let t = (distance - min_distance) / (max_distance - min_distance);

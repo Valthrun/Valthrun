@@ -917,13 +917,13 @@ impl SettingsUI {
         ui.same_line_with_pos(
             original_style.window_padding[0] * 2.0 + tree_width + original_style.window_border_size,
         );
-    
+
         let reset_text = "Reset config";
         let reset_text_width = ui.calc_text_size(&reset_text)[0];
-    
+
         let total_width = ui.content_region_avail()[0] + 2.0;
         ui.same_line_with_pos(total_width - reset_text_width);
-    
+
         let _enabled = ui.begin_enabled(settings.bomb_esp);
         if ui.button(reset_text) {
             settings.bomb_settings.remove("bomb");
@@ -933,17 +933,17 @@ impl SettingsUI {
             .get("bomb")
             .cloned()
             .unwrap_or_default();
-    
+
         let config = settings
             .bomb_settings
             .entry("bomb".to_string())
             .or_insert_with(|| EspBombSettings::new());
-    
+
         let _ui_enable_token = ui.begin_enabled(config_enabled);
         ui.checkbox(obfstr!("Planted C4 ESP"), &mut config.bomb_position);
         ui.checkbox(obfstr!("Bomb site"), &mut config.bomb_site);
         ui.checkbox(obfstr!("Bomb status"), &mut config.bomb_status);
-    
+
         if config.bomb_position {
             Self::render_esp_settings_bomb_style_color(
                 ui,
@@ -952,5 +952,5 @@ impl SettingsUI {
             );
         }
         drop(_ui_enable_token);
-    }    
+    }
 }
