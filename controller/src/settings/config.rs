@@ -16,6 +16,7 @@ use serde::{
 };
 
 use super::{
+    EspBombSettings,
     EspConfig,
     HotKey,
 };
@@ -79,6 +80,15 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_true")]
+    pub bomb_esp: bool,
+
+    #[serde(default = "Default::default")]
+    pub bomb_settings: BTreeMap<String, EspBombSettings>,
+
+    #[serde(default = "Default::default")]
+    pub bomb_settings_enabled: BTreeMap<String, bool>,
 
     #[serde(default = "bool_false")]
     pub spectators_list: bool,

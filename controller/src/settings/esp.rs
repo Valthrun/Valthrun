@@ -81,36 +81,31 @@ impl EspBombColor {
         match self {
             Self::Static { value } => value.as_f32(),
             Self::Distance => {
-                // Define color values for minimum and maximum distances
                 let min_distance = 0.0;
                 let max_distance = 80.0;
-                let color_at_min = [1.0, 0.0, 0.0, 1.0]; // Red at min distance
-                let color_at_max = [0.0, 1.0, 0.0, 1.0]; // Green at max distance
-    
-                // Interpolate between the colors based on the distance
+                let color_at_min = [1.0, 0.0, 0.0, 1.0]; // Red at min 
+                let color_at_max = [0.0, 1.0, 0.0, 1.0]; // Green at max
+
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
-    
-                // Linear interpolation between the colors
+
                 Self::interpolate_color(color_at_min, color_at_max, t)
             }
             Self::TimeDetonation => {
-                // Define color values for minimum and maximum time_detonation
                 let min_time_detonation = 0.0;
                 let max_time_detonation = 40.0;
-                let color_at_min = [0.0, 0.0, 1.0, 1.0]; // Blue at min time_detonation
-                let color_at_max = [1.0, 1.0, 0.0, 1.0]; // Yellow at max time_detonation
-    
-                // Interpolate between the colors based on the time_detonation
-                let t = (time_detonation - min_time_detonation) / (max_time_detonation - min_time_detonation);
+                let color_at_min = [0.0, 0.0, 1.0, 1.0]; // Blue at min
+                let color_at_max = [1.0, 1.0, 0.0, 1.0]; // Yellow at max
+
+                let t = (time_detonation - min_time_detonation)
+                    / (max_time_detonation - min_time_detonation);
                 let t = t.clamp(0.0, 1.0);
-    
-                // Linear interpolation between the colors
+
                 Self::interpolate_color(color_at_min, color_at_max, t)
             }
         }
     }
-    
+
     fn interpolate_color(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 4] {
         [
             (1.0 - t) * color1[0] + t * color2[0],
@@ -119,27 +114,6 @@ impl EspBombColor {
             (1.0 - t) * color1[3] + t * color2[3],
         ]
     }
-    
-            /*Self::HealthBased { max, min } => {
-                let min_rgb = min.as_f32();
-                let max_rgb = max.as_f32();
-
-                [
-                    min_rgb[0] + (max_rgb[0] - min_rgb[0]) * health,
-                    min_rgb[1] + (max_rgb[1] - min_rgb[1]) * health,
-                    min_rgb[2] + (max_rgb[2] - min_rgb[2]) * health,
-                    min_rgb[3] + (max_rgb[3] - min_rgb[3]) * health,
-                ]
-            }
-            Self::HealthBasedRainbow => {
-                let sin_value = |offset: f32| {
-                    (2.0 * std::f32::consts::PI * health * 0.75 + offset).sin() * 0.5 + 1.0
-                };
-                let r: f32 = sin_value(0.0);
-                let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
-                let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-                [r, g, b, 1.0]
-            } */
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
@@ -364,7 +338,7 @@ pub struct EspBombSettings {
 
 impl EspBombSettings {
     pub fn new() -> Self {
-        let bomb_color = EspBombColor::default();  // Or any other color initialization
+        let bomb_color = EspBombColor::default();
 
         Self {
             bomb_site: false,
@@ -376,7 +350,6 @@ impl EspBombSettings {
         }
     }
 }
-
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct EspChickenSettings {
@@ -405,6 +378,11 @@ pub enum EspConfig {
     Player(EspPlayerSettings),
     Chicken(EspChickenSettings),
     Weapon(EspWeaponSettings),
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+#[serde(tag = "type")]
+pub enum BombConfig {
     Bomb(EspBombSettings),
 }
 
@@ -463,6 +441,52 @@ impl EspWeaponType {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+pub enum BombSelector {
+    Bomb,
+    None,
+}
+
+impl BombSelector {
+    pub fn config_key(&self) -> String {
+        match self {
+            BombSelector::Bomb => "bomb".to_string(),
+            BombSelector::None => "invalid".to_string(),
+        }
+    }
+
+    pub fn config_display(&self) -> String {
+        match self {
+            BombSelector::None => "None".to_string(),
+
+            BombSelector::Bomb => "Bomb".to_string(),
+        }
+    }
+
+    pub fn config_title(&self) -> String {
+        match self {
+            BombSelector::None => obfstr!("ESP Configuration").to_string(),
+
+            BombSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
+        }
+    }
+
+    pub fn parent(&self) -> Option<Self> {
+        match self {
+            Self::None => None,
+
+            Self::Bomb => None,
+        }
+    }
+
+    pub fn children(&self) -> Vec<Self> {
+        match self {
+            BombSelector::None => vec![],
+            BombSelector::Bomb => vec![],
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum EspSelector {
     None,
 
@@ -485,7 +509,7 @@ pub enum EspSelector {
         group: EspWeaponType,
         target: WeaponId,
     },
-    //Bomb,
+    Bomb,
 }
 
 impl EspSelector {
@@ -509,7 +533,7 @@ impl EspSelector {
                 format!("weapon.{}.{}", group.config_key(), target.name())
             }
 
-            //EspSelector::Bomb => "bomb".to_string(),
+            EspSelector::Bomb => "bomb".to_string(),
         }
     }
 
@@ -539,7 +563,7 @@ impl EspSelector {
             EspSelector::WeaponGroup { group } => group.display_name(),
             EspSelector::WeaponSingle { target, .. } => target.display_name().to_string(),
 
-            //EspSelector::Bomb => "Bomb".to_string(),
+            EspSelector::Bomb => "Bomb".to_string(),
         }
     }
 
@@ -578,7 +602,7 @@ impl EspSelector {
                 )
             }
 
-            //EspSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
+            EspSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
         }
     }
 
@@ -596,7 +620,7 @@ impl EspSelector {
             Self::WeaponGroup { .. } => Some(Self::Weapon),
             Self::WeaponSingle { group, .. } => Some(Self::WeaponGroup { group: *group }),
 
-            //Self::Bomb => None,
+            Self::Bomb => None,
         }
     }
 
@@ -652,7 +676,7 @@ impl EspSelector {
                 .collect(),
             EspSelector::WeaponSingle { .. } => vec![],
 
-            //EspSelector::Bomb => vec![],
+            EspSelector::Bomb => vec![],
         }
     }
 }
