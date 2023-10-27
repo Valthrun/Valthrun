@@ -139,11 +139,11 @@ impl SettingsUI {
                         ui.button_key_optional(obfstr!("ESP toggle"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
                     }
 
+
                     if let Some(_tab) = ui.tab_item("Visuals") {
                         ui.checkbox(obfstr!("ESP"), &mut settings.esp);
-                        ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_timer);
+                        ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
-                    }
 
                     if let Some(_tab) = ui.tab_item("ESP") {
                         if !settings.esp {
@@ -708,7 +708,7 @@ impl SettingsUI {
         ui.table_next_column();
         {
             let mut color_type = EspBombColorType::from_bomb_esp_color(color);
-            ui.set_next_item_width(150.0); // Define o tamanho máximo
+            ui.set_next_item_width(150.0);
             let color_type_changed = ui.combo_enum(
                 &format!("##{}_color_type", ui.table_row_index()),
                 &[
@@ -731,7 +731,7 @@ impl SettingsUI {
         }
     
         ui.table_next_column();
-        ui.same_line(); // Coloca o próximo elemento na mesma linha
+        ui.same_line();
     
         {
             match color {
