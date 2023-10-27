@@ -36,7 +36,10 @@ use crate::{
         EspSelector,
         EspTracePosition,
     },
-    view::ViewController,
+    view::{
+        KeyToggle,
+        ViewController,
+    },
     weapon::WeaponId,
 };
 
@@ -48,6 +51,7 @@ pub struct PlayerInfo {
     pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
+    pub player_flashtime: f32,
 
     pub position: nalgebra::Vector3<f32>,
     pub model: Arc<CS2Model>,
@@ -106,6 +110,7 @@ impl CModelStateEx for CModelState {
 }
 
 pub struct PlayerESP {
+    toggle: KeyToggle,
     players: Vec<PlayerInfo>,
     local_team_id: u8,
 }
@@ -113,6 +118,7 @@ pub struct PlayerESP {
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
+            toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
         }
@@ -201,6 +207,8 @@ impl PlayerESP {
             WeaponId::Knife.id()
         };
 
+        let player_flashtime = player_pawn.m_flFlashBangTime()?;
+
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
@@ -209,6 +217,7 @@ impl PlayerESP {
             player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
+            player_flashtime,
 
             position,
             bone_states,
@@ -319,30 +328,22 @@ impl Drop for PlayerInfoLayout<'_> {
 const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
 const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
-    fn update_settings(
-        &mut self,
-        ui: &imgui::Ui,
-        settings: &mut AppSettings,
-    ) -> anyhow::Result<bool> {
-        let mut updated = false;
-
-        if let Some(hotkey) = &settings.esp_toogle {
-            if ui.is_key_pressed_no_repeat(hotkey.0) {
-                log::debug!("Toggle player ESP");
-                settings.esp = !settings.esp;
-                updated = true;
-            }
+    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+        if self
+            .toggle
+            .update(&ctx.settings.esp_mode, ctx.input, &ctx.settings.esp_toogle)
+        {
+            ctx.cs2.add_metrics_record(
+                obfstr!("feature-esp-toggle"),
+                &format!(
+                    "enabled: {}, mode: {:?}",
+                    self.toggle.enabled, ctx.settings.esp_mode
+                ),
+            );
         }
 
-        Ok(updated)
-    }
-
-    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         self.players.clear();
-
-        // TODO: Test if any ESP is enabled.
-        //       If dont do anyting.
-        if !ctx.settings.esp {
+        if !self.toggle.enabled {
             return Ok(());
         }
 
@@ -640,15 +641,23 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_kit && entry.player_has_defuser {
-                    player_info.add_line(
-                        esp_settings
-                            .info_kit_color
-                            .calculate_color(player_rel_health),
-                        "KIT",
-                    );
+                let mut player_flags = Vec::new();
+                if esp_settings.info_flag_kit && entry.player_has_defuser {
+                    player_flags.push("Kit");
                 }
 
+                if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
+                    player_flags.push("flashed");
+                }
+
+                if !player_flags.is_empty() {
+                    player_info.add_line(
+                        esp_settings
+                            .info_flags_color
+                            .calculate_color(player_rel_health),
+                        &player_flags.join(", "),
+                    );
+                }
                 // TODO: Distance
             }
 
