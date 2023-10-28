@@ -484,6 +484,7 @@ impl SettingsUI {
                 ui.checkbox(obfstr!("Health"), &mut config.info_hp_text);
                 ui.checkbox(obfstr!("Kit"), &mut config.info_flag_kit);
                 ui.checkbox(obfstr!("Flashed"), &mut config.info_flag_flashed);
+                //ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
             }
         }
 
@@ -922,10 +923,7 @@ impl SettingsUI {
             settings.bomb_settings.remove("bomb");
         }
         let config_enabled = settings
-            .bomb_settings_enabled
-            .get("bomb")
-            .cloned()
-            .unwrap_or_default();
+            .bomb_settings_enabled;
 
         let config = settings
             .bomb_settings
