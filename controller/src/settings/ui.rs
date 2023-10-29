@@ -922,8 +922,7 @@ impl SettingsUI {
         if ui.button(reset_text) {
             settings.bomb_settings.remove("bomb");
         }
-        let config_enabled = settings
-            .bomb_esp;
+        let config_enabled = settings.bomb_esp;
 
         let config = settings
             .bomb_settings

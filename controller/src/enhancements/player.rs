@@ -116,7 +116,6 @@ pub struct PlayerESP {
     players: Vec<PlayerInfo>,
     local_team_id: u8,
     c4_owner: u32,
-
 }
 
 impl PlayerESP {
@@ -203,15 +202,15 @@ impl PlayerESP {
             .collect::<Result<Vec<_>>>()?;
 
         let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
-        let (weapon_type , weapon_player_entity_id) = if let Some(weapon) = weapon {
+        let (weapon_type, weapon_player_entity_id) = if let Some(weapon) = weapon {
             let weapon_type = weapon
                 .m_AttributeManager()?
                 .m_Item()?
                 .m_iItemDefinitionIndex()?;
-        
+
             let weapon_player_entity_id = weapon.m_hOwnerEntity()?.get_entity_index();
-            
-            (weapon_type , weapon_player_entity_id)
+
+            (weapon_type, weapon_player_entity_id)
         } else {
             (WeaponId::Knife.id(), 0)
         };
@@ -228,7 +227,6 @@ impl PlayerESP {
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
             player_flashtime,
-
 
             position,
             bone_states,
@@ -412,19 +410,16 @@ impl Enhancement for PlayerESP {
             {
                 /* entity is not a player pawn */
 
-                if !entity_class
-                .map(|name| name == "C_C4")
-                .unwrap_or(false)
-            {
-                /* Entity isn't the bomb. */
-                continue;
-            }
-            let bomb = entity_identity
-                .entity_ptr::<C_C4>()?
-                .read_schema()
-                .context("bomb schame")?;
-            let c4_owner = bomb.m_hOwnerEntity()?.get_entity_index();
-            self.c4_owner = c4_owner;
+                if !entity_class.map(|name| name == "C_C4").unwrap_or(false) {
+                    /* Entity isn't the bomb. */
+                    continue;
+                }
+                let bomb = entity_identity
+                    .entity_ptr::<C_C4>()?
+                    .read_schema()
+                    .context("bomb schame")?;
+                let c4_owner = bomb.m_hOwnerEntity()?.get_entity_index();
+                self.c4_owner = c4_owner;
             }
 
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
@@ -673,13 +668,13 @@ impl Enhancement for PlayerESP {
                 if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
                     player_flags.push("flashed");
                 }
-                
+
                 if esp_settings.info_flag_c4 {
                     if self.c4_owner == entry.weapon_player_entity_id {
                         player_flags.push("Bomb Carrier");
                     } /*else if self.c4_owner == 32767{ //bomb is dropped
-                        ui.text("Bomb is dropped!")
-                    } */
+                          ui.text("Bomb is dropped!")
+                      } */
                 }
 
                 if !player_flags.is_empty() {
