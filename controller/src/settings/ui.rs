@@ -176,7 +176,7 @@ impl SettingsUI {
                         }
                     }
 
-                    if let Some(_) = ui.tab_item(obfstr!("Bomb")) {
+                    if let Some(_tab) = ui.tab_item(obfstr!("Bomb")) {
                         if !settings.bomb_esp {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text("Bomb has been disabled.");
@@ -484,7 +484,7 @@ impl SettingsUI {
                 ui.checkbox(obfstr!("Health"), &mut config.info_hp_text);
                 ui.checkbox(obfstr!("Kit"), &mut config.info_flag_kit);
                 ui.checkbox(obfstr!("Flashed"), &mut config.info_flag_flashed);
-                //ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
+                ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
             }
         }
 
@@ -923,7 +923,7 @@ impl SettingsUI {
             settings.bomb_settings.remove("bomb");
         }
         let config_enabled = settings
-            .bomb_settings_enabled;
+            .bomb_esp;
 
         let config = settings
             .bomb_settings

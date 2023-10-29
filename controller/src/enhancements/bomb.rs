@@ -235,7 +235,7 @@ impl Enhancement for BombInfo {
         ui: &imgui::Ui,
         view: &crate::view::ViewController,
     ) {
-        if !(settings.bomb_esp || settings.bomb_timer) {
+        if !settings.bomb_esp && !settings.bomb_timer{
             return;
         }
         let bomb_settings = &settings.bomb_settings.get("bomb");
@@ -266,10 +266,8 @@ impl Enhancement for BombInfo {
                     ));
                 }
 
-                if esp_settings.bomb_status || settings.bomb_timer {
-                    if !settings.bomb_timer {
-                        ui.set_cursor_pos_x(offset_x);
-                    }
+                if esp_settings.bomb_status{
+                    ui.set_cursor_pos_x(offset_x);
                     match &bomb_info.state {
                         C4State::Active {
                             time_detonation,
@@ -336,6 +334,58 @@ impl Enhancement for BombInfo {
                     }
                 }
 
+                group.end();
+            }
+        } else {
+            if let Some(bomb_info) = &self.bomb_state {
+                let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
+                let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
+                let group = ui.begin_group();
+                let line_count = match &bomb_info.state {
+                    C4State::Active { .. } => 3,
+                    C4State::Defused | C4State::Detonated => 2,
+                };
+                let text_height = ui.text_line_height_with_spacing() * line_count as f32;
+                let offset_y = offset_y
+                    + nalgebra::RealField::max(
+                        0.0,
+                        (ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0,
+                    );
+                    
+                    match &bomb_info.state {
+                        C4State::Active {
+                            time_detonation,
+                            defuse,
+                        } => {
+                            ui.set_cursor_pos([offset_x, offset_y]);
+                            ui.text(&format!("Time: {:.3}", time_detonation));
+
+                            if let Some(defuse) = defuse.as_ref() {
+                                let color = if defuse.time_remaining > *time_detonation {
+                                    [0.79, 0.11, 0.11, 1.0]
+                                } else {
+                                    [0.11, 0.79, 0.26, 1.0]
+                                };
+
+                                ui.text_colored(
+                                    color,
+                                    &format!(
+                                        "Defused in {:.3} by {}",
+                                        defuse.time_remaining, defuse.player_name
+                                    ),
+                                );
+                            } else {
+                                ui.set_cursor_pos_x(offset_x);
+                                ui.text("Not defusing");
+                            }
+                        }
+                        C4State::Defused => {
+                            ui.text("Bomb has been defused");
+                        }
+                        C4State::Detonated => {
+                            ui.text("Bomb has been detonated");
+                        }
+                    }
                 group.end();
             }
         }
