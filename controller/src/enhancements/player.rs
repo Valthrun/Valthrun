@@ -117,7 +117,6 @@ pub struct PlayerESP {
     local_team_id: u8,
     local_pos: Option<nalgebra::Vector3<f32>>,
     c4_owner: u32,
-
 }
 
 impl PlayerESP {
@@ -128,7 +127,6 @@ impl PlayerESP {
             local_team_id: 0,
             local_pos: Default::default(),
             c4_owner: 0,
-
         }
     }
 
