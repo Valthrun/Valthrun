@@ -484,6 +484,12 @@ impl SettingsUI {
                 ui.checkbox(obfstr!("Health"), &mut config.info_hp_text);
                 ui.checkbox(obfstr!("Kit"), &mut config.info_flag_kit);
                 ui.checkbox(obfstr!("Flashed"), &mut config.info_flag_flashed);
+                ui.checkbox(obfstr!("Near only"), &mut config.near_players);
+                if config.near_players {
+                    ui.same_line();
+                    ui.slider_config("Max distance", 0.0, 50.0)
+                        .build(&mut config.near_players_distance);
+                }
                 ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
             }
         }
@@ -659,6 +665,7 @@ impl SettingsUI {
                     (EspColorType::Static, "Static"),
                     (EspColorType::HealthBased, "Health based"),
                     (EspColorType::HealthBasedRainbow, "Rainbow"),
+                    (EspColorType::DistanceBased, "Distance"),
                 ],
                 &mut color_type,
             );
@@ -673,6 +680,7 @@ impl SettingsUI {
                         min: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
                     },
                     EspColorType::HealthBasedRainbow => EspColor::HealthBasedRainbow,
+                    EspColorType::DistanceBased => EspColor::DistanceBased,
                 }
             }
         }
@@ -730,6 +738,7 @@ impl SettingsUI {
                         *min = Color::from_f32(min_value);
                     }
                 }
+                EspColor::DistanceBased => ui.text("Distance"),
             }
         }
     }
