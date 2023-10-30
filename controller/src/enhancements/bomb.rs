@@ -342,7 +342,6 @@ impl Enhancement for BombInfo {
                                 let text = format!("Back {:.0} m", test);
                                 ui.text(text)
                             };
-
                         }
                     }
                 }

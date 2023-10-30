@@ -683,7 +683,7 @@ impl SettingsUI {
                     EspColorType::DistanceBased => EspColor::DistanceBased {
                         max: Color::from_f32([0.0, 1.0, 0.0, 0.75]), //far
                         min: Color::from_f32([1.0, 0.0, 0.0, 0.75]), //near
-                    }
+                    },
                 }
             }
         }
@@ -802,9 +802,8 @@ impl SettingsUI {
                         value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
                     },
                     EspBombColorType::Distance => EspBombColor::Distance {
-                            max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
-                            min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
-                        
+                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
+                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
                     },
                     EspBombColorType::TimeDetonation => EspBombColor::TimeDetonation {
                         max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
@@ -851,7 +850,7 @@ impl SettingsUI {
                     } {
                         *min = Color::from_f32(min_value);
                     }
-                },
+                }
                 EspBombColor::Static { value } => {
                     let mut color_value = value.as_f32();
 
@@ -868,7 +867,7 @@ impl SettingsUI {
                         *value = Color::from_f32(color_value);
                     }
                 }
-                EspBombColor::TimeDetonation { max, min} => {
+                EspBombColor::TimeDetonation { max, min } => {
                     let mut max_value = max.as_f32();
                     if {
                         ui.color_edit4_config(
@@ -900,7 +899,7 @@ impl SettingsUI {
                     } {
                         *min = Color::from_f32(min_value);
                     }
-                },
+                }
             }
         }
     }

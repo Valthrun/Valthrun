@@ -374,7 +374,7 @@ impl EspBombSettings {
             bomb_position_color: bomb_color,
 
             bomb_status: false,
-            is_safe: false
+            is_safe: false,
         }
     }
 }
