@@ -680,7 +680,10 @@ impl SettingsUI {
                         min: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
                     },
                     EspColorType::HealthBasedRainbow => EspColor::HealthBasedRainbow,
-                    EspColorType::DistanceBased => EspColor::DistanceBased,
+                    EspColorType::DistanceBased => EspColor::DistanceBased {
+                        max: Color::from_f32([0.0, 1.0, 0.0, 0.75]), //far
+                        min: Color::from_f32([1.0, 0.0, 0.0, 0.75]), //near
+                    }
                 }
             }
         }
@@ -738,7 +741,39 @@ impl SettingsUI {
                         *min = Color::from_f32(min_value);
                     }
                 }
-                EspColor::DistanceBased => ui.text("Distance"),
+                EspColor::DistanceBased { max, min } => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                }
             }
         }
     }
@@ -766,8 +801,15 @@ impl SettingsUI {
                     EspBombColorType::Static => EspBombColor::Static {
                         value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
                     },
-                    EspBombColorType::Distance => EspBombColor::Distance,
-                    EspBombColorType::TimeDetonation => EspBombColor::TimeDetonation,
+                    EspBombColorType::Distance => EspBombColor::Distance {
+                            max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
+                            min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
+                        
+                    },
+                    EspBombColorType::TimeDetonation => EspBombColor::TimeDetonation {
+                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
+                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
+                    },
                 }
             }
         }
@@ -777,7 +819,39 @@ impl SettingsUI {
 
         {
             match color {
-                EspBombColor::Distance => ui.text("Distance"),
+                EspBombColor::Distance { max, min } => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                },
                 EspBombColor::Static { value } => {
                     let mut color_value = value.as_f32();
 
@@ -794,7 +868,39 @@ impl SettingsUI {
                         *value = Color::from_f32(color_value);
                     }
                 }
-                EspBombColor::TimeDetonation => ui.text("Time Detonation"),
+                EspBombColor::TimeDetonation { max, min} => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                },
             }
         }
     }
@@ -942,6 +1048,7 @@ impl SettingsUI {
         ui.checkbox(obfstr!("Planted C4 ESP"), &mut config.bomb_position);
         ui.checkbox(obfstr!("Bomb site"), &mut config.bomb_site);
         ui.checkbox(obfstr!("Bomb status"), &mut config.bomb_status);
+        ui.checkbox(obfstr!("Is safe from dmg"), &mut config.is_safe);
 
         if config.bomb_position {
             Self::render_esp_settings_bomb_style_color(

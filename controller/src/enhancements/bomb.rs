@@ -171,6 +171,12 @@ const PLAYER_AVATAR_TOP_OFFSET: f32 = 0.004;
 /// % of the screens height
 const PLAYER_AVATAR_SIZE: f32 = 0.05;
 
+const UNITS_TO_METERS: f32 = 0.01905;
+
+// Max distance that bomb causes dmg in meters
+const IS_SAFE: f32 = 33.6804;
+//in units: 1768.0
+
 impl Enhancement for BombInfo {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         if !(ctx.settings.bomb_esp || ctx.settings.bomb_timer) {
@@ -241,8 +247,6 @@ impl Enhancement for BombInfo {
         let bomb_settings = &settings.bomb_settings.get("bomb");
 
         if let Some(bomb_settings) = bomb_settings {
-            let mut color = [1.0, 1.0, 1.0, 1.0];
-
             if let (Some(bomb_info), esp_settings) = (&self.bomb_state, bomb_settings) {
                 let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
                 let offset_y = ui.io().display_size[1] * PLAYER_AVATAR_TOP_OFFSET;
@@ -308,29 +312,38 @@ impl Enhancement for BombInfo {
                 {
                     let pos = &bomb_info.bomb_pos;
                     if let Some(local_pos) = self.local_pos {
-                        let distance = (pos - local_pos).norm() * 0.01905;
-                        color = if esp_settings.bomb_position {
+                        let distance = (pos - local_pos).norm() * UNITS_TO_METERS;
+                        let color = if esp_settings.bomb_position {
                             esp_settings
                                 .bomb_position_color
                                 .calculate_color(distance, *time_detonation)
                         } else {
                             [1.0, 1.0, 1.0, 1.0]
                         };
-                    }
-                }
+                        if esp_settings.bomb_position {
+                            if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
+                                let y_offset = 0.0;
+                                let draw = ui.get_window_draw_list();
+                                let text = "BOMB";
+                                let [text_width, _] = ui.calc_text_size(&text);
+                                let mut pos = pos.clone();
+                                pos.x -= text_width / 2.0;
+                                pos.y += y_offset;
+                                ui.set_cursor_pos_x(offset_x);
+                                draw.add_text(pos, color, text);
+                            }
+                        }
+                        if esp_settings.is_safe {
+                            ui.set_cursor_pos_x(offset_x);
+                            if distance > IS_SAFE {
+                                ui.text("You're safe!")
+                            } else {
+                                let test = IS_SAFE - distance;
+                                let text = format!("Back {:.0} m", test);
+                                ui.text(text)
+                            };
 
-                if esp_settings.bomb_position {
-                    if let Some(pos) = view.world_to_screen(&bomb_info.bomb_pos, false) {
-                        let y_offset = 0.0;
-                        let draw = ui.get_window_draw_list();
-
-                        let text = "BOMB";
-                        let [text_width, _] = ui.calc_text_size(&text);
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
-                        ui.set_cursor_pos_x(offset_x);
-                        draw.add_text(pos, color, text);
+                        }
                     }
                 }
 

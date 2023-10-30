@@ -55,8 +55,8 @@ impl From<[f32; 4]> for Color {
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
 pub enum EspBombColor {
-    Distance,
-    TimeDetonation,
+    Distance { max: Color, min: Color },
+    TimeDetonation { max: Color, min: Color },
     Static { value: Color },
 }
 
@@ -75,27 +75,25 @@ impl EspBombColor {
         }
     }
 
-    /// Calculate the target color.
-    /// Health should be in [0.0;1.0]
     pub fn calculate_color(&self, distance: f32, time_detonation: f32) -> [f32; 4] {
         match self {
             Self::Static { value } => value.as_f32(),
-            Self::Distance => {
+            Self::Distance { max, min } => {
                 let min_distance = 0.0;
-                let max_distance = 80.0;
-                let color_at_min = [1.0, 0.0, 0.0, 1.0]; // Red at min
-                let color_at_max = [0.0, 1.0, 0.0, 1.0]; // Green at max
+                let max_distance = 33.6804;
+                let color_at_min = min.as_f32(); // Red at min
+                let color_at_max = max.as_f32(); // Green at max
 
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
 
                 Self::interpolate_color(color_at_min, color_at_max, t)
             }
-            Self::TimeDetonation => {
+            Self::TimeDetonation { max, min } => {
                 let min_time_detonation = 0.0;
                 let max_time_detonation = 40.0;
-                let color_at_min = [0.0, 0.0, 1.0, 1.0]; // Blue at min
-                let color_at_max = [1.0, 1.0, 0.0, 1.0]; // Yellow at max
+                let color_at_min = min.as_f32(); // Blue at min
+                let color_at_max = max.as_f32(); // Yellow at max
 
                 let t = (time_detonation - min_time_detonation)
                     / (max_time_detonation - min_time_detonation);
@@ -127,8 +125,8 @@ impl EspBombColorType {
     pub fn from_bomb_esp_color(color: &EspBombColor) -> Self {
         match color {
             EspBombColor::Static { .. } => Self::Static,
-            EspBombColor::Distance => Self::Distance,
-            EspBombColor::TimeDetonation => Self::TimeDetonation,
+            EspBombColor::Distance { .. } => Self::Distance,
+            EspBombColor::TimeDetonation { .. } => Self::TimeDetonation,
         }
     }
 }
@@ -139,7 +137,7 @@ pub enum EspColor {
     HealthBasedRainbow,
     HealthBased { max: Color, min: Color },
     Static { value: Color },
-    DistanceBased,
+    DistanceBased { max: Color, min: Color },
 }
 
 impl Default for EspColor {
@@ -182,12 +180,12 @@ impl EspColor {
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
                 [r, g, b, 1.0]
             }
-            Self::DistanceBased => {
+            Self::DistanceBased { max, min } => {
                 let max_distance = 80.0;
                 let min_distance = 0.0;
 
-                let color_near = [1.0, 0.0, 0.0, 0.75];
-                let color_far = [0.0, 1.0, 0.0, 0.75];
+                let color_near = max.as_f32();
+                let color_far = min.as_f32();
 
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
@@ -217,7 +215,7 @@ impl EspColorType {
             EspColor::Static { .. } => Self::Static,
             EspColor::HealthBased { .. } => Self::HealthBased,
             EspColor::HealthBasedRainbow => Self::HealthBasedRainbow,
-            EspColor::DistanceBased => Self::DistanceBased,
+            EspColor::DistanceBased { .. } => Self::DistanceBased,
         }
     }
 }
@@ -362,6 +360,7 @@ pub struct EspBombSettings {
     pub bomb_position_color: EspBombColor,
 
     pub bomb_status: bool,
+    pub is_safe: bool,
 }
 
 impl EspBombSettings {
@@ -375,6 +374,7 @@ impl EspBombSettings {
             bomb_position_color: bomb_color,
 
             bomb_status: false,
+            is_safe: false
         }
     }
 }
