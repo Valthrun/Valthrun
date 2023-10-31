@@ -1,23 +1,10 @@
-use std::{
-    ffi::CStr,
-    sync::Arc,
-};
-use anyhow::{
-    Context,
-    Result,
-};
-use cs2::{
-    BoneFlags,
-    CEntityIdentityEx,
-    CS2Model,
-};
-use cs2_schema_declaration::{
-    define_schema,
-    Ptr,
-};
+use std::ffi::CStr;
+
+use anyhow::Context;
+use cs2::CEntityIdentityEx;
+use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::{
     CCSPlayer_ItemServices,
-    CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
 };
@@ -26,11 +13,13 @@ use serde::Serialize;
 
 use super::Enhancement;
 use crate::{
+    settings::AppSettings,
+    view::ViewController,
     weapon::WeaponId,
     web_radar_server::{
         MessageData,
         CLIENTS,
-    }
+    },
 };
 
 #[derive(Serialize)]
@@ -66,12 +55,10 @@ pub struct WebRadar {
     players_info: WebPlayersInfo,
 }
 
-impl PlayerESP {
+impl WebRadar {
     pub fn new() -> Self {
-        PlayerESP {
-            toggle: KeyToggle::new(),
-            players: Default::default(),
-            local_team_id: 0,
+        WebRadar {
+            players_info: WebPlayersInfo::new(Default::default()),
         }
     }
 
@@ -87,6 +74,15 @@ impl PlayerESP {
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
             return Ok(None); // TODO: Add death sign
+        }
+
+        /* Will be an instance of CSkeletonInstance */
+        let game_screen_node = player_pawn
+            .m_pGameSceneNode()?
+            .cast::<CSkeletonInstance>()
+            .read_schema()?;
+        if game_screen_node.m_bDormant()? {
+            return Ok(None);
         }
 
         let controller_handle = player_pawn.m_hController()?;
@@ -146,7 +142,7 @@ impl PlayerESP {
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
             player_flashtime,
 
-            position,
+            position: [position.x, position.y, position.z],
         }))
     }
 }
@@ -171,26 +167,16 @@ impl Enhancement for WebRadar {
             }
         };
 
-        let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
-            local_player_controller.m_hPawn()?.get_entity_index()
-        } else {
-            let local_obs_pawn = match {
-                ctx.cs2_entities
-                    .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
-            } {
-                Some(pawn) => pawn.entity()?.reference_schema()?,
-                None => {
-                    /* this is odd... */
-                    return Ok(());
-                }
-            };
-
-            local_obs_pawn
-                .m_pObserverServices()?
-                .read_schema()?
-                .m_hObserverTarget()?
-                .get_entity_index()
-        };
+        if !local_player_controller.m_bPawnIsAlive()? {
+            if ctx
+                .cs2_entities
+                .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
+                .is_none()
+            {
+                /* this is odd... */
+                return Ok(());
+            }
+        }
 
         for entity_identity in ctx.cs2_entities.all_identities() {
             let entity_class = ctx
@@ -210,10 +196,10 @@ impl Enhancement for WebRadar {
                 Ok(None) => {}
                 Err(error) => {
                     log::warn!(
-                    "Failed to generate player pawn WebRadar info for {:X}: {:#}",
-                    player_pawn.address()?,
-                    error
-                );
+                        "Failed to generate player pawn WebRadar info for {:X}: {:#}",
+                        player_pawn.address()?,
+                        error
+                    );
                 }
             }
         }
@@ -225,4 +211,6 @@ impl Enhancement for WebRadar {
 
         Ok(())
     }
+
+    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {}
 }

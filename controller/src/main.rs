@@ -274,14 +274,14 @@ impl Application {
         if let Some(new_map) = &new_map_info {
             self.current_map_changed = self.current_map != new_map_info;
             if self.current_map_changed {
-                let mut data = web_radar::CURRENT_MAP.write().unwrap();
+                let mut data = web_radar_server::CURRENT_MAP.write().unwrap();
                 *data = new_map.clone();
                 match serde_json::to_string(new_map) {
                     Ok(data) => {
                         for client in CLIENTS.lock().unwrap().iter() {
                             client.do_send(MessageData { data: data.clone() });
                         }
-                    },
+                    }
                     Err(e) => {
                         log::error!("Failed to create json with error: {}", e);
                     }
@@ -669,6 +669,7 @@ async fn main_overlay() -> anyhow::Result<()> {
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
                 cs2_offsets.offset_crosshair_id,
             )))),
+            Rc::new(RefCell::new(WebRadar::new())),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
         ],
 

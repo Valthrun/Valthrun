@@ -342,6 +342,10 @@ impl Enhancement for PlayerESP {
             );
         }
 
+        if !self.toggle.enabled {
+            return Ok(());
+        }
+
         self.players.clear();
 
         self.players.reserve(16);

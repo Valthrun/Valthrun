@@ -26,7 +26,7 @@ body, html, .map-container {
     position: absolute;
     top: 50%;
     left: 50%;
-    width: 32px;
-    height: 32px;
+    width: 24px;
+    height: 24px;
     transform: translate(-50%, -50%); /* Center the dot */
 }

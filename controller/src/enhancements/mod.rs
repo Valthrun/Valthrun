@@ -29,6 +29,9 @@ pub use spectators_list::*;
 mod aim;
 pub use aim::*;
 
+mod web_radar;
+pub use web_radar::*;
+
 use crate::{
     view::ViewController,
     UpdateContext,

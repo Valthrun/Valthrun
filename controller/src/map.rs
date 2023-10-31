@@ -16,7 +16,7 @@ impl MapInfo {
     pub fn new(name: String) -> Self {
         Self {
             type_name: "MapInfo",
-            name
+            name,
         }
     }
 }

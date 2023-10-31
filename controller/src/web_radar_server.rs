@@ -1,8 +1,10 @@
-use std::string::ToString;
-use std::sync::{
-    Arc,
-    Mutex,
-    RwLock,
+use std::{
+    string::ToString,
+    sync::{
+        Arc,
+        Mutex,
+        RwLock,
+    },
 };
 
 use actix::{
@@ -21,12 +23,14 @@ use actix_web::{
 };
 use actix_web_actors::ws;
 use map::MapInfo;
+
 use crate::map;
 
 /// Define HTTP actor
 pub struct WebRadar {}
 
-pub static CURRENT_MAP: once_cell::sync::Lazy<Arc<RwLock<MapInfo>>> = once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(MapInfo::new("<Empty>".to_string()))));
+pub static CURRENT_MAP: once_cell::sync::Lazy<Arc<RwLock<MapInfo>>> =
+    once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(MapInfo::new("<Empty>".to_string()))));
 
 impl Actor for WebRadar {
     type Context = ws::WebsocketContext<Self>;
@@ -38,7 +42,7 @@ impl Actor for WebRadar {
             match serde_json::to_string(&current_map.clone()) {
                 Ok(data) => {
                     address.do_send(MessageData { data: data.clone() });
-                },
+                }
                 Err(e) => {
                     log::error!("Failed to create json with error: {}", e);
                 }
