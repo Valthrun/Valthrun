@@ -83,7 +83,7 @@ pub async fn run_server() -> Result<(), anyhow::Error> {
         App::new()
             .wrap(Logger::default())
             .route("/ws", web::get().to(ws))
-            .service(actix_files::Files::new("/", "./web_radar").index_file("index.html"))
+            .service(actix_files::Files::new("/", "./web_radar_server").index_file("index.html"))
     })
     .bind("0.0.0.0:6969")?
     .run()

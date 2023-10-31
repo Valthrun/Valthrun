@@ -24,7 +24,6 @@ use cs2_schema_generated::cs2::client::{
 };
 use imgui::ImColor32;
 use obfstr::obfstr;
-use serde::Serialize;
 
 use super::Enhancement;
 use crate::{
@@ -42,10 +41,6 @@ use crate::{
         ViewController,
     },
     weapon::WeaponId,
-    web_radar::{
-        MessageData,
-        CLIENTS,
-    },
 };
 
 pub struct PlayerInfo {
@@ -72,54 +67,6 @@ impl PlayerInfo {
             &(self.model.vhull_min + self.position),
             &(self.model.vhull_max + self.position),
         )
-    }
-}
-
-#[derive(Serialize)]
-pub struct WebPlayerInfo {
-    pub controller_entity_id: u32,
-    pub team_id: u8,
-
-    pub player_health: i32,
-    pub player_has_defuser: bool,
-    pub player_name: String,
-    pub weapon: WeaponId,
-
-    pub position: [f32; 3],
-}
-
-#[derive(Serialize)]
-pub struct WebPlayersInfo {
-    pub type_name: &'static str,
-    pub players: Vec<WebPlayerInfo>,
-}
-
-impl WebPlayersInfo {
-    pub fn new(players: Vec<WebPlayerInfo>) -> Self {
-        Self {
-            type_name: "WebPlayersInfo",
-            players,
-        }
-    }
-}
-
-impl From<&PlayerInfo> for WebPlayerInfo {
-    fn from(player_info: &PlayerInfo) -> Self {
-        WebPlayerInfo {
-            controller_entity_id: player_info.controller_entity_id,
-            team_id: player_info.team_id,
-
-            player_health: player_info.player_health,
-            player_has_defuser: player_info.player_has_defuser,
-            player_name: player_info.player_name.clone(),
-            weapon: player_info.weapon,
-
-            position: [
-                player_info.position.x,
-                player_info.position.y,
-                player_info.position.z,
-            ],
-        }
     }
 }
 
@@ -464,19 +411,6 @@ impl Enhancement for PlayerESP {
                         error
                     );
                 }
-            }
-        }
-
-        if !self.players.is_empty() {
-            let mut web_players: Vec<WebPlayerInfo> = vec![];
-            for player in &self.players {
-                web_players.push(WebPlayerInfo::from(player));
-            }
-            let web_players_info = WebPlayersInfo::new(web_players);
-
-            let data = serde_json::to_string(&web_players_info).unwrap();
-            for client in CLIENTS.lock().unwrap().iter() {
-                client.do_send(MessageData { data: data.clone() });
             }
         }
 

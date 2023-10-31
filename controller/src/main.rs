@@ -80,10 +80,11 @@ use crate::{
         PlayerESP,
         SpectatorsList,
         TriggerBot,
+        WebRadar,
     },
     settings::save_app_settings,
     view::LocalCrosshair,
-    web_radar::{
+    web_radar_server::{
         MessageData,
         CLIENTS,
     },
@@ -98,7 +99,7 @@ mod settings;
 mod utils;
 mod view;
 mod weapon;
-mod web_radar;
+mod web_radar_server;
 mod winver;
 
 pub trait MetricsClient {
@@ -694,7 +695,7 @@ async fn main_overlay() -> anyhow::Result<()> {
 
     std::thread::spawn(|| {
         let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(web_radar::run_server())
+        runtime.block_on(web_radar_server::run_server())
     });
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
