@@ -467,17 +467,15 @@ impl Enhancement for PlayerESP {
             }
         }
 
-        if !self.players.is_empty() {
-            let mut web_players: Vec<WebPlayerInfo> = vec![];
-            for player in &self.players {
-                web_players.push(WebPlayerInfo::from(player));
-            }
-            let web_players_info = WebPlayersInfo::new(web_players);
+        let mut web_players: Vec<WebPlayerInfo> = vec![];
+        for player in &self.players {
+            web_players.push(WebPlayerInfo::from(player));
+        }
+        let web_players_info = WebPlayersInfo::new(web_players);
 
-            let data = serde_json::to_string(&web_players_info).unwrap();
-            for client in CLIENTS.lock().unwrap().iter() {
-                client.do_send(MessageData { data: data.clone() });
-            }
+        let data = serde_json::to_string(&web_players_info).unwrap();
+        for client in CLIENTS.lock().unwrap().iter() {
+            client.do_send(MessageData { data: data.clone() });
         }
 
         Ok(())

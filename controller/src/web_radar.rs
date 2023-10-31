@@ -1,6 +1,8 @@
+use std::string::ToString;
 use std::sync::{
     Arc,
     Mutex,
+    RwLock,
 };
 
 use actix::{
@@ -18,17 +20,29 @@ use actix_web::{
     HttpServer,
 };
 use actix_web_actors::ws;
+use map::MapInfo;
+use crate::map;
 
 /// Define HTTP actor
 pub struct WebRadar {}
+
+pub static CURRENT_MAP: once_cell::sync::Lazy<Arc<RwLock<MapInfo>>> = once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(MapInfo::new("<Empty>".to_string()))));
 
 impl Actor for WebRadar {
     type Context = ws::WebsocketContext<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
         let address = ctx.address();
-        // Now you can use my_address to add it to the global list or do whatever you need.
         if let Ok(mut clients) = CLIENTS.lock() {
+            let current_map = CURRENT_MAP.read().unwrap();
+            match serde_json::to_string(&current_map.clone()) {
+                Ok(data) => {
+                    address.do_send(MessageData { data: data.clone() });
+                },
+                Err(e) => {
+                    log::error!("Failed to create json with error: {}", e);
+                }
+            };
             clients.push(address);
             log::info!("Client connected!");
         }

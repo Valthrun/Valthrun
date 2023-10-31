@@ -273,6 +273,8 @@ impl Application {
         if let Some(new_map) = &new_map_info {
             self.current_map_changed = self.current_map != new_map_info;
             if self.current_map_changed {
+                let mut data = web_radar::CURRENT_MAP.write().unwrap();
+                *data = new_map.clone();
                 match serde_json::to_string(new_map) {
                     Ok(data) => {
                         for client in CLIENTS.lock().unwrap().iter() {
