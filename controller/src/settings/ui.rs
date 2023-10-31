@@ -676,13 +676,13 @@ impl SettingsUI {
                         value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
                     },
                     EspColorType::HealthBased => EspColor::HealthBased {
-                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
-                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
+                        max: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
+                        min: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
                     },
                     EspColorType::HealthBasedRainbow => EspColor::HealthBasedRainbow,
                     EspColorType::DistanceBased => EspColor::DistanceBased {
-                        max: Color::from_f32([0.0, 1.0, 0.0, 0.75]), //far
-                        min: Color::from_f32([1.0, 0.0, 0.0, 0.75]), //near
+                        max: Color::from_f32([1.0, 0.0, 0.0, 0.75]), //far
+                        min: Color::from_f32([0.0, 1.0, 0.0, 0.75]), //near
                     },
                 }
             }
