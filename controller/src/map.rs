@@ -6,7 +6,7 @@ use cs2_schema_declaration::{
 };
 use serde::Serialize;
 
-#[derive(Debug, PartialEq, PartialOrd, Serialize)]
+#[derive(Clone, Debug, PartialEq, PartialOrd, Serialize)]
 pub struct MapInfo {
     pub type_name: &'static str,
     pub name: String,

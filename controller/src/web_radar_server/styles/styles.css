@@ -7,28 +7,26 @@
     margin-right: auto;
 }
 
+body {
+    margin: 0;
+}
+
 body, html, .map-container {
      padding: 0;
  }
 
 .map {
-    display: block;
-    max-height: 100vh;
-    width: auto;
-}
-
-.player-dot {
-    position: absolute;
-    top: 50%;  /* Initially center the dot */
-    left: 50%; /* Initially center the dot */
-    width: 20px; /* Adjust based on your dot size */
-    height: 20px; /* Adjust based on your dot size */
-    transform: translate(-50%, -50%); /* Center the dot */
-}
-
-img {
     max-height: 100vh; /* Set max height to 100% of the viewport height */
     width: auto;       /* Adjust width proportionally */
     display: block;    /* Display as block to center it */
     margin: 0 auto;    /* Center the image horizontally */
+}
+
+.player-dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 32px;
+    height: 32px;
+    transform: translate(-50%, -50%); /* Center the dot */
 }

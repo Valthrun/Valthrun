@@ -29,12 +29,20 @@ function messageHandlers(){
 
     this.MapInfo = function(data)
     {
-        fetch(`maps/${data.name}/meta.json`)
-            .then(response => response.json())
-            .then(json => {
-                mapSize = json.resolution * 2048;
-                mapOffset = { x: json.offset.x, y: json.offset.y };
-            });
+        if (data.name === "<empty>")
+        {
+            loadedMapImage.src = 'images/not_connected.png';
+        }
+        else
+        {
+            fetch(`maps/${data.name}/meta.json`)
+                .then(response => response.json())
+                .then(json => {
+                    mapSize = json.resolution * 1024;
+                    mapOffset = { x: json.offset.x, y: json.offset.y };
+                });
+            loadedMapImage.src = `maps/${data.name}/radar.png`;
+        }
     }
 }
 
@@ -67,6 +75,12 @@ ws.onerror = function(error) {
     console.log('WebSocket Error:', error);
 };
 
+function changeBackground(color) {
+    document.body.style.background = color;
+}
+
+window.addEventListener("load",function() { changeBackground('black') });
+
 function addPlayerDot(teamID) {
     // Create a new image element
     var playerDot = document.createElement('img');
@@ -90,11 +104,11 @@ function addPlayerDot(teamID) {
     return playerDot; // Return the created element for further manipulation
 }
 
-const image = document.querySelector('.map');
-image.onload = function() {
+const loadedMapImage = document.querySelector('.map');
+loadedMapImage.onload = function() {
     const container = document.querySelector('.map-container');
     // Calculate the scaled width of the image
-    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    const aspectRatio = loadedMapImage.naturalWidth / loadedMapImage.naturalHeight;
     const scaledWidth = container.offsetHeight * aspectRatio;
 
     // Set the container width to match the scaled width of the image
@@ -104,7 +118,7 @@ image.onload = function() {
 // Optional: If you want the container to adjust its size when the window is resized
 window.addEventListener('resize', function() {
     const container = document.querySelector('.map-container');
-    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    const aspectRatio = loadedMapImage.naturalWidth / loadedMapImage.naturalHeight;
     const scaledWidth = container.offsetHeight * aspectRatio;
     container.style.width = `${scaledWidth}px`;
 });
