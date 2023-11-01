@@ -285,7 +285,7 @@ impl Enhancement for BombInfo {
                                 } else {
                                     [0.11, 0.79, 0.26, 1.0]
                                 };
-
+                                ui.set_cursor_pos_x(offset_x);
                                 ui.text_colored(
                                     color,
                                     &format!(
