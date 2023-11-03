@@ -17,6 +17,8 @@ use serde::{
 
 use super::{
     EspConfig,
+    EspPlayerSettings,
+    EspSelector,
     HotKey,
 };
 
@@ -51,6 +53,23 @@ fn default_trigger_bot_mode() -> KeyToggleMode {
     KeyToggleMode::Trigger
 }
 
+fn default_esp_configs() -> BTreeMap<String, EspConfig> {
+    let mut result: BTreeMap<String, EspConfig> = Default::default();
+    result.insert(
+        "player.enemy".to_string(),
+        EspConfig::Player(EspPlayerSettings::new(&EspSelector::PlayerTeam {
+            enemy: true,
+        })),
+    );
+    result
+}
+
+fn default_esp_configs_enabled() -> BTreeMap<String, bool> {
+    let mut result: BTreeMap<String, bool> = Default::default();
+    result.insert("player.enemy".to_string(), true);
+    result
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum KeyToggleMode {
     AlwaysOn,
@@ -71,10 +90,10 @@ pub struct AppSettings {
     #[serde(default = "default_key_none")]
     pub esp_toogle: Option<HotKey>,
 
-    #[serde(default = "Default::default")]
+    #[serde(default = "default_esp_configs")]
     pub esp_settings: BTreeMap<String, EspConfig>,
 
-    #[serde(default = "Default::default")]
+    #[serde(default = "default_esp_configs_enabled")]
     pub esp_settings_enabled: BTreeMap<String, bool>,
 
     #[serde(default = "bool_true")]

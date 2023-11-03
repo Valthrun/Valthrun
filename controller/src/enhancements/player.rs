@@ -113,6 +113,7 @@ pub struct PlayerESP {
     toggle: KeyToggle,
     players: Vec<PlayerInfo>,
     local_team_id: u8,
+    local_pos: Option<nalgebra::Vector3<f32>>,
 }
 
 impl PlayerESP {
@@ -121,6 +122,7 @@ impl PlayerESP {
             toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
+            local_pos: Default::default(),
         }
     }
 
@@ -390,6 +392,12 @@ impl Enhancement for PlayerESP {
         for entity_identity in ctx.cs2_entities.all_identities() {
             if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
                 /* current pawn we control/observe */
+                let local_pawn = entity_identity
+                    .entity_ptr::<C_CSPlayerPawn>()?
+                    .read_schema()?;
+                let local_pos =
+                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+                self.local_pos = Some(local_pos);
                 continue;
             }
 
@@ -427,11 +435,23 @@ impl Enhancement for PlayerESP {
         }
 
         let draw = ui.get_window_draw_list();
+        const UNITS_TO_METERS: f32 = 0.01905;
         for entry in self.players.iter() {
+            let distance = if let Some(local_pos) = self.local_pos {
+                let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
+                distance
+            } else {
+                0.0
+            };
             let esp_settings = match self.resolve_esp_player_config(settings, entry) {
                 Some(settings) => settings,
                 None => continue,
             };
+            if esp_settings.near_players {
+                if distance > esp_settings.near_players_distance {
+                    continue;
+                }
+            }
 
             let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
             let player_2d_box = entry.calculate_player_box(view);
@@ -466,7 +486,7 @@ impl Enhancement for PlayerESP {
                         bone_position,
                         esp_settings
                             .skeleton_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                     )
                     .thickness(esp_settings.skeleton_width)
                     .build();
@@ -479,7 +499,9 @@ impl Enhancement for PlayerESP {
                         draw.add_rect(
                             [vmin.x, vmin.y],
                             [vmax.x, vmax.y],
-                            esp_settings.box_color.calculate_color(player_rel_health),
+                            esp_settings
+                                .box_color
+                                .calculate_color(player_rel_health, distance),
                         )
                         .thickness(esp_settings.box_width)
                         .build();
@@ -492,7 +514,7 @@ impl Enhancement for PlayerESP {
                         &(entry.model.vhull_max + entry.position),
                         esp_settings
                             .box_color
-                            .calculate_color(player_rel_health)
+                            .calculate_color(player_rel_health, distance)
                             .into(),
                         esp_settings.box_width,
                     );
@@ -621,7 +643,7 @@ impl Enhancement for PlayerESP {
                     player_info.add_line(
                         esp_settings
                             .info_name_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                         &entry.player_name,
                     );
                 }
@@ -631,7 +653,7 @@ impl Enhancement for PlayerESP {
                     player_info.add_line(
                         esp_settings
                             .info_weapon_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                         &text,
                     );
                 }
@@ -641,7 +663,7 @@ impl Enhancement for PlayerESP {
                     player_info.add_line(
                         esp_settings
                             .info_hp_text_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                         &text,
                     );
                 }
@@ -659,11 +681,19 @@ impl Enhancement for PlayerESP {
                     player_info.add_line(
                         esp_settings
                             .info_flags_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                         &player_flags.join(", "),
                     );
                 }
-                // TODO: Distance
+                if esp_settings.info_distance {
+                    let text = format!("{:.0}m", distance);
+                    player_info.add_line(
+                        esp_settings
+                            .info_distance_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
             }
 
             if let Some(pos) = view.world_to_screen(&entry.position, false) {
@@ -690,7 +720,7 @@ impl Enhancement for PlayerESP {
                         pos,
                         esp_settings
                             .tracer_lines_color
-                            .calculate_color(player_rel_health),
+                            .calculate_color(player_rel_health, distance),
                     )
                     .thickness(esp_settings.tracer_lines_width)
                     .build();

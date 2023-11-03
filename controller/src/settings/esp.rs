@@ -59,6 +59,7 @@ pub enum EspColor {
     HealthBasedRainbow,
     HealthBased { max: Color, min: Color },
     Static { value: Color },
+    DistanceBased,
 }
 
 impl Default for EspColor {
@@ -78,7 +79,7 @@ impl EspColor {
 
     /// Calculate the target color.
     /// Health should be in [0.0;1.0]
-    pub fn calculate_color(&self, health: f32) -> [f32; 4] {
+    pub fn calculate_color(&self, health: f32, distance: f32) -> [f32; 4] {
         match self {
             Self::Static { value } => value.as_f32(),
             Self::HealthBased { max, min } => {
@@ -101,6 +102,23 @@ impl EspColor {
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
                 [r, g, b, 1.0]
             }
+            Self::DistanceBased => {
+                let max_distance = 80.0;
+                let min_distance = 0.0;
+
+                let color_near = [1.0, 0.0, 0.0, 0.75];
+                let color_far = [0.0, 1.0, 0.0, 0.75];
+
+                let t = (distance - min_distance) / (max_distance - min_distance);
+                let t = t.clamp(0.0, 1.0);
+
+                [
+                    color_near[0] + t * (color_far[0] - color_near[0]),
+                    color_near[1] + t * (color_far[1] - color_near[1]),
+                    color_near[2] + t * (color_far[2] - color_near[2]),
+                    0.75,
+                ]
+            }
         }
     }
 }
@@ -110,6 +128,7 @@ pub enum EspColorType {
     Static,
     HealthBased,
     HealthBasedRainbow,
+    DistanceBased,
 }
 
 impl EspColorType {
@@ -118,6 +137,7 @@ impl EspColorType {
             EspColor::Static { .. } => Self::Static,
             EspColor::HealthBased { .. } => Self::HealthBased,
             EspColor::HealthBasedRainbow => Self::HealthBasedRainbow,
+            EspColor::DistanceBased => Self::DistanceBased,
         }
     }
 }
@@ -178,6 +198,9 @@ pub struct EspPlayerSettings {
     pub info_distance: bool,
     pub info_distance_color: EspColor,
 
+    pub near_players: bool,
+    pub near_players_distance: f32,
+
     pub info_weapon: bool,
     pub info_weapon_color: EspColor,
 
@@ -229,6 +252,9 @@ impl EspPlayerSettings {
 
             info_distance: false,
             info_distance_color: color.clone(),
+
+            near_players: false,
+            near_players_distance: 20.0,
 
             info_hp_text: false,
             info_hp_text_color: color.clone(),
