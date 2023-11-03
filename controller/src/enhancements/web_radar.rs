@@ -1,4 +1,5 @@
 use std::ffi::CStr;
+use std::time::Instant;
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
@@ -53,12 +54,16 @@ impl WebPlayersInfo {
 
 pub struct WebRadar {
     players_info: WebPlayersInfo,
+    timestamp: Instant,
 }
+
+const UPDATE_TIME:u128 = 31;
 
 impl WebRadar {
     pub fn new() -> Self {
         WebRadar {
             players_info: WebPlayersInfo::new(Default::default()),
+            timestamp: Instant::now(),
         }
     }
 
@@ -149,8 +154,11 @@ impl WebRadar {
 
 impl Enhancement for WebRadar {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+        if self.timestamp.elapsed().as_millis() < UPDATE_TIME {
+            return Ok(());
+        }
+        self.timestamp = Instant::now();
         self.players_info.players.clear();
-
         self.players_info.players.reserve(16);
 
         let local_player_controller = ctx
