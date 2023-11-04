@@ -115,8 +115,7 @@ impl WebRadar {
             .reference_schema()?
             .m_bHasDefuser()?;
 
-        let position =
-            nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
+        let position = nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
 
         let rotation =
             nalgebra::Vector4::<f32>::from_column_slice(&player_pawn.m_angEyeAngles()?).y;
