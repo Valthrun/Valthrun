@@ -53,8 +53,7 @@ function messageHandlers(){
     }
 }
 
-let ws = new WebSocket('ws://192.168.1.107:6969/ws');
-//var ws = new WebSocket('ws://localhost:6969/ws');
+let ws = new WebSocket(location.origin.replace(/^http/, 'ws') + "/ws");
 
 ws.onopen = function() {
     console.log('Connected to the WebSocket');
