@@ -344,11 +344,10 @@ impl Enhancement for PlayerESP {
             );
         }
 
+        self.players.clear();
         if !self.toggle.enabled {
             return Ok(());
         }
-
-        self.players.clear();
 
         self.players.reserve(16);
 
@@ -430,10 +429,6 @@ impl Enhancement for PlayerESP {
     }
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
-        if !self.toggle.enabled {
-            return;
-        }
-
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
         for entry in self.players.iter() {

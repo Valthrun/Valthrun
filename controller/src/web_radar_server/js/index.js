@@ -2,28 +2,34 @@ let allowedMessages = ["WebPlayersInfo", "MapInfo"];
 
 let mapSize = 0;
 let mapOffset = { x:0, y: 0 };
+let mapFloors = [];
 
 function messageHandlers(){
     this.WebPlayersInfo = function(data)
     {
-        var players = data.players;
+        let players = data.players;
         // Remove all existing player dots
-        var existingDots = document.querySelectorAll('.player-dot');
+        let existingDots = document.querySelectorAll('.player-dot');
         existingDots.forEach(dot => dot.remove());
         // Add and position a dot for each player
         players.forEach(player => {
-            var playerDot = addPlayerDot(player.team_id);
+            let playerDot = addPlayerDot(player.team_id);
 
-            // var rotation = player.rotation;
-            var x = player.position[0]; // as a percentage of the map width
-            var y = player.position[1]; // as a percentage of the map height
+            let x = player.position[0];
+            let y = player.position[1];
+            let z = player.position[2];
 
-            // Rotate and position the player dot
-            // playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-            x = (x + mapOffset.x) / mapSize * 100;
-            y = Math.abs((y + mapOffset.y) / mapSize * 100 - 100);
+            let floorOffset = { x:0, y: 0 };
+            mapFloors.filter(floor => floor.zRange.min < z && floor.zRange.max > z).forEach(floor => {
+                 floorOffset = floor.offset;
+            });
+            let rotation = player.rotation * -1;
+
+            x = ((x + mapOffset.x) / mapSize * 100) + floorOffset.x;
+            y = (Math.abs(((y + mapOffset.y) / mapSize * 100 - 100)) - floorOffset.y);
             playerDot.style.left = `${x}%`;
             playerDot.style.top = `${y}%`;
+            playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
         });
     }
 
@@ -40,13 +46,14 @@ function messageHandlers(){
                 .then(json => {
                     mapSize = json.resolution * 1024;
                     mapOffset = { x: json.offset.x, y: json.offset.y };
+                    mapFloors = json.floors;
                 });
             loadedMapImage.src = `maps/${data.name}/radar.png`;
         }
     }
 }
 
-var ws = new WebSocket('ws://192.168.1.107:6969/ws');
+let ws = new WebSocket('ws://192.168.1.107:6969/ws');
 //var ws = new WebSocket('ws://localhost:6969/ws');
 
 ws.onopen = function() {
@@ -54,7 +61,7 @@ ws.onopen = function() {
 };
 
 ws.onmessage = function(event) {
-    var messageData = JSON.parse(event.data);
+    let messageData = JSON.parse(event.data);
     let type_name = messageData.type_name;
     if (allowedMessages.indexOf(type_name)>=0)
     {
@@ -83,7 +90,7 @@ window.addEventListener("load",function() { changeBackground('black') });
 
 function addPlayerDot(teamID) {
     // Create a new image element
-    var playerDot = document.createElement('img');
+    let playerDot = document.createElement('img');
     if (teamID === 3)
     {
         playerDot.src = 'images/blue_dot.png';
@@ -98,7 +105,7 @@ function addPlayerDot(teamID) {
     }
 
     // Append the player dot to the map container
-    var mapContainer = document.querySelector('.map-container');
+    let mapContainer = document.querySelector('.map-container');
     mapContainer.appendChild(playerDot);
 
     return playerDot; // Return the created element for further manipulation
@@ -115,7 +122,6 @@ loadedMapImage.onload = function() {
     container.style.width = `${scaledWidth}px`;
 };
 
-// Optional: If you want the container to adjust its size when the window is resized
 window.addEventListener('resize', function() {
     const container = document.querySelector('.map-container');
     const aspectRatio = loadedMapImage.naturalWidth / loadedMapImage.naturalHeight;

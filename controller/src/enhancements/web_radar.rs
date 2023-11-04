@@ -1,12 +1,13 @@
-use std::ffi::CStr;
-use std::time::Instant;
+use std::{
+    ffi::CStr,
+    time::Instant,
+};
 
 use anyhow::Context;
 use cs2::CEntityIdentityEx;
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::{
     CCSPlayer_ItemServices,
-    CSkeletonInstance,
     C_CSPlayerPawn,
 };
 use obfstr::obfstr;
@@ -35,6 +36,7 @@ pub struct WebPlayerInfo {
     pub player_flashtime: f32,
 
     pub position: [f32; 3],
+    pub rotation: f32,
 }
 
 #[derive(Serialize)]
@@ -57,7 +59,7 @@ pub struct WebRadar {
     timestamp: Instant,
 }
 
-const UPDATE_TIME:u128 = 31;
+const UPDATE_DELAY: u128 = 16;
 
 impl WebRadar {
     pub fn new() -> Self {
@@ -79,15 +81,6 @@ impl WebRadar {
         let player_health = player_pawn.m_iHealth()?;
         if player_health <= 0 {
             return Ok(None); // TODO: Add death sign
-        }
-
-        /* Will be an instance of CSkeletonInstance */
-        let game_screen_node = player_pawn
-            .m_pGameSceneNode()?
-            .cast::<CSkeletonInstance>()
-            .read_schema()?;
-        if game_screen_node.m_bDormant()? {
-            return Ok(None);
         }
 
         let controller_handle = player_pawn.m_hController()?;
@@ -123,7 +116,10 @@ impl WebRadar {
             .m_bHasDefuser()?;
 
         let position =
-            nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
+            nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
+
+        let rotation =
+            nalgebra::Vector4::<f32>::from_column_slice(&player_pawn.m_angEyeAngles()?).y;
 
         let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
         let weapon_type = if let Some(weapon) = weapon {
@@ -148,13 +144,14 @@ impl WebRadar {
             player_flashtime,
 
             position: [position.x, position.y, position.z],
+            rotation,
         }))
     }
 }
 
 impl Enhancement for WebRadar {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        if self.timestamp.elapsed().as_millis() < UPDATE_TIME {
+        if self.timestamp.elapsed().as_millis() < UPDATE_DELAY {
             return Ok(());
         }
         self.timestamp = Instant::now();
