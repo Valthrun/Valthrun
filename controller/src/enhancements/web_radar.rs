@@ -29,11 +29,11 @@ pub struct WebPlayerInfo {
     pub controller_entity_id: u32,
     pub team_id: u8,
 
-    pub player_health: i32,
-    pub player_has_defuser: bool,
-    pub player_name: String,
+    pub health: i32,
+    pub has_defuser: bool,
+    pub name: String,
     pub weapon: WeaponId,
-    pub player_flashtime: f32,
+    pub flashtime: f32,
 
     pub position: [f32; 3],
     pub rotation: f32,
@@ -78,11 +78,6 @@ impl WebRadar {
             .read_schema()
             .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
 
-        let player_health = player_pawn.m_iHealth()?;
-        if player_health <= 0 {
-            return Ok(None); // TODO: Add death sign
-        }
-
         let controller_handle = player_pawn.m_hController()?;
         let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
 
@@ -109,41 +104,45 @@ impl WebRadar {
             return Ok(None);
         };
 
-        let player_has_defuser = player_pawn
-            .m_pItemServices()?
-            .cast::<CCSPlayer_ItemServices>()
-            .reference_schema()?
-            .m_bHasDefuser()?;
-
-        let position = nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
-
-        let rotation =
+        let player_health = player_pawn.m_iHealth()?;
+        let player_flashtime = player_pawn.m_flFlashBangTime()?;
+        let player_rotation =
             nalgebra::Vector4::<f32>::from_column_slice(&player_pawn.m_angEyeAngles()?).y;
 
-        let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
-        let weapon_type = if let Some(weapon) = weapon {
-            weapon
-                .m_AttributeManager()?
-                .m_Item()?
-                .m_iItemDefinitionIndex()?
-        } else {
-            WeaponId::Knife.id()
-        };
+        let mut weapon_type = 0;
+        let mut player_has_defuser = false;
 
-        let player_flashtime = player_pawn.m_flFlashBangTime()?;
+        if player_health > 0 {
+            player_has_defuser = player_pawn               .m_pItemServices()?
+                .cast::<CCSPlayer_ItemServices>()
+                .reference_schema()?
+                .m_bHasDefuser()?;
+
+            let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+            weapon_type = if let Some(weapon) = weapon {
+                weapon
+                    .m_AttributeManager()?
+                    .m_Item()?
+                    .m_iItemDefinitionIndex()?
+            } else {
+                WeaponId::Knife.id()
+            };
+        }
+
+        let player_position = nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
 
         Ok(Some(WebPlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
 
-            player_name,
-            player_has_defuser,
-            player_health,
+            name: player_name,
+            has_defuser: player_has_defuser,
+            health: player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
-            player_flashtime,
+            flashtime: player_flashtime,
 
-            position: [position.x, position.y, position.z],
-            rotation,
+            position: [player_position.x, player_position.y, player_position.z],
+            rotation: player_rotation,
         }))
     }
 }
@@ -208,7 +207,8 @@ impl Enhancement for WebRadar {
             }
         }
 
-        let data = serde_json::to_string(&self.players_info).unwrap();
+        let data = serde_json::to_string(&self.players_info)
+            .with_context(|| obfstr!("failed to serialize WebPlayerInfo"))?;
         for client in CLIENTS.lock().unwrap().iter() {
             client.do_send(MessageData { data: data.clone() });
         }

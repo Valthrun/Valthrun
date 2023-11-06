@@ -22,6 +22,8 @@ use actix_web::{
     HttpServer,
 };
 use actix_web_actors::ws;
+use anyhow::Context;
+use obfstr::obfstr;
 use map::MapInfo;
 
 use crate::map;
@@ -38,7 +40,8 @@ impl Actor for WebRadar {
     fn started(&mut self, ctx: &mut Self::Context) {
         let address = ctx.address();
         if let Ok(mut clients) = CLIENTS.lock() {
-            let current_map = CURRENT_MAP.read().unwrap();
+            let current_map = CURRENT_MAP.read().
+                with_context(|| obfstr!("failed to read current map"));
             match serde_json::to_string(&current_map.clone()) {
                 Ok(data) => {
                     address.do_send(MessageData { data: data.clone() });
