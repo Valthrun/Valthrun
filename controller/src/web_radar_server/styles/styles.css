@@ -22,8 +22,16 @@ body, html, .map-container {
     margin: 0 auto;    /* Center the image horizontally */
 }
 
-.player-dot {
+.player {
     position: absolute;
+}
+
+.dot {
     width: 24px;
     height: 24px;
+}
+
+.cross {
+    width: 18px;
+    height: 18px;
 }

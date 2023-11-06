@@ -78,17 +78,11 @@ impl WebRadar {
             .read_schema()
             .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
 
-        let controller_handle = player_pawn.m_hController()?;
+        let controller_handle = player_pawn.m_hOriginalController()?;
         let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
 
-        let player_team = player_pawn.m_iTeamNum()?;
-        let player_name = if let Some(identity) = &current_controller {
-            let player_controller = identity.entity()?.reference_schema()?;
-            CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
-                .context("player name missing nul terminator")?
-                .to_str()
-                .context("invalid player name")?
-                .to_string()
+        let player_controller = if let Some(identity) = &current_controller {
+            identity.entity()?.reference_schema()?
         } else {
             /*
              * This is the case for pawns which are not controlled by a player controller.
@@ -104,6 +98,14 @@ impl WebRadar {
             return Ok(None);
         };
 
+        let player_team = player_pawn.m_iTeamNum()?;
+
+        let player_name = CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
+            .context("player name missing nul terminator")?
+            .to_str()
+            .context("invalid player name")?
+            .to_string();
+
         let player_health = player_pawn.m_iHealth()?;
         let player_flashtime = player_pawn.m_flFlashBangTime()?;
         let player_rotation =
@@ -112,13 +114,18 @@ impl WebRadar {
         let mut weapon_type = 0;
         let mut player_has_defuser = false;
 
-        if player_health > 0 {
-            player_has_defuser = player_pawn               .m_pItemServices()?
+        if player_controller.m_bPawnIsAlive()? {
+            player_has_defuser = player_pawn
+                .m_pItemServices()?
                 .cast::<CCSPlayer_ItemServices>()
                 .reference_schema()?
                 .m_bHasDefuser()?;
 
-            let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+            let weapon = player_pawn
+                .m_pClippingWeapon()?
+                .try_read_schema()
+                .with_context(|| obfstr!("failed to read weapon data").to_string())?; // Sometimes fails to read weapon when player is dead and spawns for next round
+
             weapon_type = if let Some(weapon) = weapon {
                 weapon
                     .m_AttributeManager()?
@@ -129,7 +136,8 @@ impl WebRadar {
             };
         }
 
-        let player_position = nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
+        let player_position =
+            nalgebra::Vector3::<f32>::from_column_slice(&player_pawn.m_vOldOrigin()?);
 
         Ok(Some(WebPlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
@@ -208,7 +216,7 @@ impl Enhancement for WebRadar {
         }
 
         let data = serde_json::to_string(&self.players_info)
-            .with_context(|| obfstr!("failed to serialize WebPlayerInfo"))?;
+            .with_context(|| obfstr!("failed to serialize WebPlayerInfo").to_string())?;
         for client in CLIENTS.lock().unwrap().iter() {
             client.do_send(MessageData { data: data.clone() });
         }

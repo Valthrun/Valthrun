@@ -9,7 +9,7 @@ function messageHandlers(){
     {
         let players = data.players;
         // Remove all existing player dots
-        let existingDots = document.querySelectorAll('.player-dot');
+        let existingDots = document.querySelectorAll('.player');
         existingDots.forEach(dot => dot.remove());
         // Add and position a dot for each player
         players.forEach(player => {
@@ -27,7 +27,7 @@ function messageHandlers(){
 
             if (player.health > 0)
             {
-                let playerDot = addPlayerDot(player.team_id);
+                let playerDot = addPlayer(player.team_id, true);
 
                 let rotation = player.rotation * -1;
                 playerDot.style.left = `${x}%`;
@@ -36,11 +36,11 @@ function messageHandlers(){
             }
             else
             {
-                let playerCross = addPlayerDot(player.team_id);
+                let playerCross = addPlayer(player.team_id, false);
                 
                 playerCross.style.left = `${x}%`;
                 playerCross.style.top = `${y}%`;
-                playerCross.style.transform = `translate(-50%, -50%))`;
+                playerCross.style.transform = `translate(-50%, -50%)`;
             }
         });
     }
@@ -105,20 +105,32 @@ function addPlayer(teamID, alive) {
     if (teamID === 3)
     {
         if (alive)
+        {
             player.src = 'images/blue_dot.png';
+            player.className = 'player dot';
+        }
         else
+        {
             player.src = 'images/blue_cross.png'
+            player.className = 'player cross';
+        }
+
         player.alt = 'Player';
-        player.className = 'player';
     }
     else
     {
         if (alive)
+        {
             player.src = 'images/yellow_dot.png'
+            player.className = 'player dot';
+        }
         else
+        {
             player.src = 'images/yellow_cross.png';
+            player.className = 'player cross';
+        }
+
         player.alt = 'Player';
-        player.className = 'player';
     }
 
     // Append the player dot to the map container
