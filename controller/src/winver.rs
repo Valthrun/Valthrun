@@ -14,6 +14,7 @@ use windows::Win32::{
 
 type OSVERSIONINFOEX = OSVERSIONINFOEXW;
 
+#[link(name = "ntdll")]
 extern "system" {
     fn RtlGetVersion(info: &mut OSVERSIONINFOEX) -> NTSTATUS;
 }

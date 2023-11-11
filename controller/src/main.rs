@@ -1,6 +1,5 @@
-#![feature(iterator_try_collect)]
-#![feature(result_option_inspect)]
 #![allow(dead_code)]
+#![feature(const_fn_floating_point_arithmetic)]
 
 use std::{
     cell::{
@@ -35,6 +34,7 @@ use clap::{
 };
 use class_name_cache::ClassNameCache;
 use cs2::{
+    BuildInfo,
     CS2Handle,
     CS2Model,
     CS2Offsets,
@@ -49,12 +49,17 @@ use cs2_schema_generated::{
 use enhancements::Enhancement;
 use imgui::{
     Condition,
+    FontConfig,
+    FontId,
+    FontSource,
     Ui,
 };
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
     OverlayError,
+    OverlayOptions,
+    OverlayTarget,
     SystemRuntimeController,
 };
 use settings::{
@@ -70,11 +75,11 @@ use windows::Win32::{
 };
 
 use crate::{
-    build::BuildInfo,
     enhancements::{
         AntiAimPunsh,
         BombInfo,
         PlayerESP,
+        SpectatorsList,
         TriggerBot,
     },
     settings::save_app_settings,
@@ -82,7 +87,6 @@ use crate::{
     winver::version_info,
 };
 
-mod build;
 mod cache;
 mod class_name_cache;
 mod enhancements;
@@ -91,6 +95,16 @@ mod utils;
 mod view;
 mod weapon;
 mod winver;
+
+pub trait MetricsClient {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str);
+}
+
+impl MetricsClient for CS2Handle {
+    fn add_metrics_record(&self, record_type: &str, record_payload: &str) {
+        self.add_metrics_record(record_type, record_payload)
+    }
+}
 
 pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
@@ -125,7 +139,13 @@ pub struct UpdateContext<'a> {
     pub globals: Globals,
 }
 
+pub struct AppFonts {
+    valthrun: FontId,
+}
+
 pub struct Application {
+    pub fonts: AppFonts,
+
     pub cs2: Arc<CS2Handle>,
     pub cs2_offsets: Arc<CS2Offsets>,
     pub cs2_entities: EntitySystem,
@@ -162,6 +182,11 @@ impl Application {
         if self.settings_dirty {
             self.settings_dirty = false;
             let mut settings = self.settings.borrow_mut();
+
+            settings.imgui = None;
+            if let Ok(value) = serde_json::to_string(&*settings) {
+                self.cs2.add_metrics_record("settings-updated", &value);
+            }
 
             let mut imgui_settings = String::new();
             controller.imgui.save_ini_settings(&mut imgui_settings);
@@ -210,6 +235,10 @@ impl Application {
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
             log::debug!("Toogle settings");
             self.settings_visible = !self.settings_visible;
+            self.cs2.add_metrics_record(
+                "settings-toggled",
+                &format!("visible: {}", self.settings_visible),
+            );
 
             if !self.settings_visible {
                 /* overlay has just been closed */
@@ -398,7 +427,7 @@ fn is_console_invoked() -> bool {
 fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
-    let cs2 = CS2Handle::create()?;
+    let cs2 = CS2Handle::create(true)?;
     let schema = cs2::dump_schema(&cs2, false)?;
 
     let output = File::options()
@@ -453,37 +482,66 @@ fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
-        "Valthrun v{}. Windows build {}.",
+        "{} v{} ({}). Windows build {}.",
+        obfstr!("Valthrun"),
         env!("CARGO_PKG_VERSION"),
+        env!("GIT_HASH"),
         build_info.dwBuildNumber
     );
+    log::info!(
+        "{} {}",
+        obfstr!("Current executable was built on"),
+        env!("BUILD_TIME")
+    );
+
+    if unsafe { IsUserAnAdmin().as_bool() } {
+        log::warn!("{}", obfstr!("Please do not run this as administrator!"));
+        log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
+    }
 
     let settings = load_app_settings()?;
-
-    let cs2 = match CS2Handle::create() {
+    let cs2 = match CS2Handle::create(settings.metrics) {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<KInterfaceError>() {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
-                    if !unsafe { IsUserAnAdmin().as_bool() } {
-                        if !is_console_invoked() {
-                            /* If we don't have a console, show the message box and abort execution. */
-                            show_critical_error("Please re-run this application as administrator!");
-                            return Ok(());
-                        }
-
-                        /* Just print this warning message and return the actual error.  */
-                        log::warn!("Application run without administrator privileges.");
-                        log::warn!("Please re-run with administrator privileges!");
-                    }
-
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error("Could not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://github.com/Valthrun/Valthrun/tree/master/doc/troubleshooting.");
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
                         return Ok(());
                     }
+                } else if let KInterfaceError::DriverTooOld {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too old.\nPlease ensure you installed/mapped the latest Valthrun driver.\nATTENTION: If you have manually mapped the driver, you have to restart your PC in order to load the new version."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
+                } else if let KInterfaceError::DriverTooNew {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too new.\nPlease ensure you're using the lattest controller."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
                 } else if let KInterfaceError::ProcessDoesNotExists = &err {
-                    show_critical_error("Could not find CS2 process.\nPlease start CS2 prior to executing this application!");
+                    show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
                     return Ok(());
                 }
             }
@@ -491,6 +549,9 @@ fn main_overlay() -> anyhow::Result<()> {
             return Err(err);
         }
     };
+
+    cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
+
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -500,6 +561,10 @@ fn main_overlay() -> anyhow::Result<()> {
         obfstr!("Counter-Strike 2"),
         cs2_build_info.revision,
         cs2_build_info.build_datetime
+    );
+    cs2.add_metrics_record(
+        obfstr!("cs2-version"),
+        &format!("revision: {}", cs2_build_info.revision),
     );
 
     let cs2_offsets = Arc::new(
@@ -511,7 +576,67 @@ fn main_overlay() -> anyhow::Result<()> {
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
+
+    log::debug!("Initialize overlay");
+    let app_fonts: Rc<RefCell<Option<AppFonts>>> = Default::default();
+    let overlay_options = OverlayOptions {
+        title: obfstr!("CS2 Overlay").to_string(),
+        target: OverlayTarget::WindowOfProcess(cs2.process_id() as u32),
+        font_init: Some(Box::new({
+            let app_fonts = app_fonts.clone();
+
+            move |imgui| {
+                let mut app_fonts = app_fonts.borrow_mut();
+
+                let font_size = 18.0;
+                let valthrun_font = imgui.fonts().add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../resources/Valthrun-Regular.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+
+                *app_fonts = Some(AppFonts {
+                    valthrun: valthrun_font,
+                });
+            }
+        })),
+    };
+
+    let mut overlay = match overlay::init(&overlay_options) {
+        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
+            match &source {
+                libloading::Error::LoadLibraryExW { .. } => {
+                    let error = source.source().context("LoadLibraryExW to have a source")?;
+                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
+                    show_critical_error(&message);
+                }
+                error => {
+                    let message = format!(
+                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
+                        error
+                    );
+                    show_critical_error(&message);
+                }
+            }
+            return Ok(());
+        }
+        value => value?,
+    };
+    if let Some(imgui_settings) = imgui_settings {
+        overlay.imgui.load_ini_settings(&imgui_settings);
+    }
+
     let app = Application {
+        fonts: app_fonts
+            .borrow_mut()
+            .take()
+            .context("failed to initialize app fonts")?,
+
         cs2: cs2.clone(),
         cs2_entities: EntitySystem::new(cs2.clone(), cs2_offsets.clone()),
         cs2_offsets: cs2_offsets.clone(),
@@ -537,6 +662,7 @@ fn main_overlay() -> anyhow::Result<()> {
 
         enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),
+            Rc::new(RefCell::new(SpectatorsList::new())),
             Rc::new(RefCell::new(BombInfo::new())),
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
                 cs2_offsets.offset_crosshair_id,
@@ -555,34 +681,17 @@ fn main_overlay() -> anyhow::Result<()> {
         settings_screen_capture_changed: AtomicBool::new(true),
         settings_render_debug_window_changed: AtomicBool::new(true),
     };
-
     let app = Rc::new(RefCell::new(app));
 
-    log::debug!("Initialize overlay");
-    // OverlayError
-    let mut overlay = match overlay::init(obfstr!("CS2 Overlay"), obfstr!("Counter-Strike 2")) {
-        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
-            match &source {
-                libloading::Error::LoadLibraryExW { .. } => {
-                    let error = source.source().context("LoadLibraryExW to have a source")?;
-                    let message = format!("Failed to load vulkan-1.dll.\nError: {:#}", error);
-                    show_critical_error(&message);
-                }
-                error => {
-                    let message = format!(
-                        "An error occurred while loading vulkan-1.dll.\nError: {:#}",
-                        error
-                    );
-                    show_critical_error(&message);
-                }
-            }
-            return Ok(());
-        }
-        value => value?,
-    };
-    if let Some(imgui_settings) = imgui_settings {
-        overlay.imgui.load_ini_settings(&imgui_settings);
-    }
+    cs2.add_metrics_record(
+        obfstr!("controller-status"),
+        &format!(
+            "initialized, version: {}, git-hash: {}, win-build: {}",
+            env!("CARGO_PKG_VERSION"),
+            env!("GIT_HASH"),
+            build_info.dwBuildNumber
+        ),
+    );
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;

@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: [ "master", "in-dev", "render-vulkan" ]
+    branches: [ "master", "amd" ]
   pull_request:
     branches: [ "master" ]
 
@@ -21,7 +21,11 @@ jobs:
           toolchain: nightly
           override: true
     - uses: actions/checkout@v3
+      with:
+        submodules: recursive
     - uses: Swatinem/rust-cache@v2
+      with:
+        cache-on-failure: true
     - name: Check fmt
       run: rustup component add rustfmt && cargo fmt --check
     - name: Build
@@ -34,5 +38,6 @@ jobs:
     - name: Upload release build to Discord
       run: .github/workflows/discord_upload.sh
       shell: bash
+      if: ${{ github.event_name != 'pull_request' }}
       env:
         DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}

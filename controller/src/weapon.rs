@@ -26,6 +26,12 @@ macro_rules! define_weapons {
         }
 
         impl $struct_name {
+            pub fn all_weapons() -> Vec<Self> {
+                vec![
+                    $(Self::$member_name, )*
+                ]
+            }
+
             pub fn from_id(id: u16) -> Option<Self> {
                 match id {
                     $($id => Some(Self::$member_name),)*
@@ -33,21 +39,27 @@ macro_rules! define_weapons {
                 }
             }
 
-            pub fn id(&self) -> Option<u16> {
+            pub fn id(&self) -> u16 {
                 match self {
-                    $(Self::$member_name => Some($id),)*
+                    $(Self::$member_name => $id,)*
                 }
             }
 
-            pub fn flags(&self) -> Option<u32> {
+            pub fn name(&self) -> &'static str {
                 match self {
-                    $(Self::$member_name => Some($flags),)*
+                    $(Self::$member_name => stringify!($member_name),)*
                 }
             }
 
-            pub fn display_name(&self) -> Option<&'static str> {
+            pub fn flags(&self) -> u32 {
                 match self {
-                    $(Self::$member_name => Some($name),)*
+                    $(Self::$member_name => $flags,)*
+                }
+            }
+
+            pub fn display_name(&self) -> &'static str {
+                match self {
+                    $(Self::$member_name => $name,)*
                 }
             }
         }
@@ -55,6 +67,7 @@ macro_rules! define_weapons {
 }
 
 define_weapons! {
+    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
     pub enum WeaponId {
         Unknown { id: 0, name: "Unknown", flags: WEAPON_FLAG_TYPE_KNIFE },
         Deagle { id: 1, name: "Desert Eagle", flags: WEAPON_FLAG_TYPE_PISTOL },
@@ -68,9 +81,10 @@ define_weapons! {
         G3SG1 { id: 11, name: "G3SG1", flags: WEAPON_FLAG_TYPE_SNIPER_RIFLE },
         Galilar { id: 13, name: "Galil AR", flags: WEAPON_FLAG_TYPE_RIFLE },
         M249 { id: 14, name: "M249", flags: WEAPON_FLAG_TYPE_MACHINE_GUN },
-        M4A1 { id: 16, name: "M4A1", flags: WEAPON_FLAG_TYPE_RIFLE },
+        M4A4 { id: 16, name: "M4A4", flags: WEAPON_FLAG_TYPE_RIFLE },
         Mac10 { id: 17, name: "MAC-10", flags: WEAPON_FLAG_TYPE_SMG },
         P90 { id: 19, name: "P90", flags: WEAPON_FLAG_TYPE_SMG },
+        MP5SD { id: 23, name: "MP5-SD", flags: WEAPON_FLAG_TYPE_SMG },
         Ump45 { id: 24, name: "UMP-45", flags: WEAPON_FLAG_TYPE_SMG },
         XM1014 { id: 25, name: "XM1014", flags: WEAPON_FLAG_TYPE_SHOTGUN },
         Bizon { id: 26, name: "PP-Bizon", flags: WEAPON_FLAG_TYPE_SMG },
@@ -85,7 +99,7 @@ define_weapons! {
         Nova { id: 35, name: "Nova", flags: WEAPON_FLAG_TYPE_SHOTGUN },
         P250 { id: 36, name: "P250", flags: WEAPON_FLAG_TYPE_PISTOL },
         Scar20 { id: 38, name: "SCAR-20", flags: WEAPON_FLAG_TYPE_SNIPER_RIFLE },
-        Sg556 { id: 39, name: "SG 556", flags: WEAPON_FLAG_TYPE_RIFLE },
+        Sg553 { id: 39, name: "SG 553", flags: WEAPON_FLAG_TYPE_RIFLE },
         Ssg08 { id: 40, name: "SSG 08", flags: WEAPON_FLAG_TYPE_SNIPER_RIFLE },
         Knife { id: 42, name: "Knife", flags: WEAPON_FLAG_TYPE_KNIFE },
         Flashbang { id: 43, name: "Flashbang", flags: WEAPON_FLAG_TYPE_GRANADE },
@@ -95,6 +109,7 @@ define_weapons! {
         Decoy { id: 47, name: "Decoy Grenade", flags: WEAPON_FLAG_TYPE_GRANADE },
         Incendiary { id: 48, name: "Incendiary", flags: WEAPON_FLAG_TYPE_GRANADE },
         C4 { id: 49, name: "C4", flags: 0 },
+        Healthshot { id: 57, name: "Healthshot", flags: 0 },
         KnifeT { id: 59, name: "Knife (T)", flags: WEAPON_FLAG_TYPE_KNIFE },
         M4A1Silencer { id: 60, name: "M4A1-S", flags: WEAPON_FLAG_TYPE_RIFLE },
         USPS { id: 61, name: "USP-S", flags: WEAPON_FLAG_TYPE_RIFLE },
@@ -102,6 +117,7 @@ define_weapons! {
         Revolver { id: 64, name: "Revolver", flags: WEAPON_FLAG_TYPE_RIFLE },
 
         KnifeBayonet { id: 500, name: "Knife (Bayonet)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesClassic { id: 503, name: "Knife (Classic)", flags: WEAPON_FLAG_TYPE_KNIFE },
         KnifeFlip { id: 505, name: "Knife (Flip)", flags: WEAPON_FLAG_TYPE_KNIFE },
         KnifeGut { id: 506, name: "Knife (Gut)", flags: WEAPON_FLAG_TYPE_KNIFE },
         KnifeKarambit { id: 507, name: "Knife (Karambit)", flags: WEAPON_FLAG_TYPE_KNIFE },
@@ -111,5 +127,13 @@ define_weapons! {
         KnifeSurvivalBowie { id: 514, name: "Knife (Survival Bowie)", flags: WEAPON_FLAG_TYPE_KNIFE },
         KnifeButterfly { id: 515, name: "Knife (Butterfly)", flags: WEAPON_FLAG_TYPE_KNIFE },
         KnifePush { id: 516, name: "Knife (Push)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifeCord { id: 517, name: "Knife (Cord)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifeSurvival { id: 518, name: "Knife (Survival)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifeUrsus { id: 519, name: "Knife (Ursus)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesNavaja { id: 520, name: "Knife (Navaja)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesNomad { id: 521, name: "Knife (Nomad)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesStiletto { id: 522, name: "Knife (Stiletto)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesTalon { id: 523, name: "Knife (Talon)", flags: WEAPON_FLAG_TYPE_KNIFE },
+        KnifesSkeleton { id: 525, name: "Knife (Skeleton)", flags: WEAPON_FLAG_TYPE_KNIFE },
     }
 }

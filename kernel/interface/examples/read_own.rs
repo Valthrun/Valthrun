@@ -8,10 +8,12 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
         *entry = index;
     }
 
-    let read_buffer = interface.read_vec::<usize>(
+    let mut read_buffer = Vec::new();
+    read_buffer.resize(buffer.len(), 0usize);
+    interface.read_slice::<usize>(
         std::process::id() as i32,
         &[buffer.as_ptr() as u64],
-        buffer.len(),
+        &mut read_buffer,
     )?;
 
     if buffer == read_buffer {
@@ -25,7 +27,9 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 }
 
 pub fn main() -> anyhow::Result<()> {
-    let interface = KernelInterface::create("\\\\.\\valthrun")?;
+    env_logger::builder().parse_default_env().init();
+
+    let interface = KernelInterface::create("\\\\.\\GLOBALROOT\\Device\\valthrun")?;
 
     let target_value = 0x42u64;
     let read_value = interface.read::<u64>(

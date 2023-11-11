@@ -1,8 +1,3 @@
-#![feature(pointer_byte_offsets)]
-#![feature(maybe_uninit_uninit_array)]
-#![feature(const_trait_impl)]
-#![feature(iterator_try_collect)]
-
 mod handle;
 pub use handle::*;
 
@@ -13,6 +8,9 @@ mod offsets;
 pub use offsets::*;
 
 pub mod offsets_manual;
+
+mod build;
+pub use build::*;
 
 mod schema;
 pub use schema::*;
@@ -25,3 +23,6 @@ pub use globals::*;
 
 mod signature;
 pub use signature::*;
+
+mod convar;
+pub use convar::*;

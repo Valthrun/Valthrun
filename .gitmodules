@@ -1,3 +1,6 @@
 [submodule "kernel/driver"]
 	path = kernel/driver
 	url = https://github.com/WolverinDEV/valthrun-driver.git
+[submodule "kernel/shared"]
+	path = kernel/shared
+	url = https://github.com/Valthrun/kernel-shared

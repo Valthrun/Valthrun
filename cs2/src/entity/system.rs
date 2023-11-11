@@ -10,6 +10,7 @@ use std::{
 use anyhow::{
     Context,
     Ok,
+    Result,
 };
 use cs2_schema_declaration::{
     Ptr,
@@ -131,6 +132,6 @@ impl EntitySystem {
         Ok(identities
             .into_iter()
             .map(|identity| identity.entity_ptr())
-            .try_collect()?)
+            .collect::<Result<Vec<_>>>()?)
     }
 }

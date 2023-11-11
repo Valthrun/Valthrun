@@ -1,116 +1,63 @@
-![Valthrun CS2 Logo](./logo.svg)
+![Valthrun CS2 Logo](./img/logo.svg)
 <p align="right">
 <a href="https://discord.gg/ecKbpAPW5T">
 <img src="https://discordapp.com/api/guilds/1135362291311849693/widget.png?style=shield">
 </a>
 </p>
 
-Valthrun an open source external Counter-Strike 2 read only kernel gameplay enhancer.  
+Valthrun is an open source external Counter-Strike 2 read only kernel-level gameplay enhancer.  
 That's a lot of descriptive words, but what does each of them mean?  
 - `Valthrun` The name of this project
-- `Open Source` This application is open source and for everbody to study
-- `external` We do not inject any ddls into the target process
-- `Counter-Strike 2` The game we're enhancing
-- `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory.
+- `Open Source` This application is open source and for everyone to learn from
+- `external` We do not inject any DLLs into the target process
+- `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory
 - `kernel` We do not use any user level WinAPIs in order to get information from the CS2 process
   
 This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and exploring the world of game enhancements :)
 
 # WARNING
-Valthrun is currently **not** a pnp (plug 'n play) application.  
-Please read [How to use](#how-to-use) carefully and try troubleshooting issues on your own.  
-The goal is to reach maximum stelth to avoid anti cheat detection.  
+Valthrun is **not** plug 'n play.  
+Please read [How to use](https://wiki.valth.run/#/010_getting-started/010_overview) carefully and try troubleshooting issues on your own.  
+The goal is to achieve maximum stealth in order to avoid being detected.
   
 # Features
-Valthrun provides a variety of external tools to enchant your gameplay experience.  
-As of now, Valthrun only reads memory and never writes anything. This implies some limitations as which features could be provided.  
-An example would be a skin changer which is not be possible without actively modifying the CS2 game state (e.g. writing into it's memory).  
-  
+Due to Valthrun being read-only (as of now), there are limitations on what features are possible to implement (eg. skin changer).
 Regardless of this limitation, Valthrun supports the following features:  
+
 - Player ESP
   Two modes are supported: `Skeleton` and `Boxes`
   - Configurable colors to distinguish between enemy and team players
   - ESP includes player health
 - Bomb Info
   - Time until the bomb detonation
-  - Defuser info such as how long until the defuse has succeeded
+  - Defuser info such as a defuse timer
   - Bomb site where the bomb is located
 - Trigger Bot
+- Spectator info
+  - List of player currently watching you / the observer target
 - Stream proof by default
 
 To access Valthruns settings overlay press `PAUSE`.
 
 ## Planned Features
-- Aim Bot
-- Spectator info
-  - List of player currently watching you / the observer target
+- Aimbot
 - Player competitive ranks / wins
 
-# Installation
-Valthrun does not need to be installed.  
-In order to run Valthrun you only need the kernel driver (`valthrun-driver.sys`) and the controller (`controller.exe`).  
-  
-Both can be accquired by downloading the precompiled release from GitHub.  
-Click [here](https://github.com/WolverinDEV/Valthrun/releases) to view all releases.
-  
-Once downloaded read [How to use](#how-to-use) to get started!
-
-# How to use
-The following steps need to be done for starting/activating the overlay.
-1. Load the kernel driver  
-   The overlay requires the kernel driver for all memory reads and writes.
-   Therefore we need to load the driver before we can start the overlay. It's not strictly required to load the driver before starting CS2 but logically it makes sense to start with the driver.
-     
-   There are two common options to load the kernel driver:
-   1. Manually map the driver using a vulnerable driver
-      The Valthrun kernel driver fully supports manual driver mapping using a any   vulnerable driver. In order to detect the manual mapping the second driver entry argument (the   registry patch) must be a null ptr.  
-      The kernel driver will automatically allocate a new driver for io communication.  
-
-      In order to manually map the Valthrun driver you can use tools like  
-      - [kdmapper](https://github.com/TheCruZ/kdmapper)
-      - [KDU](https://github.com/hfiref0x/KDU) (does not always work...)
-
-   2. Setting Windows into test-signing mode  
-      TODO: Explain how to set Windows into test signing
-      Helpfull guide: https://github.com/dretax/GarHal_CSGO#starting-driver
-   
-2. Start Counter-Strike 2  
-After loading the driver you can start Counter-Strike 2 as usual.  
-
-3. Start Overlay  
-With an open instance of Counter-Strike 2 you can start the overlay.  
-Attention: You *must* start the overlay as administrator!  
-  
-To explore all command line options of the controller, start the controller from the terminal and pass `-h` to display the command line interface:
-```ps1
-.\controller.exe -h
-```
-
-When you want extra/verbose output, start the overlay from the terminal and previously set the `RUST_LOG` environment variable.  
-Example for executing the overlay with trace output:  
-```ps1
-$env:RUST_LOG="trace"
-.\controller.exe
-```
+# How to use / Getting started
+Please follow this guide to get started:  
+https://wiki.valth.run/#/010_getting-started/010_overview
 
 # Troubleshooting
-If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting):  
-https://github.com/WolverinDEV/Valthrun/tree/master/doc/troubleshooting
+If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/#/):  
+https://wiki.valth.run/#/
   
-The issue you encounter is most likely covered. If you still have any questions or need assistens, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
+The issue you encounter is most likely covered. If you still have any questions or need assistance, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
 
 # VAC
 The same considerations as mentioned in [this link](https://github.com/dretax/GarHal_CSGO#starting-driver) have been taken into account.  
-With these precautions and some minor improvements, such as omitting the valthrun identifier and using xor-ing for strings, the driver/overlay should avoid VAC detection. However, I must clarify that I haven't extensively studied VAC, so my conclusion is speculative. Personally, I have been using a C based driver/overlay like this with CSGO for several years without ever getting VAC banned. But be aware of overwatch!  
-Unfortunately, since I'm not part of the closed CS2 beta,  
-I haven't had the opportunity to test the overlay with VAC live,  
-but I assume it should work similarly well.
+With these precautions and some minor improvements, such as omitting the Valthrun identifier and using xor encryption for strings, the driver/overlay should avoid VAC detection. However, I must clarify that I haven't extensively studied VAC, so my conclusion is speculative. Personally, I have been using a C based driver/overlay like this with CSGO for several years without ever getting VAC banned. But be aware of overwatch!  
+With VAC live being enabled now, use this with caution. As always take the necessary precautions into consideration.
 
-# Supported Windows Versions
-All recent Windows versions should be supported as all functions / struct offsets are resolved dynamically.  
-The latest Win 10 and Win 11 versions (22H2) have been tested. User feedback suggests, Windows versions back 'till 20H2 are working.
-If you encounter an issue, please submit an issue containing your Windows version and detailing the error you encounter.  
-  
 # Screenshots
 ![](./img/showcase_01.png)
 ![](./img/showcase_02.png)

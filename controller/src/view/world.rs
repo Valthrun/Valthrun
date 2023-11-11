@@ -86,6 +86,7 @@ impl ViewController {
 
         let mut min2d = Vec2::new(f32::MAX, f32::MAX);
         let mut max2d = Vec2::new(-f32::MAX, -f32::MAX);
+
         for point in points {
             if let Some(point) = self.world_to_screen(&point, true) {
                 min2d.x = min2d.x.min(point.x);

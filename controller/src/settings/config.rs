@@ -1,4 +1,5 @@
 use std::{
+    collections::BTreeMap,
     fs::File,
     io::{
         BufReader,
@@ -14,7 +15,12 @@ use serde::{
     Serialize,
 };
 
-use super::HotKey;
+use super::{
+    EspConfig,
+    EspPlayerSettings,
+    EspSelector,
+    HotKey,
+};
 
 fn bool_true() -> bool {
     true
@@ -22,19 +28,6 @@ fn bool_true() -> bool {
 fn bool_false() -> bool {
     false
 }
-fn default_esp_color_team() -> [f32; 4] {
-    [0.0, 1.0, 0.0, 0.75]
-}
-fn default_esp_color_enemy() -> [f32; 4] {
-    [1.0, 0.0, 0.0, 0.75]
-}
-fn default_esp_skeleton_thickness() -> f32 {
-    3.0
-}
-fn default_esp_boxes_thickness() -> f32 {
-    3.0
-}
-
 fn default_u32<const V: u32>() -> u32 {
     V
 }
@@ -51,14 +44,39 @@ fn default_key_trigger_bot() -> Option<HotKey> {
 fn default_key_none() -> Option<HotKey> {
     None
 }
-fn default_esp_box_type() -> EspBoxType {
-    EspBoxType::Box3D
+
+fn default_esp_mode() -> KeyToggleMode {
+    KeyToggleMode::AlwaysOn
 }
 
-#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
-pub enum EspBoxType {
-    Box2D,
-    Box3D,
+fn default_trigger_bot_mode() -> KeyToggleMode {
+    KeyToggleMode::Trigger
+}
+
+fn default_esp_configs() -> BTreeMap<String, EspConfig> {
+    let mut result: BTreeMap<String, EspConfig> = Default::default();
+    result.insert(
+        "player.enemy".to_string(),
+        EspConfig::Player(EspPlayerSettings::new(&EspSelector::PlayerTeam {
+            enemy: true,
+        })),
+    );
+    result
+}
+
+fn default_esp_configs_enabled() -> BTreeMap<String, bool> {
+    let mut result: BTreeMap<String, bool> = Default::default();
+    result.insert("player.enemy".to_string(), true);
+    result
+}
+
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum KeyToggleMode {
+    AlwaysOn,
+    Toggle,
+    Trigger,
+    TriggerInverted,
+    Off,
 }
 
 #[derive(Clone, Deserialize, Serialize)]
@@ -66,53 +84,32 @@ pub struct AppSettings {
     #[serde(default = "default_key_settings")]
     pub key_settings: HotKey,
 
-    #[serde(default = "bool_true")]
-    pub esp: bool,
+    #[serde(default = "default_esp_mode")]
+    pub esp_mode: KeyToggleMode,
 
     #[serde(default = "default_key_none")]
     pub esp_toogle: Option<HotKey>,
 
-    #[serde(default = "bool_true")]
-    pub esp_skeleton: bool,
+    #[serde(default = "default_esp_configs")]
+    pub esp_settings: BTreeMap<String, EspConfig>,
 
-    #[serde(default = "default_esp_skeleton_thickness")]
-    pub esp_skeleton_thickness: f32,
-
-    #[serde(default)]
-    pub esp_boxes: bool,
-
-    #[serde(default = "default_esp_box_type")]
-    pub esp_box_type: EspBoxType,
-
-    #[serde(default = "default_esp_boxes_thickness")]
-    pub esp_boxes_thickness: f32,
-
-    #[serde(default = "bool_false")]
-    pub esp_info_health: bool,
-
-    #[serde(default = "bool_false")]
-    pub esp_info_weapon: bool,
+    #[serde(default = "default_esp_configs_enabled")]
+    pub esp_settings_enabled: BTreeMap<String, bool>,
 
     #[serde(default = "bool_true")]
     pub bomb_timer: bool,
 
+    #[serde(default = "bool_false")]
+    pub spectators_list: bool,
+
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,
 
-    #[serde(default = "default_esp_color_team")]
-    pub esp_color_team: [f32; 4],
-
-    #[serde(default = "bool_true")]
-    pub esp_enabled_team: bool,
-
-    #[serde(default = "default_esp_color_enemy")]
-    pub esp_color_enemy: [f32; 4],
-
-    #[serde(default = "bool_true")]
-    pub esp_enabled_enemy: bool,
-
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
+
+    #[serde(default = "default_trigger_bot_mode")]
+    pub trigger_bot_mode: KeyToggleMode,
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,
@@ -137,6 +134,9 @@ pub struct AppSettings {
 
     #[serde(default = "bool_false")]
     pub render_debug_window: bool,
+
+    #[serde(default = "bool_true")]
+    pub metrics: bool,
 
     #[serde(default)]
     pub imgui: Option<String>,

@@ -47,4 +47,10 @@ pub enum OverlayError {
 
     #[error("failed to write the vulkan dll")]
     VulkanDllError(std::io::Error),
+
+    #[error("failed to create a vulkan instance: {0}")]
+    VulkanInstanceCreationFailed(VkResult),
+
+    #[error("failed to create a vulkan surface: {0}")]
+    VulkanSurfaceCreationFailed(VkResult),
 }

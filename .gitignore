@@ -1,3 +1,7 @@
 **/target/
 _*
+!/docs/*
 .vscode
+.idea
+kernel/driver
+docs

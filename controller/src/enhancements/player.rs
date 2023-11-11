@@ -3,7 +3,10 @@ use std::{
     sync::Arc,
 };
 
-use anyhow::Context;
+use anyhow::{
+    Context,
+    Result,
+};
 use cs2::{
     BoneFlags,
     CEntityIdentityEx,
@@ -14,10 +17,12 @@ use cs2_schema_declaration::{
     Ptr,
 };
 use cs2_schema_generated::cs2::client::{
+    CCSPlayer_ItemServices,
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
 };
+use imgui::ImColor32;
 use obfstr::obfstr;
 
 use super::Enhancement;
@@ -25,8 +30,16 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
+        EspConfig,
+        EspHealthBar,
+        EspPlayerSettings,
+        EspSelector,
+        EspTracePosition,
     },
-    view::ViewController,
+    view::{
+        KeyToggle,
+        ViewController,
+    },
     weapon::WeaponId,
 };
 
@@ -35,8 +48,10 @@ pub struct PlayerInfo {
     pub team_id: u8,
 
     pub player_health: i32,
+    pub player_has_defuser: bool,
     pub player_name: String,
     pub weapon: WeaponId,
+    pub player_flashtime: f32,
 
     pub position: nalgebra::Vector3<f32>,
     pub model: Arc<CS2Model>,
@@ -44,11 +59,14 @@ pub struct PlayerInfo {
 }
 
 impl PlayerInfo {
-    pub fn calculate_screen_height(&self, view: &ViewController) -> Option<f32> {
-        let entry_lower = view.world_to_screen(&(self.model.vhull_min + self.position), true)?;
-        let entry_upper = view.world_to_screen(&(self.model.vhull_max + self.position), true)?;
-
-        Some((entry_lower.y - entry_upper.y).abs())
+    pub fn calculate_player_box(
+        &self,
+        view: &ViewController,
+    ) -> Option<(nalgebra::Vector2<f32>, nalgebra::Vector2<f32>)> {
+        view.calculate_box_2d(
+            &(self.model.vhull_min + self.position),
+            &(self.model.vhull_max + self.position),
+        )
     }
 }
 
@@ -92,15 +110,19 @@ impl CModelStateEx for CModelState {
 }
 
 pub struct PlayerESP {
+    toggle: KeyToggle,
     players: Vec<PlayerInfo>,
     local_team_id: u8,
+    local_pos: Option<nalgebra::Vector3<f32>>,
 }
 
 impl PlayerESP {
     pub fn new() -> Self {
         PlayerESP {
+            toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
+            local_pos: Default::default(),
         }
     }
 
@@ -139,8 +161,25 @@ impl PlayerESP {
                 .context("invalid player name")?
                 .to_string()
         } else {
-            "unknown".to_string()
+            /*
+             * This is the case for pawns which are not controllel by a player controller.
+             * An example would be the main screen player pawns.
+             *
+             * Note: We're assuming, that uncontroller player pawns are neglectable while being in a match as the do not occurr.
+             * Bots (and controller bots) always have a player pawn controller.
+             */
+            // log::warn!(
+            //     "Handle at address {:p} has no valid controller!",
+            //     &controller_handle
+            // );
+            return Ok(None);
         };
+
+        let player_has_defuser = player_pawn
+            .m_pItemServices()?
+            .cast::<CCSPlayer_ItemServices>()
+            .reference_schema()?
+            .m_bHasDefuser()?;
 
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
@@ -158,56 +197,155 @@ impl PlayerESP {
             .read_entries(model.bones.len())?
             .into_iter()
             .map(|bone| bone.try_into())
-            .try_collect()?;
+            .collect::<Result<Vec<_>>>()?;
 
-        let weapon = player_pawn.m_pClippingWeapon()?.read_schema()?;
-        let weapon_type = weapon
-            .m_AttributeManager()?
-            .m_Item()?
-            .m_iItemDefinitionIndex()?;
+        let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+        let weapon_type = if let Some(weapon) = weapon {
+            weapon
+                .m_AttributeManager()?
+                .m_Item()?
+                .m_iItemDefinitionIndex()?
+        } else {
+            WeaponId::Knife.id()
+        };
+
+        let player_flashtime = player_pawn.m_flFlashBangTime()?;
 
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
 
             player_name,
+            player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
+            player_flashtime,
 
             position,
             bone_states,
             model: model.clone(),
         }))
     }
-}
 
-impl Enhancement for PlayerESP {
-    fn update_settings(
-        &mut self,
-        ui: &imgui::Ui,
-        settings: &mut AppSettings,
-    ) -> anyhow::Result<bool> {
-        let mut updated = false;
+    fn resolve_esp_player_config<'a>(
+        &self,
+        settings: &'a AppSettings,
+        target: &PlayerInfo,
+    ) -> Option<&'a EspPlayerSettings> {
+        let mut esp_target = Some(EspSelector::PlayerTeamVisibility {
+            enemy: target.team_id != self.local_team_id,
+            visible: true, // TODO: Implement visibility, maybe rename it to spottet!
+        });
 
-        if let Some(hotkey) = &settings.esp_toogle {
-            if ui.is_key_pressed_no_repeat(hotkey.0) {
-                log::debug!("Toggle player ESP");
-                settings.esp = !settings.esp;
-                updated = true;
+        while let Some(target) = esp_target.take() {
+            let config_key = target.config_key();
+
+            if settings
+                .esp_settings_enabled
+                .get(&config_key)
+                .cloned()
+                .unwrap_or_default()
+            {
+                if let Some(settings) = settings.esp_settings.get(&config_key) {
+                    if let EspConfig::Player(settings) = settings {
+                        return Some(settings);
+                    }
+                }
             }
+
+            esp_target = target.parent();
         }
 
-        Ok(updated)
+        None
+    }
+}
+
+struct PlayerInfoLayout<'a> {
+    ui: &'a imgui::Ui,
+    draw: &'a imgui::DrawListMut<'a>,
+
+    vmin: nalgebra::Vector2<f32>,
+    vmax: nalgebra::Vector2<f32>,
+
+    line_count: usize,
+    font_scale: f32,
+
+    has_2d_box: bool,
+}
+
+impl<'a> PlayerInfoLayout<'a> {
+    pub fn new(
+        ui: &'a imgui::Ui,
+        draw: &'a imgui::DrawListMut<'a>,
+        screen_bounds: mint::Vector2<f32>,
+        vmin: nalgebra::Vector2<f32>,
+        vmax: nalgebra::Vector2<f32>,
+        has_2d_box: bool,
+    ) -> Self {
+        let target_scale_raw = (vmax.y - vmin.y) / screen_bounds.y * 8.0;
+        let target_scale = target_scale_raw.clamp(0.5, 1.25);
+        ui.set_window_font_scale(target_scale);
+
+        Self {
+            ui,
+            draw,
+
+            vmin,
+            vmax,
+
+            line_count: 0,
+            font_scale: target_scale,
+
+            has_2d_box,
+        }
     }
 
-    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        self.players.clear();
+    pub fn add_line(&mut self, color: impl Into<ImColor32>, text: &str) {
+        let [text_width, _] = self.ui.calc_text_size(text);
 
-        if !ctx.settings.esp
-            || !(ctx.settings.esp_boxes
-                || ctx.settings.esp_skeleton
-                || ctx.settings.esp_info_health)
+        let mut pos = if self.has_2d_box {
+            let mut pos = self.vmin;
+            pos.x = self.vmax.x + 5.0;
+            pos
+        } else {
+            let mut pos = self.vmax.clone();
+            pos.x -= (self.vmax.x - self.vmin.x) / 2.0;
+            pos.x -= text_width / 2.0;
+            pos
+        };
+        pos.y += self.line_count as f32 * self.font_scale * (self.ui.text_line_height())
+            + 4.0 * self.line_count as f32;
+
+        self.draw.add_text([pos.x, pos.y], color, text);
+        self.line_count += 1;
+    }
+}
+
+impl Drop for PlayerInfoLayout<'_> {
+    fn drop(&mut self) {
+        self.ui.set_window_font_scale(1.0);
+    }
+}
+
+const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
+const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
+impl Enhancement for PlayerESP {
+    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+        if self
+            .toggle
+            .update(&ctx.settings.esp_mode, ctx.input, &ctx.settings.esp_toogle)
         {
+            ctx.cs2.add_metrics_record(
+                obfstr!("feature-esp-toggle"),
+                &format!(
+                    "enabled: {}, mode: {:?}",
+                    self.toggle.enabled, ctx.settings.esp_mode
+                ),
+            );
+        }
+
+        self.players.clear();
+        if !self.toggle.enabled {
             return Ok(());
         }
 
@@ -253,6 +391,12 @@ impl Enhancement for PlayerESP {
         for entity_identity in ctx.cs2_entities.all_identities() {
             if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
                 /* current pawn we control/observe */
+                let local_pawn = entity_identity
+                    .entity_ptr::<C_CSPlayerPawn>()?
+                    .read_schema()?;
+                let local_pos =
+                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
+                self.local_pos = Some(local_pos);
                 continue;
             }
 
@@ -286,22 +430,28 @@ impl Enhancement for PlayerESP {
 
     fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
         let draw = ui.get_window_draw_list();
+        const UNITS_TO_METERS: f32 = 0.01905;
         for entry in self.players.iter() {
-            let esp_color = if entry.team_id == self.local_team_id {
-                if !settings.esp_enabled_team {
-                    continue;
-                }
-
-                &settings.esp_color_team
+            let distance = if let Some(local_pos) = self.local_pos {
+                let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
+                distance
             } else {
-                if !settings.esp_enabled_enemy {
+                0.0
+            };
+            let esp_settings = match self.resolve_esp_player_config(settings, entry) {
+                Some(settings) => settings,
+                None => continue,
+            };
+            if esp_settings.near_players {
+                if distance > esp_settings.near_players_distance {
                     continue;
                 }
+            }
 
-                &settings.esp_color_enemy
-            };
+            let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
+            let player_2d_box = entry.calculate_player_box(view);
 
-            if settings.esp_skeleton {
+            if esp_settings.skeleton {
                 let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
 
                 for (bone, state) in bones {
@@ -326,70 +476,249 @@ impl Enhancement for PlayerESP {
                         None => continue,
                     };
 
-                    draw.add_line(parent_position, bone_position, *esp_color)
-                        .thickness(settings.esp_skeleton_thickness)
+                    draw.add_line(
+                        parent_position,
+                        bone_position,
+                        esp_settings
+                            .skeleton_color
+                            .calculate_color(player_rel_health, distance),
+                    )
+                    .thickness(esp_settings.skeleton_width)
+                    .build();
+                }
+            }
+
+            match esp_settings.box_type {
+                EspBoxType::Box2D => {
+                    if let Some((vmin, vmax)) = &player_2d_box {
+                        draw.add_rect(
+                            [vmin.x, vmin.y],
+                            [vmax.x, vmax.y],
+                            esp_settings
+                                .box_color
+                                .calculate_color(player_rel_health, distance),
+                        )
+                        .thickness(esp_settings.box_width)
                         .build();
+                    }
+                }
+                EspBoxType::Box3D => {
+                    view.draw_box_3d(
+                        &draw,
+                        &(entry.model.vhull_min + entry.position),
+                        &(entry.model.vhull_max + entry.position),
+                        esp_settings
+                            .box_color
+                            .calculate_color(player_rel_health, distance)
+                            .into(),
+                        esp_settings.box_width,
+                    );
+                }
+                EspBoxType::None => {}
+            }
+
+            if let Some((vmin, vmax)) = &player_2d_box {
+                let box_bounds = match esp_settings.health_bar {
+                    EspHealthBar::None => None,
+                    EspHealthBar::Left => {
+                        let xoffset =
+                            vmin.x - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
+
+                        Some([
+                            xoffset,
+                            vmin.y - esp_settings.box_width / 2.0,
+                            esp_settings.health_bar_width,
+                            vmax.y - vmin.y + esp_settings.box_width,
+                        ])
+                    }
+                    EspHealthBar::Right => {
+                        let xoffset = vmax.x + esp_settings.box_width / 2.0;
+
+                        Some([
+                            xoffset,
+                            vmin.y - esp_settings.box_width / 2.0,
+                            esp_settings.health_bar_width,
+                            vmax.y - vmin.y + esp_settings.box_width,
+                        ])
+                    }
+                    EspHealthBar::Top => {
+                        let yoffset =
+                            vmin.y - esp_settings.box_width / 2.0 - esp_settings.health_bar_width;
+
+                        Some([
+                            vmin.x - esp_settings.box_width / 2.0,
+                            yoffset,
+                            vmax.x - vmin.x + esp_settings.box_width,
+                            esp_settings.health_bar_width,
+                        ])
+                    }
+                    EspHealthBar::Bottom => {
+                        let yoffset = vmax.y + esp_settings.box_width / 2.0;
+
+                        Some([
+                            vmin.x - esp_settings.box_width / 2.0,
+                            yoffset,
+                            vmax.x - vmin.x + esp_settings.box_width,
+                            esp_settings.health_bar_width,
+                        ])
+                    }
+                };
+
+                if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds {
+                    const BORDER_WIDTH: f32 = 1.0;
+                    draw.add_rect(
+                        [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
+                        [
+                            box_x + box_width - BORDER_WIDTH / 2.0,
+                            box_y + box_height - BORDER_WIDTH / 2.0,
+                        ],
+                        [0.0, 0.0, 0.0, 1.0],
+                    )
+                    .filled(false)
+                    .thickness(BORDER_WIDTH)
+                    .build();
+
+                    box_x += BORDER_WIDTH / 2.0 + 1.0;
+                    box_y += BORDER_WIDTH / 2.0 + 1.0;
+
+                    box_width -= BORDER_WIDTH + 2.0;
+                    box_height -= BORDER_WIDTH + 2.0;
+
+                    if box_width < box_height {
+                        /* vertical */
+                        let yoffset = box_y + (1.0 - player_rel_health) * box_height;
+                        draw.add_rect(
+                            [box_x, box_y],
+                            [box_x + box_width, yoffset],
+                            [1.0, 0.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+
+                        draw.add_rect(
+                            [box_x, yoffset],
+                            [box_x + box_width, box_y + box_height],
+                            [0.0, 1.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+                    } else {
+                        /* horizontal */
+                        let xoffset = box_x + (1.0 - player_rel_health) * box_width;
+                        draw.add_rect(
+                            [box_x, box_y],
+                            [xoffset, box_y + box_height],
+                            [1.0, 0.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+
+                        draw.add_rect(
+                            [xoffset, box_y],
+                            [box_x + box_width, box_y + box_height],
+                            [0.0, 1.0, 0.0, 1.0],
+                        )
+                        .filled(true)
+                        .build();
+                    }
                 }
             }
 
-            if settings.esp_boxes {
-                match settings.esp_box_type {
-                    EspBoxType::Box2D => {
-                        if let Some((vmin, vmax)) = view.calculate_box_2d(
-                            &(entry.model.vhull_min + entry.position),
-                            &(entry.model.vhull_max + entry.position),
-                        ) {
-                            draw.add_rect([vmin.x, vmin.y], [vmax.x, vmax.y], *esp_color)
-                                .thickness(settings.esp_boxes_thickness)
-                                .build();
-                        }
-                    }
-                    EspBoxType::Box3D => {
-                        view.draw_box_3d(
-                            &draw,
-                            &(entry.model.vhull_min + entry.position),
-                            &(entry.model.vhull_max + entry.position),
-                            (*esp_color).into(),
-                            settings.esp_boxes_thickness,
-                        );
-                    }
+            if let Some((vmin, vmax)) = player_2d_box {
+                let mut player_info = PlayerInfoLayout::new(
+                    ui,
+                    &draw,
+                    view.screen_bounds,
+                    vmin,
+                    vmax,
+                    esp_settings.box_type == EspBoxType::Box2D,
+                );
+
+                if esp_settings.info_name {
+                    player_info.add_line(
+                        esp_settings
+                            .info_name_color
+                            .calculate_color(player_rel_health, distance),
+                        &entry.player_name,
+                    );
+                }
+
+                if esp_settings.info_weapon {
+                    let text = entry.weapon.display_name();
+                    player_info.add_line(
+                        esp_settings
+                            .info_weapon_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
+
+                if esp_settings.info_hp_text {
+                    let text = format!("{} HP", entry.player_health);
+                    player_info.add_line(
+                        esp_settings
+                            .info_hp_text_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
+
+                let mut player_flags = Vec::new();
+                if esp_settings.info_flag_kit && entry.player_has_defuser {
+                    player_flags.push("Kit");
+                }
+
+                if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
+                    player_flags.push("flashed");
+                }
+
+                if !player_flags.is_empty() {
+                    player_info.add_line(
+                        esp_settings
+                            .info_flags_color
+                            .calculate_color(player_rel_health, distance),
+                        &player_flags.join(", "),
+                    );
+                }
+                if esp_settings.info_distance {
+                    let text = format!("{:.0}m", distance);
+                    player_info.add_line(
+                        esp_settings
+                            .info_distance_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
                 }
             }
 
-            if settings.esp_info_health || settings.esp_info_weapon {
-                if let Some(pos) = view.world_to_screen(&entry.position, false) {
-                    let entry_height = entry.calculate_screen_height(view).unwrap_or(100.0);
-                    let target_scale = entry_height * 15.0 / view.screen_bounds.y;
-                    let target_scale = target_scale.clamp(0.5, 1.25);
-                    ui.set_window_font_scale(target_scale);
-
-                    let mut y_offset = 0.0;
-                    if settings.esp_info_health {
-                        let text = format!("{} HP", entry.player_health);
-                        let [text_width, _] = ui.calc_text_size(&text);
-
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
-                        draw.add_text(pos, esp_color.clone(), text);
-
-                        y_offset += ui.text_line_height_with_spacing() * target_scale;
+            if let Some(pos) = view.world_to_screen(&entry.position, false) {
+                let tracer_origin = match esp_settings.tracer_lines {
+                    EspTracePosition::TopLeft => Some([0.0, 0.0]),
+                    EspTracePosition::TopCenter => Some([view.screen_bounds.x / 2.0, 0.0]),
+                    EspTracePosition::TopRight => Some([view.screen_bounds.x, 0.0]),
+                    EspTracePosition::Center => {
+                        Some([view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0])
                     }
-
-                    if settings.esp_info_weapon {
-                        let text = entry.weapon.display_name().unwrap_or("Unknown Weapon");
-                        let [text_width, _] = ui.calc_text_size(&text);
-
-                        let mut pos = pos.clone();
-                        pos.x -= text_width / 2.0;
-                        pos.y += y_offset;
-
-                        draw.add_text(pos, esp_color.clone(), text);
-
-                        // y_offset += ui.text_line_height_with_spacing() * target_scale;
+                    EspTracePosition::BottomLeft => Some([0.0, view.screen_bounds.y]),
+                    EspTracePosition::BottomCenter => {
+                        Some([view.screen_bounds.x / 2.0, view.screen_bounds.y])
                     }
+                    EspTracePosition::BottomRight => {
+                        Some([view.screen_bounds.x, view.screen_bounds.y])
+                    }
+                    EspTracePosition::None => None,
+                };
 
-                    ui.set_window_font_scale(1.0);
+                if let Some(origin) = tracer_origin {
+                    draw.add_line(
+                        origin,
+                        pos,
+                        esp_settings
+                            .tracer_lines_color
+                            .calculate_color(player_rel_health, distance),
+                    )
+                    .thickness(esp_settings.tracer_lines_width)
+                    .build();
                 }
             }
         }
