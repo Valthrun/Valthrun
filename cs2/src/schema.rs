@@ -441,7 +441,8 @@ fn read_class_binding(
         let c_type = field_type.var_type()?.read_string()?;
         let rust_type = parse_type(cs2, &field_type)?;
         if rust_type.is_none() {
-            log::warn!(
+            /* Use debug here as warn will spam the log */
+            log::debug!(
                 "   Could not generate field type {} ({:?} / {:?}) for {}",
                 &c_type,
                 field_type.type_category()?,
@@ -482,7 +483,7 @@ fn read_class_binding(
     ))
 }
 
-pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
+pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<SchemaScope>> {
     let schema_system_address = find_schema_system(cs2)?;
     let schema_system = cs2.reference_schema::<CSchemaSystem>(&[schema_system_address])?;
 
@@ -507,8 +508,8 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
         let scope = scope_ptr.read_schema()?;
 
         let scope_name = scope.scope_name()?.to_string_lossy()?;
-        if scope_name != "client.dll" {
-            //continue;
+        if client_only && scope_name != "client.dll" {
+            continue;
         }
 
         let class_bindings = scope.class_bindings()?.read_values()?;

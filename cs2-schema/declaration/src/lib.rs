@@ -1,4 +1,5 @@
 #![feature(array_try_from_fn)]
+#![feature(sync_unsafe_cell)]
 
 mod memory;
 pub use memory::*;
@@ -8,6 +9,9 @@ pub use ptr::*;
 
 mod basics;
 pub use basics::*;
+
+mod offset;
+pub use offset::*;
 
 pub trait SchemaValue: Sized {
     fn value_size() -> Option<u64>;
@@ -24,13 +28,13 @@ macro_rules! define_schema {
             $($vname,)*
         }
 
-        impl cs2_schema_declaration::SchemaValue for $name {
+        impl $crate::SchemaValue for $name {
             fn value_size() -> Option<u64> {
                 Some(std::mem::size_of::<$ordinal_type>() as u64)
             }
 
-            fn from_memory(memory: cs2_schema_declaration::MemoryHandle) -> anyhow::Result<Self> {
-                let value: $ordinal_type = cs2_schema_declaration::SchemaValue::from_memory(memory)?;
+            fn from_memory(memory: $crate::MemoryHandle) -> anyhow::Result<Self> {
+                let value: $ordinal_type = $crate::SchemaValue::from_memory(memory)?;
                 let result = match value {
                     $($ordinal => Self::$vname,)*
                     value => anyhow::bail!("unknown enum ordinal {} {}", stringify!($name), value)
@@ -44,13 +48,13 @@ macro_rules! define_schema {
 
     (
         pub struct $name:ident[$size:literal] $(: $parent:ty)? {
-            $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:literal, )*
+            $( $(#[$var_meta:meta])* pub $var_name:ident: $var_type:ty = $var_offset:expr, )*
         } $($next:tt)*
     ) => {
         #[derive(Clone)]
         pub struct $name {
             $(parent: $parent,)*
-            pub memory: cs2_schema_declaration::MemoryHandle,
+            pub memory: $crate::MemoryHandle,
         }
 
         impl $name {
@@ -58,14 +62,21 @@ macro_rules! define_schema {
                 $(#[$var_meta])*
                 pub fn $var_name(&self) -> anyhow::Result<$var_type> {
                     use anyhow::Context;
+                    use $crate::{ CachedOffset, LazyOffset };
 
-                    self.memory.reference_schema($var_offset)
+                    static OFFSET: CachedOffset = CachedOffset::new();
+                    fn offset_resolver() -> impl LazyOffset {
+                        $var_offset
+                    }
+
+                    let offset = OFFSET.resolve(offset_resolver)?;
+                    self.memory.reference_schema(offset)
                         .context(concat!(stringify!($name), "::", stringify!($var_name)))
                 }
             )*
 
             pub fn cached(self) -> anyhow::Result<Self> {
-                use cs2_schema_declaration::SchemaValue;
+                use $crate::SchemaValue;
 
                 if $size <= 0 {
                     anyhow::bail!("can not cache a schema with zero size");
@@ -80,12 +91,12 @@ macro_rules! define_schema {
                 })
             }
 
-            pub fn as_schema<T: cs2_schema_declaration::SchemaValue>(&self) -> anyhow::Result<T> {
+            pub fn as_schema<T: $crate::SchemaValue>(&self) -> anyhow::Result<T> {
                 self.memory.reference_schema(0x00)
             }
         }
 
-        impl cs2_schema_declaration::SchemaValue for $name {
+        impl $crate::SchemaValue for $name {
             fn value_size() -> Option<u64> {
                 if $size > 0 {
                     Some($size)
@@ -94,7 +105,7 @@ macro_rules! define_schema {
                 }
             }
 
-            fn from_memory(memory: cs2_schema_declaration::MemoryHandle) -> anyhow::Result<Self> {
+            fn from_memory(memory: $crate::MemoryHandle) -> anyhow::Result<Self> {
                 Ok(Self {
                     $(parent: <$parent>::from_memory(memory.clone())?,)*
                     memory,
