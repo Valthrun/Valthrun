@@ -32,7 +32,7 @@ use crate::{
 };
 
 // Returns SchemaSystem_001
-fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
+pub fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
     cs2.resolve_signature(
         Module::Schemasystem,
         &Signature::relative_address(
@@ -508,8 +508,8 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
         let scope = scope_ptr.read_schema()?;
 
         let scope_name = scope.scope_name()?.to_string_lossy()?;
-        if client_only && scope_name != "client.dll" {
-            continue;
+        if client_only && (scope_name != "client.dll" && scope_name != "!GlobalTypes") {
+            //continue;
         }
 
         let class_bindings = scope.class_bindings()?.read_values()?;
