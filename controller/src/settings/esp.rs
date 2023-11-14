@@ -52,6 +52,84 @@ impl From<[f32; 4]> for Color {
         Self::from_f32(value)
     }
 }
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+#[serde(tag = "type", content = "options")]
+pub enum EspBombColor {
+    Distance { max: Color, min: Color },
+    TimeDetonation { max: Color, min: Color },
+    Static { value: Color },
+}
+
+impl Default for EspBombColor {
+    fn default() -> Self {
+        Self::Static {
+            value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
+        }
+    }
+}
+
+impl EspBombColor {
+    pub const fn from_rgba(r: f32, g: f32, b: f32, a: f32) -> Self {
+        Self::Static {
+            value: Color::from_f32([r, g, b, a]),
+        }
+    }
+
+    pub fn calculate_color(&self, distance: f32, time_detonation: f32) -> [f32; 4] {
+        match self {
+            Self::Static { value } => value.as_f32(),
+            Self::Distance { max, min } => {
+                let min_distance = 0.0;
+                let max_distance = 33.6804;
+                let color_at_min = min.as_f32(); // Red at min
+                let color_at_max = max.as_f32(); // Green at max
+
+                let t = (distance - min_distance) / (max_distance - min_distance);
+                let t = t.clamp(0.0, 1.0);
+
+                Self::interpolate_color(color_at_min, color_at_max, t)
+            }
+            Self::TimeDetonation { max, min } => {
+                let min_time_detonation = 0.0;
+                let max_time_detonation = 40.0;
+                let color_at_min = min.as_f32(); // Blue at min
+                let color_at_max = max.as_f32(); // Yellow at max
+
+                let t = (time_detonation - min_time_detonation)
+                    / (max_time_detonation - min_time_detonation);
+                let t = t.clamp(0.0, 1.0);
+
+                Self::interpolate_color(color_at_min, color_at_max, t)
+            }
+        }
+    }
+
+    fn interpolate_color(color1: [f32; 4], color2: [f32; 4], t: f32) -> [f32; 4] {
+        [
+            (1.0 - t) * color1[0] + t * color2[0],
+            (1.0 - t) * color1[1] + t * color2[1],
+            (1.0 - t) * color1[2] + t * color2[2],
+            (1.0 - t) * color1[3] + t * color2[3],
+        ]
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspBombColorType {
+    Static,
+    Distance,
+    TimeDetonation,
+}
+
+impl EspBombColorType {
+    pub fn from_bomb_esp_color(color: &EspBombColor) -> Self {
+        match color {
+            EspBombColor::Static { .. } => Self::Static,
+            EspBombColor::Distance { .. } => Self::Distance,
+            EspBombColor::TimeDetonation { .. } => Self::TimeDetonation,
+        }
+    }
+}
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
@@ -59,7 +137,7 @@ pub enum EspColor {
     HealthBasedRainbow,
     HealthBased { max: Color, min: Color },
     Static { value: Color },
-    DistanceBased,
+    DistanceBased { max: Color, min: Color },
 }
 
 impl Default for EspColor {
@@ -102,12 +180,12 @@ impl EspColor {
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
                 [r, g, b, 1.0]
             }
-            Self::DistanceBased => {
+            Self::DistanceBased { max, min } => {
                 let max_distance = 80.0;
                 let min_distance = 0.0;
 
-                let color_near = [1.0, 0.0, 0.0, 0.75];
-                let color_far = [0.0, 1.0, 0.0, 0.75];
+                let color_near = max.as_f32();
+                let color_far = min.as_f32();
 
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
@@ -137,7 +215,7 @@ impl EspColorType {
             EspColor::Static { .. } => Self::Static,
             EspColor::HealthBased { .. } => Self::HealthBased,
             EspColor::HealthBasedRainbow => Self::HealthBasedRainbow,
-            EspColor::DistanceBased => Self::DistanceBased,
+            EspColor::DistanceBased { .. } => Self::DistanceBased,
         }
     }
 }
@@ -209,6 +287,7 @@ pub struct EspPlayerSettings {
 
     pub info_flag_kit: bool,
     pub info_flag_flashed: bool,
+    pub info_flag_c4: bool,
     pub info_flags_color: EspColor,
 }
 
@@ -267,7 +346,35 @@ impl EspPlayerSettings {
 
             info_flag_kit: false,
             info_flag_flashed: false,
+            info_flag_c4: false,
             info_flags_color: color.clone(),
+        }
+    }
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub struct EspBombSettings {
+    pub bomb_site: bool,
+
+    pub bomb_position: bool,
+    pub bomb_position_color: EspBombColor,
+
+    pub bomb_status: bool,
+    pub is_safe: bool,
+}
+
+impl EspBombSettings {
+    pub fn new() -> Self {
+        let bomb_color = EspBombColor::default();
+
+        Self {
+            bomb_site: false,
+
+            bomb_position: false,
+            bomb_position_color: bomb_color,
+
+            bomb_status: false,
+            is_safe: false,
         }
     }
 }
@@ -299,6 +406,12 @@ pub enum EspConfig {
     Player(EspPlayerSettings),
     Chicken(EspChickenSettings),
     Weapon(EspWeaponSettings),
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+#[serde(tag = "type")]
+pub enum BombConfig {
+    Bomb(EspBombSettings),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
@@ -378,6 +491,7 @@ pub enum EspSelector {
         group: EspWeaponType,
         target: WeaponId,
     },
+    Bomb,
 }
 
 impl EspSelector {
@@ -400,6 +514,8 @@ impl EspSelector {
             EspSelector::WeaponSingle { group, target } => {
                 format!("weapon.{}.{}", group.config_key(), target.name())
             }
+
+            EspSelector::Bomb => "bomb".to_string(),
         }
     }
 
@@ -428,6 +544,8 @@ impl EspSelector {
             EspSelector::Weapon => "Weapons".to_string(),
             EspSelector::WeaponGroup { group } => group.display_name(),
             EspSelector::WeaponSingle { target, .. } => target.display_name().to_string(),
+
+            EspSelector::Bomb => "Bomb".to_string(),
         }
     }
 
@@ -465,6 +583,8 @@ impl EspSelector {
                     target.display_name()
                 )
             }
+
+            EspSelector::Bomb => obfstr!("Enabled ESP for Bomb").to_string(),
         }
     }
 
@@ -481,6 +601,8 @@ impl EspSelector {
             Self::Weapon => None,
             Self::WeaponGroup { .. } => Some(Self::Weapon),
             Self::WeaponSingle { group, .. } => Some(Self::WeaponGroup { group: *group }),
+
+            Self::Bomb => None,
         }
     }
 
@@ -535,6 +657,8 @@ impl EspSelector {
                 })
                 .collect(),
             EspSelector::WeaponSingle { .. } => vec![],
+
+            EspSelector::Bomb => vec![],
         }
     }
 }

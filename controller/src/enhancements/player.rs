@@ -21,6 +21,7 @@ use cs2_schema_generated::cs2::client::{
     CModelState,
     CSkeletonInstance,
     C_CSPlayerPawn,
+    C_C4,
 };
 use imgui::ImColor32;
 use obfstr::obfstr;
@@ -46,6 +47,7 @@ use crate::{
 pub struct PlayerInfo {
     pub controller_entity_id: u32,
     pub team_id: u8,
+    pub weapon_player_entity_id: u32,
 
     pub player_health: i32,
     pub player_has_defuser: bool,
@@ -114,6 +116,7 @@ pub struct PlayerESP {
     players: Vec<PlayerInfo>,
     local_team_id: u8,
     local_pos: Option<nalgebra::Vector3<f32>>,
+    c4_owner: u32,
 }
 
 impl PlayerESP {
@@ -123,6 +126,7 @@ impl PlayerESP {
             players: Default::default(),
             local_team_id: 0,
             local_pos: Default::default(),
+            c4_owner: 0,
         }
     }
 
@@ -200,13 +204,17 @@ impl PlayerESP {
             .collect::<Result<Vec<_>>>()?;
 
         let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
-        let weapon_type = if let Some(weapon) = weapon {
-            weapon
+        let (weapon_type, weapon_player_entity_id) = if let Some(weapon) = weapon {
+            let weapon_type = weapon
                 .m_AttributeManager()?
                 .m_Item()?
-                .m_iItemDefinitionIndex()?
+                .m_iItemDefinitionIndex()?;
+
+            let weapon_player_entity_id = weapon.m_hOwnerEntity()?.get_entity_index();
+
+            (weapon_type, weapon_player_entity_id)
         } else {
-            WeaponId::Knife.id()
+            (WeaponId::Knife.id(), 0)
         };
 
         let player_flashtime = player_pawn.m_flFlashBangTime()?;
@@ -214,6 +222,7 @@ impl PlayerESP {
         Ok(Some(PlayerInfo {
             controller_entity_id: controller_handle.get_entity_index(),
             team_id: player_team,
+            weapon_player_entity_id,
 
             player_name,
             player_has_defuser,
@@ -408,7 +417,17 @@ impl Enhancement for PlayerESP {
                 .unwrap_or(false)
             {
                 /* entity is not a player pawn */
-                continue;
+
+                if !entity_class.map(|name| name == "C_C4").unwrap_or(false) {
+                    /* Entity isn't the bomb. */
+                    continue;
+                }
+                let bomb = entity_identity
+                    .entity_ptr::<C_C4>()?
+                    .read_schema()
+                    .context("bomb schame")?;
+                let c4_owner = bomb.m_hOwnerEntity()?.get_entity_index();
+                self.c4_owner = c4_owner;
             }
 
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
@@ -670,6 +689,14 @@ impl Enhancement for PlayerESP {
 
                 if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
                     player_flags.push("flashed");
+                }
+
+                if esp_settings.info_flag_c4 {
+                    if self.c4_owner == entry.weapon_player_entity_id {
+                        player_flags.push("Bomb Carrier");
+                    } /*else if self.c4_owner == 32767{ //bomb is dropped
+                          ui.text("Bomb is dropped!")
+                      } */
                 }
 
                 if !player_flags.is_empty() {

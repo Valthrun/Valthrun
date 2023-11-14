@@ -16,6 +16,7 @@ use serde::{
 };
 
 use super::{
+    EspBombSettings,
     EspConfig,
     EspPlayerSettings,
     EspSelector,
@@ -96,8 +97,14 @@ pub struct AppSettings {
     #[serde(default = "default_esp_configs_enabled")]
     pub esp_settings_enabled: BTreeMap<String, bool>,
 
-    #[serde(default = "bool_true")]
+    #[serde(default = "bool_false")]
     pub bomb_timer: bool,
+
+    #[serde(default = "bool_true")]
+    pub bomb_esp: bool,
+
+    #[serde(default = "Default::default")]
+    pub bomb_settings: BTreeMap<String, EspBombSettings>,
 
     #[serde(default = "bool_false")]
     pub spectators_list: bool,
