@@ -41,6 +41,11 @@ use cs2::{
     EntitySystem,
     Globals,
 };
+use cs2_schema_generated::{
+    definition::SchemaScope,
+    RuntimeOffset,
+    RuntimeOffsetProvider,
+};
 use enhancements::Enhancement;
 use imgui::{
     Condition,
@@ -466,7 +471,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create(true)?;
-    let schema = cs2::dump_schema(&cs2)?;
+    let schema = cs2::dump_schema(&cs2, false)?;
 
     let output = File::options()
         .create(true)
@@ -477,6 +482,43 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     let mut output = BufWriter::new(output);
     serde_json::to_writer_pretty(&mut output, &schema)?;
     log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
+    Ok(())
+}
+
+struct CS2RuntimeOffsets {
+    schema: Vec<SchemaScope>,
+}
+
+impl RuntimeOffsetProvider for CS2RuntimeOffsets {
+    fn resolve(&self, offset: &RuntimeOffset) -> anyhow::Result<u64> {
+        log::trace!("Try resolve {:?}", offset);
+
+        let schema = self
+            .schema
+            .iter()
+            .find(|schema| schema.schema_name == offset.module)
+            .context("unknown module")?;
+
+        let class = schema
+            .classes
+            .iter()
+            .find(|class| offset.class == class.class_name)
+            .context("unknown class")?;
+
+        let offset = class
+            .offsets
+            .iter()
+            .find(|member| member.field_name == offset.member)
+            .context("unknown class member")?;
+
+        log::trace!(" -> {:X}", offset.offset);
+        Ok(offset.offset)
+    }
+}
+
+fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
+    let schema = cs2::dump_schema(&cs2, true)?;
+    cs2_schema_generated::setup_runtime_offset_provider(Box::new(CS2RuntimeOffsets { schema }));
     Ok(())
 }
 
@@ -572,6 +614,8 @@ async fn main_overlay() -> anyhow::Result<()> {
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?,
     );
+
+    setup_runtime_offset_provider(&cs2)?;
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));
