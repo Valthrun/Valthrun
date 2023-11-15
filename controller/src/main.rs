@@ -41,11 +41,6 @@ use cs2::{
     EntitySystem,
     Globals,
 };
-use cs2_schema_generated::{
-    definition::SchemaScope,
-    RuntimeOffset,
-    RuntimeOffsetProvider,
-};
 use enhancements::Enhancement;
 use imgui::{
     Condition,
