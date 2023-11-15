@@ -66,6 +66,7 @@ pub struct KeyboardInputSystem {
     key_states: Vec<bool>,
 }
 
+#[allow(unused)]
 impl KeyboardInputSystem {
     pub fn new() -> Self {
         Self {

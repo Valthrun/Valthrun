@@ -1,7 +1,13 @@
+#![feature(array_try_from_fn)]
+#![feature(sync_unsafe_cell)]
+
 pub mod definition;
 
 mod entity;
 pub use entity::*;
+
+mod lazy;
+pub use lazy::*;
 
 // FIXME: Correct type here. Is it a 3xf32, 4xf32 or 3xu8 or 4xu8
 pub type Color = u8;

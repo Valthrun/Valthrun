@@ -9,27 +9,39 @@ function messageHandlers(){
     {
         let players = data.players;
         // Remove all existing player dots
-        let existingDots = document.querySelectorAll('.player-dot');
+        let existingDots = document.querySelectorAll('.player');
         existingDots.forEach(dot => dot.remove());
         // Add and position a dot for each player
         players.forEach(player => {
-            let playerDot = addPlayerDot(player.team_id);
-
             let x = player.position[0];
             let y = player.position[1];
             let z = player.position[2];
 
             let floorOffset = { x:0, y: 0 };
             mapFloors.filter(floor => floor.zRange.min < z && floor.zRange.max > z).forEach(floor => {
-                 floorOffset = floor.offset;
+                floorOffset = floor.offset;
             });
-            let rotation = player.rotation * -1;
 
             x = ((x + mapOffset.x) / mapSize * 100) + floorOffset.x;
             y = (Math.abs(((y + mapOffset.y) / mapSize * 100 - 100)) - floorOffset.y);
-            playerDot.style.left = `${x}%`;
-            playerDot.style.top = `${y}%`;
-            playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+
+            if (player.health > 0)
+            {
+                let playerDot = addPlayer(player.team_id, true);
+
+                let rotation = player.rotation * -1;
+                playerDot.style.left = `${x}%`;
+                playerDot.style.top = `${y}%`;
+                playerDot.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+            }
+            else
+            {
+                let playerCross = addPlayer(player.team_id, false);
+                
+                playerCross.style.left = `${x}%`;
+                playerCross.style.top = `${y}%`;
+                playerCross.style.transform = `translate(-50%, -50%)`;
+            }
         });
     }
 
@@ -87,27 +99,45 @@ function changeBackground(color) {
 
 window.addEventListener("load",function() { changeBackground('black') });
 
-function addPlayerDot(teamID) {
+function addPlayer(teamID, alive) {
     // Create a new image element
-    let playerDot = document.createElement('img');
+    let player = document.createElement('img');
     if (teamID === 3)
     {
-        playerDot.src = 'images/blue_dot.png';
-        playerDot.alt = 'Player';
-        playerDot.className = 'player-dot';
+        if (alive)
+        {
+            player.src = 'images/blue_dot.png';
+            player.className = 'player dot';
+        }
+        else
+        {
+            player.src = 'images/blue_cross.png'
+            player.className = 'player cross';
+        }
+
+        player.alt = 'Player';
     }
     else
     {
-        playerDot.src = 'images/yellow_dot.png';
-        playerDot.alt = 'Player';
-        playerDot.className = 'player-dot';
+        if (alive)
+        {
+            player.src = 'images/yellow_dot.png'
+            player.className = 'player dot';
+        }
+        else
+        {
+            player.src = 'images/yellow_cross.png';
+            player.className = 'player cross';
+        }
+
+        player.alt = 'Player';
     }
 
     // Append the player dot to the map container
     let mapContainer = document.querySelector('.map-container');
-    mapContainer.appendChild(playerDot);
+    mapContainer.appendChild(player);
 
-    return playerDot; // Return the created element for further manipulation
+    return player; // Return the created element for further manipulation
 }
 
 const loadedMapImage = document.querySelector('.map');
