@@ -49,10 +49,6 @@ use imgui::{
     FontSource,
     Ui,
 };
-use map::{
-    get_current_map,
-    MapInfo,
-};
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -61,6 +57,7 @@ use overlay::{
     OverlayTarget,
     SystemRuntimeController,
 };
+use runtime_offsets::setup_runtime_offset_provider;
 use settings::{
     load_app_settings,
     AppSettings,
@@ -80,28 +77,19 @@ use crate::{
         PlayerESP,
         SpectatorsList,
         TriggerBot,
-        WebRadar,
     },
-    offsets::setup_runtime_offset_provider,
     settings::save_app_settings,
     view::LocalCrosshair,
-    web_radar_server::{
-        MessageData,
-        CLIENTS,
-    },
     winver::version_info,
 };
 
 mod cache;
 mod class_name_cache;
 mod enhancements;
-mod map;
-mod offsets;
 mod settings;
 mod utils;
 mod view;
 mod weapon;
-mod web_radar_server;
 mod winver;
 
 pub trait MetricsClient {
@@ -137,9 +125,6 @@ pub struct UpdateContext<'a> {
     pub settings: &'a AppSettings,
     pub input: &'a dyn KeyboardInput,
 
-    pub current_map: &'a Option<MapInfo>,
-    pub current_map_changed: &'a bool,
-
     pub cs2: &'a Arc<CS2Handle>,
     pub cs2_entities: &'a EntitySystem,
 
@@ -162,9 +147,6 @@ pub struct Application {
     pub cs2_entities: EntitySystem,
     pub cs2_globals: Option<Globals>,
     pub cs2_build_info: BuildInfo,
-
-    pub current_map: Option<MapInfo>,
-    pub current_map_changed: bool,
 
     pub model_cache: EntryCache<u64, CS2Model>,
     pub class_name_cache: ClassNameCache,
@@ -270,28 +252,6 @@ impl Application {
             .cached()
             .with_context(|| obfstr!("failed to read globals").to_string())?;
 
-        let new_map_info =
-            get_current_map(&self.cs2, self.cs2_offsets.network_game_client_instance)?;
-
-        if let Some(new_map) = &new_map_info {
-            self.current_map_changed = self.current_map != new_map_info;
-            if self.current_map_changed {
-                let mut data = web_radar_server::CURRENT_MAP.write().unwrap();
-                *data = new_map.clone();
-                match serde_json::to_string(new_map) {
-                    Ok(data) => {
-                        for client in CLIENTS.lock().unwrap().iter() {
-                            client.do_send(MessageData { data: data.clone() });
-                        }
-                    }
-                    Err(e) => {
-                        log::error!("Failed to create json with error: {}", e);
-                    }
-                };
-                self.current_map = new_map_info;
-            }
-        };
-
         self.cs2_entities
             .read_entities()
             .with_context(|| obfstr!("failed to read global entity list").to_string())?;
@@ -303,9 +263,6 @@ impl Application {
         let update_context = UpdateContext {
             cs2: &self.cs2,
             cs2_entities: &self.cs2_entities,
-
-            current_map: &self.current_map,
-            current_map_changed: &self.current_map_changed,
 
             settings: &*settings,
             input: ui,
@@ -646,9 +603,6 @@ async fn main_overlay() -> anyhow::Result<()> {
         cs2_globals: None,
         cs2_build_info,
 
-        current_map: None,
-        current_map_changed: false,
-
         model_cache: EntryCache::new({
             let cs2 = cs2.clone();
             move |model| {
@@ -673,7 +627,6 @@ async fn main_overlay() -> anyhow::Result<()> {
             Rc::new(RefCell::new(TriggerBot::new(LocalCrosshair::new(
                 cs2_offsets.offset_crosshair_id,
             )))),
-            Rc::new(RefCell::new(WebRadar::new())),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
         ],
 
@@ -699,11 +652,6 @@ async fn main_overlay() -> anyhow::Result<()> {
             build_info.dwBuildNumber
         ),
     );
-
-    std::thread::spawn(|| {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(web_radar_server::run_server())
-    });
 
     log::info!("{}", obfstr!("App initialized. Spawning overlay."));
     let mut update_fail_count = 0;

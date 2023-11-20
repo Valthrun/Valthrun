@@ -9,6 +9,7 @@ cs2-schema-generated = { path = "../cs2-schema/generated" }
 cs2-schema-declaration = { path = "../cs2-schema/declaration" }
 valthrun-kernel-interface = { path = "../kernel/interface" }
 overlay = { path = "../overlay" }
+runtime-offsets = { path = "../runtime_offsets" }
 anyhow = "1.0.72"
 log = "0.4.19"
 env_logger = "0.10.0"
