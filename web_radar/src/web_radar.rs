@@ -12,12 +12,9 @@ use cs2_schema_generated::cs2::client::{
 };
 use obfstr::obfstr;
 use serde::Serialize;
+use valthrun_toolkit::WeaponId;
 
-use super::Enhancement;
 use crate::{
-    settings::AppSettings,
-    view::ViewController,
-    weapon::WeaponId,
     web_radar_server::{
         MessageData,
         CLIENTS,
@@ -153,10 +150,8 @@ impl WebRadar {
             rotation: player_rotation,
         }))
     }
-}
 
-impl Enhancement for WebRadar {
-    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+    pub fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         if self.timestamp.elapsed().as_millis() < UPDATE_DELAY {
             return Ok(());
         }
@@ -223,6 +218,4 @@ impl Enhancement for WebRadar {
 
         Ok(())
     }
-
-    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {}
 }

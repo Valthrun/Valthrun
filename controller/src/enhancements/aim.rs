@@ -1,5 +1,9 @@
 use anyhow::Context;
 use valthrun_kernel_interface::MouseState;
+use valthrun_toolkit::{
+    AppSettings,
+    ViewController,
+};
 
 use super::Enhancement;
 
@@ -90,9 +94,9 @@ impl Enhancement for AntiAimPunsh {
 
     fn render(
         &self,
-        _settings: &crate::settings::AppSettings,
+        _settings: &AppSettings,
         _ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
+        _view: &ViewController,
     ) {
     }
 }

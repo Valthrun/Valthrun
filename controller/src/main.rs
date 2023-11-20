@@ -1,6 +1,3 @@
-#![allow(dead_code)]
-#![feature(const_fn_floating_point_arithmetic)]
-
 use std::{
     cell::{
         RefCell,
@@ -26,13 +23,11 @@ use std::{
 };
 
 use anyhow::Context;
-use cache::EntryCache;
 use clap::{
     Args,
     Parser,
     Subcommand,
 };
-use class_name_cache::ClassNameCache;
 use cs2::{
     BuildInfo,
     CS2Handle,
@@ -47,7 +42,6 @@ use imgui::{
     FontConfig,
     FontId,
     FontSource,
-    Ui,
 };
 use obfstr::obfstr;
 use overlay::{
@@ -57,40 +51,36 @@ use overlay::{
     OverlayTarget,
     SystemRuntimeController,
 };
-use runtime_offsets::setup_runtime_offset_provider;
-use settings::{
-    load_app_settings,
-    AppSettings,
-    SettingsUI,
-};
+use settings_ui::SettingsUI;
 use valthrun_kernel_interface::KInterfaceError;
-use view::ViewController;
+use valthrun_toolkit::{
+    load_app_settings,
+    save_app_settings,
+    setup_runtime_offset_provider,
+    version_info,
+    AppSettings,
+    ClassNameCache,
+    EntryCache,
+    KeyboardInput,
+    LocalCrosshair,
+    ViewController,
+};
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
     UI::Shell::IsUserAnAdmin,
 };
 
-use crate::{
-    enhancements::{
-        AntiAimPunsh,
-        BombInfo,
-        PlayerESP,
-        SpectatorsList,
-        TriggerBot,
-    },
-    settings::save_app_settings,
-    view::LocalCrosshair,
-    winver::version_info,
+use crate::enhancements::{
+    AntiAimPunsh,
+    BombInfo,
+    PlayerESP,
+    SpectatorsList,
+    TriggerBot,
 };
 
-mod cache;
-mod class_name_cache;
 mod enhancements;
-mod settings;
+mod settings_ui;
 mod utils;
-mod view;
-mod weapon;
-mod winver;
 
 pub trait MetricsClient {
     fn add_metrics_record(&self, record_type: &str, record_payload: &str);
@@ -102,23 +92,8 @@ impl MetricsClient for CS2Handle {
     }
 }
 
-pub trait KeyboardInput {
-    fn is_key_down(&self, key: imgui::Key) -> bool;
-    fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
-}
-
-impl KeyboardInput for imgui::Ui {
-    fn is_key_down(&self, key: imgui::Key) -> bool {
-        Ui::is_key_down(self, key)
-    }
-
-    fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool {
-        if repeating {
-            Ui::is_key_pressed(self, key)
-        } else {
-            Ui::is_key_pressed_no_repeat(self, key)
-        }
-    }
+pub struct AppFonts {
+    valthrun: FontId,
 }
 
 pub struct UpdateContext<'a> {
@@ -133,10 +108,6 @@ pub struct UpdateContext<'a> {
     pub view_controller: &'a ViewController,
 
     pub globals: Globals,
-}
-
-pub struct AppFonts {
-    valthrun: FontId,
 }
 
 pub struct Application {
@@ -181,7 +152,7 @@ impl Application {
 
             settings.imgui = None;
             if let Ok(value) = serde_json::to_string(&*settings) {
-                self.cs2.add_metrics_record("settings-updated", &value);
+                self.cs2.add_metrics_record("settings_ui-updated", &value);
             }
 
             let mut imgui_settings = String::new();
@@ -189,7 +160,7 @@ impl Application {
             settings.imgui = Some(imgui_settings);
 
             if let Err(error) = save_app_settings(&*settings) {
-                log::warn!("Failed to save user settings: {}", error);
+                log::warn!("Failed to save user settings_ui: {}", error);
             };
         }
 
@@ -229,10 +200,10 @@ impl Application {
 
         let settings = self.settings.borrow();
         if ui.is_key_pressed_no_repeat(settings.key_settings.0) {
-            log::debug!("Toogle settings");
+            log::debug!("Toogle settings_ui");
             self.settings_visible = !self.settings_visible;
             self.cs2.add_metrics_record(
-                "settings-toggled",
+                "settings_ui-toggled",
                 &format!("visible: {}", self.settings_visible),
             );
 

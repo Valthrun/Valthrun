@@ -11,17 +11,15 @@ use rand::{
     prelude::Distribution,
 };
 use valthrun_kernel_interface::MouseState;
+use valthrun_toolkit::{
+    AppSettings,
+    KeyToggle,
+    LocalCrosshair,
+    ViewController,
+};
 
 use super::Enhancement;
-use crate::{
-    settings::AppSettings,
-    view::{
-        KeyToggle,
-        LocalCrosshair,
-        ViewController,
-    },
-    UpdateContext,
-};
+use crate::UpdateContext;
 
 enum TriggerState {
     Idle,
@@ -105,7 +103,7 @@ impl Enhancement for TriggerBot {
         }
 
         let should_shoot: bool = if self.toggle.enabled {
-            self.crosshair.update(ctx)?;
+            self.crosshair.update(ctx.cs2, ctx.cs2_entities, ctx.class_name_cache)?;
             self.should_be_active(ctx)?
         } else {
             false

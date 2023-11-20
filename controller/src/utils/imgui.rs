@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use crate::settings::HotKey;
+use valthrun_toolkit::HotKey;
 
 pub trait ImguiUiEx {
     fn set_cursor_pos_x(&self, pos: f32);
@@ -75,7 +75,7 @@ impl ImguiComboEnum for imgui::Ui {
 mod hotkey {
     use imgui::Key;
 
-    use crate::settings::HotKey;
+    use valthrun_toolkit::HotKey;
 
     pub fn render_button_key(
         ui: &imgui::Ui,

@@ -1,4 +1,9 @@
-use crate::settings::AppSettings;
+use crate::UpdateContext;
+use valthrun_toolkit::{
+    AppSettings,
+    ViewController,
+};
+
 
 pub trait Enhancement {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;
@@ -28,8 +33,3 @@ pub use spectators_list::*;
 
 mod aim;
 pub use aim::*;
-
-use crate::{
-    view::ViewController,
-    UpdateContext,
-};

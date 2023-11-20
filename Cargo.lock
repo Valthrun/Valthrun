@@ -695,6 +695,7 @@ dependencies = [
  "serde_yaml",
  "tokio",
  "valthrun-kernel-interface",
+ "valthrun-toolkit",
  "windows",
  "winres",
 ]
@@ -2506,6 +2507,54 @@ dependencies = [
  "thiserror",
  "valthrun-driver-shared",
  "windows",
+]
+
+[[package]]
+name = "valthrun-toolkit"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cs2",
+ "cs2-schema-declaration",
+ "cs2-schema-generated",
+ "imgui",
+ "log",
+ "mint",
+ "nalgebra",
+ "obfstr",
+ "serde",
+ "serde_yaml",
+ "windows",
+]
+
+[[package]]
+name = "valthrun-web-radar"
+version = "0.1.0"
+dependencies = [
+ "actix",
+ "actix-files",
+ "actix-rt",
+ "actix-web",
+ "actix-web-actors",
+ "anyhow",
+ "chrono",
+ "cs2",
+ "cs2-schema-cutl",
+ "cs2-schema-declaration",
+ "cs2-schema-generated",
+ "env_logger",
+ "log",
+ "mint",
+ "nalgebra",
+ "obfstr",
+ "once_cell",
+ "serde",
+ "serde_json",
+ "tokio",
+ "valthrun-kernel-interface",
+ "valthrun-toolkit",
+ "windows",
+ "winres",
 ]
 
 [[package]]

@@ -27,11 +27,11 @@ body, html, .map-container {
 }
 
 .dot {
-    width: 2.2vh;
-    height: 2.2vh;
+    width: 2.35vh;
+    height: 2.35vh;
 }
 
 .cross {
-    width: 1.7vh;
-    height: 1.7vh;
+    width: 1.75vh;
+    height: 1.75vh;
 }

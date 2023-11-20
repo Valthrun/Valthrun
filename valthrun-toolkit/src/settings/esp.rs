@@ -4,16 +4,7 @@ use serde::{
     Serialize,
 };
 
-use crate::weapon::{
-    WeaponId,
-    WEAPON_FLAG_TYPE_GRANADE,
-    WEAPON_FLAG_TYPE_MACHINE_GUN,
-    WEAPON_FLAG_TYPE_PISTOL,
-    WEAPON_FLAG_TYPE_RIFLE,
-    WEAPON_FLAG_TYPE_SHOTGUN,
-    WEAPON_FLAG_TYPE_SMG,
-    WEAPON_FLAG_TYPE_SNIPER_RIFLE,
-};
+use crate::weapon::*;
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct Color(u32);

@@ -24,24 +24,20 @@ use cs2_schema_generated::cs2::client::{
 };
 use imgui::ImColor32;
 use obfstr::obfstr;
+use valthrun_toolkit::{
+    AppSettings,
+    EspBoxType,
+    EspConfig,
+    EspHealthBar,
+    EspPlayerSettings,
+    EspSelector,
+    EspTracePosition,
+    KeyToggle,
+    ViewController,
+    WeaponId,
+};
 
 use super::Enhancement;
-use crate::{
-    settings::{
-        AppSettings,
-        EspBoxType,
-        EspConfig,
-        EspHealthBar,
-        EspPlayerSettings,
-        EspSelector,
-        EspTracePosition,
-    },
-    view::{
-        KeyToggle,
-        ViewController,
-    },
-    weapon::WeaponId,
-};
 
 pub struct PlayerInfo {
     pub controller_entity_id: u32,

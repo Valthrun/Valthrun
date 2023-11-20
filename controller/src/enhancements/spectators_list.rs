@@ -7,6 +7,10 @@ use cs2_schema_generated::cs2::client::{
     C_CSPlayerPawnBase,
 };
 use obfstr::obfstr;
+use valthrun_toolkit::{
+    AppSettings,
+    ViewController,
+};
 
 use super::Enhancement;
 
@@ -187,9 +191,9 @@ impl Enhancement for SpectatorsList {
 
     fn render(
         &self,
-        settings: &crate::settings::AppSettings,
+        settings: &AppSettings,
         ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
+        _view: &ViewController,
     ) {
         if !settings.spectators_list {
             return;

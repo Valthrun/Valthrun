@@ -18,28 +18,26 @@ use imgui::{
     TreeNodeFlags,
 };
 use obfstr::obfstr;
-
-use super::{
+use valthrun_toolkit::{
+    AppSettings,
     Color,
+    EspBoxType,
     EspColor,
     EspColorType,
     EspConfig,
+    EspHealthBar,
+    EspPlayerSettings,
     EspSelector,
+    EspTracePosition,
     KeyToggleMode,
 };
+
 use crate::{
-    settings::{
-        AppSettings,
-        EspBoxType,
-        EspHealthBar,
-        EspPlayerSettings,
-        EspTracePosition,
-    },
-    utils::{
-        ImGuiKey,
-        ImguiComboEnum,
-    },
     Application,
+    utils::{
+        ImguiComboEnum,
+        ImGuiKey,
+    },
 };
 
 enum EspPlayerActiveHeader {
@@ -204,7 +202,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        //ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        //ui.checkbox("Simle Recoil Helper", &mut settings_ui.aim_assist_recoil);
                     }
 
 
@@ -791,8 +789,8 @@ impl SettingsUI {
             );
 
             self.render_esp_target(settings, ui, &EspSelector::Player);
-            // self.render_esp_target(settings, ui, &EspSelector::Chicken);
-            // self.render_esp_target(settings, ui, &EspSelector::Weapon)
+            // self.render_esp_target(settings_ui, ui, &EspSelector::Chicken);
+            // self.render_esp_target(settings_ui, ui, &EspSelector::Weapon)
         }
         ui.same_line();
         if let Some(_token) = {
