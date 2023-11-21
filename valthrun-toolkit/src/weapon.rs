@@ -1,3 +1,5 @@
+use serde::Serialize;
+
 pub const WEAPON_FLAG_TYPE_KNIFE: u32 = 0x01;
 pub const WEAPON_FLAG_TYPE_PISTOL: u32 = 0x02;
 pub const WEAPON_FLAG_TYPE_SHOTGUN: u32 = 0x04;
@@ -67,7 +69,7 @@ macro_rules! define_weapons {
 }
 
 define_weapons! {
-    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
+    #[derive(Debug, Clone, Copy, PartialEq, PartialOrd, Serialize)]
     pub enum WeaponId {
         Unknown { id: 0, name: "Unknown", flags: WEAPON_FLAG_TYPE_KNIFE },
         Deagle { id: 1, name: "Desert Eagle", flags: WEAPON_FLAG_TYPE_PISTOL },

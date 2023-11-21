@@ -1,13 +1,20 @@
-use std::time::Instant;
+use std::{
+    sync::Arc,
+    time::Instant,
+};
 
 use anyhow::Context;
-use cs2::CEntityIdentityEx;
+use cs2::{
+    CEntityIdentityEx,
+    CS2Handle,
+    EntitySystem,
+};
 use cs2_schema_generated::{
     cs2::client::CEntityInstance,
     EntityHandle,
 };
 
-use crate::UpdateContext;
+use crate::ClassNameCache;
 
 #[derive(Debug)]
 pub struct CrosshairTarget {
@@ -33,9 +40,12 @@ impl LocalCrosshair {
         self.current_target.as_ref()
     }
 
-    fn read_crosshair_entity(&self, ctx: &UpdateContext) -> anyhow::Result<Option<u32>> {
-        let local_player_controller = ctx
-            .cs2_entities
+    fn read_crosshair_entity(
+        &self,
+        cs2: &Arc<CS2Handle>,
+        cs2_entities: &EntitySystem,
+    ) -> anyhow::Result<Option<u32>> {
+        let local_player_controller = cs2_entities
             .get_local_player_controller()?
             .try_reference_schema()?;
 
@@ -44,17 +54,14 @@ impl LocalCrosshair {
             None => return Ok(None),
         };
 
-        let local_pawn_ptr = match ctx
-            .cs2_entities
-            .get_by_handle(&local_player_controller.m_hPlayerPawn()?)?
-        {
-            Some(ptr) => ptr.entity()?,
-            None => return Ok(None),
-        };
+        let local_pawn_ptr =
+            match cs2_entities.get_by_handle(&local_player_controller.m_hPlayerPawn()?)? {
+                Some(ptr) => ptr.entity()?,
+                None => return Ok(None),
+            };
 
-        let entity_id = ctx
-            .cs2
-            .reference_schema::<u32>(&[local_pawn_ptr.address()? + self.offset_crosshair_id])?;
+        let entity_id =
+            cs2.reference_schema::<u32>(&[local_pawn_ptr.address()? + self.offset_crosshair_id])?;
         if entity_id != 0xFFFFFFFF {
             Ok(Some(entity_id))
         } else {
@@ -62,8 +69,13 @@ impl LocalCrosshair {
         }
     }
 
-    pub fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<Option<&CrosshairTarget>> {
-        let crosshair_entity_handle = match self.read_crosshair_entity(ctx)? {
+    pub fn update(
+        &mut self,
+        cs2: &Arc<CS2Handle>,
+        cs2_entities: &EntitySystem,
+        class_name_cache: &ClassNameCache,
+    ) -> anyhow::Result<Option<&CrosshairTarget>> {
+        let crosshair_entity_handle = match self.read_crosshair_entity(cs2, cs2_entities)? {
             Some(entity_id) => EntityHandle::<CEntityInstance>::from_index(entity_id),
             None => {
                 self.current_target = None;
@@ -78,14 +90,12 @@ impl LocalCrosshair {
             .unwrap_or(true);
 
         if new_target {
-            let crosshair_entity_identnity = ctx
-                .cs2_entities
+            let crosshair_entity_identnity = cs2_entities
                 .get_by_handle(&crosshair_entity_handle)?
                 .context("failed to resolve crosshair entity id")?;
 
-            let target_type = ctx
-                .class_name_cache
-                .lookup(&crosshair_entity_identnity.entity_class_info()?)?;
+            let target_type =
+                class_name_cache.lookup(&crosshair_entity_identnity.entity_class_info()?)?;
 
             self.current_target = Some(CrosshairTarget {
                 entity_id: crosshair_entity_handle.get_entity_index(),

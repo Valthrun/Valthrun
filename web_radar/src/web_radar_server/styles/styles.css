@@ -1,0 +1,37 @@
+.map-container {
+    position: relative;
+    width: auto;
+    max-height: 100vh;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+body {
+    margin: 0;
+}
+
+body, html, .map-container {
+     padding: 0;
+ }
+
+.map {
+    max-height: 100vh; /* Set max height to 100% of the viewport height */
+    width: auto;       /* Adjust width proportionally */
+    display: block;    /* Display as block to center it */
+    margin: 0 auto;    /* Center the image horizontally */
+}
+
+.player {
+    position: absolute;
+}
+
+.dot {
+    width: 2.35vh;
+    height: 2.35vh;
+}
+
+.cross {
+    width: 1.75vh;
+    height: 1.75vh;
+}
