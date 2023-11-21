@@ -328,8 +328,7 @@ fn show_critical_error(message: &str) {
     }
 }
 
-#[actix_web::main]
-async fn main() {
+fn main() {
     let args = match AppArgs::try_parse() {
         Ok(args) => args,
         Err(error) => {
@@ -350,7 +349,7 @@ async fn main() {
     let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
     let result = match command {
         AppCommand::DumpSchema(args) => main_schema_dump(args),
-        AppCommand::Overlay => main_overlay().await,
+        AppCommand::Overlay => main_overlay(),
     };
 
     if let Err(error) = result {
@@ -410,7 +409,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn main_overlay() -> anyhow::Result<()> {
+fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
         "{} v{} ({}). Windows build {}.",

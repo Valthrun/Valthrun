@@ -92,11 +92,5 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(
-        &self,
-        _settings: &AppSettings,
-        _ui: &imgui::Ui,
-        _view: &ViewController,
-    ) {
-    }
+    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {}
 }

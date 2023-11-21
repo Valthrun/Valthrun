@@ -1,9 +1,9 @@
-use crate::UpdateContext;
 use valthrun_toolkit::{
     AppSettings,
     ViewController,
 };
 
+use crate::UpdateContext;
 
 pub trait Enhancement {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;

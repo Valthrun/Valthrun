@@ -14,11 +14,9 @@ use obfstr::obfstr;
 use serde::Serialize;
 use valthrun_toolkit::WeaponId;
 
-use crate::{
-    web_radar_server::{
-        MessageData,
-        CLIENTS,
-    },
+use crate::web_radar_server::{
+    MessageData,
+    CLIENTS,
 };
 
 #[derive(Serialize)]

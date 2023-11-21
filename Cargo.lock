@@ -669,11 +669,6 @@ checksum = "acbf1af155f9b9ef647e42cdc158db4b64a1b61f743629225fde6f3e0be2a7c7"
 name = "controller"
 version = "0.4.0"
 dependencies = [
- "actix",
- "actix-files",
- "actix-rt",
- "actix-web",
- "actix-web-actors",
  "anyhow",
  "chrono",
  "clap",
@@ -687,13 +682,11 @@ dependencies = [
  "mint",
  "nalgebra",
  "obfstr",
- "once_cell",
  "overlay",
  "rand",
  "serde",
  "serde_json",
  "serde_yaml",
- "tokio",
  "valthrun-kernel-interface",
  "valthrun-toolkit",
  "windows",

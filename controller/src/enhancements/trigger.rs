@@ -103,7 +103,8 @@ impl Enhancement for TriggerBot {
         }
 
         let should_shoot: bool = if self.toggle.enabled {
-            self.crosshair.update(ctx.cs2, ctx.cs2_entities, ctx.class_name_cache)?;
+            self.crosshair
+                .update(ctx.cs2, ctx.cs2_entities, ctx.class_name_cache)?;
             self.should_be_active(ctx)?
         } else {
             false

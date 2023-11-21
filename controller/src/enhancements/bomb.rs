@@ -168,12 +168,7 @@ impl Enhancement for BombInfo {
         Ok(())
     }
 
-    fn render(
-        &self,
-        settings: &AppSettings,
-        ui: &imgui::Ui,
-        _view: &ViewController,
-    ) {
+    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, _view: &ViewController) {
         if !settings.bomb_timer {
             return;
         }

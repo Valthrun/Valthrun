@@ -74,7 +74,6 @@ impl ImguiComboEnum for imgui::Ui {
 
 mod hotkey {
     use imgui::Key;
-
     use valthrun_toolkit::HotKey;
 
     pub fn render_button_key(

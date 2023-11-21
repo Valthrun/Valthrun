@@ -189,12 +189,7 @@ impl Enhancement for SpectatorsList {
         Ok(())
     }
 
-    fn render(
-        &self,
-        settings: &AppSettings,
-        ui: &imgui::Ui,
-        _view: &ViewController,
-    ) {
+    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, _view: &ViewController) {
         if !settings.spectators_list {
             return;
         }

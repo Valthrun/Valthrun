@@ -33,11 +33,11 @@ use valthrun_toolkit::{
 };
 
 use crate::{
-    Application,
     utils::{
-        ImguiComboEnum,
         ImGuiKey,
+        ImguiComboEnum,
     },
+    Application,
 };
 
 enum EspPlayerActiveHeader {

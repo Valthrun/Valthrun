@@ -22,9 +22,7 @@ use actix_web::{
     HttpServer,
 };
 use actix_web_actors::ws;
-use valthrun_toolkit::{
-    MapInfo,
-};
+use valthrun_toolkit::MapInfo;
 
 /// Define HTTP actor
 pub struct WebRadar {}
