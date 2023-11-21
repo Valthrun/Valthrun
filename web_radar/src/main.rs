@@ -14,6 +14,7 @@ use cs2::{
     Globals,
 };
 use obfstr::obfstr;
+use valthrun_kernel_interface::KInterfaceError;
 use valthrun_toolkit::{
     get_current_map,
     setup_runtime_offset_provider,
@@ -134,6 +135,12 @@ impl Application {
     }
 }
 
+fn show_critical_error(message: &str) {
+    for line in message.lines() {
+        log::error!("{}", line);
+    }
+}
+
 #[actix_web::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::builder()
@@ -143,7 +150,56 @@ async fn main() -> anyhow::Result<()> {
 
     log::info!("Valthrun web radar v{}.", env!("CARGO_PKG_VERSION"),);
 
-    let cs2 = CS2Handle::create(false)?;
+    let cs2 = match CS2Handle::create(false) {
+        Ok(handle) => handle,
+        Err(err) => {
+            if let Some(err) = err.downcast_ref::<KInterfaceError>() {
+                if let KInterfaceError::DeviceUnavailable(error) = &err {
+                    if error.code().0 as u32 == 0x80070002 {
+                        /* The system cannot find the file specified. */
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the web-radar.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
+                        return Ok(());
+                    }
+                } else if let KInterfaceError::DriverTooOld {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too old.\nPlease ensure you installed/mapped the latest Valthrun driver.\nATTENTION: If you have manually mapped the driver, you have to restart your PC in order to load the new version."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
+                } else if let KInterfaceError::DriverTooNew {
+                    driver_version_string,
+                    requested_version_string,
+                    ..
+                } = &err
+                {
+                    let message = obfstr!(
+                        "\nThe installed/loaded Valthrun driver version is too new.\nPlease ensure you're using the latest web-radar."
+                    ).to_string();
+
+                    show_critical_error(&format!(
+                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
+                        message, driver_version_string, requested_version_string
+                    ));
+                    return Ok(());
+                } else if let KInterfaceError::ProcessDoesNotExists = &err {
+                    show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
+                    return Ok(());
+                }
+            }
+
+            return Err(err);
+        }
+    };
+
     let cs2_build_info = BuildInfo::read_build_info(&cs2).with_context(|| {
         obfstr!("Failed to load CS2 build info. CS2 version might be newer / older then expected")
             .to_string()
@@ -161,7 +217,6 @@ async fn main() -> anyhow::Result<()> {
     );
 
     setup_runtime_offset_provider(&cs2)?;
-    let build_info = version_info()?;
 
     let app = Application {
         cs2: cs2.clone(),
@@ -196,15 +251,6 @@ async fn main() -> anyhow::Result<()> {
         frame_read_calls: 0,
     };
     let app = Rc::new(RefCell::new(app));
-    cs2.add_metrics_record(
-        obfstr!("controller-status"),
-        &format!(
-            "initialized, version: {}, git-hash: {}, win-build: {}",
-            env!("CARGO_PKG_VERSION"),
-            env!("GIT_HASH"),
-            build_info.dwBuildNumber
-        ),
-    );
 
     log::info!("Starting web radar.");
     std::thread::spawn(|| {
@@ -215,7 +261,7 @@ async fn main() -> anyhow::Result<()> {
     loop {
         let mut app = app.borrow_mut();
         if let Err(err) = app.update() {
-            log::error!("Last error: {:#}", err);
+            log::error!("Error: {:#}", err);
         }
     }
 }
