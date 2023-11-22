@@ -73,9 +73,7 @@ pub enum HttpServeDirectory {
     None,
 
     /// Serve static HTTP files at a specific path
-    Disk {
-        path: PathBuf,
-    },
+    Disk { path: PathBuf },
 
     /// Bundle all static HTTP files with the server executable
     Bundled,

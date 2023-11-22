@@ -25,7 +25,7 @@ struct Args {
 
     /// Static HTML file directory (optional)
     #[arg(long)]
-    static_dir: Option<PathBuf>
+    static_dir: Option<PathBuf>,
 }
 
 // $env:RUST_LOG="trace,tungstenite=info,tokio_tungstenite=info,tokio_util=info"
@@ -58,12 +58,10 @@ async fn main() -> anyhow::Result<()> {
                     .next()
                     .context("invalid bind address")?,
                 if let Some(path) = args.static_dir.as_ref() {
-                    HttpServeDirectory::Disk {
-                        path: path.clone(),
-                    }
+                    HttpServeDirectory::Disk { path: path.clone() }
                 } else {
                     HttpServeDirectory::None
-                }
+                },
             )
             .await?;
     }
