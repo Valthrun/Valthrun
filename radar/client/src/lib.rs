@@ -98,10 +98,6 @@ impl WebRadarPublisher {
     fn send_message(&self, message: C2SMessage) {
         let _ = self.transport_tx.try_send(message);
     }
-
-    fn handle_event(&mut self, _message: ClientEvent<S2CMessage>) {
-        /* TODO! */
-    }
 }
 
 impl Future for WebRadarPublisher {
@@ -110,7 +106,19 @@ impl Future for WebRadarPublisher {
     fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
         if let Poll::Ready(message) = self.transport_rx.poll_recv(cx) {
             match message {
-                Some(event) => self.handle_event(event),
+                Some(event) => {
+                    match event {
+                        ClientEvent::RecvError(err) => {
+                            log::debug!("Recv error: {}", err);
+                            return Poll::Ready(Some(err));
+                        }
+                        ClientEvent::SendError(err) => {
+                            log::debug!("Send error: {}", err);
+                            return Poll::Ready(Some(err));
+                        }
+                        ClientEvent::RecvMessage(_message) => { /* TODO? */ }
+                    }
+                }
                 None => return Poll::Ready(Some(anyhow!("transport closed"))),
             }
         }

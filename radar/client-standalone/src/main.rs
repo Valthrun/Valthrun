@@ -35,7 +35,7 @@ struct Args {
 }
 
 async fn create_connection(
-    url: url::Url,
+    url: &url::Url,
 ) -> anyhow::Result<(Sender<C2SMessage>, Receiver<ClientEvent<S2CMessage>>)> {
     let (socket, _) = tokio_tungstenite::connect_async(url).await?;
     let (mut socket_tx, mut socket_rx) = socket.split();
@@ -115,10 +115,20 @@ async fn main() -> anyhow::Result<()> {
     offsets_runtime::setup_provider(&cs2)?;
     let radar_generator = Box::new(CS2RadarGenerator::new(cs2.clone())?);
 
-    let (tx, rx) = create_connection(url).await?;
+    let (tx, rx) = create_connection(&url).await?;
     let radar_client = WebRadarPublisher::create_from_transport(radar_generator, tx, rx).await?;
 
-    log::info!("Radar session id: {}", radar_client.session_id);
+    let mut radar_url = url.clone();
+    radar_url.set_path(&format!("/session/{}", radar_client.session_id));
+    if radar_url.scheme() == "wss:" {
+        let _ = radar_url.set_scheme("https:");
+    } else {
+        let _ = radar_url.set_scheme("http:");
+    }
+
+    log::info!("Radar session {}", radar_client.session_id);
+    log::info!("Available at {}", radar_url);
+
     if let Some(err) = radar_client.await {
         log::error!("Radar error: {:#}", err);
     }
