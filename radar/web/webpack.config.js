@@ -27,7 +27,19 @@ module.exports = {
         test: /\.(png|jpe?g|gif|jp2|webp)$/,
         loader: "file-loader",
         options: {
-          //name: "[name].[ext]",
+          name: "assets/[contenthash].[ext]",
+        },
+      },
+      {
+        test: /\.(woff(2)?|eot|ttf|otf|svg|)$/,
+        type: "asset",
+        parser: {
+          dataUrlCondition: {
+            maxSize: 8 * 1024, // 8kb
+          },
+        },
+        generator: {
+          filename: "assets/[hash].[ext]",
         },
       },
     ],
@@ -36,9 +48,10 @@ module.exports = {
     extensions: [".tsx", ".ts", ".js"],
   },
   output: {
-    filename: "bundle.js",
+    filename: "assets/web-radar.[contenthash].js",
     path: path.resolve(__dirname, "dist"),
     publicPath: "/",
+    clean: true,
   },
   plugins: [
     new HtmlWebpackPlugin({
