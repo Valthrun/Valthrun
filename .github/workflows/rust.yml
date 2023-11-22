@@ -65,6 +65,10 @@ jobs:
           submodules: recursive
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
+        with:
+          # Nightly toolchain is required for cargo fmt
+          toolchain: nightly
+          override: true
       - name: Check fmt
         run: rustup component add rustfmt && cargo fmt --check
       - name: Build
