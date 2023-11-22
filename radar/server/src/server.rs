@@ -14,23 +14,17 @@ use futures_util::{
     SinkExt,
     StreamExt,
 };
-use radar_shared::{
-    create_message_channel,
-    protocol::{
-        C2SMessage,
-        ClientEvent,
-        S2CMessage,
-    },
+use radar_shared::protocol::{
+    C2SMessage,
+    ClientEvent,
+    S2CMessage,
 };
 use rand::{
     distributions::Alphanumeric,
     Rng,
 };
 use tokio::{
-    net::{
-        TcpListener,
-        ToSocketAddrs,
-    },
+    self,
     sync::{
         mpsc::{
             self,
@@ -89,7 +83,6 @@ pub struct RadarServer {
     clients: BTreeMap<u32, Arc<RwLock<PubClient>>>,
     pub_sessions: BTreeMap<String, PubSession>,
 
-    client_acceptor: Option<JoinHandle<()>>,
     www_acceptor: Option<JoinHandle<()>>,
 }
 
@@ -102,7 +95,6 @@ impl RadarServer {
             clients: Default::default(),
             pub_sessions: Default::default(),
 
-            client_acceptor: None,
             www_acceptor: None,
         };
 
@@ -122,10 +114,11 @@ impl RadarServer {
         }
 
         let server = self.ref_self.clone();
-        let ws_route = warp::path("subscribe")
+        let ws_route = warp::any()
+            .and(warp::path("subscribe").or(warp::path("publish")))
             .and(warp::addr::remote())
             .and(warp::ws())
-            .map(move |address: Option<SocketAddr>, ws: warp::ws::Ws| {
+            .map(move |_, address: Option<SocketAddr>, ws: warp::ws::Ws| {
                 let server = server.clone();
                 ws.on_upgrade(move |socket| async move {
                     let address = match address {
@@ -258,7 +251,7 @@ impl RadarServer {
         let (address, future) = warp::serve(routes).try_bind_ephemeral(addr)?;
         self.www_acceptor = Some(tokio::spawn(future));
 
-        log::info!("Started WWW server on {}", address);
+        log::info!("Started server on {}", address);
 
         Ok(())
     }
@@ -336,50 +329,6 @@ impl RadarServer {
                 .unregister_client(command_handler.client_id)
                 .await;
         }
-    }
-
-    pub async fn listen_client<A: ToSocketAddrs>(&mut self, addr: A) -> anyhow::Result<()> {
-        if self.client_acceptor.is_some() {
-            anyhow::bail!("Client server already bound");
-        }
-
-        let listener = TcpListener::bind(addr).await?;
-        log::info!("Started pub client server on {}", listener.local_addr()?);
-
-        let server = self.ref_self.clone();
-        let listener_handle = tokio::spawn(async move {
-            loop {
-                let (socket, address) = match listener.accept().await {
-                    Ok(client) => client,
-                    Err(err) => {
-                        log::error!("Failed to accept new client: {:#}", err);
-                        break;
-                    }
-                };
-
-                let (tx, rx) = create_message_channel(socket);
-                let server = match server.upgrade() {
-                    Some(server) => server,
-                    None => {
-                        log::warn!(
-                            "Accepted client from {}, but server gone. Dropping client.",
-                            address
-                        );
-                        continue;
-                    }
-                };
-
-                let mut server = server.write().await;
-                let client_fut = server
-                    .register_client(PubClient::new(tx, address), rx)
-                    .await;
-
-                tokio::spawn(client_fut);
-            }
-        });
-
-        self.client_acceptor = Some(listener_handle);
-        Ok(())
     }
 
     pub async fn pub_session_create(&mut self, owner_id: u32) -> Option<&PubSession> {

@@ -12,7 +12,6 @@ use anyhow::{
     Error,
 };
 use radar_shared::{
-    create_message_channel,
     protocol::{
         C2SMessage,
         ClientEvent,
@@ -23,10 +22,7 @@ use radar_shared::{
     RadarState,
 };
 use tokio::{
-    io::{
-        AsyncRead,
-        AsyncWrite,
-    },
+    self,
     sync::mpsc::{
         Receiver,
         Sender,
@@ -59,10 +55,9 @@ pub struct WebRadarPublisher {
 impl WebRadarPublisher {
     pub async fn create_from_transport(
         generator: Box<dyn RadarGenerator>,
-        transport: impl AsyncRead + AsyncWrite + Send + 'static,
+        tx: Sender<C2SMessage>,
+        mut rx: Receiver<ClientEvent<S2CMessage>>,
     ) -> anyhow::Result<Self> {
-        let (tx, mut rx) = create_message_channel::<S2CMessage, C2SMessage>(transport);
-
         let _ = tx.send(C2SMessage::InitializePublish { version: 1 }).await;
         let event = tokio::select! {
             message = rx.recv() => message.context("unexpected client disconnect")?,

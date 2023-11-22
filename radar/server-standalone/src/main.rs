@@ -15,13 +15,9 @@ use tokio::signal;
 #[derive(Parser, Debug)]
 #[command(long_about = None)]
 struct Args {
-    /// Server address for the publisher clients to connect to (tcp/ip)
-    #[arg(short, long, default_value = "0.0.0.0:7228")]
-    pub_address: String,
-
-    /// Server address for the web radar subscribers to connect to (http/tcp/ip)
+    /// Server address to listen onto (http/tcp/ip)
     #[arg(short, long, default_value = "0.0.0.0:7229")]
-    sub_address: String,
+    address: String,
 
     /// Static HTML file directory (optional)
     #[arg(long)]
@@ -32,7 +28,7 @@ struct Args {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::builder()
-        .filter_level(log::LevelFilter::Trace)
+        .filter_level(log::LevelFilter::Info)
         .parse_default_env()
         .init();
 
@@ -43,17 +39,8 @@ async fn main() -> anyhow::Result<()> {
         let mut server = server.write().await;
 
         server
-            .listen_client(
-                args.pub_address
-                    .to_socket_addrs()?
-                    .next()
-                    .context("invalid bind address")?,
-            )
-            .await?;
-
-        server
             .listen_http(
-                args.sub_address
+                args.address
                     .to_socket_addrs()?
                     .next()
                     .context("invalid bind address")?,
