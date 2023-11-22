@@ -1,6 +1,7 @@
 use std::{
     collections::BTreeMap,
     net::SocketAddr,
+    path::PathBuf,
     sync::{
         Arc,
         Weak,
@@ -67,6 +68,21 @@ impl PubSession {
     }
 }
 
+pub enum HttpServeDirectory {
+    /// Do not serve any static HTTP files
+    None,
+
+    /// Serve static HTTP files at a specific path
+    Disk {
+        path: PathBuf,
+    },
+
+    /// Bundle all static HTTP files with the server executable
+    Bundled,
+}
+
+impl HttpServeDirectory {}
+
 pub struct RadarServer {
     ref_self: Weak<RwLock<RadarServer>>,
     client_id_counter: u32,
@@ -97,13 +113,17 @@ impl RadarServer {
         })
     }
 
-    pub async fn listen_http(&mut self, addr: impl Into<SocketAddr>) -> anyhow::Result<()> {
+    pub async fn listen_http(
+        &mut self,
+        addr: impl Into<SocketAddr>,
+        static_serve: HttpServeDirectory,
+    ) -> anyhow::Result<()> {
         if self.www_acceptor.is_some() {
             anyhow::bail!("www already started");
         }
 
         let server = self.ref_self.clone();
-        let routes = warp::path("subscribe")
+        let ws_route = warp::path("subscribe")
             .and(warp::addr::remote())
             .and(warp::ws())
             .map(move |address: Option<SocketAddr>, ws: warp::ws::Ws| {
@@ -215,7 +235,22 @@ impl RadarServer {
                         }
                     }
                 })
-            });
+            })
+            .boxed();
+
+        let routes: warp::filters::BoxedFilter<(Box<dyn warp::Reply>,)> = match static_serve {
+            HttpServeDirectory::Disk { path } => ws_route
+                .or(warp::fs::dir(path.clone()))
+                .or(warp::fs::file(path.join("index.html")))
+                .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
+                .boxed(),
+            HttpServeDirectory::Bundled => {
+                anyhow::bail!("bundled is currently not supported");
+            }
+            HttpServeDirectory::None => ws_route
+                .map(|reply| Box::new(reply) as Box<dyn warp::Reply>)
+                .boxed(),
+        };
 
         let (address, future) = warp::serve(routes).try_bind_ephemeral(addr)?;
         self.www_acceptor = Some(tokio::spawn(future));

@@ -1,8 +1,14 @@
-use std::net::ToSocketAddrs;
+use std::{
+    net::ToSocketAddrs,
+    path::PathBuf,
+};
 
 use anyhow::Context;
 use clap::Parser;
-use radar_server::RadarServer;
+use radar_server::{
+    HttpServeDirectory,
+    RadarServer,
+};
 use tokio::signal;
 
 /// Standalone Valthrun CS2 radar
@@ -16,6 +22,10 @@ struct Args {
     /// Server address for the web radar subscribers to connect to (http/tcp/ip)
     #[arg(short, long, default_value = "0.0.0.0:7229")]
     sub_address: String,
+
+    /// Static HTML file directory (optional)
+    #[arg(long)]
+    static_dir: Option<PathBuf>
 }
 
 // $env:RUST_LOG="trace,tungstenite=info,tokio_tungstenite=info,tokio_util=info"
@@ -47,6 +57,9 @@ async fn main() -> anyhow::Result<()> {
                     .to_socket_addrs()?
                     .next()
                     .context("invalid bind address")?,
+                HttpServeDirectory::Disk {
+                    path: PathBuf::from(r"G:\git\rust\valthrun\radar\web\dist"),
+                },
             )
             .await?;
     }
