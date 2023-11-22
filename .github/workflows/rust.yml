@@ -26,7 +26,7 @@ jobs:
         run: rustup component add rustfmt && cargo fmt --check
 
   build-radar-web:
-    name: Radar web scripts
+    name: Radar Web Scripts
     runs-on: ubuntu-latest
     needs: [rust-check]
     steps:
@@ -58,7 +58,7 @@ jobs:
 
   # TODO: Build as Matrix for Linux & Windows
   build-radar-server:
-    name: Radar server (${{ matrix.build }})
+    name: Radar Server (${{ matrix.build }})
     needs: [rust-check]
     strategy:
       matrix:
@@ -98,7 +98,7 @@ jobs:
           path: target/release/${{ matrix.target }}
 
   build-radar-client:
-    name: Valthrun Radar Client
+    name: Radar Client
     runs-on: windows-latest
     needs: [rust-check]
 
@@ -126,7 +126,7 @@ jobs:
           DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
 
   build-overlay:
-    name: Valthrun overlay
+    name: CS2 Overlay
     runs-on: windows-latest
     needs: [rust-check]
 

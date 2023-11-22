@@ -56,6 +56,7 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       title: "Valthrun Radar",
+      favicon: path.resolve(__dirname, "src", "assets", "favicon.ico"),
     }),
     new webpack.DefinePlugin({
       "process.env.NODE_ENV": JSON.stringify(
