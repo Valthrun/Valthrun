@@ -45,6 +45,7 @@ async fn main() -> anyhow::Result<()> {
     let radar_client =
         WebRadarPublisher::create_from_transport(radar_generator, connection).await?;
 
+    log::info!("Radar session id: {}", radar_client.session_id);
     if let Some(err) = radar_client.await {
         log::error!("Radar error: {:#}", err);
     }
