@@ -42,30 +42,40 @@ jobs:
 
   # TODO: Build as Matrix for Linux & Windows
   build-radar-server:
-    name: Radar server
-    runs-on: ubuntu-latest
+    name: Radar server (${{ matrix.build }})
+    strategy:
+      matrix:
+        build: [linux, windows]
+        include:
+          - build: linux
+            os: ubuntu-latest
+            target: radar-server-standalone.exe
+            flags: -Ctarget-feature=+crt-static
+
+          - build: windows
+            os: windows-latest
+            target: radar-server-standalone
+            # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
+            flags: ""
+
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
-        with:
-          # Is nightly really required?
-          toolchain: nightly
-          override: true
       - name: Check fmt
         run: rustup component add rustfmt && cargo fmt --check
       - name: Build
         run: cargo build --verbose --release --bin radar-server-standalone
-        # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
-        # env:
-        # RUSTFLAGS: -Ctarget-feature=+crt-static
+        env:
+          RUSTFLAGS: ${{ matrix.flags }}
       - uses: actions/upload-artifact@v3
         name: Upload radar server
         with:
-          name: radar-server
-          path: target/release/radar-server-standalone.exe
+          name: radar-server-${{ matrix.build }}
+          path: target/release/${{ matrix.target }}
 
   build-overlay:
     name: Valthrun overlay
