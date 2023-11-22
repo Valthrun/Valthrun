@@ -20,6 +20,8 @@ jobs:
         with:
           node-version: 16.x
           cache: "yarn"
+          cache-dependency-path: |
+            radar/web/yarn.lock
       - name: Run install
         uses: borales/actions-yarn@v4
         with:
@@ -56,8 +58,9 @@ jobs:
         run: rustup component add rustfmt && cargo fmt --check
       - name: Build
         run: cargo build --verbose --release --bin radar-server-standalone
-        env:
-          RUSTFLAGS: -Ctarget-feature=+crt-static
+        # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
+        # env:
+        # RUSTFLAGS: -Ctarget-feature=+crt-static
       - uses: actions/upload-artifact@v3
         name: Upload radar server
         with:
