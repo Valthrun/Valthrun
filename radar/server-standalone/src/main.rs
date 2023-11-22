@@ -57,9 +57,13 @@ async fn main() -> anyhow::Result<()> {
                     .to_socket_addrs()?
                     .next()
                     .context("invalid bind address")?,
-                HttpServeDirectory::Disk {
-                    path: PathBuf::from(r"G:\git\rust\valthrun\radar\web\dist"),
-                },
+                if let Some(path) = args.static_dir.as_ref() {
+                    HttpServeDirectory::Disk {
+                        path: path.clone(),
+                    }
+                } else {
+                    HttpServeDirectory::None
+                }
             )
             .await?;
     }

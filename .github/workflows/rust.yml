@@ -2,42 +2,98 @@ name: Rust
 
 on:
   push:
-    branches: [ "master", "amd" ]
+    branches: ["master", "amd", "radar"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
-    runs-on: windows-latest
-
+  build-radar-web:
+    name: Radar web scripts
+    runs-on: ubuntu-latest
     steps:
-    - name: Install toolchain
-      uses: actions-rs/toolchain@v1
-      with:
+      - uses: actions/checkout@v4
+      - name: Set Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+      - name: Run install
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+          dir: radar/web
+      - name: Build production bundle
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: build
+          dir: radar/web
+        env:
+          NODE_ENV: production
+      - uses: actions/upload-artifact@v3
+        name: Upload
+        with:
+          name: radar-www
+          path: radar/web/dist
+
+  # TODO: Build as Matrix for Linux & Windows
+  build-radar-server:
+    name: Radar server
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          # Is nightly really required?
           toolchain: nightly
           override: true
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    - uses: Swatinem/rust-cache@v2
-      with:
-        cache-on-failure: true
-    - name: Check fmt
-      run: rustup component add rustfmt && cargo fmt --check
-    - name: Build
-      run: cargo build --verbose --release
-      env:
-        RUSTFLAGS: -Ctarget-feature=+crt-static
-    # Right now there are no tests specified
-    # - name: Run tests
-    #   run: cargo test --verbose
-    - name: Upload release build to Discord
-      run: .github/workflows/discord_upload.sh
-      shell: bash
-      if: ${{ github.event_name != 'pull_request' }}
-      env:
-        DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+      - name: Check fmt
+        run: rustup component add rustfmt && cargo fmt --check
+      - name: Build
+        run: cargo build --verbose --release --bin radar-server-standalone
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+      - uses: actions/upload-artifact@v3
+        name: Upload radar server
+        with:
+          name: radar-server
+          path: target/release/radar-server-standalone.exe
+
+  build-overlay:
+    name: Valthrun overlay
+    runs-on: windows-latest
+
+    # Temporary as we're testing the radar builds
+    if: false
+
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Check fmt
+        run: rustup component add rustfmt && cargo fmt --check
+      - name: Build
+        run: cargo build --verbose --release --bin controller
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+      # Right now there are no tests specified
+      # - name: Run tests
+      #   run: cargo test --verbose
+      - name: Upload release build to Discord
+        run: .github/workflows/discord_upload.sh
+        shell: bash
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}

@@ -1626,6 +1626,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "radar-server-standalone"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "env_logger",
+ "log",
+ "radar-server",
+ "tokio",
+]
+
+[[package]]
 name = "radar-shared"
 version = "0.1.0"
 dependencies = [
@@ -1635,19 +1647,6 @@ dependencies = [
  "serde",
  "tokio",
  "tokio-util",
-]
-
-[[package]]
-name = "radar-standalone"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "clap",
- "env_logger",
- "log",
- "radar-client",
- "radar-server",
- "tokio",
 ]
 
 [[package]]
