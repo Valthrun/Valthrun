@@ -97,6 +97,34 @@ jobs:
           name: radar-server-${{ matrix.build }}
           path: target/release/${{ matrix.target }}
 
+  build-radar-client:
+    name: Valthrun Radar Client
+    runs-on: windows-latest
+    needs: [rust-check]
+
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build
+        run: cargo build --verbose --release --bin radar-client-standalone
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+      - name: Upload release build to Discord
+        run: .github/workflows/discord_upload.sh target/release/radar-client-standalone.exe radar_client
+        shell: bash
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+
   build-overlay:
     name: Valthrun overlay
     runs-on: windows-latest
@@ -125,7 +153,7 @@ jobs:
       # - name: Run tests
       #   run: cargo test --verbose
       - name: Upload release build to Discord
-        run: .github/workflows/discord_upload.sh
+        run: .github/workflows/discord_upload.sh target/release/controller.exe controller
         shell: bash
         if: ${{ github.event_name != 'pull_request' }}
         env:

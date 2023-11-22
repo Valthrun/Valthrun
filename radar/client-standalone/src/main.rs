@@ -28,8 +28,9 @@ use tokio_tungstenite::tungstenite::Message;
 #[derive(Parser, Debug)]
 #[command(long_about = None)]
 struct Args {
-    /// Target server address used to publish the web radar
-    #[arg(short, long, default_value = "ws://127.0.0.1:7229/publish")]
+    /// Target server address used to publish the web radar.
+    /// Use ws://127.0.0.1:7229/publish for local development.
+    #[arg(short, long, default_value = "wss://radar.valth.run/publish")]
     publish_url: String,
 }
 
