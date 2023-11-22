@@ -8,6 +8,7 @@ use std::{
     },
 };
 
+use anyhow::anyhow;
 use futures_util::{
     Future,
     SinkExt,
@@ -231,6 +232,10 @@ impl RadarServer {
                             _ = rx_loop => {},
                             _ = tx_loop => {},
                         }
+
+                        let _ = message_rx_tx
+                            .send(ClientEvent::RecvError(anyhow!("client disconnected")))
+                            .await;
                     }
                 })
             })

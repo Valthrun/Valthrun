@@ -1,10 +1,21 @@
+export type MapMetaFloor = {
+    "offset": {
+        "x": number,
+        "y": number
+    },
+    "zRange": {
+        "min": number,
+        "max": number
+    }
+}
+
 export type MapMetaData = {
     resolution: number,
     offset: {
         "x": number,
         "y": number,
     },
-    floors: any[]
+    floors: MapMetaFloor[]
 }
 
 type RegisteredMap = {

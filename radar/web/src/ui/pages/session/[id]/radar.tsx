@@ -165,10 +165,11 @@ const MapPlayerPing = React.memo((props: {
     const offsets = map.metaInfo.offset;
     const mapSize = map.metaInfo.resolution * 1024;
 
+    const [floor] = map.metaInfo.floors.filter(floor => floor.zRange.min <= props.info.position[2] && props.info.position[2] <= floor.zRange.max);
+
     const playerX = props.info.position[0] + offsets.x;
     const playerY = props.info.position[1] + offsets.y;
 
-    /* FIXME: Calculate player floor */
     return (
         <Box
             sx={{
@@ -188,8 +189,8 @@ const MapPlayerPing = React.memo((props: {
             }}
 
             style={{
-                "--pos-x": `${playerX * 100 / mapSize - iconSize / 2}%`,
-                "--pos-y": `${playerY * 100 / mapSize - iconSize / 2}%`,
+                "--pos-x": `${playerX * 100 / mapSize - iconSize / 2 + (floor?.offset.x ?? 0)}%`,
+                "--pos-y": `${playerY * 100 / mapSize - iconSize / 2 + (floor?.offset.y ?? 0)}%`,
                 "--rotation": `${info.playerHealth <= 0 ? 0 : info.rotation * -1}deg`
             } as any}
         />

@@ -1,4 +1,5 @@
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
 const path = require("path");
 
 const isDevelopment = process.env["NODE_ENV"] === "development";
@@ -42,6 +43,14 @@ module.exports = {
   plugins: [
     new HtmlWebpackPlugin({
       title: "Valthrun Radar",
+    }),
+    new webpack.DefinePlugin({
+      "process.env.NODE_ENV": JSON.stringify(
+        process.env.NODE_ENV || "development"
+      ),
+      "process.env.SERVER_URL": JSON.stringify(
+        process.env.SERVER_URL || undefined
+      ),
     }),
   ],
 

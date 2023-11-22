@@ -1,11 +1,32 @@
-import { Box, Button, Typography, CircularProgress, Input, TextField, Alert } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert } from "@mui/material";
 import * as React from "react";
 import { SubscriberClientProvider, useSubscriberClient } from "../../../components/connection";
 import { useParams } from "react-router-dom";
 import { RadarState } from "../../../../backend/connection";
 import { ContextRadarState, RadarRenderer } from "./radar";
 
+const kServerUrl: string | null = process.env.SERVER_URL;
 export default React.memo(() => {
+    const targetUrl = React.useMemo(() => {
+        if (typeof kServerUrl === "string") {
+            return kServerUrl;
+        }
+
+        const parts = [];
+        if (location.protocol === "https:") {
+            parts.push("wss://");
+        } else {
+            parts.push("ws://");
+        }
+        parts.push(location.hostname);
+        if (location.port) {
+            parts.push(`:${location.port}`);
+        }
+        parts.push("/subscribe");
+
+        return parts.join("");
+    }, []);
+
     return (
         <Box sx={{
             height: "100%",
@@ -15,7 +36,7 @@ export default React.memo(() => {
             flexDirection: "column",
             justifyContent: "center"
         }}>
-            <SubscriberClientProvider address={"ws://127.0.0.1:7229/subscribe"}>
+            <SubscriberClientProvider address={targetUrl}>
                 <ClientStateNew />
                 <ClientStateConnecting />
                 <ClientStateFailed />
