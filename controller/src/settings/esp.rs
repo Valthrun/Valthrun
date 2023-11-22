@@ -1,10 +1,4 @@
-use obfstr::obfstr;
-use serde::{
-    Deserialize,
-    Serialize,
-};
-
-use crate::weapon::{
+use cs2::{
     WeaponId,
     WEAPON_FLAG_TYPE_GRANADE,
     WEAPON_FLAG_TYPE_MACHINE_GUN,
@@ -13,6 +7,11 @@ use crate::weapon::{
     WEAPON_FLAG_TYPE_SHOTGUN,
     WEAPON_FLAG_TYPE_SMG,
     WEAPON_FLAG_TYPE_SNIPER_RIFLE,
+};
+use obfstr::obfstr;
+use serde::{
+    Deserialize,
+    Serialize,
 };
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]

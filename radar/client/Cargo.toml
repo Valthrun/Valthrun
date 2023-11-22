@@ -1,0 +1,16 @@
+[package]
+name = "radar-client"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+bincode = "1.3.3"
+cs2 = { version = "0.1.0", path = "../../cs2" }
+log = "0.4.20"
+radar-shared = { version = "0.1.0", path = "../shared" }
+tokio = { version = "1.34.0", features = ["rt", "time", "macros", "sync"] }
+tokio-bincode = "0.1.0"
+tokio-util = { version = "0.7.10", features = ["codec"] }
+cs2-schema-generated = { version = "0.1.0", path = "../../cs2-schema/generated" }
+cs2-schema-declaration = { path = "../../cs2-schema/declaration" }

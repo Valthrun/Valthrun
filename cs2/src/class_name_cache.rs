@@ -4,12 +4,13 @@ use std::{
 };
 
 use anyhow::Context;
-use cs2::{
+use cs2_schema_declaration::Ptr;
+use cs2_schema_generated::cs2::client::CEntityIdentity;
+
+use crate::{
     CEntityIdentityEx,
     CS2Handle,
 };
-use cs2_schema_declaration::Ptr;
-use cs2_schema_generated::cs2::client::CEntityIdentity;
 
 pub struct ClassNameCache {
     cs2: Arc<CS2Handle>,

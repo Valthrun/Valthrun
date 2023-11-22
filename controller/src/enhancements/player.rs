@@ -11,6 +11,7 @@ use cs2::{
     BoneFlags,
     CEntityIdentityEx,
     CS2Model,
+    WeaponId,
 };
 use cs2_schema_declaration::{
     define_schema,
@@ -40,7 +41,6 @@ use crate::{
         KeyToggle,
         ViewController,
     },
-    weapon::WeaponId,
 };
 
 pub struct PlayerInfo {

@@ -32,19 +32,15 @@ use clap::{
     Parser,
     Subcommand,
 };
-use class_name_cache::ClassNameCache;
 use cs2::{
+    offsets_runtime,
     BuildInfo,
     CS2Handle,
     CS2Model,
     CS2Offsets,
+    ClassNameCache,
     EntitySystem,
     Globals,
-};
-use cs2_schema_generated::{
-    definition::SchemaScope,
-    RuntimeOffset,
-    RuntimeOffsetProvider,
 };
 use enhancements::Enhancement;
 use imgui::{
@@ -82,20 +78,16 @@ use crate::{
         SpectatorsList,
         TriggerBot,
     },
-    offsets::setup_runtime_offset_provider,
     settings::save_app_settings,
     view::LocalCrosshair,
     winver::version_info,
 };
 
 mod cache;
-mod class_name_cache;
 mod enhancements;
-mod offsets;
 mod settings;
 mod utils;
 mod view;
-mod weapon;
 mod winver;
 
 pub trait MetricsClient {
@@ -532,12 +524,11 @@ fn main_overlay() -> anyhow::Result<()> {
         &format!("revision: {}", cs2_build_info.revision),
     );
 
+    offsets_runtime::setup_provider(&cs2)?;
     let cs2_offsets = Arc::new(
         CS2Offsets::resolve_offsets(&cs2)
             .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?,
     );
-
-    setup_runtime_offset_provider(&cs2)?;
 
     let imgui_settings = settings.imgui.clone();
     let settings = Rc::new(RefCell::new(settings));

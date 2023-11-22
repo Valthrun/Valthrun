@@ -4,15 +4,16 @@ use std::{
 };
 
 use anyhow::Context;
-use cs2::{
+use cs2_schema_generated::{
+    RuntimeOffset,
+    RuntimeOffsetProvider,
+};
+
+use crate::{
     find_schema_system,
     CS2Handle,
     CSchemaSystem,
     Module,
-};
-use cs2_schema_generated::{
-    RuntimeOffset,
-    RuntimeOffsetProvider,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
@@ -125,7 +126,7 @@ fn load_runtime_offsets(
     Ok(result)
 }
 
-pub fn setup_runtime_offset_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
+pub fn setup_provider(cs2: &Arc<CS2Handle>) -> anyhow::Result<()> {
     let offsets = load_runtime_offsets(cs2)?;
     log::debug!("Loaded {} schema offsets", offsets.len());
     cs2_schema_generated::setup_runtime_offset_provider(Box::new(CS2RuntimeOffsets { offsets }));
