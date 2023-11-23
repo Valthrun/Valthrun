@@ -345,7 +345,7 @@ impl RadarServer {
         let session_id = rand::thread_rng()
             .sample_iter(&Alphanumeric)
             .map(char::from)
-            .take(16)
+            .take(6)
             .collect::<String>();
 
         self.pub_sessions.insert(
