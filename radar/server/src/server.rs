@@ -270,6 +270,7 @@ impl RadarServer {
             ClientState::Publisher { session_id } => {
                 /* TODO: Proper session shutdown! */
                 self.pub_sessions.remove(&session_id);
+                log::info!("Session {} closed", session_id);
             }
             ClientState::Subscriber { session_id } => {
                 self.pub_session_unsubscribe(&session_id, client_id).await;
@@ -357,6 +358,7 @@ impl RadarServer {
             },
         );
 
+        log::info!("Created new session {}", session_id);
         owner.state = ClientState::Publisher {
             session_id: session_id.clone(),
         };
