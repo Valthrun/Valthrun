@@ -34,6 +34,7 @@ pub enum S2CMessage {
 
     NotifyRadarUpdate { update: RadarUpdate },
     NotifyViewCount { viewers: usize },
+    NotifySessionClosed,
 }
 
 #[derive(Serialize, Deserialize)]

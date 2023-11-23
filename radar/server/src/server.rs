@@ -268,9 +268,10 @@ impl RadarServer {
         };
         match client_state {
             ClientState::Publisher { session_id } => {
-                /* TODO: Proper session shutdown! */
-                self.pub_sessions.remove(&session_id);
-                log::info!("Session {} closed", session_id);
+                if let Some(session) = self.pub_sessions.remove(&session_id) {
+                    log::info!("Session {} closed", session_id);
+                    session.broadcast(&S2CMessage::NotifySessionClosed);
+                }
             }
             ClientState::Subscriber { session_id } => {
                 self.pub_session_unsubscribe(&session_id, client_id).await;
