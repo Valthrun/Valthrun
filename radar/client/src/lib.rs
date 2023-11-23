@@ -104,7 +104,7 @@ impl Future for WebRadarPublisher {
     type Output = Option<Error>;
 
     fn poll(mut self: Pin<&mut Self>, cx: &mut std::task::Context<'_>) -> Poll<Self::Output> {
-        if let Poll::Ready(message) = self.transport_rx.poll_recv(cx) {
+        while let Poll::Ready(message) = self.transport_rx.poll_recv(cx) {
             match message {
                 Some(event) => {
                     match event {
@@ -123,7 +123,7 @@ impl Future for WebRadarPublisher {
             }
         }
 
-        if let Poll::Ready(_) = self.generate_interval.poll_tick(cx) {
+        while let Poll::Ready(_) = self.generate_interval.poll_tick(cx) {
             match self.generator.borrow_mut().generate_state(&self.settings) {
                 Ok(state) => self.send_message(C2SMessage::RadarUpdate {
                     update: RadarUpdate::State { state },

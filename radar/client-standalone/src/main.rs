@@ -120,10 +120,10 @@ async fn main() -> anyhow::Result<()> {
 
     let mut radar_url = url.clone();
     radar_url.set_path(&format!("/session/{}", radar_client.session_id));
-    if radar_url.scheme() == "wss:" {
-        let _ = radar_url.set_scheme("https:");
+    if radar_url.scheme() == "wss" {
+        let _ = radar_url.set_scheme("https");
     } else {
-        let _ = radar_url.set_scheme("http:");
+        let _ = radar_url.set_scheme("http");
     }
 
     log::info!("Radar session {}", radar_client.session_id);
