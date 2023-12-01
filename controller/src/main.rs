@@ -11,9 +11,7 @@ use std::{
     fs::File,
     io::BufWriter,
     path::PathBuf,
-    os::windows::ffi::OsStringExt,
     rc::Rc,
-    ffi::OsString,
     sync::{
         atomic::{
             AtomicBool,
@@ -26,7 +24,7 @@ use std::{
         Instant,
     },
 };
-extern crate winapi;
+
 use anyhow::Context;
 use cache::EntryCache;
 use clap::{
@@ -114,17 +112,7 @@ pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
 }
-fn get_active_window_title() -> String {
-    unsafe {
-        let hwnd = winapi::um::winuser::GetForegroundWindow();
-        let mut buffer = Vec::with_capacity(256);
 
-        let len = winapi::um::winuser::GetWindowTextW(hwnd, buffer.as_mut_ptr(), buffer.capacity() as i32);
-        buffer.set_len(len as usize);
-
-        OsString::from_wide(&buffer).to_string_lossy().into_owned()
-    }
-}
 impl KeyboardInput for imgui::Ui {
     fn is_key_down(&self, key: imgui::Key) -> bool {
         Ui::is_key_down(self, key)
@@ -710,10 +698,8 @@ fn main_overlay() -> anyhow::Result<()> {
                     update_fail_count += 1;
                 }
             }
-            let title = get_active_window_title();
-            if title == "Counter-Strike 2" || title == "CS2 Overlay" {
-                app.render(ui);
-            }
+
+            app.render(ui);
             true
         },
     )
