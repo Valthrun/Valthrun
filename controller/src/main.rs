@@ -1,5 +1,10 @@
 #![allow(dead_code)]
 #![feature(const_fn_floating_point_arithmetic)]
+extern crate winapi;
+
+use std::ptr;
+use std::ffi::OsString;
+use std::os::windows::ffi::OsStringExt;
 
 use std::{
     cell::{
@@ -107,7 +112,44 @@ impl MetricsClient for CS2Handle {
         self.add_metrics_record(record_type, record_payload)
     }
 }
+use windows::imp::CloseHandle;
+fn get_active_window_executable_path() -> Option<String> {
+    unsafe {
+        let foreground_window = winapi::um::winuser::GetForegroundWindow();
+        let mut process_id: winapi::shared::minwindef::DWORD = 0;
 
+        winapi::um::winuser::GetWindowThreadProcessId(foreground_window, &mut process_id);
+
+        let process_handle = winapi::um::processthreadsapi::OpenProcess(
+            winapi::um::winnt::PROCESS_QUERY_INFORMATION | winapi::um::winnt::PROCESS_VM_READ,
+            winapi::shared::minwindef::FALSE,
+            process_id,
+        );
+
+        if process_handle.is_null() {
+            return None;
+        }
+
+        let mut exe_path: Vec<u16> = Vec::with_capacity(winapi::shared::minwindef::MAX_PATH);
+
+        let exe_path_length = winapi::um::psapi::GetModuleFileNameExW(
+            process_handle,
+            ptr::null_mut(),
+            exe_path.as_mut_ptr(),
+            exe_path.capacity() as u32,
+        );
+
+        exe_path.set_len(exe_path_length as usize);
+
+        let exe_path_os_string = OsString::from_wide(&exe_path);
+        let exe_path_str = exe_path_os_string.to_string_lossy().into_owned();
+
+        winapi::um::handleapi::CloseHandle(process_handle);
+
+        Some(exe_path_str)
+    }
+}
+use std::env;
 pub trait KeyboardInput {
     fn is_key_down(&self, key: imgui::Key) -> bool;
     fn is_key_pressed(&self, key: imgui::Key, repeating: bool) -> bool;
@@ -698,8 +740,12 @@ fn main_overlay() -> anyhow::Result<()> {
                     update_fail_count += 1;
                 }
             }
-
-            app.render(ui);
+    		if let Some(executable_name) = get_active_window_executable_path() {
+    			let current_exe_path = env::current_exe().unwrap();
+    			if executable_name.to_lowercase().ends_with("cs2.exe") || executable_name.to_lowercase() == current_exe_path.to_str().expect("REASON").to_lowercase() {
+                    app.render(ui);
+    			}
+    		}
             true
         },
     )
