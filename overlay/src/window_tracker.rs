@@ -3,6 +3,8 @@ use imgui_winit_support::winit::{
     window::Window,
 };
 use windows::{
+    Guid,
+    Interface,
     core::PCWSTR,
     Win32::{
         Foundation::{
@@ -30,7 +32,15 @@ use windows::{
         },
     },
 };
-
+#[com_interface("6d5140c1-7436-11ce-8034-00aa006009fa")]
+pub trait IServiceProvider: IUnknown {
+    unsafe fn QueryService(
+        &self,
+        guid_service: &Guid,
+        riid: &Guid,
+        ppv_object: *mut *mut std::ffi::c_void,
+    ) -> windows::Result<()>;
+}
 use crate::{
     error::{
         OverlayError,
@@ -43,6 +53,29 @@ pub enum OverlayTarget {
     Window(HWND),
     WindowTitle(String),
     WindowOfProcess(u32),
+}
+fn is_active_window(process_name: &str) -> windows::Result<bool> {
+    // Get the active window handle
+    let foreground_window = unsafe { user32::GetForegroundWindow() };
+    
+    // Get the process ID of the active window
+    let mut process_id = 0;
+    unsafe { user32::GetWindowThreadProcessId(foreground_window, &mut process_id) };
+    
+    // Open the process
+    let process = unsafe { kernel32::OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false as _, process_id) };
+    
+    // Get the process executable file name
+    let mut buffer = [0u16; 260];
+    let size = unsafe {
+        psapi::GetProcessImageFileNameW(process, buffer.as_mut_ptr(), buffer.len() as u32)
+    };
+    
+    // Convert the file name to a Rust string
+    let executable_name = String::from_utf16_lossy(&buffer[..size as usize]);
+    
+    // Check if the process executable file name contains the desired process name
+    Ok(executable_name.to_lowercase().contains(&process_name.to_lowercase()))
 }
 
 impl OverlayTarget {
@@ -134,6 +167,10 @@ impl WindowTracker {
     }
 
     pub fn update(&mut self, overlay: &Window) -> bool {
+        match is_active_window("cs2.exe") {
+            Ok(false) => return false,
+            Err(e) => eprintln!("Error: {:?}", e),
+        }
         let mut rect: RECT = Default::default();
         let success = unsafe { GetClientRect(self.cs2_hwnd, &mut rect) };
         if !success.as_bool() {
