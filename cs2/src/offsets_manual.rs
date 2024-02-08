@@ -6,12 +6,12 @@ pub mod client {
     #[allow(non_snake_case)]
     pub mod CModel {
         /* 85 D2 78 16 3B 91. Offset is array of u32 */
-        pub const BONE_FLAGS: u64 = 0x1A8;
+        pub const BONE_FLAGS: u64 = 0x1B0;
 
         /* 85 D2 78 25 3B 91. Offset is array of *const i8 */
-        pub const BONE_NAME: u64 = 0x160;
+        pub const BONE_NAME: u64 = 0x168;
 
         /* UC sig does not work. Offset is array of u16 */
-        pub const BONE_PARENT: u64 = 0x178;
+        pub const BONE_PARENT: u64 = 0x180;
     }
 }
