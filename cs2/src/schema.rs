@@ -70,10 +70,10 @@ define_schema! {
         pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x190,
     }
 
-    pub struct CSchemaSystemTypeScope[0x2F00] {
+    pub struct CSchemaSystemTypeScope[0x2F30] {
         pub scope_name: FixedCString<0x100> = 0x08,
-        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x0588,
-        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DD0,
+        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x05B8,
+        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2E00,
     }
 
     pub struct CSchemaType[0x20] {
