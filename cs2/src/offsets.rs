@@ -112,9 +112,9 @@ impl CS2Offsets {
             Module::Engine,
             &Signature::relative_address(
                 obfstr!("network game client instance"),
-                obfstr!("48 89 1D ? ? ? ? 48 8B CB"),
+                obfstr!("48 83 3D ? ? ? ? ? 48 8B D9 8B 0D"),
                 0x03,
-                0x07,
+                0x08,
             ),
         )
     }
