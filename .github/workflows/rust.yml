@@ -130,9 +130,6 @@ jobs:
     runs-on: windows-latest
     needs: [rust-check]
 
-    # Temporary as we're testing the radar builds
-    if: false
-
     steps:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
