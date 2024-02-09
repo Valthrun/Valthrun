@@ -16,26 +16,31 @@ That's a lot of descriptive words, but what does each of them mean?
 This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and exploring the world of game enhancements :)
 
 # WARNING
-Valthrun is **not** plug 'n play.  
+Valthrun is **not** a plug 'n play solution.  
+Instead Valthrun aims to achieve maximum stealth and stay invisible for other applications.  
 Please read [How to use](https://wiki.valth.run/#/010_getting-started/010_overview) carefully and try troubleshooting issues on your own.  
-The goal is to achieve maximum stealth in order to avoid being detected.
+
   
 # Features
 Due to Valthrun being read-only (as of now), there are limitations on what features are possible to implement (eg. skin changer).
 Regardless of this limitation, Valthrun supports the following features:  
 
-- Player ESP
-  Two modes are supported: `Skeleton` and `Boxes`
+- External radar  
+  Publish your game for everybody on https://radar.valth.run
+- Player ESP  
+  ESP with a lot of configuration possibilities like: `Skeleton`, `Boxes3D` and `Boxes2D` 
   - Configurable colors to distinguish between enemy and team players
-  - ESP includes player health
+  - ESP includes player health, a health bar, weapon and a lot more
 - Bomb Info
   - Time until the bomb detonation
   - Defuser info such as a defuse timer
   - Bomb site where the bomb is located
-- Trigger Bot
+- Trigger Bot  
+  Shoot your enemy (or team mates) as soon they enter your crosshair
 - Spectator info
   - List of player currently watching you / the observer target
-- Stream proof by default
+- Stream proof by default  
+  Never show your Valthrun overlay on any screen shares
 
 To access Valthruns settings overlay press `PAUSE`.
 
