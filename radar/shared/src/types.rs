@@ -37,5 +37,5 @@ pub struct RadarPlayerInfo {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarBombInfo {
-    pub position: [f32; 3]
+    pub position: [f32; 3],
 }
