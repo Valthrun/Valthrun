@@ -155,7 +155,6 @@ const SqareContainer = React.memo((props: {
 
 const MapRenderer = React.memo(() => {
     const { players, bomb } = React.useContext(ContextRadarState);
-    console.log('ContextRadarState bomb:', bomb); // Debugging line
     const map = React.useContext(ContextMap);
 
     return (
@@ -246,7 +245,6 @@ const MapBombPing = React.memo((props: {
         /* we need the map info */
         return null;
     }
-    console.log('MapBombPing bombInfo:', props.bombInfo); // Debugging line
 
     let bombX = props.bombInfo.position[0];
     let bombY = props.bombInfo.position[1];
