@@ -17,7 +17,6 @@ members = [
     "controller",
     "cs2",
     "overlay",
-    "movement"
 ]
 exclude = ["kernel/driver"]
 
