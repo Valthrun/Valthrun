@@ -151,6 +151,7 @@ export type RadarUpdate = {
 export type RadarState = {
     players: RadarPlayerInfo[],
     worldName: string,
+    bomb: RadarBombInfo,
 };
 
 export type RadarPlayerInfo = {
@@ -166,4 +167,8 @@ export type RadarPlayerInfo = {
 
     position: [number, number, number],
     rotation: number,
+};
+
+export type RadarBombInfo = {
+    position: [number, number, number],
 };

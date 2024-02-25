@@ -14,16 +14,8 @@ use cs2::{
     WeaponId,
 };
 use cs2_schema_declaration::Ptr;
-use cs2_schema_generated::cs2::client::{
-    CCSPlayer_ItemServices,
-    CSkeletonInstance,
-    C_CSPlayerPawn,
-};
-use radar_shared::{
-    RadarPlayerInfo,
-    RadarSettings,
-    RadarState,
-};
+use cs2_schema_generated::cs2::client::{CCSPlayer_ItemServices, CSkeletonInstance, C_CSPlayerPawn, C_C4, C_PlantedC4};
+use radar_shared::{RadarBombInfo, RadarPlayerInfo, RadarSettings, RadarState};
 
 use crate::RadarGenerator;
 
@@ -130,12 +122,33 @@ impl CS2RadarGenerator {
     }
 }
 
+trait BombData {
+    fn read_bomb_data(&self) -> anyhow::Result<RadarBombInfo>;
+}
+
+impl BombData for C_C4 {
+    fn read_bomb_data(&self) -> anyhow::Result<RadarBombInfo> {
+        Ok(RadarBombInfo {
+            position: self.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?
+        })
+    }
+}
+
+impl BombData for C_PlantedC4 {
+    fn read_bomb_data(&self) -> anyhow::Result<RadarBombInfo> {
+        Ok(RadarBombInfo {
+            position: self.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?
+        })
+    }
+}
+
 impl RadarGenerator for CS2RadarGenerator {
     fn generate_state(&mut self, _settings: &RadarSettings) -> anyhow::Result<RadarState> {
         let mut radar_state = RadarState {
             players: Vec::with_capacity(16),
             world_name: get_current_map(&self.handle, self.offsets.network_game_client_instance)?
                 .unwrap_or_else(|| "<empty>".to_string()),
+            bomb: RadarBombInfo { position: [-6969.0, -6969.0, -6969.0] },
         };
 
         self.entity_system.read_entities()?;
@@ -144,26 +157,44 @@ impl RadarGenerator for CS2RadarGenerator {
         self.class_name_cache.update_cache(&entities)?;
 
         for entity_identity in entities {
-            let entity_class = self
-                .class_name_cache
+            let entity_class = self.class_name_cache
                 .lookup(&entity_identity.entity_class_info()?)?;
-            if !entity_class
-                .map(|name| *name == "C_CSPlayerPawn")
-                .unwrap_or(false)
-            {
-                /* entity is not a player pawn */
-                continue;
-            }
 
-            let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
-            match self.generate_player_info(&player_pawn) {
-                Ok(Some(info)) => radar_state.players.push(info),
-                Ok(None) => {}
-                Err(error) => {
-                    log::warn!(
+            match entity_class {
+                Some(entity_class) => {
+                    match entity_class.as_str() {
+                        "C_CSPlayerPawn" => {
+                            let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
+                            match self.generate_player_info(&player_pawn) {
+                                Ok(Some(info)) => radar_state.players.push(info),
+                                Ok(None) => {}
+                                Err(error) => {
+                                    log::warn!(
                         "Failed to generate player pawn ESP info for {:X}: {:#}",
                         player_pawn.address()?,
                         error
+                        );
+                                }
+                            }
+                        },
+                        "C_C4" | "C_PlantedC4" => {
+                            let bomb_ptr: Box<dyn BombData> = match entity_class.as_str() {
+                                "C_C4" => Box::new(entity_identity.entity_ptr::<C_C4>()?.read_schema()?),
+                                "C_PlantedC4" => Box::new(entity_identity.entity_ptr::<C_PlantedC4>()?.read_schema()?),
+                                _ => unreachable!(),
+                            };
+
+                            if let Ok(bomb_data) = bomb_ptr.read_bomb_data() {
+                                radar_state.bomb = bomb_data;
+                            }
+                        },
+                        _ => {}
+                    }
+                },
+                None => {
+                    log::warn!(
+                        "Failed to get entity class info {:X}",
+                        entity_identity.memory.address,
                     );
                 }
             }

@@ -14,6 +14,7 @@ pub struct RadarSettings {
 #[serde(rename_all = "camelCase")]
 pub struct RadarState {
     pub players: Vec<RadarPlayerInfo>,
+    pub bomb: RadarBombInfo,
     pub world_name: String,
 }
 
@@ -31,4 +32,10 @@ pub struct RadarPlayerInfo {
 
     pub position: [f32; 3],
     pub rotation: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RadarBombInfo {
+    pub position: [f32; 3]
 }
