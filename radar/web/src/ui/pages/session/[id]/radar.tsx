@@ -12,7 +12,7 @@ import MenuIcon from "@mui/icons-material/Menu";
 export const ContextRadarState = React.createContext<RadarState>({
     players: [],
     worldName: "de_anubis",
-    bomb: { position: [-6969, -6969, -6969] },
+    bomb: null,
 });
 
 
@@ -22,7 +22,6 @@ export const RadarRenderer = React.memo(() => {
     const [mapInfo, setMapInfo] = React.useState<LoadedMap>(null);
     const [drawerOpen, setDrawerOpen] = React.useState(false);
     const [iconSize, setIconSize] = React.useState(3.125);
-    const [featureXEnabled, setFeatureXEnabled] = React.useState(false);
 
     const toggleDrawer = () => {
         setDrawerOpen(!drawerOpen);
@@ -74,7 +73,7 @@ export const RadarRenderer = React.memo(() => {
                             <Typography>Icon Size</Typography>
                             <Slider
                                 value={iconSize}
-                                onChange={(event, newValue) => {
+                                onChange={(_event, newValue) => {
                                     if (typeof newValue === 'number') {
                                         setIconSize(newValue)
                                     }
@@ -241,17 +240,13 @@ const MapBombPing = React.memo((props: {
     bombInfo: RadarBombInfo,
 }) => {
     const map = React.useContext(ContextMap);
-    if (!map) {
-        /* we need the map info */
+    if (!map || !props.bombInfo) {
+        /* we need the map and bomb info */
         return null;
     }
 
     let bombX = props.bombInfo.position[0];
     let bombY = props.bombInfo.position[1];
-
-    if (bombX === -6969 && bombY === -6969) {
-        return null;
-    }
 
     const { iconSize } = React.useContext(IconSizeContext);
 

@@ -115,7 +115,7 @@ const ClientStateConnected = React.memo(() => {
     const [radarState, setRadarState] = React.useState<RadarState>({
         players: [],
         worldName: "de_anubis",
-        bomb: { position: [-6969, -6969, -6969] },
+        bomb: null,
     });
 
     React.useEffect(() => client.events.on("radar.state", update => setRadarState(update)), [client]);

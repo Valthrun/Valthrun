@@ -159,9 +159,7 @@ impl RadarGenerator for CS2RadarGenerator {
             players: Vec::with_capacity(16),
             world_name: get_current_map(&self.handle, self.offsets.network_game_client_instance)?
                 .unwrap_or_else(|| "<empty>".to_string()),
-            bomb: RadarBombInfo {
-                position: [-6969.0, -6969.0, -6969.0],
-            },
+            bomb: None,
         };
 
         self.entity_system.read_entities()?;
@@ -202,7 +200,7 @@ impl RadarGenerator for CS2RadarGenerator {
                         };
 
                         if let Ok(bomb_data) = bomb_ptr.read_bomb_data() {
-                            radar_state.bomb = bomb_data;
+                            radar_state.bomb = Some(bomb_data);
                         }
                     }
                     _ => {}
