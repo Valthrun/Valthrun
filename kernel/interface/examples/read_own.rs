@@ -1,4 +1,7 @@
-use valthrun_kernel_interface::KernelInterface;
+use valthrun_kernel_interface::{
+    IoctrlDriverInterface,
+    KernelInterface,
+};
 
 fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
     let mut buffer = Vec::with_capacity(10_000);
@@ -29,7 +32,10 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
 
-    let interface = KernelInterface::create("\\\\.\\GLOBALROOT\\Device\\valthrun")?;
+    let interface = Box::new(IoctrlDriverInterface::create(
+        "\\\\.\\GLOBALROOT\\Device\\valthrun",
+    )?);
+    let interface = KernelInterface::create(interface)?;
 
     let target_value = 0x42u64;
     let read_value = interface.read::<u64>(

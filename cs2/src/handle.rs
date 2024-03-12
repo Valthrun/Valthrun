@@ -18,6 +18,7 @@ use cs2_schema_declaration::{
 };
 use obfstr::obfstr;
 use valthrun_kernel_interface::{
+    IoctrlDriverInterface,
     KernelInterface,
     KeyboardState,
     ModuleInfo,
@@ -83,7 +84,10 @@ pub struct CS2Handle {
 
 impl CS2Handle {
     pub fn create(metrics: bool) -> anyhow::Result<Arc<Self>> {
-        let interface = KernelInterface::create(obfstr!("\\\\.\\GLOBALROOT\\Device\\valthrun"))?;
+        let interface = Box::new(IoctrlDriverInterface::create(obfstr!(
+            "\\\\.\\GLOBALROOT\\Device\\valthrun"
+        ))?);
+        let interface = KernelInterface::create(interface)?;
 
         /*
          * Please no not analyze me:

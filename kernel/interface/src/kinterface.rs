@@ -1,8 +1,6 @@
-use std::{
-    ffi::{
-        c_void,
-        CString,
-    },
+use core::{
+    mem,
+    slice,
     sync::atomic::{
         AtomicUsize,
         Ordering,
@@ -36,20 +34,12 @@ use valthrun_driver_shared::{
     IO_MAX_DEREF_COUNT,
     KINTERFACE_MIN_VERSION,
 };
-use windows::{
-    core::PCSTR,
-    Win32::{
-        Foundation,
-        Storage::FileSystem::{
-            self,
-            CreateFileA,
-            FILE_FLAGS_AND_ATTRIBUTES,
-        },
-        System::IO::DeviceIoControl,
-    },
-};
 
 use crate::{
+    com::{
+        DriverInterface,
+        IoctrlDriverInterface,
+    },
     KInterfaceError,
     KResult,
     SearchPattern,
@@ -57,7 +47,7 @@ use crate::{
 
 /// Interface for our kernel driver
 pub struct KernelInterface {
-    driver_handle: Foundation::HANDLE,
+    driver_interface: Box<dyn DriverInterface>,
     driver_version: u32,
 
     read_calls: AtomicUsize,
@@ -73,29 +63,14 @@ fn driver_version_string(driver_version: u32) -> String {
 }
 
 impl KernelInterface {
-    pub fn create(path: &str) -> KResult<Self> {
-        let driver_handle = unsafe {
-            let path = CString::new(path).map_err(KInterfaceError::DeviceInvalidPath)?;
-            CreateFileA(
-                PCSTR::from_raw(path.as_bytes().as_ptr()),
-                Foundation::GENERIC_READ.0 | Foundation::GENERIC_WRITE.0,
-                FileSystem::FILE_SHARE_READ | FileSystem::FILE_SHARE_WRITE,
-                None,
-                FileSystem::OPEN_EXISTING,
-                FILE_FLAGS_AND_ATTRIBUTES(0),
-                None,
-            )
-            .map_err(KInterfaceError::DeviceUnavailable)?
-        };
-
+    pub fn create(driver_interface: Box<IoctrlDriverInterface>) -> KResult<Self> {
         let mut interface = Self {
-            driver_handle,
+            driver_interface,
             driver_version: 0,
 
             read_calls: AtomicUsize::new(0),
         };
         interface.initialize()?;
-
         Ok(interface)
     }
 
@@ -104,26 +79,20 @@ impl KernelInterface {
     #[must_use]
     unsafe fn execute_request<R: DriverRequest>(&self, payload: &R) -> KResult<R::Result> {
         let mut result: R::Result = Default::default();
-        let success = unsafe {
-            DeviceIoControl(
-                self.driver_handle,
-                R::control_code(),
-                Some(payload as *const _ as *const c_void),
-                std::mem::size_of::<R>() as u32,
-                Some(&mut result as *mut _ as *mut c_void),
-                std::mem::size_of::<R::Result>() as u32,
-                None,
-                None,
-            )
-            .as_bool()
-        };
+        unsafe {
+            let result = slice::from_raw_parts_mut(
+                &mut result as *mut _ as *mut u8,
+                mem::size_of_val(&result),
+            );
 
-        if success {
-            Ok(result)
-        } else {
-            /* TOOD: GetLastErrorCode? */
-            Err(KInterfaceError::RequestFailed)
-        }
+            let request =
+                slice::from_raw_parts(payload as *const _ as *const u8, mem::size_of_val(payload));
+
+            self.driver_interface
+                .execute_request(R::control_code(), request, result)
+        }?;
+
+        Ok(result)
     }
 
     fn initialize(&mut self) -> KResult<()> {
