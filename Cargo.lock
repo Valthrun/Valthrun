@@ -1593,6 +1593,7 @@ dependencies = [
  "cs2-schema-declaration",
  "cs2-schema-generated",
  "log",
+ "obfstr",
  "radar-shared",
  "tokio",
  "tokio-bincode",

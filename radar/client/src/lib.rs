@@ -22,7 +22,6 @@ use radar_shared::{
     RadarState,
 };
 use tokio::{
-    self,
     sync::mpsc::{
         Receiver,
         Sender,
