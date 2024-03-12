@@ -21,6 +21,8 @@ use obfstr::obfstr;
 
 use super::{
     Color,
+    EspBombColor,
+    EspBombColorType,
     EspColor,
     EspColorType,
     EspConfig,
@@ -30,6 +32,7 @@ use super::{
 use crate::{
     settings::{
         AppSettings,
+        EspBombSettings,
         EspBoxType,
         EspHealthBar,
         EspPlayerSettings,
@@ -152,6 +155,14 @@ impl SettingsUI {
                         ], &mut settings.esp_mode);
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
+                        if settings.bomb_timer {
+                            settings.bomb_settings.remove("bomb"); //For time-only in bomb.rs :)
+                            settings.bomb_esp = false;
+                        }
+                        ui.checkbox(obfstr!("Bomb ESP"), &mut settings.bomb_esp);
+                        if settings.bomb_esp {
+                            settings.bomb_timer = false;
+                        }
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                     }
 
@@ -162,6 +173,16 @@ impl SettingsUI {
                             ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
                         } else {
                             self.render_esp_settings(&mut *settings, ui);
+                        }
+                    }
+
+                    if let Some(_tab) = ui.tab_item(obfstr!("Bomb")) {
+                        if !settings.bomb_esp {
+                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            ui.text("Bomb has been disabled.");
+                            ui.text("Please enable ESP under \"Visuals\" \"Bomb Timer\"");
+                        } else {
+                            self.render_bomb_settings(&mut *settings, ui)
                         }
                     }
 
@@ -221,6 +242,48 @@ impl SettingsUI {
                     }
                 }
             });
+    }
+
+    fn get_esp_config_player<'a>(
+        settings: &'a mut AppSettings,
+        ui: &'a imgui::Ui,
+        target: EspSelector,
+    ) -> (&'a mut EspPlayerSettings, bool) {
+        let config_key = target.config_key();
+        let config_enabled = settings
+            .esp_settings_enabled
+            .get(&config_key)
+            .cloned()
+            .unwrap_or_default();
+
+        let config = match settings.esp_settings.entry(config_key.clone()) {
+            Entry::Occupied(entry) => {
+                let value = entry.into_mut();
+                if let EspConfig::Player(value) = value {
+                    value
+                } else {
+                    log::warn!("Detected invalid player config for {}", config_key);
+                    *value = EspConfig::Player(EspPlayerSettings::new(&target));
+                    if let EspConfig::Player(value) = value {
+                        value
+                    } else {
+                        unreachable!()
+                    }
+                }
+            }
+            Entry::Vacant(entry) => {
+                if let EspConfig::Player(value) =
+                    entry.insert(EspConfig::Player(EspPlayerSettings::new(&target)))
+                {
+                    value
+                } else {
+                    unreachable!()
+                }
+            }
+        };
+        let _ui_enable_token = ui.begin_enabled(config_enabled);
+
+        (config, config_enabled)
     }
 
     fn render_esp_target(
@@ -307,42 +370,11 @@ impl SettingsUI {
 
     fn render_esp_settings_player(
         &mut self,
-        settings: &mut AppSettings,
+        mut settings: &mut AppSettings,
         ui: &imgui::Ui,
         target: EspSelector,
     ) {
-        let config_key = target.config_key();
-        let config_enabled = settings
-            .esp_settings_enabled
-            .get(&config_key)
-            .cloned()
-            .unwrap_or_default();
-
-        let config = match settings.esp_settings.entry(config_key.clone()) {
-            Entry::Occupied(entry) => {
-                let value = entry.into_mut();
-                if let EspConfig::Player(value) = value {
-                    value
-                } else {
-                    log::warn!("Detected invalid player config for {}", config_key);
-                    *value = EspConfig::Player(EspPlayerSettings::new(&target));
-                    if let EspConfig::Player(value) = value {
-                        value
-                    } else {
-                        unreachable!()
-                    }
-                }
-            }
-            Entry::Vacant(entry) => {
-                if let EspConfig::Player(value) =
-                    entry.insert(EspConfig::Player(EspPlayerSettings::new(&target)))
-                {
-                    value
-                } else {
-                    unreachable!()
-                }
-            }
-        };
+        let (config, config_enabled) = Self::get_esp_config_player(&mut settings, &ui, target);
         let _ui_enable_token = ui.begin_enabled(config_enabled);
 
         let content_height =
@@ -458,6 +490,7 @@ impl SettingsUI {
                     ui.slider_config("Max distance", 0.0, 50.0)
                         .build(&mut config.near_players_distance);
                 }
+                ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
             }
         }
 
@@ -643,11 +676,14 @@ impl SettingsUI {
                         value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
                     },
                     EspColorType::HealthBased => EspColor::HealthBased {
-                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
-                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
+                        max: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
+                        min: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
                     },
                     EspColorType::HealthBasedRainbow => EspColor::HealthBasedRainbow,
-                    EspColorType::DistanceBased => EspColor::DistanceBased,
+                    EspColorType::DistanceBased => EspColor::DistanceBased {
+                        max: Color::from_f32([1.0, 0.0, 0.0, 0.75]), //far
+                        min: Color::from_f32([0.0, 1.0, 0.0, 0.75]), //near
+                    },
                 }
             }
         }
@@ -705,7 +741,165 @@ impl SettingsUI {
                         *min = Color::from_f32(min_value);
                     }
                 }
-                EspColor::DistanceBased => ui.text("Distance"),
+                EspColor::DistanceBased { max, min } => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                }
+            }
+        }
+    }
+
+    fn render_esp_settings_bomb_style_color(ui: &imgui::Ui, label: &str, color: &mut EspBombColor) {
+        ui.table_next_column();
+        ui.text(label);
+
+        ui.table_next_column();
+        {
+            let mut color_type = EspBombColorType::from_bomb_esp_color(color);
+            ui.set_next_item_width(150.0);
+            let color_type_changed = ui.combo_enum(
+                &format!("##{}_color_type", ui.table_row_index()),
+                &[
+                    (EspBombColorType::Static, "Static"),
+                    (EspBombColorType::Distance, "Distance"),
+                    (EspBombColorType::TimeDetonation, "Time Detonation"),
+                ],
+                &mut color_type,
+            );
+
+            if color_type_changed {
+                *color = match color_type {
+                    EspBombColorType::Static => EspBombColor::Static {
+                        value: Color::from_f32([1.0, 1.0, 1.0, 1.0]),
+                    },
+                    EspBombColorType::Distance => EspBombColor::Distance {
+                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
+                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
+                    },
+                    EspBombColorType::TimeDetonation => EspBombColor::TimeDetonation {
+                        max: Color::from_f32([0.0, 1.0, 0.0, 1.0]), //green
+                        min: Color::from_f32([1.0, 0.0, 0.0, 1.0]), //red
+                    },
+                }
+            }
+        }
+
+        ui.table_next_column();
+        ui.same_line();
+
+        {
+            match color {
+                EspBombColor::Distance { max, min } => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                }
+                EspBombColor::Static { value } => {
+                    let mut color_value = value.as_f32();
+
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_static_value", ui.table_row_index()),
+                            &mut color_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *value = Color::from_f32(color_value);
+                    }
+                }
+                EspBombColor::TimeDetonation { max, min } => {
+                    let mut max_value = max.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_max", ui.table_row_index()),
+                            &mut max_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *max = Color::from_f32(max_value);
+                    }
+
+                    ui.same_line();
+                    ui.text(" => ");
+                    ui.same_line();
+
+                    let mut min_value = min.as_f32();
+                    if {
+                        ui.color_edit4_config(
+                            &format!("##{}_health_min", ui.table_row_index()),
+                            &mut min_value,
+                        )
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
+                    } {
+                        *min = Color::from_f32(min_value);
+                    }
+                }
             }
         }
     }
@@ -816,7 +1010,52 @@ impl SettingsUI {
                 | EspSelector::WeaponSingle { .. } => {
                     self.render_esp_settings_weapon(settings, ui, self.esp_selected_target.clone())
                 }
+                EspSelector::Bomb => {}
             }
         }
+    }
+
+    pub fn render_bomb_settings(&mut self, settings: &mut AppSettings, ui: &imgui::Ui) {
+        let content_region = ui.content_region_avail();
+        let original_style = ui.clone_style();
+        let tree_width = (content_region[0] * 0.25).max(150.0);
+        let _content_width = (content_region[0] - tree_width - 5.0).max(300.0);
+
+        ui.text("Bomb Info");
+        ui.same_line_with_pos(
+            original_style.window_padding[0] * 2.0 + tree_width + original_style.window_border_size,
+        );
+
+        let reset_text = "Reset config";
+        let reset_text_width = ui.calc_text_size(&reset_text)[0];
+
+        let total_width = ui.content_region_avail()[0] + 2.0;
+        ui.same_line_with_pos(total_width - reset_text_width);
+
+        let _enabled = ui.begin_enabled(settings.bomb_esp);
+        if ui.button(reset_text) {
+            settings.bomb_settings.remove("bomb");
+        }
+        let config_enabled = settings.bomb_esp;
+
+        let config = settings
+            .bomb_settings
+            .entry("bomb".to_string())
+            .or_insert_with(|| EspBombSettings::new());
+
+        let _ui_enable_token = ui.begin_enabled(config_enabled);
+        ui.checkbox(obfstr!("Planted C4 ESP"), &mut config.bomb_position);
+        ui.checkbox(obfstr!("Bomb site"), &mut config.bomb_site);
+        ui.checkbox(obfstr!("Bomb status"), &mut config.bomb_status);
+        ui.checkbox(obfstr!("Is safe from dmg"), &mut config.is_safe);
+
+        if config.bomb_position {
+            Self::render_esp_settings_bomb_style_color(
+                ui,
+                obfstr!("Bomb position color"),
+                &mut config.bomb_position_color,
+            );
+        }
+        drop(_ui_enable_token);
     }
 }
