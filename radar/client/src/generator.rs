@@ -23,9 +23,9 @@ use cs2_schema_generated::cs2::{
         C_PlantedC4,
         C_C4,
     },
+    globals::CSWeaponState_t,
 };
 use obfstr::obfstr;
-use cs2_schema_generated::cs2::globals::CSWeaponState_t;
 use radar_shared::{
     BombDefuser,
     C4State,
