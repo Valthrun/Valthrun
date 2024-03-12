@@ -1,7 +1,13 @@
 use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     CS2Handle,
+    CS2HandleState,
     EngineBuildInfo,
     Module,
     Signature,
@@ -11,6 +17,19 @@ use crate::{
 pub struct BuildInfo {
     pub revision: String,
     pub build_datetime: String,
+}
+
+impl State for BuildInfo {
+    type Parameter = ();
+
+    fn create(states: &StateRegistry, _params: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2_handle = states.resolve::<CS2HandleState>(())?;
+        Self::read_build_info(&cs2_handle)
+    }
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
 }
 
 impl BuildInfo {

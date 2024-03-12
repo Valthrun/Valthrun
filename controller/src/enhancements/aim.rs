@@ -1,7 +1,12 @@
 use anyhow::Context;
+use cs2::{
+    EntitySystem,
+    Globals,
+};
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
+use crate::settings::AppSettings;
 
 pub struct AntiAimPunsh {
     mouse_sensitivity: f32,
@@ -27,17 +32,18 @@ impl AntiAimPunsh {
 
 impl Enhancement for AntiAimPunsh {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        if !ctx.settings.aim_assist_recoil {
+        let settings = ctx.states.resolve::<AppSettings>(())?;
+        if !settings.aim_assist_recoil {
             return Ok(());
         }
 
-        let local_controller = ctx.cs2_entities.get_local_player_controller()?;
+        let entities = ctx.states.resolve::<EntitySystem>(())?;
+        let local_controller = entities.get_local_player_controller()?;
         if local_controller.is_null()? {
             return Ok(());
         }
 
-        let local_pawn = ctx
-            .cs2_entities
+        let local_pawn = entities
             .get_by_handle(&local_controller.reference_schema()?.m_hPlayerPawn()?)?
             .context("missing local player pawn")?
             .entity()?
@@ -47,7 +53,8 @@ impl Enhancement for AntiAimPunsh {
             return Ok(());
         }
 
-        let current_tick = ctx.globals.frame_count_2()?;
+        let globals = ctx.states.resolve::<Globals>(())?;
+        let current_tick = globals.frame_count_2()?;
 
         let punch_angle = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngle()?);
         let punch_vel = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngleVel()?);
@@ -66,7 +73,7 @@ impl Enhancement for AntiAimPunsh {
             nalgebra::Vector4::<f32>::zeros()
         };
 
-        let deg_one = ctx.settings.mouse_x_360 as f32 / 360.0;
+        let deg_one = settings.mouse_x_360 as f32 / 360.0;
         let target_mouse_y = (total_punch_angle.x * deg_one * -2.25).round() as i32;
         let delta_mouse_y = target_mouse_y - self.mouse_adjustment_y;
         self.mouse_adjustment_y = target_mouse_y;
@@ -88,11 +95,7 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(
-        &self,
-        _settings: &crate::settings::AppSettings,
-        _ui: &imgui::Ui,
-        _view: &crate::view::ViewController,
-    ) {
+    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui) -> anyhow::Result<()> {
+        Ok(())
     }
 }

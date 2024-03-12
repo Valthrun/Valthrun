@@ -1,11 +1,10 @@
 use std::{
-    cell::RefCell,
     collections::btree_map::Entry,
-    rc::Rc,
     sync::atomic::Ordering,
     time::Instant,
 };
 
+use cs2::BuildInfo;
 use imgui::{
     Condition,
     ImColor32,
@@ -48,7 +47,6 @@ enum EspPlayerActiveHeader {
 }
 
 pub struct SettingsUI {
-    settings: Rc<RefCell<AppSettings>>,
     discord_link_copied: Option<Instant>,
 
     esp_selected_target: EspSelector,
@@ -59,9 +57,8 @@ pub struct SettingsUI {
 
 const VERSION: &str = env!("CARGO_PKG_VERSION");
 impl SettingsUI {
-    pub fn new(settings: Rc<RefCell<AppSettings>>) -> Self {
+    pub fn new() -> Self {
         Self {
-            settings,
             discord_link_copied: None,
 
             esp_selected_target: EspSelector::None,
@@ -99,13 +96,15 @@ impl SettingsUI {
                 }
 
                 let _content_font = ui.push_font(content_font);
-                let settings = self.settings.clone();
-                let mut settings: std::cell::RefMut<'_, AppSettings> = settings.borrow_mut();
+                let mut settings = app.settings_mut();
+
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
+                        let build_info = app.app_state.resolve::<BuildInfo>(()).ok();
+
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
                         ui.text(&format!("{} Version {} ({})", obfstr!("Valthrun"), VERSION, env!("BUILD_TIME")));
-                        ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), app.cs2_build_info.revision, app.cs2_build_info.build_datetime));
+                        ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), build_info.as_ref().map_or("error", |info| &info.revision), build_info.as_ref().map_or("error", |info| &info.build_datetime)));
 
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.0 - 12.0;
                         ui.dummy([ 0.0, ydummy ]);

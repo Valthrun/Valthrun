@@ -4,6 +4,7 @@ use std::{
     any::Any,
     ffi::CStr,
     fmt::Debug,
+    ops::Deref,
     sync::{
         Arc,
         Weak,
@@ -17,6 +18,11 @@ use cs2_schema_declaration::{
     SchemaValue,
 };
 use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 use valthrun_kernel_interface::{
     IoctrlDriverInterface,
     KernelInterface,
@@ -277,5 +283,37 @@ impl CS2Handle {
             ),
         }
         Ok(value)
+    }
+}
+
+pub struct CS2HandleState(Arc<CS2Handle>);
+
+impl CS2HandleState {
+    pub fn new(value: Arc<CS2Handle>) -> Self {
+        Self(value)
+    }
+
+    pub fn handle(&self) -> &Arc<CS2Handle> {
+        &self.0
+    }
+}
+
+impl State for CS2HandleState {
+    type Parameter = ();
+
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        anyhow::bail!("CS2 handle state must be manually set")
+    }
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+}
+
+impl Deref for CS2HandleState {
+    type Target = CS2Handle;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
     }
 }

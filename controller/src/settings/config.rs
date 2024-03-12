@@ -14,6 +14,10 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use utils_state::{
+    State,
+    StateCacheType,
+};
 
 use super::{
     EspConfig,
@@ -140,6 +144,14 @@ pub struct AppSettings {
 
     #[serde(default)]
     pub imgui: Option<String>,
+}
+
+impl State for AppSettings {
+    type Parameter = ();
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
 }
 
 pub fn get_settings_path() -> anyhow::Result<PathBuf> {

@@ -30,7 +30,8 @@ windows = { version = "0.48.0", features = [
 
 chrono = "0.4.26"
 rand = "0.8.5"
-libloading = "0.7.4" # Same version as used by ash
+libloading = "0.7.4"                                         # Same version as used by ash
+utils-state = { version = "0.1.0", path = "../utils/state" }
 
 [build-dependencies]
 winres = "0.1"

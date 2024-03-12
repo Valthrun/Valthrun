@@ -14,3 +14,10 @@ tokio-bincode = "0.1.0"
 tokio-util = { version = "0.7.10", features = ["codec"] }
 cs2-schema-generated = { version = "0.1.0", path = "../../cs2-schema/generated" }
 cs2-schema-declaration = { path = "../../cs2-schema/declaration" }
+utils-state = { version = "0.1.0", path = "../../utils/state" }
+tokio-tungstenite = { version = "0.20.1", features = [
+    "rustls-tls-native-roots",
+] }
+url = "2.5.0"
+futures-util = "0.3.29"
+serde_json = "1.0.108"

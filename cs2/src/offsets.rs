@@ -1,14 +1,21 @@
 use anyhow::Context;
 use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     CS2Handle,
+    CS2HandleState,
     Module,
     Signature,
 };
 
 /// Offsets which needs to be scaned for on runtime.
 /// Mostly global variables.
+#[derive(Debug, Clone)]
 pub struct CS2Offsets {
     /// Address of the client globals
     pub globals: u64,
@@ -29,8 +36,13 @@ pub struct CS2Offsets {
     pub network_game_client_instance: u64,
 }
 
-impl CS2Offsets {
-    pub fn resolve_offsets(cs2: &CS2Handle) -> anyhow::Result<Self> {
+impl State for CS2Offsets {
+    type Parameter = ();
+
+    fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let cs2 = &*cs2;
+
         Ok(Self {
             globals: Self::find_globals(cs2).with_context(|| obfstr!("cs2 globals").to_string())?,
             local_controller: Self::find_local_player_controller_ptr(cs2)
@@ -46,6 +58,12 @@ impl CS2Offsets {
         })
     }
 
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+}
+
+impl CS2Offsets {
     fn find_globals(cs2: &CS2Handle) -> anyhow::Result<u64> {
         cs2.resolve_signature(
             Module::Client,
