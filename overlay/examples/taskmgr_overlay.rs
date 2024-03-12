@@ -1,8 +1,3 @@
-use imgui::{
-    FontConfig,
-    FontGlyphRanges,
-    FontSource,
-};
 use overlay::OverlayTarget;
 
 fn main() -> anyhow::Result<()> {
@@ -15,7 +10,7 @@ fn main() -> anyhow::Result<()> {
     let overlay = overlay::init(&overlay::OverlayOptions {
         title: "Task Manager Overlay".to_string(),
         target: OverlayTarget::WindowTitle("Task Manager".into()),
-        font_init: Some(Box::new(|imgui| {
+        font_init: Some(Box::new(|_imgui| {
             // imgui.fonts().add_font(font_sources)
             // imgui.fonts().add_font(&[FontSource::TtfData {
             //     data: include_bytes!("../resources/unifont-15.1.03.otf"),

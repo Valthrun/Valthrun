@@ -8,7 +8,6 @@ mod ptr;
 pub use ptr::*;
 
 mod basics;
-pub use basics::*;
 
 mod offset;
 pub use offset::*;
