@@ -246,6 +246,14 @@ impl Enhancement for PlayerESP {
 
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
+
+        match (view.get_view_world_position(), self.local_pos) {
+            (Some(view_world_position), Some(local_pos)) => {
+                log::info!("view: {}", view_world_position);
+                log::info!("pos: {}", local_pos);
+            },
+            _ => return Ok(())
+        }
         for entry in self.players.iter() {
             let distance = if let Some(local_pos) = self.local_pos {
                 let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
