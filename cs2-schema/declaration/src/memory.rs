@@ -5,7 +5,7 @@ use std::{
 
 use crate::SchemaValue;
 
-pub trait MemoryDriver: Any {
+pub trait MemoryDriver: Any + Send + Sync {
     fn as_any(&self) -> &dyn Any;
 
     fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()>;

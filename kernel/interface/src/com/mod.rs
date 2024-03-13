@@ -1,6 +1,6 @@
 use crate::KResult;
 
-pub trait DriverInterface {
+pub trait DriverInterface: Sync + Send {
     /// Execute a request
     ///
     /// Safety:

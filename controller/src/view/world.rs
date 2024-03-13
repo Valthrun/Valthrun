@@ -1,35 +1,47 @@
-use std::sync::Arc;
-
 use cs2::{
-    CS2Handle,
+    CS2HandleState,
     CS2Offsets,
 };
 use imgui::ImColor32;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 /// View controller which helps resolve in game
 /// coordinates into 2d screen coordinates.
 pub struct ViewController {
-    cs2_view_matrix: u64,
     view_matrix: nalgebra::Matrix4<f32>,
     pub screen_bounds: mint::Vector2<f32>,
 }
 
-impl ViewController {
-    pub fn new(offsets: Arc<CS2Offsets>) -> Self {
-        Self {
-            cs2_view_matrix: offsets.view_matrix,
+impl State for ViewController {
+    type Parameter = ();
+
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        Ok(Self {
             view_matrix: Default::default(),
             screen_bounds: mint::Vector2 { x: 0.0, y: 0.0 },
-        }
+        })
     }
 
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+
+    fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let offsets = states.resolve::<CS2Offsets>(())?;
+
+        self.view_matrix = cs2.read_sized(&[offsets.view_matrix])?;
+        Ok(())
+    }
+}
+
+impl ViewController {
     pub fn update_screen_bounds(&mut self, bounds: mint::Vector2<f32>) {
         self.screen_bounds = bounds;
-    }
-
-    pub fn update_view_matrix(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.view_matrix = cs2.read_sized(&[self.cs2_view_matrix])?;
-        Ok(())
     }
 
     /// Returning an mint::Vector2<f32> as the result should be used via ImGui.

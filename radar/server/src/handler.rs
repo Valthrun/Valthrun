@@ -78,6 +78,10 @@ impl ServerCommandHandler {
 
                 S2CMessage::ResponseSuccess
             }
+            C2SMessage::Disconnect { .. } => {
+                /* command is already handled within the connection code */
+                S2CMessage::ResponseSuccess
+            }
         }
     }
 }

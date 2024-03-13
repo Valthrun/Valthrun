@@ -1,6 +1,18 @@
+use anyhow::Context;
 use cs2_schema_declaration::{
     define_schema,
     PtrCStr,
+};
+use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
+
+use crate::{
+    CS2HandleState,
+    CS2Offsets,
 };
 
 define_schema! {
@@ -23,5 +35,22 @@ define_schema! {
 
         pub frame_count_2: u32 = 0x40,
         pub two_tick_time: f32 = 0x44,
+    }
+}
+
+impl State for Globals {
+    type Parameter = ();
+
+    fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let offsets = states.resolve::<CS2Offsets>(())?;
+
+        cs2.reference_schema::<Globals>(&[offsets.globals, 0])?
+            .cached()
+            .with_context(|| obfstr!("failed to read globals").to_string())
+    }
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Volatile
     }
 }

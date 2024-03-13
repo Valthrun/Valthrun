@@ -1,6 +1,7 @@
 use std::time::Instant;
 
 use anyhow::Context;
+use cs2::EntitySystem;
 use cs2_schema_generated::{
     cs2::client::C_CSPlayerPawn,
     EntityHandle,
@@ -10,6 +11,7 @@ use rand::{
     distributions::Uniform,
     prelude::Distribution,
 };
+use utils_state::StateRegistry;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
@@ -18,7 +20,6 @@ use crate::{
     view::{
         KeyToggle,
         LocalCrosshair,
-        ViewController,
     },
     UpdateContext,
 };
@@ -33,21 +34,23 @@ pub struct TriggerBot {
     toggle: KeyToggle,
     state: TriggerState,
     trigger_active: bool,
-    crosshair: LocalCrosshair,
 }
 
 impl TriggerBot {
-    pub fn new(crosshair: LocalCrosshair) -> Self {
+    pub fn new() -> Self {
         Self {
             toggle: KeyToggle::new(),
             state: TriggerState::Idle,
             trigger_active: false,
-            crosshair,
         }
     }
 
     fn should_be_active(&self, ctx: &UpdateContext) -> anyhow::Result<bool> {
-        let target = match self.crosshair.current_target() {
+        let settings = ctx.states.resolve::<AppSettings>(())?;
+        let crosshair = ctx.states.resolve::<LocalCrosshair>(())?;
+        let entities = ctx.states.resolve::<EntitySystem>(())?;
+
+        let target = match crosshair.current_target() {
             Some(target) => target,
             None => return Ok(false),
         };
@@ -61,9 +64,8 @@ impl TriggerBot {
             return Ok(false);
         }
 
-        if ctx.settings.trigger_bot_team_check {
-            let crosshair_entity = ctx
-                .cs2_entities
+        if settings.trigger_bot_team_check {
+            let crosshair_entity = entities
                 .get_by_handle(&EntityHandle::<C_CSPlayerPawn>::from_index(
                     target.entity_id,
                 ))?
@@ -71,7 +73,7 @@ impl TriggerBot {
                 .entity()?
                 .read_schema()?;
 
-            let local_player_controller = ctx.cs2_entities.get_local_player_controller()?;
+            let local_player_controller = entities.get_local_player_controller()?;
             if local_player_controller.is_null()? {
                 return Ok(false);
             }
@@ -90,22 +92,22 @@ impl TriggerBot {
 
 impl Enhancement for TriggerBot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
+        let settings = ctx.states.resolve::<AppSettings>(())?;
         if self.toggle.update(
-            &ctx.settings.trigger_bot_mode,
+            &settings.trigger_bot_mode,
             ctx.input,
-            &ctx.settings.key_trigger_bot,
+            &settings.key_trigger_bot,
         ) {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-trigger-bot-toggle"),
                 &format!(
                     "enabled: {}, mode: {:?}",
-                    self.toggle.enabled, ctx.settings.trigger_bot_mode
+                    self.toggle.enabled, settings.trigger_bot_mode
                 ),
             );
         }
 
         let should_shoot: bool = if self.toggle.enabled {
-            self.crosshair.update(ctx)?;
             self.should_be_active(ctx)?
         } else {
             false
@@ -119,14 +121,12 @@ impl Enhancement for TriggerBot {
                         break;
                     }
 
-                    let delay_min = ctx
-                        .settings
+                    let delay_min = settings
                         .trigger_bot_delay_min
-                        .min(ctx.settings.trigger_bot_delay_max);
-                    let delay_max = ctx
-                        .settings
+                        .min(settings.trigger_bot_delay_max);
+                    let delay_max = settings
                         .trigger_bot_delay_min
-                        .max(ctx.settings.trigger_bot_delay_max);
+                        .max(settings.trigger_bot_delay_max);
                     let selected_delay = if delay_max == delay_min {
                         delay_min
                     } else {
@@ -150,7 +150,7 @@ impl Enhancement for TriggerBot {
                         break;
                     }
 
-                    if ctx.settings.trigger_bot_check_target_after_delay && !should_shoot {
+                    if settings.trigger_bot_check_target_after_delay && !should_shoot {
                         self.state = TriggerState::Idle;
                     } else {
                         self.state = TriggerState::Active;
@@ -184,7 +184,7 @@ impl Enhancement for TriggerBot {
         Ok(())
     }
 
-    fn render(&self, _settings: &AppSettings, _ui: &imgui::Ui, _view: &ViewController) {
-        /* We have nothing to render */
+    fn render(&self, _states: &StateRegistry, _ui: &imgui::Ui) -> anyhow::Result<()> {
+        Ok(())
     }
 }

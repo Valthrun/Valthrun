@@ -24,7 +24,6 @@ use rand::{
     Rng,
 };
 use tokio::{
-    self,
     sync::{
         mpsc::{
             self,
@@ -268,10 +267,7 @@ impl RadarServer {
         };
         match client_state {
             ClientState::Publisher { session_id } => {
-                if let Some(session) = self.pub_sessions.remove(&session_id) {
-                    log::info!("Session {} closed", session_id);
-                    session.broadcast(&S2CMessage::NotifySessionClosed);
-                }
+                self.pub_session_close(&session_id).await;
             }
             ClientState::Subscriber { session_id } => {
                 self.pub_session_unsubscribe(&session_id, client_id).await;
@@ -310,6 +306,12 @@ impl RadarServer {
             while let Some(event) = rx.recv().await {
                 match event {
                     ClientEvent::RecvMessage(command) => {
+                        if let C2SMessage::Disconnect { message } = &command {
+                            /* client requested a disconnect */
+                            log::debug!("Client send disconnect with reason: {}", message);
+                            break;
+                        }
+
                         let result = command_handler.handle_command(command).await;
                         client.read().await.send_command(result);
                     }
@@ -364,6 +366,26 @@ impl RadarServer {
             session_id: session_id.clone(),
         };
         self.pub_sessions.get(&session_id)
+    }
+
+    pub async fn pub_session_close(&mut self, session_id: &str) {
+        let session = match self.pub_sessions.remove(session_id) {
+            Some(session) => session,
+            None => return,
+        };
+
+        log::info!("Session {} closed", session_id);
+        session.broadcast(&S2CMessage::NotifySessionClosed);
+
+        for client_id in session.subscriber.keys() {
+            let client = match self.clients.get(client_id) {
+                Some(client) => client,
+                None => continue,
+            };
+
+            let mut client = client.write().await;
+            client.state = ClientState::Uninitialized;
+        }
     }
 
     pub fn pub_session_find(&self, session_id: &str) -> Option<&PubSession> {

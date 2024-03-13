@@ -1,6 +1,8 @@
 [workspace]
 resolver = "2"
 members = [
+    "utils/state",
+
     "cs2-schema/declaration",
     "cs2-schema/cutl",
     "cs2-schema/generated",

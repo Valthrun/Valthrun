@@ -1,6 +1,7 @@
 use crate::settings::AppSettings;
 
 pub trait Enhancement {
+    /* FIXME: Remove the update method! */
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;
     fn update_settings(
         &mut self,
@@ -10,8 +11,8 @@ pub trait Enhancement {
         Ok(false)
     }
 
-    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController);
-    fn render_debug_window(&mut self, _settings: &mut AppSettings, _ui: &imgui::Ui) {}
+    fn render(&self, states: &StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()>;
+    fn render_debug_window(&mut self, _states: &StateRegistry, _ui: &imgui::Ui) {}
 }
 
 mod bomb;
@@ -28,8 +29,6 @@ pub use spectators_list::*;
 
 mod aim;
 pub use aim::*;
+use utils_state::StateRegistry;
 
-use crate::{
-    view::ViewController,
-    UpdateContext,
-};
+use crate::UpdateContext;

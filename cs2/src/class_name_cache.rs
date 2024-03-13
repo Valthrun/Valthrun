@@ -1,37 +1,44 @@
-use std::{
-    collections::BTreeMap,
-    sync::Arc,
-};
+use std::collections::BTreeMap;
 
 use anyhow::Context;
 use cs2_schema_declaration::Ptr;
-use cs2_schema_generated::cs2::client::CEntityIdentity;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     CEntityIdentityEx,
     CS2Handle,
+    CS2HandleState,
+    EntitySystem,
 };
 
 pub struct ClassNameCache {
-    cs2: Arc<CS2Handle>,
-
     lookup: BTreeMap<u64, String>,
     reverse_lookup: BTreeMap<String, u64>,
 }
 
-impl ClassNameCache {
-    pub fn new(cs2: Arc<CS2Handle>) -> Self {
-        Self {
-            cs2,
+impl State for ClassNameCache {
+    type Parameter = ();
 
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        Ok(Self {
             lookup: Default::default(),
             reverse_lookup: Default::default(),
-        }
+        })
     }
 
-    pub fn update_cache(&mut self, known_identities: &[CEntityIdentity]) -> anyhow::Result<()> {
-        for identity in known_identities {
-            self.register_class_info(identity.entity_class_info()?)
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+
+    fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let entities = states.resolve::<EntitySystem>(())?;
+        for identity in entities.all_identities() {
+            self.register_class_info(&cs2, identity.entity_class_info()?)
                 .with_context(|| {
                     format!(
                         "failed to generate class info for entity {:?}",
@@ -39,21 +46,19 @@ impl ClassNameCache {
                     )
                 })?;
         }
-
         Ok(())
     }
+}
 
-    fn register_class_info(&mut self, class_info: Ptr<()>) -> anyhow::Result<()> {
+impl ClassNameCache {
+    fn register_class_info(&mut self, cs2: &CS2Handle, class_info: Ptr<()>) -> anyhow::Result<()> {
         let address = class_info.address()?;
         if self.lookup.contains_key(&address) {
             /* we already know the name for this class */
             return Ok(());
         }
 
-        let class_name = self
-            .cs2
-            .read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
-
+        let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
         self.lookup.insert(address, class_name.clone());
         self.reverse_lookup.insert(class_name, address);
         Ok(())

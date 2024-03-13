@@ -41,6 +41,7 @@ export default React.memo(() => {
                 <ClientStateConnecting />
                 <ClientStateFailed />
                 <ClientStateConnected />
+                <ClientStateDisconnected />
             </SubscriberClientProvider>
         </Box>
     );
@@ -109,12 +110,26 @@ const ClientStateFailed = React.memo(() => {
     );
 });
 
+const ClientStateDisconnected = React.memo(() => {
+    const state = useSubscriberClientState();
+    if (state.state !== "disconnected") {
+        return;
+    }
+
+    return (
+        <Box sx={{ alignSelf: "center" }}>
+            <Typography>Session has been closed</Typography>
+        </Box>
+    );
+});
+
 const ClientStateConnected = React.memo(() => {
     const client = useSubscriberClient();
     const state = useSubscriberClientState();
     const [radarState, setRadarState] = React.useState<RadarState>({
         players: [],
-        worldName: "de_anubis"
+        worldName: "de_anubis",
+        bomb: null,
     });
 
     React.useEffect(() => client.events.on("radar.state", update => setRadarState(update)), [client]);

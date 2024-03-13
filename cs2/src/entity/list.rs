@@ -1,55 +1,50 @@
-use std::{
-    collections::BTreeMap,
-    sync::Arc,
-};
+use std::collections::BTreeMap;
 
 use cs2_schema_declaration::Ptr;
 use cs2_schema_generated::cs2::client::CEntityIdentity;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     CEntityIdentityEx,
-    CS2Handle,
+    CS2HandleState,
+    CS2Offsets,
 };
 
 type InnerEntityList = [CEntityIdentity; 512];
 type OuterEntityList = [Ptr<InnerEntityList>; 64];
-pub struct EntityList {
-    cs2: Arc<CS2Handle>,
-    entity_list_offset: u64,
 
+#[derive(Clone)]
+pub struct EntityList {
     entities: Vec<CEntityIdentity>,
     handle_lookup: BTreeMap<u32, usize>,
 }
 
-impl EntityList {
-    pub fn new(cs2: Arc<CS2Handle>, entity_list_address: u64) -> Self {
-        Self {
-            cs2,
-            entity_list_offset: entity_list_address,
+impl State for EntityList {
+    type Parameter = ();
 
-            entities: Default::default(),
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        Ok(Self {
+            entities: Vec::new(),
             handle_lookup: Default::default(),
-        }
+        })
     }
 
-    pub fn entities(&self) -> &[CEntityIdentity] {
-        &self.entities
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
     }
 
-    pub fn lookup_entity_index(&self, entity_index: u32) -> Option<&CEntityIdentity> {
-        self.handle_lookup
-            .get(&entity_index)
-            .map(|index| self.entities.get(*index))
-            .flatten()
-    }
+    fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let offsets = states.resolve::<CS2Offsets>(())?;
 
-    pub fn cache_list(&mut self) -> anyhow::Result<()> {
         self.entities.clear();
         self.handle_lookup.clear();
 
-        let outer_list = self
-            .cs2
-            .read_schema::<OuterEntityList>(&[self.entity_list_offset, 0x00])?;
+        let outer_list = cs2.read_schema::<OuterEntityList>(&[offsets.global_entity_list, 0x00])?;
         for (bulk_index, bulk) in outer_list.into_iter().enumerate() {
             let list = match bulk.try_read_schema()? {
                 Some(list) => list,
@@ -71,5 +66,18 @@ impl EntityList {
         }
 
         Ok(())
+    }
+}
+
+impl EntityList {
+    pub fn entities(&self) -> &[CEntityIdentity] {
+        &self.entities
+    }
+
+    pub fn lookup_entity_index(&self, entity_index: u32) -> Option<&CEntityIdentity> {
+        self.handle_lookup
+            .get(&entity_index)
+            .map(|index| self.entities.get(*index))
+            .flatten()
     }
 }

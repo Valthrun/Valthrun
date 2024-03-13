@@ -45,7 +45,11 @@ export class SubscriberClient {
 
         this.commandHandler["NotifyRadarUpdate"] = payload => {
             this.events.emit("radar.state", payload.update.State.state)
-        }
+        };
+
+        this.commandHandler["NotifySessionClosed"] = () => {
+            this.updateState({ state: "disconnected" });
+        };
     }
 
     public getState(): Readonly<SubscriberClientState> {
@@ -139,7 +143,8 @@ export type S2CMessage = {
 
     "NotifyRadarUpdate": {
         update: RadarUpdate
-    }
+    },
+    "NotifySessionClosed": void
 }
 
 
@@ -151,6 +156,7 @@ export type RadarUpdate = {
 export type RadarState = {
     players: RadarPlayerInfo[],
     worldName: string,
+    bomb: RadarBombInfo,
 };
 
 export type RadarPlayerInfo = {
@@ -166,4 +172,26 @@ export type RadarPlayerInfo = {
 
     position: [number, number, number],
     rotation: number,
+};
+
+export type RadarBombInfo = {
+    position: [number, number, number],
+    state: C4State,
+    bombSite: number | null,
+};
+
+export type C4State =
+    | { variant: 'Carried' }
+    | { variant: 'Dropped'}
+    | {
+    variant: 'Active';
+    timeDetonation: number;
+    defuse: BombDefuser | null;
+}
+    | { variant: 'Detonated' }
+    | { variant: 'Defused' };
+
+export type BombDefuser = {
+    timeRemaining: number;
+    playerName: string
 };

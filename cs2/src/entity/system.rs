@@ -4,7 +4,6 @@ use std::{
         Deref,
         DerefMut,
     },
-    sync::Arc,
 };
 
 use anyhow::{
@@ -23,10 +22,15 @@ use cs2_schema_generated::{
     },
     EntityHandle,
 };
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     CEntityIdentityEx,
-    CS2Handle,
+    CS2HandleState,
     CS2Offsets,
     EntityList,
 };
@@ -58,30 +62,36 @@ impl<T> DerefMut for TypedEntityIdentity<T> {
 
 /// Helper class for CS2 global entity system
 pub struct EntitySystem {
-    cs2: Arc<CS2Handle>,
-    offsets: Arc<CS2Offsets>,
     entity_list: EntityList,
+    local_player: Ptr<CCSPlayerController>,
+}
+
+impl State for EntitySystem {
+    type Parameter = ();
+
+    fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let entity_list = states.resolve::<EntityList>(())?;
+        let offsets = states.resolve::<CS2Offsets>(())?;
+
+        let local_player =
+            cs2.reference_schema::<Ptr<CCSPlayerController>>(&[offsets.local_controller])?;
+
+        Ok(Self {
+            entity_list: entity_list.clone(),
+            local_player,
+        })
+    }
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Volatile
+    }
 }
 
 impl EntitySystem {
-    pub fn new(cs2: Arc<CS2Handle>, offsets: Arc<CS2Offsets>) -> Self {
-        let entity_list = EntityList::new(cs2.clone(), offsets.global_entity_list);
-        Self {
-            cs2,
-            offsets,
-            entity_list,
-        }
-    }
-
-    pub fn read_entities(&mut self) -> anyhow::Result<()> {
-        self.entity_list.cache_list()?;
-        Ok(())
-    }
-
     /* Returns a CSSPlayerController instance */
     pub fn get_local_player_controller(&self) -> anyhow::Result<Ptr<CCSPlayerController>> {
-        self.cs2
-            .reference_schema::<Ptr<CCSPlayerController>>(&[self.offsets.local_controller])
+        Ok(self.local_player.clone())
     }
 
     pub fn all_identities(&self) -> &[CEntityIdentity] {
