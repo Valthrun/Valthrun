@@ -287,7 +287,9 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                 }
                 AtomicCategory::CollectionOfT => {
                     let value = schema_type.var_type()?.read_string()?;
-                    if !value.starts_with("CUtlVector<") || !value.starts_with("C_NetworkUtlVectorBase<") {
+                    if !value.starts_with("CUtlVector<")
+                        || !value.starts_with("C_NetworkUtlVectorBase<")
+                    {
                         return Ok(None);
                     }
 
