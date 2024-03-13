@@ -41,6 +41,7 @@ export default React.memo(() => {
                 <ClientStateConnecting />
                 <ClientStateFailed />
                 <ClientStateConnected />
+                <ClientStateDisconnected />
             </SubscriberClientProvider>
         </Box>
     );
@@ -105,6 +106,19 @@ const ClientStateFailed = React.memo(() => {
         <Box sx={{ alignSelf: "center" }}>
             <Typography>Connection Error</Typography>
             <Typography>{state.reason}</Typography>
+        </Box>
+    );
+});
+
+const ClientStateDisconnected = React.memo(() => {
+    const state = useSubscriberClientState();
+    if (state.state !== "disconnected") {
+        return;
+    }
+
+    return (
+        <Box sx={{ alignSelf: "center" }}>
+            <Typography>Session has been closed</Typography>
         </Box>
     );
 });

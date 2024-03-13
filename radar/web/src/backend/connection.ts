@@ -45,7 +45,11 @@ export class SubscriberClient {
 
         this.commandHandler["NotifyRadarUpdate"] = payload => {
             this.events.emit("radar.state", payload.update.State.state)
-        }
+        };
+
+        this.commandHandler["NotifySessionClosed"] = () => {
+            this.updateState({ state: "disconnected" });
+        };
     }
 
     public getState(): Readonly<SubscriberClientState> {
@@ -139,7 +143,8 @@ export type S2CMessage = {
 
     "NotifyRadarUpdate": {
         update: RadarUpdate
-    }
+    },
+    "NotifySessionClosed": void
 }
 
 
