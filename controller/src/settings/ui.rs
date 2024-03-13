@@ -1,6 +1,5 @@
 use std::{
     collections::btree_map::Entry,
-    ffi::CString,
     sync::{
         atomic::Ordering,
         Arc,

@@ -1596,6 +1596,7 @@ dependencies = [
  "cs2-schema-generated",
  "futures-util",
  "log",
+ "obfstr",
  "radar-shared",
  "serde_json",
  "tokio",

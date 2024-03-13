@@ -12,8 +12,44 @@ pub struct RadarSettings {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 #[serde(rename_all = "camelCase")]
+pub struct BombDefuser {
+    /// Total time remaining for a successful bomb defuse
+    pub time_remaining: f32,
+
+    /// The defusers player name
+    pub player_name: String,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum C4State {
+    /// Bomb is dropped
+    Dropped,
+
+    /// Bomb is carried
+    Carried,
+
+    /// Bomb is currently actively ticking
+    Active {
+        /// Time remaining (in seconds) until detonation
+        time_detonation: f32,
+
+        /// Current bomb defuser
+        defuse: Option<BombDefuser>,
+    },
+
+    /// Bomb has detonated
+    Detonated,
+
+    /// Bomb has been defused
+    Defused,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct RadarState {
     pub players: Vec<RadarPlayerInfo>,
+    pub bomb: Option<RadarBombInfo>,
     pub world_name: String,
 }
 
@@ -31,4 +67,16 @@ pub struct RadarPlayerInfo {
 
     pub position: [f32; 3],
     pub rotation: f32,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct RadarBombInfo {
+    pub position: [f32; 3],
+    pub state: C4State,
+
+    /// Planted bomb site
+    /// 0 = A
+    /// 1 = B
+    pub bomb_site: Option<u8>,
 }

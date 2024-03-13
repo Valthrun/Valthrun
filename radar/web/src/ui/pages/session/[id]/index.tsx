@@ -128,7 +128,8 @@ const ClientStateConnected = React.memo(() => {
     const state = useSubscriberClientState();
     const [radarState, setRadarState] = React.useState<RadarState>({
         players: [],
-        worldName: "de_anubis"
+        worldName: "de_anubis",
+        bomb: null,
     });
 
     React.useEffect(() => client.events.on("radar.state", update => setRadarState(update)), [client]);
