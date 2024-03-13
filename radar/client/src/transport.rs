@@ -45,11 +45,24 @@ pub async fn create_ws_connection(
     tokio::spawn({
         let channel_rx_tx = channel_rx_tx.clone();
         async move {
-            while let Some(message) = socket_rx.next().await {
+            loop {
+                let message = tokio::select! {
+                    _ = channel_rx_tx.closed() => {
+                        /* channel locally closed */
+                        break;
+                    },
+                    message = socket_rx.next() => message
+                };
+
                 let message = match message {
-                    Ok(message) => message,
-                    Err(err) => {
+                    Some(Ok(message)) => message,
+                    Some(Err(err)) => {
+                        /* recv error */
                         let _ = channel_rx_tx.send(ClientEvent::RecvError(err.into())).await;
+                        break;
+                    }
+                    None => {
+                        /* channel remotely closed */
                         break;
                     }
                 };

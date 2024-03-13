@@ -19,6 +19,7 @@ use std::{
             Ordering,
         },
         Arc,
+        Mutex,
     },
     time::{
         Duration,
@@ -55,11 +56,13 @@ use overlay::{
     OverlayTarget,
     SystemRuntimeController,
 };
+use radar::WebRadar;
 use settings::{
     load_app_settings,
     AppSettings,
     SettingsUI,
 };
+use tokio::runtime;
 use utils_state::StateRegistry;
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
@@ -82,6 +85,7 @@ use crate::{
 
 mod cache;
 mod enhancements;
+mod radar;
 mod settings;
 mod utils;
 mod view;
@@ -129,11 +133,9 @@ pub struct AppFonts {
 
 pub struct Application {
     pub fonts: AppFonts,
-
     pub app_state: StateRegistry,
 
     pub cs2: Arc<CS2Handle>,
-
     pub enhancements: Vec<Rc<RefCell<dyn Enhancement>>>,
 
     pub frame_read_calls: usize,
@@ -144,6 +146,8 @@ pub struct Application {
     pub settings_ui: RefCell<SettingsUI>,
     pub settings_screen_capture_changed: AtomicBool,
     pub settings_render_debug_window_changed: AtomicBool,
+
+    pub web_radar: RefCell<Option<Arc<Mutex<WebRadar>>>>,
 }
 
 impl Application {
@@ -339,6 +343,14 @@ fn main() {
         })
         .parse_default_env()
         .init();
+
+    let runtime = runtime::Builder::new_multi_thread()
+        .enable_all()
+        .worker_threads(1)
+        .build()
+        .expect("to be able to build a runtime");
+
+    let _runtime_guard = runtime.enter();
 
     let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
     let result = match command {
@@ -572,6 +584,7 @@ fn main_overlay() -> anyhow::Result<()> {
         app_state,
 
         cs2: cs2.clone(),
+        web_radar: Default::default(),
 
         enhancements: vec![
             Rc::new(RefCell::new(PlayerESP::new())),

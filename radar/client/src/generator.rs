@@ -13,7 +13,7 @@ use radar_shared::{
 };
 use utils_state::StateRegistry;
 
-pub trait RadarGenerator {
+pub trait RadarGenerator: Send {
     fn generate_state(&mut self, settings: &RadarSettings) -> anyhow::Result<RadarState>;
 }
 

@@ -143,6 +143,12 @@ pub struct AppSettings {
     pub metrics: bool,
 
     #[serde(default)]
+    pub web_radar_url: Option<String>,
+
+    #[serde(default = "bool_false")]
+    pub web_radar_advanced_settings: bool,
+
+    #[serde(default)]
     pub imgui: Option<String>,
 }
 

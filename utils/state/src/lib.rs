@@ -44,7 +44,7 @@ pub enum StateCacheType {
     Volatile,
 }
 
-pub trait State: Any + Sized {
+pub trait State: Any + Sized + Send {
     type Parameter: Hash + PartialEq;
 
     /// Create a new instance of this state.
@@ -63,7 +63,7 @@ pub trait State: Any + Sized {
 }
 
 fn value_update_proxy<T: State>(
-    value: &mut Box<dyn Any>,
+    value: &mut Box<dyn Any + Send>,
     states: &StateRegistry,
 ) -> anyhow::Result<()> {
     let value = value.downcast_mut::<T>().expect("to be of type T");
@@ -71,8 +71,8 @@ fn value_update_proxy<T: State>(
 }
 
 struct InternalState {
-    value: Box<dyn Any>,
-    value_update: fn(&mut Box<dyn Any>, states: &StateRegistry) -> anyhow::Result<()>,
+    value: Box<dyn Any + Send>,
+    value_update: fn(&mut Box<dyn Any + Send>, states: &StateRegistry) -> anyhow::Result<()>,
 
     cache_key: (TypeId, u64),
     cache_type: StateCacheType,

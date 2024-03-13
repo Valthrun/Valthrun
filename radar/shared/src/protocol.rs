@@ -43,6 +43,8 @@ pub enum C2SMessage {
     InitializeSubscribe { version: u32, session_id: String },
 
     RadarUpdate { update: RadarUpdate },
+
+    Disconnect { message: String },
 }
 
 pub enum ClientEvent<T> {

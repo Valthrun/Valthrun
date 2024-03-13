@@ -101,6 +101,18 @@ impl WebRadarPublisher {
     fn send_message(&self, message: C2SMessage) {
         let _ = self.transport_tx.try_send(message);
     }
+
+    pub async fn close_connection(self) {
+        let _ = self
+            .transport_tx
+            .send_timeout(
+                C2SMessage::Disconnect {
+                    message: "connection close".to_string(),
+                },
+                Duration::from_secs(1),
+            )
+            .await;
+    }
 }
 
 impl Future for WebRadarPublisher {
