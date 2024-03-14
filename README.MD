@@ -8,7 +8,7 @@
 Valthrun is an open source external Counter-Strike 2 read only kernel-level gameplay enhancer.  
 That's a lot of descriptive words, but what does each of them mean?  
 - `Valthrun` The name of this project
-- `Open Source` This application is open source and for everyone to learn from
+- `open source` This application is open source and for everyone to learn from
 - `external` We do not inject any DLLs into the target process
 - `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory
 - `kernel` We do not use any user level WinAPIs in order to get information from the CS2 process
@@ -18,7 +18,7 @@ This project is mainly a fun example for exploring the Windows Kernel with [Rust
 # WARNING
 Valthrun is **not** a plug 'n play solution.  
 Instead Valthrun aims to achieve maximum stealth and stay invisible for other applications.  
-Please read [How to use](https://wiki.valth.run/#/010_getting-started/010_overview) carefully and try troubleshooting issues on your own.  
+Please read [How to use](https://wiki.valth.run/getting-started/) carefully and try troubleshooting issues on your own.  
 
   
 # Features
@@ -50,11 +50,10 @@ To access Valthruns settings overlay press `PAUSE`.
 
 # How to use / Getting started
 Please follow this guide to get started:  
-https://wiki.valth.run/#/010_getting-started/010_overview
-
+https://wiki.valth.run/getting-started/
 # Troubleshooting
-If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/#/):  
-https://wiki.valth.run/#/
+If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/category/troubleshooting):  
+https://wiki.valth.run/category/troubleshooting
   
 The issue you encounter is most likely covered. If you still have any questions or need assistance, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
 
