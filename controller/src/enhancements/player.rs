@@ -1,4 +1,3 @@
-use anyhow::Context;
 use cs2::{
     BoneFlags,
     CEntityIdentityEx,
@@ -9,14 +8,7 @@ use cs2::{
     PlayerPawnInfo,
     PlayerPawnState,
 };
-use cs2_schema_generated::{
-    cs2::client::{
-        CCSPlayerController,
-        C_BaseEntity,
-        C_CSPlayerPawn,
-    },
-    EntityHandle,
-};
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use imgui::ImColor32;
 use obfstr::obfstr;
 
