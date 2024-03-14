@@ -66,7 +66,7 @@ impl ViewController {
         let y = (b * view_matrix.m41 + e * view_matrix.m42 + h * view_matrix.m43) / z;
         let z = (c * view_matrix.m41 + f * view_matrix.m42 + k * view_matrix.m43) / z;
 
-        Some(nalgebra::Vector3::new(x, y, z))
+        Some(nalgebra::Vector3::new(-x, -y, -z))
     }
 
     /// Returning an mint::Vector2<f32> as the result should be used via ImGui.
