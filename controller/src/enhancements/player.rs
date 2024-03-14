@@ -179,39 +179,23 @@ impl Enhancement for PlayerESP {
 
         self.players.reserve(16);
 
+        let local_player_controller = entities.get_local_player_controller()?;
+        if local_player_controller.is_null()? {
+            return Ok(());
+        }
+
+        let local_player_controller = local_player_controller.reference_schema()?;
+        self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
+
         let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_entity_id = match &view_target.target_entity_handle_index {
+        let target_entity_handle_index = match &view_target.target_entity_handle_index {
             Some(value) => *value,
             None => return Ok(()),
         };
-        let target_entity_handle = EntityHandle::from_index(target_entity_id);
-        let target_entity_identity = entities
-            .get_by_handle::<C_BaseEntity>(&target_entity_handle)?
-            .context("missing current target entity")?;
-        let target_entity_class =
-            class_name_cache.lookup(&target_entity_identity.entity_class_info()?)?;
-        if target_entity_class
-            .map(|name| *name == "C_CSPlayerPawn")
-            .unwrap_or(false)
-        {
-            let target_player_pawn = target_entity_identity
-                .entity()?
-                .cast::<C_CSPlayerPawn>()
-                .reference_schema()?;
-
-            let target_player_controller = entities
-                .get_by_handle(&target_player_pawn.m_hOriginalController()?)?
-                .context("missing current player controller")?
-                .entity()?
-                .cast::<CCSPlayerController>()
-                .reference_schema()?;
-
-            self.local_team_id = target_player_controller.m_iPendingTeamNum()?;
-        }
 
         for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index()
-                == target_entity_handle.get_entity_index()
+            if entity_identity.handle::<()>()?.value
+                == target_entity_handle_index
             {
                 continue;
             }
