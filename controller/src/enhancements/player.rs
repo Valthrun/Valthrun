@@ -194,9 +194,7 @@ impl Enhancement for PlayerESP {
         };
 
         for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.value
-                == target_entity_handle_index
-            {
+            if entity_identity.handle::<()>()?.value == target_entity_handle_index {
                 continue;
             }
 
