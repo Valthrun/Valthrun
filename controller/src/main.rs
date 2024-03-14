@@ -11,6 +11,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::BufWriter,
+    mem,
     path::PathBuf,
     rc::Rc,
     sync::{
@@ -48,6 +49,7 @@ use imgui::{
     FontSource,
     Ui,
 };
+use libloading::Library;
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -66,9 +68,20 @@ use tokio::runtime;
 use utils_state::StateRegistry;
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::Win32::{
-    System::Console::GetConsoleProcessList,
-    UI::Shell::IsUserAnAdmin,
+use windows::{
+    core::PCSTR,
+    Win32::{
+        System::{
+            ApplicationInstallationAndServicing::{
+                ActivateActCtx,
+                CreateActCtxA,
+                ACTCTXA,
+            },
+            Console::GetConsoleProcessList,
+            LibraryLoader::GetModuleHandleA,
+        },
+        UI::Shell::IsUserAnAdmin,
+    },
 };
 
 use crate::{
@@ -415,6 +428,23 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn preload_vulkan_with_act_ctx() -> anyhow::Result<()> {
+    unsafe {
+        let mut act_ctx = mem::zeroed::<ACTCTXA>();
+        act_ctx.cbSize = mem::size_of_val(&act_ctx) as u32;
+        act_ctx.dwFlags = 0x80 | 0x08;
+        act_ctx.hModule = GetModuleHandleA(PCSTR::null()).context("GetModuleHandleA")?;
+        act_ctx.lpResourceName = PCSTR::from_raw(1 as *const u8);
+
+        let mut cookie = 0;
+        let ctx = CreateActCtxA(&act_ctx).context("CreateActCtxA")?;
+        ActivateActCtx(ctx, &mut cookie).context("ActivateActCtx")?;
+        Library::new("vulkan-1").context("vulkan-1")?;
+    }
+
+    Ok(())
+}
+
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
@@ -433,6 +463,10 @@ fn main_overlay() -> anyhow::Result<()> {
     if unsafe { IsUserAnAdmin().as_bool() } {
         log::warn!("{}", obfstr!("Please do not run this as administrator!"));
         log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
+    }
+
+    if let Err(err) = preload_vulkan_with_act_ctx() {
+        log::warn!("Act CTX preload failed: {:#}", err);
     }
 
     let settings = load_app_settings()?;

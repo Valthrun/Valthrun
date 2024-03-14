@@ -286,10 +286,10 @@ unsafe extern "system" fn vulkan_debug_callback(
 
     let message = CStr::from_ptr((*p_callback_data).p_message);
     match flag {
-        Flag::VERBOSE => log::debug!("{typ:?} - {message:?}"),
-        Flag::INFO => log::info!("{typ:?} - {message:?}"),
-        Flag::WARNING => log::warn!("{typ:?} - {message:?}"),
-        _ => log::error!("{typ:?} - {message:?}"),
+        Flag::VERBOSE => log::debug!("{typ:?} - {}", message.to_string_lossy()),
+        Flag::INFO => log::info!("{typ:?} - {}", message.to_string_lossy()),
+        Flag::WARNING => log::warn!("{typ:?} - {}", message.to_string_lossy()),
+        _ => log::error!("{typ:?} - {}", message.to_string_lossy()),
     }
     vk::FALSE
 }

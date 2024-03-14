@@ -10,6 +10,25 @@ use std::{
 use chrono::Utc;
 use winres::WindowsResource;
 
+const APP_MANIFEST: &'static str = r#"
+<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+  <description>Valthrun Overlay</description>
+  <assemblyIdentity type="win32" name="dev.wolveringer.valthrun.overlay" version="0.4.2.0" />
+  <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
+      <security>
+          <requestedPrivileges>
+              <requestedExecutionLevel level="asInvoker" uiAccess="false" />
+          </requestedPrivileges>
+      </security>
+  </trustInfo>
+  <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+    <asmv3:windowsSettings xmlns="http://schemas.microsoft.com/SMI/2005/WindowsSettings">
+      <dpiAware>True/PM</dpiAware>
+    </asmv3:windowsSettings>
+  </asmv3:application>
+</assembly>
+"#;
+
 fn main() -> io::Result<()> {
     {
         let git_hash = if Path::new("../.git").exists() {
@@ -40,6 +59,7 @@ fn main() -> io::Result<()> {
     {
         let mut resource = WindowsResource::new();
         resource.set_icon("./resources/app-icon.ico");
+        resource.set_manifest(APP_MANIFEST);
         resource.compile()?;
     }
     Ok(())
