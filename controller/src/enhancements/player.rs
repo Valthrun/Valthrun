@@ -184,8 +184,9 @@ impl Enhancement for PlayerESP {
             Some(value) => *value,
             None => return Ok(()),
         };
+        let target_entity_handle = EntityHandle::from_index(target_entity_id);
         let target_entity_identity = entities
-            .get_by_handle::<C_BaseEntity>(&EntityHandle::from_index(target_entity_id))?
+            .get_by_handle::<C_BaseEntity>(&target_entity_handle)?
             .context("missing current target entity")?;
         let target_entity_class =
             class_name_cache.lookup(&target_entity_identity.entity_class_info()?)?;
@@ -209,7 +210,9 @@ impl Enhancement for PlayerESP {
         }
 
         for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index() == target_entity_id {
+            if entity_identity.handle::<()>()?.get_entity_index()
+                == target_entity_handle.get_entity_index()
+            {
                 continue;
             }
 

@@ -128,10 +128,25 @@ impl State for LocalCameraControllerTarget {
              * Our player pawn is alive.
              * This most certainly means we're currently following our pawn.
              */
-            let local_entity_handle = player_controller.m_hPlayerPawn()?;
+            let local_entity_controller_handle =
+                player_controller.m_hOriginalControllerOfCurrentPawn()?;
+
+            let local_entity_controller =
+                match { entities.get_by_handle(&local_entity_controller_handle)? } {
+                    Some(local_entity_controller) => {
+                        local_entity_controller.entity()?.reference_schema()?
+                    }
+                    None => {
+                        /* this is odd... */
+                        return Ok(Self {
+                            target_entity_id: None,
+                            is_local_entity: false,
+                        });
+                    }
+                };
 
             Ok(Self {
-                target_entity_id: Some(local_entity_handle.get_entity_index()),
+                target_entity_id: Some(local_entity_controller.m_hPlayerPawn()?.value),
                 is_local_entity: true,
             })
         } else {
@@ -152,9 +167,17 @@ impl State for LocalCameraControllerTarget {
                 .reference_schema()?
                 .m_hObserverTarget()?;
 
+            if !observer_target_handle.is_valid() {
+                return Ok(Self {
+                    target_entity_id: None,
+                    is_local_entity: false,
+                });
+            }
+            let target_entity_id = observer_target_handle.value;
+
             Ok(Self {
                 is_local_entity: false,
-                target_entity_id: Some(observer_target_handle.get_entity_index()),
+                target_entity_id: Some(target_entity_id),
             })
         }
     }
