@@ -180,7 +180,7 @@ impl Enhancement for PlayerESP {
         self.players.reserve(16);
 
         let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_entity_id = match &view_target.target_entity_id {
+        let target_entity_id = match &view_target.target_entity_handle_index {
             Some(value) => *value,
             None => return Ok(()),
         };
@@ -200,7 +200,7 @@ impl Enhancement for PlayerESP {
                 .reference_schema()?;
 
             let target_player_controller = entities
-                .get_by_handle(&target_player_pawn.m_hController()?)?
+                .get_by_handle(&target_player_pawn.m_hOriginalController()?)?
                 .context("missing current player controller")?
                 .entity()?
                 .cast::<CCSPlayerController>()

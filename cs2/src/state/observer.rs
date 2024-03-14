@@ -20,7 +20,7 @@ pub struct SpectatorInfo {
 }
 
 pub struct SpectatorList {
-    pub target_entity_index: u32,
+    pub target_entity_handle_index: u32,
     pub spectators: Vec<SpectatorInfo>,
 }
 
@@ -29,7 +29,7 @@ impl State for SpectatorList {
 
     fn create(
         states: &StateRegistry,
-        target_entity_index: Self::Parameter,
+        target_entity_handle_index: Self::Parameter,
     ) -> anyhow::Result<Self> {
         let entities = states.resolve::<EntitySystem>(())?;
         let class_name_cache = states.resolve::<ClassNameCache>(())?;
@@ -62,8 +62,7 @@ impl State for SpectatorList {
                 }
             };
 
-            let observer_target_index = observer_target_handle.get_entity_index();
-            if observer_target_index != target_entity_index {
+            if observer_target_handle.value != target_entity_handle_index {
                 continue;
             }
 
@@ -86,7 +85,7 @@ impl State for SpectatorList {
 
         Ok(Self {
             spectators,
-            target_entity_index,
+            target_entity_handle_index,
         })
     }
 
@@ -98,7 +97,7 @@ impl State for SpectatorList {
 /// Get the controller id which we're currently following
 pub struct LocalCameraControllerTarget {
     pub is_local_entity: bool,
-    pub target_entity_id: Option<u32>,
+    pub target_entity_handle_index: Option<u32>,
 }
 
 impl State for LocalCameraControllerTarget {
@@ -117,7 +116,7 @@ impl State for LocalCameraControllerTarget {
             None => {
                 /* We're currently not connected */
                 return Ok(Self {
-                    target_entity_id: None,
+                    target_entity_handle_index: None,
                     is_local_entity: false,
                 });
             }
@@ -139,14 +138,14 @@ impl State for LocalCameraControllerTarget {
                     None => {
                         /* this is odd... */
                         return Ok(Self {
-                            target_entity_id: None,
+                            target_entity_handle_index: None,
                             is_local_entity: false,
                         });
                     }
                 };
 
             Ok(Self {
-                target_entity_id: Some(local_entity_controller.m_hPlayerPawn()?.value),
+                target_entity_handle_index: Some(local_entity_controller.m_hPlayerPawn()?.value),
                 is_local_entity: true,
             })
         } else {
@@ -156,7 +155,7 @@ impl State for LocalCameraControllerTarget {
                     None => {
                         /* this is odd... */
                         return Ok(Self {
-                            target_entity_id: None,
+                            target_entity_handle_index: None,
                             is_local_entity: false,
                         });
                     }
@@ -169,15 +168,15 @@ impl State for LocalCameraControllerTarget {
 
             if !observer_target_handle.is_valid() {
                 return Ok(Self {
-                    target_entity_id: None,
+                    target_entity_handle_index: None,
                     is_local_entity: false,
                 });
             }
-            let target_entity_id = observer_target_handle.value;
+            let target_entity_handle_index = observer_target_handle.value;
 
             Ok(Self {
                 is_local_entity: false,
-                target_entity_id: Some(target_entity_id),
+                target_entity_handle_index: Some(target_entity_handle_index),
             })
         }
     }
