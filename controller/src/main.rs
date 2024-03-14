@@ -11,6 +11,7 @@ use std::{
     fmt::Debug,
     fs::File,
     io::BufWriter,
+    mem,
     path::PathBuf,
     rc::Rc,
     sync::{
@@ -48,6 +49,7 @@ use imgui::{
     FontSource,
     Ui,
 };
+use libloading::Library;
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -66,9 +68,20 @@ use tokio::runtime;
 use utils_state::StateRegistry;
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::Win32::{
-    System::Console::GetConsoleProcessList,
-    UI::Shell::IsUserAnAdmin,
+use windows::{
+    core::PCSTR,
+    Win32::{
+        System::{
+            ApplicationInstallationAndServicing::{
+                ActivateActCtx,
+                CreateActCtxA,
+                ACTCTXA,
+            },
+            Console::GetConsoleProcessList,
+            LibraryLoader::GetModuleHandleA,
+        },
+        UI::Shell::IsUserAnAdmin,
+    },
 };
 
 use crate::{
@@ -415,6 +428,23 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn preload_vulkan_with_act_ctx() -> anyhow::Result<()> {
+    unsafe {
+        let mut act_ctx = mem::zeroed::<ACTCTXA>();
+        act_ctx.cbSize = mem::size_of_val(&act_ctx) as u32;
+        act_ctx.dwFlags = 0x80 | 0x08;
+        act_ctx.hModule = GetModuleHandleA(PCSTR::null()).context("GetModuleHandleA")?;
+        act_ctx.lpResourceName = PCSTR::from_raw(1 as *const u8);
+
+        let mut cookie = 0;
+        let ctx = CreateActCtxA(&act_ctx).context("CreateActCtxA")?;
+        ActivateActCtx(ctx, &mut cookie).context("ActivateActCtx")?;
+        Library::new("vulkan-1").context("vulkan-1")?;
+    }
+
+    Ok(())
+}
+
 fn main_overlay() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
@@ -435,6 +465,10 @@ fn main_overlay() -> anyhow::Result<()> {
         log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
     }
 
+    if let Err(err) = preload_vulkan_with_act_ctx() {
+        log::warn!("Act CTX preload failed: {:#}", err);
+    }
+
     let settings = load_app_settings()?;
     let cs2 = match CS2Handle::create(settings.metrics) {
         Ok(handle) => handle,
@@ -443,7 +477,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 if let KInterfaceError::DeviceUnavailable(error) = &err {
                     if error.code().0 as u32 == 0x80070002 {
                         /* The system cannot find the file specified. */
-                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\nPlease explicitly check the driver entry status code which should be 0x0.\n\nFor more help, checkout:\nhttps://wiki.valth.run/#/030_troubleshooting/overlay/020_driver_has_not_been_loaded."));
+                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\n\nFor more help, checkout:\nhttps://wiki.valth.run/troubleshooting/overlay/driver_has_not_been_loaded."));
                         return Ok(());
                     }
                 } else if let KInterfaceError::DriverTooOld {
