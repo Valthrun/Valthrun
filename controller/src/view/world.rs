@@ -44,7 +44,7 @@ impl ViewController {
         self.screen_bounds = bounds;
     }
 
-    pub fn get_view_world_position(&self) -> Option<nalgebra::Vector3<f32>> {
+    pub fn get_camera_world_position(&self) -> Option<nalgebra::Vector3<f32>> {
         let view_matrix = self.view_matrix;
         let a = view_matrix.m22 * view_matrix.m33 - view_matrix.m32 * view_matrix.m23;
         let b = view_matrix.m32 * view_matrix.m13 - view_matrix.m12 * view_matrix.m33;

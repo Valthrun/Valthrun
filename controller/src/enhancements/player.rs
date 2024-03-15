@@ -180,13 +180,13 @@ impl Enhancement for PlayerESP {
         self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
 
         let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_entity_handle_index = match &view_target.target_entity_handle_index {
+        let target_entity_id = match &view_target.target_entity_id {
             Some(value) => *value,
             None => return Ok(()),
         };
 
         for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.value == target_entity_handle_index {
+            if entity_identity.handle::<()>()?.get_entity_index() == target_entity_id {
                 continue;
             }
 
@@ -228,7 +228,7 @@ impl Enhancement for PlayerESP {
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
 
-        let view_world_position = match view.get_view_world_position() {
+        let view_world_position = match view.get_camera_world_position() {
             Some(view_world_position) => view_world_position,
             _ => return Ok(()),
         };
