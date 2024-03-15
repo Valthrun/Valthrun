@@ -25,11 +25,11 @@ impl Enhancement for SpectatorsListIndicator {
         }
 
         let view_target = states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_controller_id = match &view_target.target_controller_entity_id {
+        let target_entity_id = match &view_target.target_entity_id {
             Some(value) => *value,
             None => return Ok(()),
         };
-        let spectators = states.resolve::<SpectatorList>(target_controller_id)?;
+        let spectators = states.resolve::<SpectatorList>(target_entity_id)?;
 
         let group = ui.begin_group();
 

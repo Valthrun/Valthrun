@@ -1,4 +1,3 @@
-use anyhow::Context;
 use cs2::{
     BoneFlags,
     CEntityIdentityEx,
@@ -9,13 +8,7 @@ use cs2::{
     PlayerPawnInfo,
     PlayerPawnState,
 };
-use cs2_schema_generated::{
-    cs2::client::{
-        CCSPlayerController,
-        C_CSPlayerPawn,
-    },
-    EntityHandle,
-};
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use imgui::ImColor32;
 use obfstr::obfstr;
 
@@ -40,7 +33,6 @@ pub struct PlayerESP {
     toggle: KeyToggle,
     players: Vec<PlayerPawnInfo>,
     local_team_id: u8,
-    local_pos: Option<nalgebra::Vector3<f32>>,
 }
 
 impl PlayerESP {
@@ -49,7 +41,6 @@ impl PlayerESP {
             toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
-            local_pos: Default::default(),
         }
     }
 
@@ -180,32 +171,22 @@ impl Enhancement for PlayerESP {
 
         self.players.reserve(16);
 
+        let local_player_controller = entities.get_local_player_controller()?;
+        if local_player_controller.is_null()? {
+            return Ok(());
+        }
+
+        let local_player_controller = local_player_controller.reference_schema()?;
+        self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
+
         let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_controller_id = match &view_target.target_controller_entity_id {
+        let target_entity_id = match &view_target.target_entity_id {
             Some(value) => *value,
             None => return Ok(()),
         };
 
-        let local_player_controller = entities
-            .get_by_handle::<CCSPlayerController>(&EntityHandle::from_index(target_controller_id))?
-            .context("missing current player controller")?
-            .entity()?
-            .reference_schema()?;
-
-        let local_player_pawn_entity_index =
-            local_player_controller.m_hPlayerPawn()?.get_entity_index();
-        self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
-
         for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index() == local_player_pawn_entity_index
-            {
-                /* current pawn we control/observe */
-                let local_pawn = entity_identity
-                    .entity_ptr::<C_CSPlayerPawn>()?
-                    .read_schema()?;
-                let local_pos =
-                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
-                self.local_pos = Some(local_pos);
+            if entity_identity.handle::<()>()?.get_entity_index() == target_entity_id {
                 continue;
             }
 
@@ -246,13 +227,14 @@ impl Enhancement for PlayerESP {
 
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
+
+        let view_world_position = match view.get_camera_world_position() {
+            Some(view_world_position) => view_world_position,
+            _ => return Ok(()),
+        };
+
         for entry in self.players.iter() {
-            let distance = if let Some(local_pos) = self.local_pos {
-                let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
-                distance
-            } else {
-                0.0
-            };
+            let distance = (entry.position - view_world_position).norm() * UNITS_TO_METERS;
             let esp_settings = match self.resolve_esp_player_config(&settings, entry) {
                 Some(settings) => settings,
                 None => continue,

@@ -44,6 +44,31 @@ impl ViewController {
         self.screen_bounds = bounds;
     }
 
+    pub fn get_camera_world_position(&self) -> Option<nalgebra::Vector3<f32>> {
+        let view_matrix = self.view_matrix;
+        let a = view_matrix.m22 * view_matrix.m33 - view_matrix.m32 * view_matrix.m23;
+        let b = view_matrix.m32 * view_matrix.m13 - view_matrix.m12 * view_matrix.m33;
+        let c = view_matrix.m12 * view_matrix.m23 - view_matrix.m22 * view_matrix.m13;
+        let z = view_matrix.m11 * a + view_matrix.m21 * b + view_matrix.m31 * c;
+
+        if z.abs() < 0.0001 {
+            return None;
+        }
+
+        let d = view_matrix.m31 * view_matrix.m23 - view_matrix.m21 * view_matrix.m33;
+        let e = view_matrix.m11 * view_matrix.m33 - view_matrix.m31 * view_matrix.m13;
+        let f = view_matrix.m21 * view_matrix.m13 - view_matrix.m11 * view_matrix.m23;
+        let g = view_matrix.m21 * view_matrix.m32 - view_matrix.m31 * view_matrix.m22;
+        let h = view_matrix.m31 * view_matrix.m12 - view_matrix.m11 * view_matrix.m32;
+        let k = view_matrix.m11 * view_matrix.m22 - view_matrix.m21 * view_matrix.m12;
+
+        let x = (a * view_matrix.m41 + d * view_matrix.m42 + g * view_matrix.m43) / z;
+        let y = (b * view_matrix.m41 + e * view_matrix.m42 + h * view_matrix.m43) / z;
+        let z = (c * view_matrix.m41 + f * view_matrix.m42 + k * view_matrix.m43) / z;
+
+        Some(nalgebra::Vector3::new(-x, -y, -z))
+    }
+
     /// Returning an mint::Vector2<f32> as the result should be used via ImGui.
     pub fn world_to_screen(
         &self,
