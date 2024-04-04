@@ -13,7 +13,9 @@ use crate::{
     find_schema_system,
     CS2Handle,
     CSchemaSystem,
+    CSchemaTypeDeclaredClass,
     Module,
+    RBTreeDeclaredList,
 };
 
 #[derive(Debug, Clone, PartialEq, PartialOrd, Eq, Ord)]
@@ -76,51 +78,106 @@ fn load_runtime_offsets(
 
         let scope_name = scope.scope_name()?.to_string_lossy()?;
 
-        let class_bindings = scope.class_bindings()?.read_values()?;
-        log::trace!(
-            " {:X} {} with {} classes",
-            scope_ptr.address()?,
-            scope_name,
-            class_bindings.len(),
-        );
+        log::trace!("Name: {} @ {:X}", scope_name, scope_ptr.address()?);
+        //continue;
+        {
+            let tree = scope.memory.reference_schema::<RBTreeDeclaredList>(0x4C8)?;
+            let entries = tree.entries()?.read_entries(tree.entry_count()? as usize)?;
 
-        for schema_class in class_bindings {
-            let binding = schema_class.read_schema()?;
-            let schema_name = binding
-                .type_scope()?
-                .read_schema()?
-                .scope_name()?
-                .to_string_lossy()?;
+            for entry in entries {
+                if entry.entry()?.is_null()? {
+                    continue;
+                }
 
-            let class_name: String = binding.name()?.read_string()?;
-            log::trace!(
-                "   {:X} {} -> {}",
-                schema_class.address()?,
-                class_name,
-                schema_name
-            );
-            if !["client.dll", "!GlobalTypes"].contains(&schema_name.as_str()) {
-                continue;
-            }
+                let entry = entry
+                    .entry()?
+                    .cast::<CSchemaTypeDeclaredClass>()
+                    .reference_schema()?;
 
-            let class_member = binding
-                .fields()?
-                .read_entries(binding.field_size()? as usize)?;
+                let schema_class = entry.declaration()?;
+                let binding = schema_class.read_schema()?;
+                let schema_name = binding
+                    .type_scope()?
+                    .read_schema()?
+                    .scope_name()?
+                    .to_string_lossy()?;
 
-            for class_member in class_member {
-                let member_name = class_member.name()?.read_string()?;
-                let member_offset = class_member.offset()?;
-
-                result.insert(
-                    RegisteredOffset {
-                        module: schema_name.clone(),
-                        class: class_name.clone(),
-                        member: member_name,
-                    },
-                    member_offset,
+                let class_name: String = binding.name()?.read_string()?;
+                log::trace!(
+                    "   {:X} {} -> {}",
+                    schema_class.address()?,
+                    class_name,
+                    schema_name
                 );
+                if !["client.dll", "!GlobalTypes"].contains(&schema_name.as_str()) {
+                    continue;
+                }
+
+                let class_member = binding
+                    .fields()?
+                    .read_entries(binding.field_size()? as usize)?;
+
+                for class_member in class_member {
+                    let member_name = class_member.name()?.read_string()?;
+                    let member_offset = class_member.offset()?;
+
+                    result.insert(
+                        RegisteredOffset {
+                            module: schema_name.clone(),
+                            class: class_name.clone(),
+                            member: member_name,
+                        },
+                        member_offset,
+                    );
+                }
             }
         }
+
+        // let class_bindings = scope.class_bindings()?.read_values()?;
+        // log::trace!(
+        //     " {:X} {} with {} classes",
+        //     scope_ptr.address()?,
+        //     scope_name,
+        //     class_bindings.len(),
+        // );
+
+        // for schema_class in class_bindings {
+        //     let binding = schema_class.read_schema()?;
+        //     let schema_name = binding
+        //         .type_scope()?
+        //         .read_schema()?
+        //         .scope_name()?
+        //         .to_string_lossy()?;
+
+        //     let class_name: String = binding.name()?.read_string()?;
+        //     log::trace!(
+        //         "   {:X} {} -> {}",
+        //         schema_class.address()?,
+        //         class_name,
+        //         schema_name
+        //     );
+        //     if !["client.dll", "!GlobalTypes"].contains(&schema_name.as_str()) {
+        //         continue;
+        //     }
+
+        //     let class_member = binding
+        //         .fields()?
+        //         .read_entries(binding.field_size()? as usize)?;
+
+        //     for class_member in class_member {
+        //         let member_name = class_member.name()?.read_string()?;
+        //         let member_offset = class_member.offset()?;
+
+        //         result.insert(
+        //             RegisteredOffset {
+        //                 module: schema_name.clone(),
+        //                 class: class_name.clone(),
+        //                 member: member_name,
+        //             },
+        //             member_offset,
+        //         );
+        //     }
+        // }
     }
 
     Ok(result)
