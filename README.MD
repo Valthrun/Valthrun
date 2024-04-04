@@ -51,6 +51,7 @@ To access Valthruns settings overlay press `PAUSE`.
 # How to use / Getting started
 Please follow this guide to get started:  
 https://wiki.valth.run/getting-started/
+
 # Troubleshooting
 If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/category/troubleshooting):  
 https://wiki.valth.run/category/troubleshooting

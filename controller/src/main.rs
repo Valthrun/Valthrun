@@ -399,6 +399,9 @@ enum AppCommand {
 #[derive(Debug, Args)]
 struct SchemaDumpArgs {
     pub target_file: PathBuf,
+
+    #[clap(long, short, default_value_t = false)]
+    pub all_classes: bool,
 }
 
 fn is_console_invoked() -> bool {
@@ -406,7 +409,6 @@ fn is_console_invoked() -> bool {
         let mut result = [0u32; 128];
         GetConsoleProcessList(&mut result)
     };
-
     console_count > 1
 }
 
@@ -414,7 +416,7 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create(true)?;
-    let schema = cs2::dump_schema(&cs2, false)?;
+    let schema = cs2::dump_schema(&cs2, !args.all_classes)?;
 
     let output = File::options()
         .create(true)
