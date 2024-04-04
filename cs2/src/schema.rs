@@ -68,11 +68,25 @@ define_schema! {
         None = 7,
     }
 
+    pub struct RBTreeDeclaredList[0x30] {
+        // pub comperator: fn(...) -> bool = 0x00,
+        pub entries: Ptr<[RBTreeDeclaredListEntry]> = 0x08,
+        pub entry_count: u16 = 0x1A,
+        pub start_node: i16 = 0x18,
+    }
+
+    pub struct RBTreeDeclaredListEntry[0x18] {
+        pub left_leaf: i16 = 0x00,
+        pub right_leaf: i16 = 0x02,
+        // pub
+        pub entry: Ptr<()> = 0x10,
+    }
+
     pub struct CSchemaSystem[0x200] {
         pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x190,
     }
 
-    pub struct CSchemaSystemTypeScope[0x2F30] {
+    pub struct CSchemaSystemTypeScope[0x56E0] {
         pub scope_name: FixedCString<0x100> = 0x08,
         pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x05B8,
         pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2E00,
@@ -87,11 +101,15 @@ define_schema! {
         pub atomic_category: AtomicCategory = 0x19,
     }
 
+    pub struct CSchemaTypeBuildin[0x28] : CSchemaType {
+        pub index: u8 = 0x20,
+    }
+
     pub struct CSchemaTypeDeclaredEnum[0x28] : CSchemaType {
         pub declaration: Ptr<CSchemaEnumBinding> = 0x20,
     }
 
-    pub struct CSchemaTypeDeclaredClass[0x28] : CSchemaType {
+    pub struct CSchemaTypeDeclaredClass[0x30] : CSchemaType {
         pub declaration: Ptr<CSchemaClassBinding> = 0x20,
     }
 
