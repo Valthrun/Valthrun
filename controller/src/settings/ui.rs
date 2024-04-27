@@ -610,6 +610,21 @@ impl SettingsUI {
                         &mut config.health_bar,
                     );
                 }
+                
+                {
+                    const HEALTH_BAR_TYPES: [(EspHeadDot, &'static str); 3] = [
+                        (EspHeadDot::None, "No"),
+                        (EspHeadDot::Filled, "Filled"),
+                        (EspHeadDot::NotFilled, "Not Filled"),
+                    ];
+
+                    ui.set_next_item_width(COMBO_WIDTH);
+                    ui.combo_enum(
+                        obfstr!("head dot"),
+                        &HEALTH_BAR_TYPES,
+                        &mut config.head_dot,
+                    );
+                }
                 ui.dummy([0.0, 10.0]);
 
                 ui.text("Player Info");
