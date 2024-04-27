@@ -151,6 +151,13 @@ pub enum EspHealthBar {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspHeadDot {
+    None,
+    Filled,
+    NotFilled,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub enum EspBoxType {
     /// Disabled player box
     None,
@@ -183,6 +190,10 @@ pub struct EspPlayerSettings {
     pub skeleton: bool,
     pub skeleton_color: EspColor,
     pub skeleton_width: f32,
+
+    pub head_dot: EspHeadDot,
+    pub head_dot_color: EspColor,
+    pub head_dot_thickness: f32,
 
     pub health_bar: EspHealthBar,
     pub health_bar_width: f32,
@@ -241,6 +252,10 @@ impl EspPlayerSettings {
             skeleton: true,
             skeleton_color: color.clone(),
             skeleton_width: 3.0,
+
+            head_dot: None,
+            head_dot_color: color.clone(),
+            head_dot_thickness: 3.0,
 
             health_bar: EspHealthBar::None,
             health_bar_width: 10.0,
