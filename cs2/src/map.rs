@@ -17,8 +17,8 @@ use crate::{
 
 define_schema! {
     pub struct CNetworkGameClient[0x290] {
-        pub map_path: PtrCStr = 0x220,
-        pub map_name: PtrCStr = 0x228,
+        pub map_path: PtrCStr = 0x240,
+        pub map_name: PtrCStr = 0x248,
     }
 }
 
