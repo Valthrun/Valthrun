@@ -13,7 +13,7 @@ use winres::WindowsResource;
 const APP_MANIFEST: &'static str = r#"
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <description>Valthrun Overlay</description>
-  <assemblyIdentity type="win32" name="dev.wolveringer.valthrun.overlay" version="0.4.2.0" />
+  <assemblyIdentity type="win32" name="dev.wolveringer.valthrun.overlay" version="0.4.4.0" />
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
       <security>
           <requestedPrivileges>
