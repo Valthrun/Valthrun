@@ -24,9 +24,8 @@ impl ServerCommandHandler {
         match command {
             C2SMessage::InitializePublish { .. } => {
                 let mut server = self.server.write().await;
-                let session = match server.pub_session_create(self.client_id).await {
-                    Some(session) => session,
-                    None => return S2CMessage::ResponseInvalidClientState,
+                let Some(session) = server.pub_session_create(self.client_id).await else {
+                    return S2CMessage::ResponseInvalidClientState;
                 };
 
                 S2CMessage::ResponseInitializePublish {

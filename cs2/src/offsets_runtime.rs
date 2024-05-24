@@ -81,7 +81,7 @@ fn load_runtime_offsets(
         let declared_classes = scope.type_declared_class()?;
         let declared_classes = declared_classes
             .elements()?
-            .read_entries(declared_classes.entry_count()? as usize)?;
+            .read_entries(declared_classes.highest_entry()?.wrapping_add(1) as usize)?;
 
         for declared_class in declared_classes {
             let declared_class = declared_class

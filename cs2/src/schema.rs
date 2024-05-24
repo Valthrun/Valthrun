@@ -37,7 +37,7 @@ pub fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
         Module::Schemasystem,
         &Signature::relative_address(
             obfstr!("schema system instance"),
-            obfstr!("48 89 05 ? ? ? ? 4C 8D 45"),
+            obfstr!("48 8B 0D ? ? ? ? 48 8B 55 A0"),
             0x03,
             0x07,
         ),
@@ -74,7 +74,7 @@ define_schema! {
     }
 
     pub struct CSchemaSystem[0x200] {
-        pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x190,
+        pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x188,
     }
 
     pub struct CSchemaSystemTypeScope[0x56E0] {
@@ -90,8 +90,8 @@ define_schema! {
         // pub type_atomic_tt: ??? = 0x438
         // pub type_atomic ttf: ??? = 0x468
         // pub type_atomic_i: ??? = 0x498
-        pub type_declared_class: UtlRBTree<IdHashEntry> = 0x4C8,
-        pub type_declared_enum: UtlRBTree<IdHashEntry> = 0x4F8,
+        pub type_declared_class: UtlRBTree<IdHashEntry> = 0x440,
+        pub type_declared_enum: UtlRBTree<IdHashEntry> = 0x468,
         // pub type_???: ??? = 0x528
         // pub type_fixed_array: ??? = 0x558
         // pub type_bit_fields: ??? = 0x588
@@ -542,13 +542,15 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
             continue;
         }
 
+        log::trace!("Dumping {} @ {:X}", scope_name, scope.memory.address);
         let declared_classes = scope.type_declared_class()?;
         let declared_classes = declared_classes
             .elements()?
-            .read_entries(declared_classes.entry_count()? as usize)?;
+            .read_entries(declared_classes.highest_entry()?.wrapping_add(1) as usize)?;
 
-        for declared_class in declared_classes {
-            let declared_class = declared_class
+        log::debug!("XX: {}", declared_classes.len());
+        for rb_node in declared_classes {
+            let declared_class = rb_node
                 .value()?
                 .value()?
                 .cast::<CSchemaTypeDeclaredClass>()
@@ -577,7 +579,7 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
         let declared_enums = scope.type_declared_enum()?;
         let declared_enums = declared_enums
             .elements()?
-            .read_entries(declared_enums.entry_count()? as usize)?;
+            .read_entries(declared_enums.highest_entry()?.wrapping_add(1) as usize)?;
 
         for declared_enum in declared_enums {
             let declared_enum = declared_enum

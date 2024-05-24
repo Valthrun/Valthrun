@@ -262,7 +262,13 @@ impl CS2Handle {
                 module_info.module_size,
                 &*signature.pattern,
             )?
-            .context("failed to find pattern")?;
+            .with_context(|| {
+                format!(
+                    "{} {}",
+                    obfstr!("failed to find pattern"),
+                    signature.debug_name
+                )
+            })?;
 
         let value = self.reference_schema::<u32>(&[inst_offset + signature.offset])? as u64;
         let value = match &signature.value_type {

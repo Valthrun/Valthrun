@@ -8,9 +8,9 @@ use cs2_schema_declaration::{
 
 // UtlRBTree has the following layout:
 // pub struct UtlRBTree<T> {
-//    pub elements: Ptr<[UtlRBTreeNode<T>]> = 0x08,
-//    pub start_node: i16 = 0x18,
-//    pub entry_count: u16 = 0x1A,
+//    pub elements: Ptr<[UtlRBTreeNode<T>]> = 0x00,
+//    pub element_capacity: u16 = 0x08,
+//    pub highest_entry: u16 = 0x16,
 // }
 pub struct UtlRBTree<T> {
     memory: MemoryHandle,
@@ -19,15 +19,11 @@ pub struct UtlRBTree<T> {
 
 impl<T> UtlRBTree<T> {
     pub fn elements(&self) -> anyhow::Result<Ptr<[UtlRBTreeNode<T>]>> {
-        self.memory.reference_schema(0x08)
+        self.memory.reference_schema(0x00)
     }
 
-    pub fn start_node(&self) -> anyhow::Result<u16> {
-        self.memory.reference_schema(0x18)
-    }
-
-    pub fn entry_count(&self) -> anyhow::Result<u16> {
-        self.memory.reference_schema(0x1A)
+    pub fn highest_entry(&self) -> anyhow::Result<u16> {
+        self.memory.reference_schema(0x16)
     }
 }
 
