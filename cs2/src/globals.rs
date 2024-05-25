@@ -24,17 +24,17 @@ define_schema! {
         pub product_name: PtrCStr = 0x20,
     }
 
-    pub struct Globals[0x48] {
+    pub struct Globals[0x50] {
         pub time_1: f32 = 0x00,
         pub frame_count_1: u32 = 0x04,
 
         pub max_player_count: u32 = 0x10,
 
-        pub time_2: f32 = 0x2C,
-        pub time_3: f32 = 0x30,
+        pub time_2: f32 = 0x34,
+        pub time_3: f32 = 0x38,
 
-        pub frame_count_2: u32 = 0x40,
-        pub two_tick_time: f32 = 0x44,
+        pub frame_count_2: u32 = 0x48,
+        pub two_tick_time: f32 = 0x4C,
     }
 }
 
