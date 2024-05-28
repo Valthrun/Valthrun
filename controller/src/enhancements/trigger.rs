@@ -27,6 +27,7 @@ use crate::{
 enum TriggerState {
     Idle,
     Pending { delay: u32, timestamp: Instant },
+    Sleep { delay: u32, timestamp: Instant },
     Active,
 }
 
@@ -115,7 +116,8 @@ impl Enhancement for TriggerBot {
 
         loop {
             match &self.state {
-                TriggerState::Idle => {
+                TriggerState::Idle => 
+                {
                     if !should_shoot {
                         /* nothing changed */
                         break;
@@ -158,6 +160,15 @@ impl Enhancement for TriggerBot {
                     /* regardsless of the next state, we always need to execute the current action */
                     break;
                 }
+                TriggerState::Sleep { delay, timestamp } => {
+                    let time_elapsed = timestamp.elapsed().as_millis();
+                    if time_elapsed < *delay as u128 {
+                        /* still waiting to be activated */
+                        break;
+                    }
+                    self.state = TriggerState::Idle;
+                    break;
+                }
                 TriggerState::Active => {
                     if should_shoot {
                         /* nothing changed */
@@ -179,6 +190,11 @@ impl Enhancement for TriggerBot {
             state.buttons[0] = Some(self.trigger_active);
             ctx.cs2.send_mouse_state(&[state])?;
             log::trace!("Setting shoot state to {}", self.trigger_active);
+
+            self.state = TriggerState::Sleep {
+                delay: settings.trigger_bot_shot_duration,
+                timestamp: Instant::now(),
+            };
         }
 
         Ok(())
