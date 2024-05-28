@@ -319,15 +319,20 @@ impl SettingsUI {
                         }
                         if !matches!(settings.trigger_bot_mode, KeyToggleMode::Off) {
                             let mut values_updated = false;
+                            let slider_width = (ui.current_column_width() / 2.0 - 80.0).min(300.0).max(50.0);
+                            let slider_width_1 = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
 
-                            ui.text(obfstr!("Trigger delay: ")); ui.same_line();
+                            ui.text(obfstr!("Trigger delay min: ")); ui.same_line();
+                            ui.set_next_item_width(slider_width);
+                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
 
-                            let slider_width = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
+                            ui.text(" max: "); ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_min", 0, 250).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
-                            ui.text(" - "); ui.same_line();
-                            ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_max", 0, 250).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
+                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
+
+                            ui.text(obfstr!("Shoot duration: ")); ui.same_line();
+                            ui.set_next_item_width(slider_width_1);
+                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration); 
 
                             if values_updated {
                                 /* fixup min/max */
