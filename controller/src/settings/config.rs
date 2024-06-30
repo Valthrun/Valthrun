@@ -20,6 +20,7 @@ use utils_state::{
 };
 
 use super::{
+    Color,
     EspConfig,
     EspPlayerSettings,
     EspSelector,
@@ -37,6 +38,15 @@ fn default_u32<const V: u32>() -> u32 {
 }
 fn default_i32<const V: i32>() -> i32 {
     V
+}
+fn default_usize<const V: usize>() -> usize {
+    V
+}
+fn default_f32<const N: usize, const D: usize>() -> f32 {
+    N as f32 / D as f32
+}
+fn default_color<const R: u8, const G: u8, const B: u8, const A: u8>() -> Color {
+    Color::from_u8([R, G, B, A])
 }
 
 fn default_key_settings() -> HotKey {
@@ -147,6 +157,36 @@ pub struct AppSettings {
 
     #[serde(default = "bool_false")]
     pub web_radar_advanced_settings: bool,
+
+    #[serde(default = "bool_true")]
+    pub granade_helper: bool,
+
+    #[serde(default = "default_f32::<150, 1>")]
+    pub granade_helper_circle_distance: f32,
+
+    #[serde(default = "default_f32::<20, 1>")]
+    pub granade_helper_circle_radius: f32,
+
+    #[serde(default = "default_usize::<32>")]
+    pub granade_helper_circle_segments: usize,
+
+    #[serde(default = "default_f32::<1, 10>")]
+    pub granade_helper_angle_threshold_yaw: f32,
+
+    #[serde(default = "default_f32::<5, 10>")]
+    pub granade_helper_angle_threshold_pitch: f32,
+
+    #[serde(default = "default_color::<255, 255, 255, 255>")]
+    pub granade_helper_color_position: Color,
+
+    #[serde(default = "default_color::<0, 255, 0, 255>")]
+    pub granade_helper_color_position_active: Color,
+
+    #[serde(default = "default_color::<255, 0, 0, 255>")]
+    pub granade_helper_color_angle: Color,
+
+    #[serde(default = "default_color::<0, 255, 0, 255>")]
+    pub granade_helper_color_angle_active: Color,
 
     #[serde(default)]
     pub imgui: Option<String>,

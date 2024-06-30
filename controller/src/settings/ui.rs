@@ -168,15 +168,26 @@ impl SettingsUI {
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
+                        ui.checkbox(obfstr!("Granade Helper"), &mut settings.granade_helper);
                     }
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {
                         if settings.esp_mode == KeyToggleMode::Off {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
-                            ui.text("ESP has been disabled.");
-                            ui.text("Please enable ESP under \"Visuals\" \"ESP\"");
+                            ui.text(obfstr!("ESP has been disabled."));
+                            ui.text(obfstr!("Please enable ESP under \"Visuals\" > \"ESP\""));
                         } else {
                             self.render_esp_settings(&mut *settings, ui);
+                        }
+                    }
+
+                    if let Some(_tab) = ui.tab_item(obfstr!("Granade Helper")) {
+                        if settings.granade_helper {
+
+                        } else {
+                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            ui.text(obfstr!("Granade Helper has been disabled."));
+                            ui.text(obfstr!("Please enable the granade helper under \"Visuals\" > \"Granade Helper\""));
                         }
                     }
 
