@@ -38,6 +38,18 @@ impl Color {
             (value[3] * 255.0) as u8,
         ])
     }
+
+    pub fn set_alpha_u8(&mut self, alpha: u8) {
+        let mut value = self.as_u8();
+        value[3] = alpha;
+        *self = Self::from_u8(value);
+    }
+
+    pub fn set_alpha_f32(&mut self, alpha: f32) {
+        let mut value = self.as_u8();
+        value[3] = (alpha * 255.0) as u8;
+        *self = Self::from_u8(value);
+    }
 }
 
 impl From<[u8; 4]> for Color {
