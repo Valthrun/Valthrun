@@ -38,6 +38,8 @@ utils-state = { version = "0.1.0", path = "../utils/state" }
 url = "2.5.0"
 tokio = { version = "1.36.0", features = ["full"] }
 radar-client = { version = "0.1.0", path = "../radar/client" }
+serde_with = "3.8.3"
+rfd = "0.14.1"
 
 [build-dependencies]
 winres = "0.1"

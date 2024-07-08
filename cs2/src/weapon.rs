@@ -5,7 +5,7 @@ pub const WEAPON_FLAG_TYPE_SMG: u32 = 0x08;
 pub const WEAPON_FLAG_TYPE_RIFLE: u32 = 0x10;
 pub const WEAPON_FLAG_TYPE_SNIPER_RIFLE: u32 = 0x20;
 pub const WEAPON_FLAG_TYPE_MACHINE_GUN: u32 = 0x40;
-pub const WEAPON_FLAG_TYPE_GRANADE: u32 = 0x80;
+pub const WEAPON_FLAG_TYPE_GRENADE: u32 = 0x80;
 
 macro_rules! define_weapons {
     (
@@ -102,12 +102,12 @@ define_weapons! {
         Sg553 { id: 39, name: "SG 553", flags: WEAPON_FLAG_TYPE_RIFLE },
         Ssg08 { id: 40, name: "SSG 08", flags: WEAPON_FLAG_TYPE_SNIPER_RIFLE },
         Knife { id: 42, name: "Knife", flags: WEAPON_FLAG_TYPE_KNIFE },
-        Flashbang { id: 43, name: "Flashbang", flags: WEAPON_FLAG_TYPE_GRANADE },
-        HZGranade { id: 44, name: "HE Granade", flags: WEAPON_FLAG_TYPE_GRANADE },
-        SmokeGranade { id: 45, name: "Smoke Grenade", flags: WEAPON_FLAG_TYPE_GRANADE },
-        Molotov { id: 46, name: "Molotov", flags: WEAPON_FLAG_TYPE_GRANADE },
-        Decoy { id: 47, name: "Decoy Grenade", flags: WEAPON_FLAG_TYPE_GRANADE },
-        Incendiary { id: 48, name: "Incendiary", flags: WEAPON_FLAG_TYPE_GRANADE },
+        Flashbang { id: 43, name: "Flashbang", flags: WEAPON_FLAG_TYPE_GRENADE },
+        HZgrenade { id: 44, name: "HE grenade", flags: WEAPON_FLAG_TYPE_GRENADE },
+        Smokegrenade { id: 45, name: "Smoke Grenade", flags: WEAPON_FLAG_TYPE_GRENADE },
+        Molotov { id: 46, name: "Molotov", flags: WEAPON_FLAG_TYPE_GRENADE },
+        Decoy { id: 47, name: "Decoy Grenade", flags: WEAPON_FLAG_TYPE_GRENADE },
+        Incendiary { id: 48, name: "Incendiary", flags: WEAPON_FLAG_TYPE_GRENADE },
         C4 { id: 49, name: "C4", flags: 0 },
         Healthshot { id: 57, name: "Healthshot", flags: 0 },
         KnifeT { id: 59, name: "Knife (T)", flags: WEAPON_FLAG_TYPE_KNIFE },
