@@ -3,6 +3,7 @@ pub fn to_wide_chars(s: &str) -> Vec<u16> {
         ffi::OsStr,
         os::windows::ffi::OsStrExt,
     };
+
     OsStr::new(s)
         .encode_wide()
         .chain(Some(0).into_iter())

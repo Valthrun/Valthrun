@@ -1,7 +1,4 @@
-use std::{
-    ffi::CString,
-    time::Instant,
-};
+use std::time::Instant;
 
 use ash::vk;
 use clipboard::ClipboardSupport;
@@ -43,7 +40,7 @@ use input::{
 use obfstr::obfstr;
 use window_tracker::WindowTracker;
 use windows::{
-    core::PCSTR,
+    core::PCWSTR,
     Win32::{
         Foundation::{
             BOOL,
@@ -62,7 +59,7 @@ use windows::{
             Input::KeyboardAndMouse::SetActiveWindow,
             WindowsAndMessaging::{
                 GetWindowLongPtrA,
-                MessageBoxA,
+                MessageBoxW,
                 SetWindowDisplayAffinity,
                 SetWindowLongA,
                 SetWindowLongPtrA,
@@ -110,13 +107,14 @@ mod util;
 mod vulkan_driver;
 
 pub fn show_error_message(title: &str, message: &str) {
-    let title = CString::new(title).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
-    let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
+    let title_wide = util::to_wide_chars(title);
+    let message_wide = util::to_wide_chars(message);
+
     unsafe {
-        MessageBoxA(
+        MessageBoxW(
             HWND::default(),
-            PCSTR::from_raw(message.as_ptr() as *const u8),
-            PCSTR::from_raw(title.as_ptr() as *const u8),
+            PCWSTR::from_raw(title_wide.as_ptr()),
+            PCWSTR::from_raw(message_wide.as_ptr()),
             MB_ICONERROR | MB_OK,
         );
     }
