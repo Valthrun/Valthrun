@@ -35,8 +35,8 @@ pub use spectators_list::*;
 mod aim;
 pub use aim::*;
 
-mod granade_helper;
-pub use granade_helper::*;
+mod grenade_helper;
+pub use grenade_helper::*;
 use utils_state::StateRegistry;
 
 use crate::UpdateContext;

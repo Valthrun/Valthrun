@@ -1,11 +1,18 @@
 use std::{
-    collections::BTreeMap,
+    collections::{
+        BTreeMap,
+        HashMap,
+    },
     fs::File,
     io::{
         BufReader,
         BufWriter,
     },
     path::PathBuf,
+    sync::atomic::{
+        AtomicUsize,
+        Ordering,
+    },
 };
 
 use anyhow::Context;
@@ -14,6 +21,7 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use serde_with::with_prefix;
 use utils_state::{
     State,
     StateCacheType,
@@ -93,6 +101,85 @@ pub enum KeyToggleMode {
     Off,
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum GrenadeType {
+    Smoke,
+    Molotov,
+    Flashbang,
+    Explosive,
+}
+
+impl GrenadeType {
+    pub fn display_name(&self) -> &'static str {
+        match self {
+            Self::Smoke => "Smoke",
+            Self::Molotov => "Molotov",
+            Self::Flashbang => "Flashbang",
+            Self::Explosive => "Explosive",
+        }
+    }
+}
+
+static GRENADE_SPOT_ID_INDEX: AtomicUsize = AtomicUsize::new(1);
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+pub struct GrenadeSpotInfo {
+    #[serde(skip, default = "GrenadeSpotInfo::new_id")]
+    pub id: usize,
+
+    pub map_name: String,
+    pub grenade_types: Vec<GrenadeType>,
+
+    pub name: String,
+    pub description: String,
+
+    /// The eye position of the player
+    pub eye_position: [f32; 3],
+    pub eye_direction: [f32; 2],
+}
+
+impl GrenadeSpotInfo {
+    pub fn new_id() -> usize {
+        GRENADE_SPOT_ID_INDEX.fetch_add(1, Ordering::Relaxed)
+    }
+}
+
+#[derive(Clone, Deserialize, Serialize)]
+pub struct GrenadeSettings {
+    #[serde(default = "bool_true")]
+    pub active: bool,
+
+    #[serde(default = "default_f32::<150, 1>")]
+    pub circle_distance: f32,
+
+    #[serde(default = "default_f32::<20, 1>")]
+    pub circle_radius: f32,
+
+    #[serde(default = "default_usize::<32>")]
+    pub circle_segments: usize,
+
+    #[serde(default = "default_f32::<1, 10>")]
+    pub angle_threshold_yaw: f32,
+
+    #[serde(default = "default_f32::<5, 10>")]
+    pub angle_threshold_pitch: f32,
+
+    #[serde(default = "default_color::<255, 255, 255, 255>")]
+    pub color_position: Color,
+
+    #[serde(default = "default_color::<0, 255, 0, 255>")]
+    pub color_position_active: Color,
+
+    #[serde(default = "default_color::<255, 0, 0, 255>")]
+    pub color_angle: Color,
+
+    #[serde(default = "default_color::<0, 255, 0, 255>")]
+    pub color_angle_active: Color,
+
+    #[serde(default)]
+    pub map_spots: HashMap<String, Vec<GrenadeSpotInfo>>,
+}
+with_prefix!(serde_prefix_grenade_helper "grenade_helper");
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
     #[serde(default = "default_key_settings")]
@@ -158,35 +245,8 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub web_radar_advanced_settings: bool,
 
-    #[serde(default = "bool_true")]
-    pub granade_helper: bool,
-
-    #[serde(default = "default_f32::<150, 1>")]
-    pub granade_helper_circle_distance: f32,
-
-    #[serde(default = "default_f32::<20, 1>")]
-    pub granade_helper_circle_radius: f32,
-
-    #[serde(default = "default_usize::<32>")]
-    pub granade_helper_circle_segments: usize,
-
-    #[serde(default = "default_f32::<1, 10>")]
-    pub granade_helper_angle_threshold_yaw: f32,
-
-    #[serde(default = "default_f32::<5, 10>")]
-    pub granade_helper_angle_threshold_pitch: f32,
-
-    #[serde(default = "default_color::<255, 255, 255, 255>")]
-    pub granade_helper_color_position: Color,
-
-    #[serde(default = "default_color::<0, 255, 0, 255>")]
-    pub granade_helper_color_position_active: Color,
-
-    #[serde(default = "default_color::<255, 0, 0, 255>")]
-    pub granade_helper_color_angle: Color,
-
-    #[serde(default = "default_color::<0, 255, 0, 255>")]
-    pub granade_helper_color_angle_active: Color,
+    #[serde(flatten, with = "serde_prefix_grenade_helper")]
+    pub grenade_helper: GrenadeSettings,
 
     #[serde(default)]
     pub imgui: Option<String>,
