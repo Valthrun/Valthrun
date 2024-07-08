@@ -124,15 +124,6 @@ enum GrenadeHelperTransferDirection {
     Import,
 }
 
-impl GrenadeHelperTransferDirection {
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::Export => "export",
-            Self::Import => "import",
-        }
-    }
-}
-
 enum GrenadeHelperTransferState {
     /// Currently no transfer in progress
     Idle,
@@ -288,7 +279,7 @@ impl SettingsUI {
 
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
-                        ui.checkbox(obfstr!("grenade Helper"), &mut settings.grenade_helper.active);
+                        ui.checkbox(obfstr!("Grenade Helper"), &mut settings.grenade_helper.active);
                     }
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {
@@ -301,13 +292,13 @@ impl SettingsUI {
                         }
                     }
 
-                    if let Some(_tab) = ui.tab_item(obfstr!("grenade Helper")) {
+                    if let Some(_tab) = ui.tab_item(obfstr!("Grenade Helper")) {
                         if settings.grenade_helper.active {
                             self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui);
                         } else {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
-                            ui.text(obfstr!("grenade Helper has been disabled."));
-                            ui.text(obfstr!("Please enable the grenade helper under \"Visuals\" > \"grenade Helper\""));
+                            ui.text(obfstr!("Grenade Helper has been disabled."));
+                            ui.text(obfstr!("Please enable the grenade helper under \"Visuals\" > \"Grenade Helper\""));
                         }
 
                         self.render_grenade_helper_transfer(&mut settings.grenade_helper, ui);
@@ -1308,9 +1299,11 @@ impl SettingsUI {
                 .begin()
         } {
             match &self.grenade_helper_target {
-                GrenadeSettingsTarget::General => { /* TODO! */ }
+                GrenadeSettingsTarget::General => {
+                    self.render_grenade_helper_target_settings(states, settings, ui);
+                }
                 GrenadeSettingsTarget::None | GrenadeSettingsTarget::MapType(_) => {
-                    /* TODO: Display a hint! */
+                    /* Nothing to render */
                 }
                 GrenadeSettingsTarget::Map { map_name, .. } => {
                     self.render_grenade_helper_target_map(states, settings, ui, &map_name.clone());
@@ -1640,9 +1633,8 @@ impl SettingsUI {
                                 settings.map_spots.entry(map_name.to_string()).or_default();
 
                             grenade.id = GrenadeSpotInfo::new_id();
-                            grenade.map_name = map_name.to_string();
-
                             self.grenade_helper_pending_selected_id = Some(grenade.id);
+
                             grenades.push(grenade);
                         }
                     }
@@ -1663,6 +1655,55 @@ impl SettingsUI {
                 );
             }
         }
+    }
+
+    fn render_grenade_helper_target_settings(
+        &mut self,
+        _states: &StateRegistry,
+        settings: &mut GrenadeSettings,
+        ui: &imgui::Ui,
+    ) {
+        fn render_color(ui: &imgui::Ui, label: &str, value: &mut Color) {
+            let mut color_value = value.as_f32();
+
+            if {
+                ui.color_edit4_config(label, &mut color_value)
+                    .alpha_bar(true)
+                    .inputs(false)
+                    .label(true)
+                    .build()
+            } {
+                *value = Color::from_f32(color_value);
+            }
+        }
+
+        ui.text("UI Settings");
+        ui.spacing();
+
+        ui.input_float("Circle distance", &mut settings.circle_distance)
+            .build();
+        ui.input_float("Circle radius", &mut settings.circle_radius)
+            .build();
+        ui.input_scalar("Circle segments", &mut settings.circle_segments)
+            .build();
+
+        ui.input_float("Angle threshold yar", &mut settings.angle_threshold_yaw)
+            .build();
+        ui.input_float("Angle threshold pitch", &mut settings.angle_threshold_pitch)
+            .build();
+
+        render_color(ui, "Color position", &mut settings.color_position);
+        render_color(
+            ui,
+            "Color position (active)",
+            &mut settings.color_position_active,
+        );
+        render_color(ui, "Color angle", &mut settings.color_angle);
+        render_color(
+            ui,
+            "Color angle  (active)",
+            &mut settings.color_angle_active,
+        );
     }
 
     fn render_grenade_helper_transfer(&mut self, settings: &mut GrenadeSettings, ui: &imgui::Ui) {
@@ -1795,14 +1836,24 @@ impl SettingsUI {
 
             GrenadeHelperTransferState::Failed { direction, message } => {
                 let mut popup_open = true;
-                let popup_name = format!("{} failed", direction.display_name());
+                let popup_name = format!(
+                    "{} failed",
+                    match direction {
+                        GrenadeHelperTransferDirection::Export => "Export",
+                        GrenadeHelperTransferDirection::Import => "Import",
+                    }
+                );
                 if let Some(_popup) = ui
                     .modal_popup_config(&popup_name)
                     .opened(&mut popup_open)
                     .always_auto_resize(true)
                     .begin_popup()
                 {
+                    ui.text("A fatal error occurred:");
+                    ui.spacing();
+
                     ui.text(message);
+
                     ui.spacing();
                     ui.separator();
                     ui.spacing();
