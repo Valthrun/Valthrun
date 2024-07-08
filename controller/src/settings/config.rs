@@ -125,8 +125,6 @@ static GRENADE_SPOT_ID_INDEX: AtomicUsize = AtomicUsize::new(1);
 pub struct GrenadeSpotInfo {
     #[serde(skip, default = "GrenadeSpotInfo::new_id")]
     pub id: usize,
-
-    pub map_name: String,
     pub grenade_types: Vec<GrenadeType>,
 
     pub name: String,
