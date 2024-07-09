@@ -116,8 +116,7 @@ impl Enhancement for TriggerBot {
 
         loop {
             match &self.state {
-                TriggerState::Idle => 
-                {
+                TriggerState::Idle => {
                     if !should_shoot {
                         /* nothing changed */
                         break;

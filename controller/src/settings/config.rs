@@ -223,7 +223,7 @@ pub struct AppSettings {
     pub trigger_bot_delay_max: u32,
 
     #[serde(default = "default_u32::<400>")]
-    pub trigger_bot_shot_duration : u32,
+    pub trigger_bot_shot_duration: u32,
 
     #[serde(default = "bool_false")]
     pub trigger_bot_check_target_after_delay: bool,

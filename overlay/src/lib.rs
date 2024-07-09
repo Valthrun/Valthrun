@@ -217,11 +217,10 @@ pub struct System {
     pub platform: WinitPlatform,
 
     pub vulkan_context: VulkanContext,
-    command_buffer: vk::CommandBuffer,
     swapchain: Swapchain,
-    image_available_semaphore: vk::Semaphore,
-    render_finished_semaphore: vk::Semaphore,
-    fence: vk::Fence,
+
+    frame_data: [FrameData; 1],
+    frame_data_index: usize,
 
     pub imgui: Context,
     pub renderer: Renderer,
@@ -236,40 +235,11 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
     let window = create_window(&event_loop, &options.title)?;
 
     let vulkan_context = VulkanContext::new(&window, &options.title)?;
-    let command_buffer = {
-        let allocate_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(vulkan_context.command_pool)
-            .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(1);
-
-        unsafe {
-            vulkan_context
-                .device
-                .allocate_command_buffers(&allocate_info)?[0]
-        }
-    };
-
+    let frame_data = [
+        FrameData::new(&vulkan_context)?,
+        //FrameData::new(&vulkan_context)?,
+    ];
     let swapchain = Swapchain::new(&vulkan_context)?;
-    let image_available_semaphore = {
-        let semaphore_info = vk::SemaphoreCreateInfo::builder();
-        unsafe {
-            vulkan_context
-                .device
-                .create_semaphore(&semaphore_info, None)?
-        }
-    };
-    let render_finished_semaphore = {
-        let semaphore_info = vk::SemaphoreCreateInfo::builder();
-        unsafe {
-            vulkan_context
-                .device
-                .create_semaphore(&semaphore_info, None)?
-        }
-    };
-    let fence = {
-        let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
-        unsafe { vulkan_context.device.create_fence(&fence_info, None)? }
-    };
 
     let (mut platform, mut imgui) = create_imgui_context(&options)?;
     platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
@@ -279,11 +249,11 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
         vulkan_context.physical_device,
         vulkan_context.device.clone(),
         vulkan_context.graphics_queue,
-        vulkan_context.command_pool,
+        frame_data[0].command_pool, // Just any pool will do. Only one time thing
         swapchain.render_pass,
         &mut imgui,
         Some(Options {
-            in_flight_frames: 1,
+            in_flight_frames: frame_data.len(),
             ..Default::default()
         }),
     )?;
@@ -300,10 +270,9 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
 
         vulkan_context,
         swapchain,
-        command_buffer,
-        image_available_semaphore,
-        render_finished_semaphore,
-        fence,
+
+        frame_data,
+        frame_data_index: 0,
 
         imgui,
         platform,
@@ -353,6 +322,91 @@ impl OverlayActiveTracker {
 
 const PERF_RECORDS: usize = 2048;
 
+struct FrameData {
+    device: ash::Device,
+
+    command_pool: vk::CommandPool,
+    command_buffer: vk::CommandBuffer,
+
+    semaphore_image_available: vk::Semaphore,
+    semaphore_render_finished: vk::Semaphore,
+
+    render_fence: vk::Fence,
+}
+
+impl FrameData {
+    pub fn new(instance: &VulkanContext) -> Result<Self> {
+        let device = instance.device.clone();
+
+        let command_pool = {
+            let command_pool_info = vk::CommandPoolCreateInfo::builder()
+                .queue_family_index(instance.graphics_q_index)
+                .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+            unsafe { device.create_command_pool(&command_pool_info, None)? }
+        };
+
+        let command_buffer = {
+            let allocate_info = vk::CommandBufferAllocateInfo::builder()
+                .command_pool(command_pool)
+                .level(vk::CommandBufferLevel::PRIMARY)
+                .command_buffer_count(1);
+
+            unsafe { device.allocate_command_buffers(&allocate_info)?[0] }
+        };
+
+        let semaphore_image_available = {
+            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            unsafe { device.create_semaphore(&semaphore_info, None)? }
+        };
+
+        let semaphore_render_finished = {
+            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            unsafe { device.create_semaphore(&semaphore_info, None)? }
+        };
+
+        let render_fence = {
+            let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
+            unsafe { device.create_fence(&fence_info, None)? }
+        };
+
+        Ok(Self {
+            device,
+
+            command_pool,
+            command_buffer,
+
+            semaphore_image_available,
+            semaphore_render_finished,
+
+            render_fence,
+        })
+    }
+}
+
+impl Drop for FrameData {
+    fn drop(&mut self) {
+        log::debug!("Dropping FrameData");
+        unsafe {
+            if let Err(err) = self
+                .device
+                .wait_for_fences(&[self.render_fence], true, 10_000_000)
+            {
+                log::error!("Failed to wait on fence for frame data destory: {}", err);
+            }
+
+            self.device.destroy_fence(self.render_fence, None);
+            self.device
+                .destroy_semaphore(self.semaphore_image_available, None);
+            self.device
+                .destroy_semaphore(self.semaphore_render_finished, None);
+
+            self.device
+                .free_command_buffers(self.command_pool, &[self.command_buffer]);
+            self.device.destroy_command_pool(self.command_pool, None);
+        }
+    }
+}
+
 impl System {
     pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
     where
@@ -365,10 +419,9 @@ impl System {
 
             vulkan_context,
             mut swapchain,
-            command_buffer,
-            fence,
-            image_available_semaphore,
-            render_finished_semaphore,
+
+            frame_data: frame_datas,
+            mut frame_data_index,
 
             imgui,
             mut platform,
@@ -413,6 +466,9 @@ impl System {
 
                 // End of event processing
                 Event::MainEventsCleared => {
+                    frame_data_index = frame_data_index.wrapping_add(1);
+                    let frame_data = &frame_datas[frame_data_index % frame_datas.len()];
+
                     perf.mark("events cleared");
 
                     /* Update */
@@ -437,6 +493,7 @@ impl System {
                         if dirty_swapchain {
                             let PhysicalSize { width, height } = window.inner_size();
                             if width > 0 && height > 0 {
+                                log::debug!("Recreate swapchain");
                                 swapchain
                                     .recreate(&vulkan_context)
                                     .expect("Failed to recreate swapchain");
@@ -498,8 +555,8 @@ impl System {
                         unsafe {
                             vulkan_context
                                 .device
-                                .wait_for_fences(&[fence], true, std::u64::MAX)
-                                .expect("Failed to wait ")
+                                .wait_for_fences(&[frame_data.render_fence], true, u64::MAX)
+                                .expect("failed to wait for render fence");
                         };
 
                         perf.mark("fence");
@@ -507,7 +564,7 @@ impl System {
                             swapchain.loader.acquire_next_image(
                                 swapchain.khr,
                                 std::u64::MAX,
-                                image_available_semaphore,
+                                frame_data.semaphore_image_available,
                                 vk::Fence::null(),
                             )
                         };
@@ -521,23 +578,22 @@ impl System {
                                 panic!("Error while acquiring next image. Cause: {}", error)
                             }
                         };
-
                         unsafe {
                             vulkan_context
                                 .device
-                                .reset_fences(&[fence])
-                                .expect("Failed to reset fences")
+                                .reset_fences(&[frame_data.render_fence])
+                                .expect("failed to reset fences");
                         };
 
                         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-                        let wait_semaphores = [image_available_semaphore];
-                        let signal_semaphores = [render_finished_semaphore];
+                        let wait_semaphores = [frame_data.semaphore_image_available];
+                        let signal_semaphores = [frame_data.semaphore_render_finished];
 
                         // Re-record commands to draw geometry
                         record_command_buffers(
                             &vulkan_context.device,
-                            vulkan_context.command_pool,
-                            command_buffer,
+                            frame_data.command_pool,
+                            frame_data.command_buffer,
                             swapchain.framebuffers[image_index as usize],
                             swapchain.render_pass,
                             swapchain.extent,
@@ -546,7 +602,7 @@ impl System {
                         )
                         .expect("Failed to record command buffer");
 
-                        let command_buffers = [command_buffer];
+                        let command_buffers = [frame_data.command_buffer];
                         let submit_info = [vk::SubmitInfo::builder()
                             .wait_semaphores(&wait_semaphores)
                             .wait_dst_stage_mask(&wait_stages)
@@ -558,7 +614,11 @@ impl System {
                         unsafe {
                             vulkan_context
                                 .device
-                                .queue_submit(vulkan_context.graphics_queue, &submit_info, fence)
+                                .queue_submit(
+                                    vulkan_context.graphics_queue,
+                                    &submit_info,
+                                    frame_data.render_fence,
+                                )
                                 .expect("Failed to submit work to gpu.")
                         };
                         perf.mark("after submit");

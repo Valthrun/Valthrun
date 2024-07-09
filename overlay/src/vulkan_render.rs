@@ -37,25 +37,24 @@ const HEIGHT: u32 = 768;
 pub struct VulkanContext {
     _entry: Entry,
     pub instance: Instance,
-    debug_utils: DebugUtils,
-    debug_utils_messenger: vk::DebugUtilsMessengerEXT,
+
     surface: Surface,
     surface_khr: vk::SurfaceKHR,
+
     pub physical_device: vk::PhysicalDevice,
-    graphics_q_index: u32,
-    present_q_index: u32,
+    pub graphics_q_index: u32,
+    pub present_q_index: u32,
+
     pub device: Device,
     pub graphics_queue: vk::Queue,
     pub present_queue: vk::Queue,
-    pub command_pool: vk::CommandPool,
 }
 
 impl VulkanContext {
     pub fn new(window: &Window, name: &str) -> crate::error::Result<Self> {
         // Vulkan instance
         let entry = get_vulkan_entry()?;
-        let (instance, debug_utils, debug_utils_messenger) =
-            create_vulkan_instance(&entry, window, name)?;
+        let instance = create_vulkan_instance(&entry, window, name)?;
 
         // Vulkan surface
         let surface = Surface::new(&entry, &instance);
@@ -87,19 +86,9 @@ impl VulkanContext {
                 present_q_index,
             )?;
 
-        // Command pool & buffer
-        let command_pool = {
-            let command_pool_info = vk::CommandPoolCreateInfo::builder()
-                .queue_family_index(graphics_q_index)
-                .flags(vk::CommandPoolCreateFlags::empty());
-            unsafe { device.create_command_pool(&command_pool_info, None)? }
-        };
-
         Ok(Self {
             _entry: entry,
             instance,
-            debug_utils,
-            debug_utils_messenger,
             surface,
             surface_khr,
             physical_device,
@@ -108,7 +97,6 @@ impl VulkanContext {
             device,
             graphics_queue,
             present_queue,
-            command_pool,
         })
     }
 }
@@ -117,11 +105,8 @@ impl Drop for VulkanContext {
     fn drop(&mut self) {
         log::debug!("Destroying Vulkan Context");
         unsafe {
-            self.device.destroy_command_pool(self.command_pool, None);
             self.device.destroy_device(None);
             self.surface.destroy_surface(self.surface_khr, None);
-            self.debug_utils
-                .destroy_debug_utils_messenger(self.debug_utils_messenger, None);
             self.instance.destroy_instance(None);
         }
     }
@@ -191,6 +176,7 @@ impl Swapchain {
     }
 
     fn destroy(&mut self, vulkan_context: &VulkanContext) {
+        log::debug!("Destroying Swapchain");
         unsafe {
             self.framebuffers
                 .iter()
@@ -208,11 +194,13 @@ impl Swapchain {
     }
 }
 
-fn create_vulkan_instance(
-    entry: &Entry,
-    window: &Window,
-    title: &str,
-) -> crate::Result<(Instance, DebugUtils, vk::DebugUtilsMessengerEXT)> {
+impl Drop for Swapchain {
+    fn drop(&mut self) {
+        log::debug!("Dropping Swapchain");
+    }
+}
+
+fn create_vulkan_instance(entry: &Entry, window: &Window, title: &str) -> crate::Result<Instance> {
     let instance_version = match entry.try_enumerate_instance_version()? {
         Some(version) => version,
         None => vk::make_api_version(0, 1, 0, 0),
@@ -224,6 +212,18 @@ fn create_vulkan_instance(
         vk::api_version_patch(instance_version)
     );
 
+    log::debug!("Available extensions:");
+    for layer in entry.enumerate_instance_extension_properties(None)? {
+        let extension_name = unsafe { CStr::from_ptr(layer.extension_name.as_ptr()) };
+        log::debug!("- {}", extension_name.to_string_lossy());
+    }
+
+    log::debug!("Available layers:");
+    for layer in entry.enumerate_instance_layer_properties()? {
+        let layer_name = unsafe { CStr::from_ptr(layer.layer_name.as_ptr()) };
+        log::debug!("- {}", layer_name.to_string_lossy());
+    }
+
     // Vulkan instance
     let app_name = CString::new(title)?;
     let engine_name = CString::new("No Engine")?;
@@ -232,32 +232,23 @@ fn create_vulkan_instance(
         .application_version(vk::make_api_version(0, 1, 0, 0))
         .engine_name(engine_name.as_c_str())
         .engine_version(vk::make_api_version(0, 1, 0, 0))
-        .api_version(vk::make_api_version(0, 1, 0, 0));
+        .api_version(vk::make_api_version(0, 1, 1, 0));
 
     let mut extension_names =
         ash_window::enumerate_required_extensions(window.raw_display_handle())?.to_vec();
     extension_names.push(DebugUtils::name().as_ptr());
 
     let enabled_layer_names = Vec::new();
+
     /* If debug, may add some extra layers here */
-
-    let instance_create_info = vk::InstanceCreateInfo::builder()
-        .application_info(&app_info)
-        .enabled_extension_names(&extension_names)
-        .enabled_layer_names(&enabled_layer_names);
-
-    log::debug!("Creating Vulkan instance");
-    let instance = unsafe {
-        entry
-            .create_instance(&instance_create_info, None)
-            .map_err(OverlayError::VulkanInstanceCreationFailed)?
-    };
+    //enabled_layer_names.push("VK_LAYER_KHRONOS_validation\0".as_ptr() as *const i8);
 
     // Vulkan debug report
-    let create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
+    let mut debug_create_info = vk::DebugUtilsMessengerCreateInfoEXT::builder()
         .flags(vk::DebugUtilsMessengerCreateFlagsEXT::empty())
         .message_severity(
-            vk::DebugUtilsMessageSeverityFlagsEXT::INFO
+            vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
+                | vk::DebugUtilsMessageSeverityFlagsEXT::INFO
                 | vk::DebugUtilsMessageSeverityFlagsEXT::WARNING
                 | vk::DebugUtilsMessageSeverityFlagsEXT::ERROR,
         )
@@ -267,13 +258,21 @@ fn create_vulkan_instance(
                 | vk::DebugUtilsMessageTypeFlagsEXT::VALIDATION,
         )
         .pfn_user_callback(Some(vulkan_debug_callback));
-    let debug_utils = DebugUtils::new(entry, &instance);
 
-    log::debug!("Setup debug logging");
-    let debug_utils_messenger =
-        unsafe { debug_utils.create_debug_utils_messenger(&create_info, None)? };
+    let instance_create_info = vk::InstanceCreateInfo::builder()
+        .application_info(&app_info)
+        .enabled_extension_names(&extension_names)
+        .enabled_layer_names(&enabled_layer_names)
+        .push_next(&mut debug_create_info);
 
-    Ok((instance, debug_utils, debug_utils_messenger))
+    log::debug!("Creating Vulkan instance");
+    let instance = unsafe {
+        entry
+            .create_instance(&instance_create_info, None)
+            .map_err(OverlayError::VulkanInstanceCreationFailed)?
+    };
+
+    Ok(instance)
 }
 
 unsafe extern "system" fn vulkan_debug_callback(
@@ -309,7 +308,8 @@ fn create_vulkan_physical_device_and_get_graphics_and_present_qs_indices(
         unsafe {
             let props = instance.get_physical_device_properties(*device);
             let device_name = CStr::from_ptr(props.device_name.as_ptr());
-            log::debug!("- {device_name:?}");
+
+            log::debug!("- #{} {device_name:?}", props.device_id);
         }
     }
 
@@ -382,7 +382,10 @@ fn create_vulkan_physical_device_and_get_graphics_and_present_qs_indices(
     unsafe {
         let props = instance.get_physical_device_properties(device);
         let device_name = CStr::from_ptr(props.device_name.as_ptr());
-        log::debug!("Selected physical device: {device_name:?}");
+        log::debug!(
+            "Selected physical device: #{} {device_name:?}",
+            props.device_id
+        );
     }
 
     Ok((device, graphics.unwrap(), present.unwrap()))
@@ -472,6 +475,8 @@ fn create_vulkan_swapchain(
         };
         if present_modes.contains(&vk::PresentModeKHR::IMMEDIATE) {
             vk::PresentModeKHR::IMMEDIATE
+        } else if present_modes.contains(&vk::PresentModeKHR::MAILBOX) {
+            vk::PresentModeKHR::MAILBOX
         } else {
             vk::PresentModeKHR::FIFO
         }
@@ -502,8 +507,13 @@ fn create_vulkan_swapchain(
     log::debug!("Swapchain extent: {extent:?}");
 
     // Swapchain image count
-    let image_count = capabilities.min_image_count;
-    log::debug!("Swapchain image count: {image_count:?}");
+    let image_count = 2.clamp(capabilities.min_image_count, capabilities.max_image_count);
+    log::debug!(
+        "Swapchain image count ([{}; {}]): {}",
+        capabilities.min_image_count,
+        capabilities.max_image_count,
+        image_count
+    );
 
     // Swapchain
     let families_indices = [
@@ -615,7 +625,7 @@ fn create_vulkan_framebuffers(
     extent: vk::Extent2D,
     image_views: &[vk::ImageView],
 ) -> Result<Vec<vk::Framebuffer>> {
-    log::debug!("Creating vulkan framebuffers");
+    log::debug!("Creating {} vulkan framebuffers", image_views.len());
     Ok(image_views
         .iter()
         .map(|view| [*view])
@@ -633,7 +643,7 @@ fn create_vulkan_framebuffers(
 
 pub fn record_command_buffers(
     device: &Device,
-    command_pool: vk::CommandPool,
+    _command_pool: vk::CommandPool,
     command_buffer: vk::CommandBuffer,
     framebuffer: vk::Framebuffer,
     render_pass: vk::RenderPass,
@@ -641,10 +651,11 @@ pub fn record_command_buffers(
     renderer: &mut Renderer,
     draw_data: &DrawData,
 ) -> Result<()> {
-    unsafe { device.reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())? };
+    //unsafe { device.reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())? };
+    unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty())? };
 
     let command_buffer_begin_info =
-        vk::CommandBufferBeginInfo::builder().flags(vk::CommandBufferUsageFlags::SIMULTANEOUS_USE);
+        vk::CommandBufferBeginInfo::builder().flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
     unsafe { device.begin_command_buffer(command_buffer, &command_buffer_begin_info)? };
 
     let render_pass_begin_info = vk::RenderPassBeginInfo::builder()
