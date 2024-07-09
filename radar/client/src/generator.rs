@@ -4,10 +4,10 @@ use anyhow::Context;
 use cs2::{
     CEntityIdentityEx,
     ClassNameCache,
-    CurrentMapState,
     EntitySystem,
     Globals,
     PlayerPawnState,
+    StateCurrentMap,
 };
 use cs2_schema_generated::cs2::{
     client::{
@@ -165,7 +165,7 @@ impl RadarGenerator for CS2RadarGenerator {
     fn generate_state(&mut self, _settings: &RadarSettings) -> anyhow::Result<RadarState> {
         self.states.invalidate_states();
 
-        let current_map = self.states.resolve::<CurrentMapState>(())?;
+        let current_map = self.states.resolve::<StateCurrentMap>(())?;
         let mut radar_state = RadarState {
             players: Vec::with_capacity(16),
             world_name: current_map

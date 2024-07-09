@@ -22,11 +22,11 @@ define_schema! {
     }
 }
 
-pub struct CurrentMapState {
+pub struct StateCurrentMap {
     pub current_map: Option<String>,
 }
 
-impl State for CurrentMapState {
+impl State for StateCurrentMap {
     type Parameter = ();
 
     fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {

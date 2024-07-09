@@ -41,7 +41,10 @@ use cs2::{
     CS2HandleState,
     CS2Offsets,
 };
-use enhancements::Enhancement;
+use enhancements::{
+    Enhancement,
+    GrenadeHelper,
+};
 use imgui::{
     Condition,
     FontConfig,
@@ -278,7 +281,9 @@ impl Application {
         {
             for enhancement in self.enhancements.iter() {
                 let mut enhancement = enhancement.borrow_mut();
-                enhancement.render_debug_window(&self.app_state, ui);
+                if let Err(err) = enhancement.render_debug_window(&self.app_state, ui) {
+                    log::error!("{:?}", err);
+                }
             }
         }
 
@@ -628,6 +633,7 @@ fn main_overlay() -> anyhow::Result<()> {
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
             Rc::new(RefCell::new(AntiAimPunsh::new())),
+            Rc::new(RefCell::new(GrenadeHelper::new())),
         ],
 
         last_total_read_calls: 0,

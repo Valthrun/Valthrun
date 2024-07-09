@@ -1,6 +1,6 @@
 use cs2::{
     WeaponId,
-    WEAPON_FLAG_TYPE_GRANADE,
+    WEAPON_FLAG_TYPE_GRENADE,
     WEAPON_FLAG_TYPE_MACHINE_GUN,
     WEAPON_FLAG_TYPE_PISTOL,
     WEAPON_FLAG_TYPE_RIFLE,
@@ -37,6 +37,18 @@ impl Color {
             (value[2] * 255.0) as u8,
             (value[3] * 255.0) as u8,
         ])
+    }
+
+    pub fn set_alpha_u8(&mut self, alpha: u8) {
+        let mut value = self.as_u8();
+        value[3] = alpha;
+        *self = Self::from_u8(value);
+    }
+
+    pub fn set_alpha_f32(&mut self, alpha: f32) {
+        let mut value = self.as_u8();
+        value[3] = (alpha * 255.0) as u8;
+        *self = Self::from_u8(value);
     }
 }
 
@@ -308,7 +320,7 @@ pub enum EspWeaponType {
     Rifle,
     SniperRifle,
     MachineGun,
-    Granade,
+    Grenade,
 }
 
 impl EspWeaponType {
@@ -320,7 +332,7 @@ impl EspWeaponType {
             Self::Rifle => "Rifle".to_string(),
             Self::SniperRifle => "Sniper Rifle".to_string(),
             Self::MachineGun => "Machine Gun".to_string(),
-            Self::Granade => "Granade".to_string(),
+            Self::Grenade => "Grenade".to_string(),
         }
     }
 
@@ -332,7 +344,7 @@ impl EspWeaponType {
             Self::Rifle => "rifle",
             Self::SniperRifle => "sniper-rifle",
             Self::MachineGun => "machine-gun",
-            Self::Granade => "granade",
+            Self::Grenade => "grenade",
         }
     }
 
@@ -344,7 +356,7 @@ impl EspWeaponType {
             Self::Rifle => WEAPON_FLAG_TYPE_RIFLE,
             Self::SniperRifle => WEAPON_FLAG_TYPE_SNIPER_RIFLE,
             Self::MachineGun => WEAPON_FLAG_TYPE_MACHINE_GUN,
-            Self::Granade => WEAPON_FLAG_TYPE_GRANADE,
+            Self::Grenade => WEAPON_FLAG_TYPE_GRENADE,
         };
 
         WeaponId::all_weapons()
@@ -522,7 +534,7 @@ impl EspSelector {
                     group: EspWeaponType::SniperRifle,
                 },
                 EspSelector::WeaponGroup {
-                    group: EspWeaponType::Granade,
+                    group: EspWeaponType::Grenade,
                 },
             ],
             EspSelector::WeaponGroup { group } => group

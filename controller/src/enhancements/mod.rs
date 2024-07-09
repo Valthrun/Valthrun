@@ -1,7 +1,6 @@
 use crate::settings::AppSettings;
 
 pub trait Enhancement {
-    /* FIXME: Remove the update method! */
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;
     fn update_settings(
         &mut self,
@@ -12,7 +11,13 @@ pub trait Enhancement {
     }
 
     fn render(&self, states: &StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()>;
-    fn render_debug_window(&mut self, _states: &StateRegistry, _ui: &imgui::Ui) {}
+    fn render_debug_window(
+        &mut self,
+        _states: &StateRegistry,
+        _ui: &imgui::Ui,
+    ) -> anyhow::Result<()> {
+        Ok(())
+    }
 }
 
 mod bomb;
@@ -29,6 +34,9 @@ pub use spectators_list::*;
 
 mod aim;
 pub use aim::*;
+
+mod grenade_helper;
+pub use grenade_helper::*;
 use utils_state::StateRegistry;
 
 use crate::UpdateContext;
