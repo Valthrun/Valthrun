@@ -1,0 +1,34 @@
+import { LoadedMap } from "..";
+import kImageRadar from "./radar.png";
+import kImageBuyZones from "./overlay_buyzones.png";
+
+export default {
+    mapName: "de_nuke",
+    displayName: "Nuke",
+
+    metaInfo: {
+        "resolution": 6.98,
+
+        "offset": {
+            "x": 3290,
+            "y": 5990
+        },
+
+        "floors": [
+            {
+                "offset": {
+                    "x": 0,
+                    "y": -46
+                },
+
+                "zRange": {
+                    "min": -780,
+                    "max": -480
+                }
+            }
+        ]
+    },
+
+    overlayBuyzones: kImageRadar,
+    overlayRadar: kImageBuyZones,
+} satisfies LoadedMap;
