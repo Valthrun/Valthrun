@@ -8,6 +8,8 @@
     "target": "es6",
     "jsx": "react",
     "allowJs": true,
-    "moduleResolution": "node"
-  }
+    "moduleResolution": "node",
+    "lib": ["DOM", "DOM.Iterable"]
+  },
+  "include": ["src"]
 }

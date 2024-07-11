@@ -1,13 +1,13 @@
 import * as React from "react";
 import { RadarPlayerInfo, RadarBombInfo, RadarState } from "../../../../backend/connection";
 import { LoadedMap, loadMap } from "../../../../map-info";
-import { Box, Drawer, IconButton, Typography, Slider } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import ImageBlueCross from "../../../../assets/blue_cross.png";
 import ImageBlueDot from "../../../../assets/blue_dot.png";
 import ImageYellowCross from "../../../../assets/yellow_cross.png";
 import ImageYellowDot from "../../../../assets/yellow_dot.png";
 import ImageBomb from "../../../../assets/bomb.png";
-import MenuIcon from "@mui/icons-material/Menu";
+import { useAppSelector } from "../../../../state";
 
 export const ContextRadarState = React.createContext<RadarState>({
     players: [],
@@ -20,12 +20,6 @@ const ContextMap = React.createContext<LoadedMap>(null);
 export const RadarRenderer = React.memo(() => {
     const { worldName } = React.useContext(ContextRadarState);
     const [mapInfo, setMapInfo] = React.useState<LoadedMap>(null);
-    const [drawerOpen, setDrawerOpen] = React.useState(false);
-    const [iconSize, setIconSize] = React.useState(3.125);
-
-    const toggleDrawer = () => {
-        setDrawerOpen(!drawerOpen);
-    };
 
     React.useEffect(() => {
         let obsolete = false;
@@ -60,42 +54,14 @@ export const RadarRenderer = React.memo(() => {
                 p: 3,
             }}>
                 <Typography variant={"h5"}>{mapInfo?.displayName ?? worldName}</Typography>
-                <IconButton onClick={toggleDrawer} sx={{ position: 'absolute', top: 0, right: 0 }}>
-                    <MenuIcon />
-                </IconButton>
-                <Drawer
-                    anchor={'right'}
-                    open={drawerOpen}
-                    onClose={toggleDrawer}
-                >
-                    <Box sx={{ width: 250 }}>
-                        <Box sx={{ paddingX: 2 }}>
-                            <Typography>Icon Size</Typography>
-                            <Slider
-                                value={iconSize}
-                                onChange={(_event, newValue) => {
-                                    if (typeof newValue === 'number') {
-                                        setIconSize(newValue)
-                                    }
-                                }}
-                                step={0.1}
-                                min={1}
-                                max={5}
-                                valueLabelDisplay="auto"
-                            />
+                <SqareContainer>
+                    <MapRenderer />
+                    {!mapInfo && (
+                        <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                            <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
                         </Box>
-                    </Box>
-                </Drawer>
-                <IconSizeContext.Provider value={{ iconSize }}>
-                    <SqareContainer>
-                        <MapRenderer />
-                        {!mapInfo && (
-                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
-                            </Box>
-                        )}
-                    </SqareContainer>
-                </IconSizeContext.Provider>
+                    )}
+                </SqareContainer>
             </Box>
         </ContextMap.Provider>
     );
@@ -173,33 +139,14 @@ const MapRenderer = React.memo(() => {
     )
 });
 
-export const IconSizeContext = React.createContext({
-    iconSize: 3.125,
-});
-const MapPlayerPing = React.memo((props: {
+export const MapPlayerPing = React.memo((props: {
     playerInfo: RadarPlayerInfo
 }) => {
     const { playerInfo } = props;
     const map = React.useContext(ContextMap);
-    const { iconSize } = React.useContext(IconSizeContext);
     if (!map) {
         /* we need the map info */
         return null;
-    }
-
-    let iconSrc;
-    if (playerInfo.playerHealth <= 0) {
-        if (playerInfo.teamId === 3) {
-            iconSrc = ImageBlueCross;
-        } else {
-            iconSrc = ImageYellowCross;
-        }
-    } else {
-        if (playerInfo.teamId === 3) {
-            iconSrc = ImageBlueDot;
-        } else {
-            iconSrc = ImageYellowDot;
-        }
     }
 
     const offsets = map.metaInfo.offset;
@@ -209,6 +156,45 @@ const MapPlayerPing = React.memo((props: {
 
     const playerX = props.playerInfo.position[0] + offsets.x;
     const playerY = props.playerInfo.position[1] + offsets.y;
+
+    return (
+        <MapPlayerIcon
+            posX={playerX * 100 / mapSize + (floor?.offset.x ?? 0)}
+            posY={playerY * 100 / mapSize + (floor?.offset.y ?? 0)}
+            rotation={playerInfo.playerHealth <= 0 ? 0 : playerInfo.rotation * -1}
+
+            teamId={playerInfo.teamId}
+            playerHealth={playerInfo.playerHealth}
+        />
+    )
+});
+
+export const MapPlayerIcon = (props: {
+    posX: number,
+    posY: number,
+    rotation: number,
+
+    teamId: number,
+    playerHealth: number,
+
+    size?: number
+}) => {
+    const iconSize = useAppSelector(state => state.radarSettings.iconSize) * (props.size ?? 1.0);
+
+    let iconSrc;
+    if (props.playerHealth <= 0) {
+        if (props.teamId === 3) {
+            iconSrc = ImageBlueCross;
+        } else {
+            iconSrc = ImageYellowCross;
+        }
+    } else {
+        if (props.teamId === 3) {
+            iconSrc = ImageBlueDot;
+        } else {
+            iconSrc = ImageYellowDot;
+        }
+    }
 
     return (
         <Box
@@ -229,18 +215,19 @@ const MapPlayerPing = React.memo((props: {
             }}
 
             style={{
-                "--pos-x": `${playerX * 100 / mapSize - iconSize / 2 + (floor?.offset.x ?? 0)}%`,
-                "--pos-y": `${playerY * 100 / mapSize - iconSize / 2 + (floor?.offset.y ?? 0)}%`,
-                "--rotation": `${playerInfo.playerHealth <= 0 ? 0 : playerInfo.rotation * -1}deg`
+                "--pos-x": `${props.posX - iconSize / 2}%`,
+                "--pos-y": `${props.posY - iconSize / 2}%`,
+                "--rotation": `${props.rotation}deg`
             } as any}
         />
-    )
-});
+    );
+};
+
 const MapBombPing = React.memo((props: {
     bombInfo: RadarBombInfo,
 }) => {
     const map = React.useContext(ContextMap);
-    const { iconSize } = React.useContext(IconSizeContext);
+    const iconSize = useAppSelector(state => state.radarSettings.iconSize);
     if (!map || !props.bombInfo) {
         /* we need the map and bomb info */
         return null;

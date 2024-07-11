@@ -17,6 +17,6 @@ export default {
         "floors": []
     },
 
-    overlayBuyzones: kImageRadar,
-    overlayRadar: kImageBuyZones,
+    overlayBuyzones: kImageBuyZones,
+    overlayRadar: kImageRadar,
 } satisfies LoadedMap;

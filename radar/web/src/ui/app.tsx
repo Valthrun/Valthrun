@@ -14,9 +14,11 @@ import {
     Routes,
     Navigate
 } from "react-router-dom";
+import { Provider as StateProvider } from "react-redux";
 
 import PageMain from "./pages/main";
 import PageSession from "./pages/session/[id]";
+import { appStore } from "../state";
 
 const theme = createTheme({
     palette: {
@@ -27,23 +29,25 @@ const theme = createTheme({
 export const App = React.memo(() => {
     return (
         <React.Fragment>
-            <RecoilRoot>
-                <ThemeProvider theme={theme}>
-                    <CssBaseline />
-                    <BrowserRouter>
-                        <Box sx={{
-                            height: "100%",
-                            width: "100%"
-                        }}>
-                            <Routes>
-                                <Route path="/" element={<PageMain />} />
-                                <Route path="/session/:sessionId" element={<PageSession />} />
-                                <Route path={"*"} element={<Navigate to={"/"} />} />
-                            </Routes>
-                        </Box>
-                    </BrowserRouter>
-                </ThemeProvider>
-            </RecoilRoot>
+            <StateProvider store={appStore}>
+                <RecoilRoot>
+                    <ThemeProvider theme={theme}>
+                        <CssBaseline />
+                        <BrowserRouter>
+                            <Box sx={{
+                                height: "100%",
+                                width: "100%"
+                            }}>
+                                <Routes>
+                                    <Route path="/" element={<PageMain />} />
+                                    <Route path="/session/:sessionId" element={<PageSession />} />
+                                    <Route path={"*"} element={<Navigate to={"/"} />} />
+                                </Routes>
+                            </Box>
+                        </BrowserRouter>
+                    </ThemeProvider>
+                </RecoilRoot>
+            </StateProvider>
         </React.Fragment>
     );
 });

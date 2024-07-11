@@ -6,7 +6,7 @@ export default {
     displayName: "Office",
 
     metaInfo: {
-        "resolution": 4.25,
+        "resolution": 4.26,
 
         "offset": {
             "x": 1900,

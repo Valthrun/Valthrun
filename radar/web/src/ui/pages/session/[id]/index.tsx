@@ -1,12 +1,17 @@
-import { Box, Typography, CircularProgress, Alert } from "@mui/material";
+import { Box, Typography, CircularProgress, Alert, IconButton } from "@mui/material";
 import * as React from "react";
 import { SubscriberClientProvider, useSubscriberClient } from "../../../components/connection";
 import { useParams } from "react-router-dom";
 import { RadarState } from "../../../../backend/connection";
 import { ContextRadarState, RadarRenderer } from "./radar";
+import { useAppDispatch } from "../../../../state";
+import ModalSettings from "./modal-settings";
+import { Settings as IconSettings } from "@mui/icons-material";
+import { updateRadarSettings } from "../../../../state/radar-settings";
 
 const kServerUrl: string | null = process.env.SERVER_URL;
 export default React.memo(() => {
+    const dispatch = useAppDispatch();
     const targetUrl = React.useMemo(() => {
         if (typeof kServerUrl === "string") {
             return kServerUrl;
@@ -43,6 +48,12 @@ export default React.memo(() => {
                 <ClientStateConnected />
                 <ClientStateDisconnected />
             </SubscriberClientProvider>
+            <ModalSettings />
+            <Box sx={{ position: "absolute", top: 0, right: 0 }}>
+                <IconButton onClick={() => dispatch(updateRadarSettings({ dialogOpen: true }))} sx={{ mr: 2, mt: 2 }}>
+                    <IconSettings />
+                </IconButton>
+            </Box>
         </Box>
     );
 });

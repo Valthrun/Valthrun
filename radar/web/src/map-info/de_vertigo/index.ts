@@ -29,6 +29,6 @@ export default {
         ]
     },
 
-    overlayBuyzones: kImageRadar,
-    overlayRadar: kImageBuyZones,
+    overlayBuyzones: kImageBuyZones,
+    overlayRadar: kImageRadar,
 } satisfies LoadedMap;
