@@ -289,6 +289,66 @@ impl Enhancement for PlayerESP {
                     .build();
                 }
             }
+            
+            match esp_settings.head_dot {
+                EspHeadDot::Filled => {
+                    let bones = entry_model.bones.iter().zip(entry.bone_states.iter());
+
+                    for (bone, state) in bones {
+                        if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
+                            continue;
+                        }
+
+                        if bone.name == "head_0"{
+
+                            let head_position = match view.world_to_screen(&state.position, true) {
+                                Some(position) => position,
+                                None => continue,
+                            };
+
+                            draw.add_circle(
+                                head_position,
+                                15.0 - distance,
+                                esp_settings
+                                    .head_dot_color
+                                    .calculate_color(player_rel_health, distance)
+                            )
+                            .filled(true)
+                            .build();
+                        }
+                    }
+                }
+                EspHeadDot::NotFilled => {
+                    let bones = entry_model.bones.iter().zip(entry.bone_states.iter());
+
+                    for (bone, state) in bones {
+                        if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
+                            continue;
+                        }
+
+                        if bone.name == "head_0"{
+
+                            let head_position = match view.world_to_screen(&state.position, true) {
+                                Some(position) => position,
+                                None => continue,
+                            };
+
+                            draw.add_circle(
+                                head_position,
+                                15.0 - distance,
+                                esp_settings
+                                    .head_dot_color
+                                    .calculate_color(player_rel_health, distance)
+                            )
+                            .filled(false)
+                            .thickness(esp_settings .head_dot_thickness)
+                            .build();
+                        }
+                    }
+                }
+                EspHeadDot::None => {}
+            }
+
 
             match esp_settings.box_type {
                 EspBoxType::Box2D => {
