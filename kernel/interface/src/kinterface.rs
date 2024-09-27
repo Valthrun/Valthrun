@@ -9,6 +9,7 @@ use core::{
 
 use valthrun_driver_shared::{
     requests::{
+        self,
         ControllerInfo,
         DriverInfo,
         DriverRequest,
@@ -17,11 +18,12 @@ use valthrun_driver_shared::{
         RequestInitialize,
         RequestKeyboardState,
         RequestMouseMove,
+        RequestProcessModules,
         RequestProtectionToggle,
         RequestRead,
         RequestReportSend,
         RequestWrite,
-        ResponseCsModule,
+        ResponseProcessModules,
         ResponseRead,
         ResponseWrite,
         INIT_STATUS_CONTROLLER_OUTDATED,
@@ -316,6 +318,51 @@ impl KernelInterface {
         }
     }
 
+    pub fn request_modules(&self, filter: ProcessFilter) -> KResult<(i32, Vec<ModuleInfo>)> {
+        let kfilter = match filter {
+            ProcessFilter::Id { id } => requests::ProcessFilter::Id { id },
+            ProcessFilter::Name { name } => requests::ProcessFilter::Name {
+                name: name.as_ptr(),
+                name_length: name.len(),
+            },
+        };
+
+        let mut buffer = Vec::with_capacity(128);
+        buffer.resize_with(128, Default::default);
+
+        let mut retry = 0;
+        loop {
+            let response = unsafe {
+                self.execute_request(&RequestProcessModules {
+                    filter: kfilter,
+
+                    module_buffer: buffer.as_mut_ptr(),
+                    module_buffer_length: buffer.len(),
+                })?
+            };
+
+            return match response {
+                ResponseProcessModules::Success(info) => {
+                    buffer.truncate(info.module_count);
+                    Ok((info.process_id, buffer))
+                }
+                ResponseProcessModules::BufferTooSmall { expected } => {
+                    buffer.resize_with(expected, Default::default);
+                    if retry >= 3 {
+                        return Err(KInterfaceError::RequestFailed);
+                    }
+
+                    retry += 1;
+                    continue;
+                }
+                ResponseProcessModules::UbiquitousProcesses(_) => {
+                    Err(KInterfaceError::ProcessNotUbiquitous)
+                }
+                ResponseProcessModules::NoProcess => Err(KInterfaceError::ProcessDoesNotExists),
+            };
+        }
+    }
+
     pub fn request_cs2_modules(&self) -> KResult<(i32, Vec<ModuleInfo>)> {
         let mut buffer = Vec::with_capacity(128);
         buffer.resize_with(128, Default::default);
@@ -330,11 +377,11 @@ impl KernelInterface {
             };
 
             return match response {
-                ResponseCsModule::Success(info) => {
+                ResponseProcessModules::Success(info) => {
                     buffer.truncate(info.module_count);
                     Ok((info.process_id, buffer))
                 }
-                ResponseCsModule::BufferTooSmall { expected } => {
+                ResponseProcessModules::BufferTooSmall { expected } => {
                     buffer.resize_with(expected, Default::default);
                     if retry >= 3 {
                         return Err(KInterfaceError::RequestFailed);
@@ -343,10 +390,10 @@ impl KernelInterface {
                     retry += 1;
                     continue;
                 }
-                ResponseCsModule::UbiquitousProcesses(_) => {
+                ResponseProcessModules::UbiquitousProcesses(_) => {
                     Err(KInterfaceError::ProcessNotUbiquitous)
                 }
-                ResponseCsModule::NoProcess => Err(KInterfaceError::ProcessDoesNotExists),
+                ResponseProcessModules::NoProcess => Err(KInterfaceError::ProcessDoesNotExists),
             };
         }
     }
@@ -370,4 +417,9 @@ impl KernelInterface {
             .map(|_| ())
         }
     }
+}
+
+pub enum ProcessFilter {
+    Id { id: i32 },
+    Name { name: String },
 }
