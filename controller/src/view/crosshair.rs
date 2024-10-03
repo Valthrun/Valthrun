@@ -3,8 +3,6 @@ use std::time::Instant;
 use anyhow::Context;
 use cs2::{
     CEntityIdentityEx,
-    CS2HandleState,
-    CS2Offsets,
     ClassNameCache,
     EntitySystem,
 };
@@ -85,8 +83,6 @@ impl LocalCrosshair {
     }
 
     fn read_crosshair_entity(&self, states: &StateRegistry) -> anyhow::Result<Option<u32>> {
-        let offsets = states.resolve::<CS2Offsets>(())?;
-        let cs2 = states.resolve::<CS2HandleState>(())?;
         let entities = states.resolve::<EntitySystem>(())?;
 
         let local_player_controller = entities
@@ -104,8 +100,8 @@ impl LocalCrosshair {
                 None => return Ok(None),
             };
 
-        let entity_id = cs2
-            .reference_schema::<u32>(&[local_pawn_ptr.address()? + offsets.offset_crosshair_id])?;
+        //let entity_id = 0xFFFFFFFF;
+        let entity_id = local_pawn_ptr.reference_schema()?.m_iIDEntIndex()?;
         if entity_id != 0xFFFFFFFF {
             Ok(Some(entity_id))
         } else {
