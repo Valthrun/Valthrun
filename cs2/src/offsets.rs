@@ -29,9 +29,6 @@ pub struct CS2Offsets {
     /// Address for the global world to screen view matrix
     pub view_matrix: u64,
 
-    /// Offset for the crosshair entity id in C_CSPlayerPawn
-    pub offset_crosshair_id: u64,
-
     /// Offset of the CNetworkGameClient
     pub network_game_client_instance: u64,
 }
@@ -51,8 +48,6 @@ impl State for CS2Offsets {
                 .with_context(|| obfstr!("global entity list").to_string())?,
             view_matrix: Self::find_view_matrix(cs2)
                 .with_context(|| obfstr!("view matrix").to_string())?,
-            offset_crosshair_id: Self::find_offset_crosshair_id(cs2)
-                .with_context(|| obfstr!("crosshair id").to_string())?,
             network_game_client_instance: Self::find_network_game_client_instance(cs2)
                 .with_context(|| obfstr!("network game client instance").to_string())?,
         })
@@ -69,7 +64,7 @@ impl CS2Offsets {
             Module::Client,
             &Signature::relative_address(
                 obfstr!("client globals"),
-                obfstr!("48 89 15 ?? ?? ?? ?? 48 8D 05 ?? ?? ?? ?? 48 85 D2"),
+                obfstr!("48 8B 05 ? ? ? ? 8B 48 04 FF C1"),
                 0x03,
                 0x07,
             ),
@@ -110,17 +105,6 @@ impl CS2Offsets {
                 obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06"),
                 0x03,
                 0x07,
-            ),
-        )
-    }
-
-    fn find_offset_crosshair_id(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(
-            Module::Client,
-            &Signature::offset(
-                obfstr!("C_CSPlayerPawn crosshair id"),
-                obfstr!("41 89 86 ? ? ? ? 41 89 86"),
-                0x03,
             ),
         )
     }
