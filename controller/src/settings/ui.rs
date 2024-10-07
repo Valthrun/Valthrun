@@ -132,7 +132,7 @@ enum GrenadeHelperTransferState {
         direction: GrenadeHelperTransferDirection,
     },
     /// A transfer has been initiated.
-    /// This might be ether an export or import.
+    /// This might be either an export or import.
     Active {
         direction: GrenadeHelperTransferDirection,
     },
@@ -219,7 +219,7 @@ impl SettingsUI {
                     }
 
                     ui.new_line();
-                    ui.dummy([ 0.0, 5.0 ]);
+                    ui.dummy([0.0, 5.0]);
                 }
 
                 let _content_font = ui.push_font(content_font);
@@ -234,11 +234,11 @@ impl SettingsUI {
                         ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), build_info.as_ref().map_or("error", |info| &info.revision), build_info.as_ref().map_or("error", |info| &info.build_datetime)));
 
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.0 - 12.0;
-                        ui.dummy([ 0.0, ydummy ]);
+                        ui.dummy([0.0, ydummy]);
                         ui.separator();
 
                         ui.text(obfstr!("Join our discord:"));
-                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], obfstr!("https://discord.gg/ecKbpAPW5T"));
+                        ui.text_colored([0.18, 0.51, 0.97, 1.0], obfstr!("https://discord.gg/ecKbpAPW5T"));
                         if ui.is_item_hovered() {
                             ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                         }
@@ -263,7 +263,7 @@ impl SettingsUI {
 
                         {
                             let _enabled = ui.begin_enabled(matches!(settings.esp_mode, KeyToggleMode::Toggle | KeyToggleMode::Trigger));
-                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
+                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [150.0, 0.0]);
                         }
                     }
 
@@ -284,7 +284,7 @@ impl SettingsUI {
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {
                         if settings.esp_mode == KeyToggleMode::Off {
-                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
                             ui.text(obfstr!("ESP has been disabled."));
                             ui.text(obfstr!("Please enable ESP under \"Visuals\" > \"ESP\""));
                         } else {
@@ -296,7 +296,7 @@ impl SettingsUI {
                         if settings.grenade_helper.active {
                             self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui);
                         } else {
-                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
                             ui.text(obfstr!("Grenade Helper has been disabled."));
                             ui.text(obfstr!("Please enable the grenade helper under \"Visuals\" > \"Grenade Helper\""));
                         }
@@ -322,17 +322,21 @@ impl SettingsUI {
                             let slider_width = (ui.current_column_width() / 2.0 - 80.0).min(300.0).max(50.0);
                             let slider_width_1 = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
 
-                            ui.text(obfstr!("Trigger delay min: ")); ui.same_line();
+                            ui.text(obfstr!("Trigger delay min: "));
+                            ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
+                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min);
+                            ui.same_line();
 
-                            ui.text(" max: "); ui.same_line();
+                            ui.text(" max: ");
+                            ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
+                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max);
 
-                            ui.text(obfstr!("Shoot duration: ")); ui.same_line();
+                            ui.text(obfstr!("Shoot duration: "));
+                            ui.same_line();
                             ui.set_next_item_width(slider_width_1);
-                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration); 
+                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration);
 
                             if values_updated {
                                 /* fixup min/max */
@@ -960,10 +964,10 @@ impl SettingsUI {
                             &format!("##{}_static_value", ui.table_row_index()),
                             &mut color_value,
                         )
-                        .alpha_bar(true)
-                        .inputs(false)
-                        .label(false)
-                        .build()
+                            .alpha_bar(true)
+                            .inputs(false)
+                            .label(false)
+                            .build()
                     } {
                         *value = Color::from_f32(color_value);
                     }
@@ -975,10 +979,10 @@ impl SettingsUI {
                             &format!("##{}_health_max", ui.table_row_index()),
                             &mut max_value,
                         )
-                        .alpha_bar(true)
-                        .inputs(false)
-                        .label(false)
-                        .build()
+                            .alpha_bar(true)
+                            .inputs(false)
+                            .label(false)
+                            .build()
                     } {
                         *max = Color::from_f32(max_value);
                     }
@@ -993,10 +997,10 @@ impl SettingsUI {
                             &format!("##{}_health_min", ui.table_row_index()),
                             &mut min_value,
                         )
-                        .alpha_bar(true)
-                        .inputs(false)
-                        .label(false)
-                        .build()
+                            .alpha_bar(true)
+                            .inputs(false)
+                            .label(false)
+                            .build()
                     } {
                         *min = Color::from_f32(min_value);
                     }
@@ -1082,8 +1086,8 @@ impl SettingsUI {
         } {
             ui.indent_by(
                 original_style.window_padding[0] +
-                /* for the indicator */
-                ui.current_font_size() * 0.5 + 4.0,
+                    /* for the indicator */
+                    ui.current_font_size() * 0.5 + 4.0,
             );
 
             self.render_esp_target(settings, ui, &EspSelector::Player);
@@ -1356,7 +1360,11 @@ impl SettingsUI {
                 ui.indent_by(original_style.window_padding[0]);
 
                 if let Some(grenades) = settings.map_spots.get(map_name) {
-                    for grenade in grenades {
+                    // Sort grenades alphabetically by name
+                    let mut sorted_grenades = grenades.clone();
+                    sorted_grenades.sort_by(|a, b| a.name.cmp(&b.name));
+
+                    for grenade in sorted_grenades.iter() {
                         let grenade_types = grenade
                             .grenade_types
                             .iter()
@@ -1491,23 +1499,23 @@ impl SettingsUI {
                     &mut current_grenade.description,
                     [0.0, 100.0],
                 )
-                .build();
+                    .build();
 
                 ui.text("Eye position");
                 ui.input_float3(
                     "##grenade_helper_spot_eye_position",
                     &mut current_grenade.eye_position,
                 )
-                .display_format("%.3f")
-                .build();
+                    .display_format("%.3f")
+                    .build();
 
                 ui.text("Pitch/Yaw");
                 ui.input_float2(
                     "##grenade_helper_spot_ptch_yaw",
                     &mut current_grenade.eye_direction,
                 )
-                .display_format("%.3f")
-                .build();
+                    .display_format("%.3f")
+                    .build();
 
                 let current_map = states
                     .get::<StateCurrentMap>(())
