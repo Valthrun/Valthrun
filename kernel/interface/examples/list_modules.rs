@@ -1,16 +1,12 @@
 use valthrun_kernel_interface::{
-    IoctrlDriverInterface,
+    com_from_env,
     KernelInterface,
     ProcessFilter,
 };
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
-
-    let interface = Box::new(IoctrlDriverInterface::create(
-        "\\\\.\\GLOBALROOT\\Device\\valthrun",
-    )?);
-    let interface = KernelInterface::create(interface)?;
+    let interface = KernelInterface::create(com_from_env()?)?;
 
     let (process_id, modules) = interface.request_modules(ProcessFilter::Id {
         id: std::process::id() as i32,

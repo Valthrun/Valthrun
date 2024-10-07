@@ -49,10 +49,18 @@ impl IoctrlDriverInterface {
 impl DriverInterface for IoctrlDriverInterface {
     fn execute_request(
         &self,
-        control_code: u32,
+        function_code: u16,
         request: &[u8],
         response: &mut [u8],
     ) -> KResult<()> {
+        let control_code = {
+            (0x00000022 << 16) | // FILE_DEVICE_UNKNOWN
+            (0x00000000 << 14) | // FILE_SPECIAL_ACCESS
+            (0x00000001 << 13) | // Custom access code
+            ((function_code as u32 & 0x3FF) << 02) |
+            (0x00000003 << 00)
+        };
+
         let success = unsafe {
             DeviceIoControl(
                 self.driver_handle,

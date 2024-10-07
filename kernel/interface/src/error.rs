@@ -32,6 +32,9 @@ pub enum KInterfaceError {
     #[error("kernel interface unavailable: {0}")]
     DeviceUnavailable(windows::core::Error),
 
+    #[error("failed to load um driver: {0}")]
+    DriverLoadingError(#[from] libloading::Error),
+
     #[error("request failed (DeviceIoControl)")]
     RequestFailed,
 

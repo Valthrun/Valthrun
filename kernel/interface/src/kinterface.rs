@@ -38,10 +38,7 @@ use valthrun_driver_shared::{
 };
 
 use crate::{
-    com::{
-        DriverInterface,
-        IoctrlDriverInterface,
-    },
+    com::DriverInterface,
     KInterfaceError,
     KResult,
     SearchPattern,
@@ -65,7 +62,7 @@ fn driver_version_string(driver_version: u32) -> String {
 }
 
 impl KernelInterface {
-    pub fn create(driver_interface: Box<IoctrlDriverInterface>) -> KResult<Self> {
+    pub fn create(driver_interface: Box<dyn DriverInterface>) -> KResult<Self> {
         let mut interface = Self {
             driver_interface,
             driver_version: 0,
@@ -91,7 +88,7 @@ impl KernelInterface {
                 slice::from_raw_parts(payload as *const _ as *const u8, mem::size_of_val(payload));
 
             self.driver_interface
-                .execute_request(R::control_code(), request, result)
+                .execute_request(R::function_code(), request, result)
         }?;
 
         Ok(result)
