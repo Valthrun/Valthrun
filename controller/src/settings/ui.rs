@@ -1626,12 +1626,7 @@ impl SettingsUI {
 
                 if current_grenade.id == 0 {
                     let region_avail = ui.content_region_max();
-                    ui.set_cursor_pos([
-                        region_avail[0] - 100.0,
-                        region_avail[1]
-                            - original_style.frame_padding[1] * 2.0
-                            - ui.text_line_height(),
-                    ]);
+                    ui.set_cursor_pos([region_avail[0] - 100.0, ui.cursor_pos()[1]]);
                     if ui.button_with_size("Create", [100.0, 0.0]) {
                         if let Some(mut grenade) = self.grenade_helper_new_item.take() {
                             let grenades =
