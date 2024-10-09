@@ -72,7 +72,7 @@ impl HandlerRegistry {
             None => anyhow::bail!("function 0x{:X} has no handler", function_code),
         };
 
-        log::trace!("Invoking handler 0x{:X}", function_code);
+        //log::trace!("Invoking handler 0x{:X}", function_code);
         handler.invoke(inbuffer, outbuffer)
     }
 }

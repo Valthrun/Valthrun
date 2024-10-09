@@ -17,6 +17,7 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSEEVENTF_LEFTUP,
     MOUSEEVENTF_MIDDLEDOWN,
     MOUSEEVENTF_MIDDLEUP,
+    MOUSEEVENTF_MOVE,
     MOUSEEVENTF_RIGHTDOWN,
     MOUSEEVENTF_RIGHTUP,
     MOUSEEVENTF_WHEEL,
@@ -73,7 +74,10 @@ fn mouse_state_to_input(state: &MouseState) -> INPUT {
     if state.hwheel {
         mi.dwFlags |= MOUSEEVENTF_HWHEEL;
     }
+
+    mi.dwFlags |= MOUSEEVENTF_MOVE;
     mi.dx = state.last_x;
     mi.dy = state.last_y;
+
     input_data
 }

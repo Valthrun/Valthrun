@@ -33,6 +33,7 @@ use valthrun_driver_shared::{
     KeyboardState,
     ModuleInfo,
     MouseState,
+    ProcessId,
     IO_MAX_DEREF_COUNT,
     KINTERFACE_MIN_VERSION,
 };
@@ -152,7 +153,7 @@ impl KernelInterface {
     }
 
     #[must_use]
-    pub fn read<T: Copy>(&self, process_id: i32, offsets: &[u64]) -> KResult<T> {
+    pub fn read<T: Copy>(&self, process_id: ProcessId, offsets: &[u64]) -> KResult<T> {
         let mut result = unsafe { std::mem::zeroed::<T>() };
         let result_buff = unsafe {
             std::slice::from_raw_parts_mut(
@@ -168,7 +169,7 @@ impl KernelInterface {
     #[must_use]
     pub fn read_slice<T: Copy>(
         &self,
-        process_id: i32,
+        process_id: ProcessId,
         offsets: &[u64],
         buffer: &mut [T],
     ) -> KResult<()> {
@@ -225,7 +226,7 @@ impl KernelInterface {
     }
 
     #[must_use]
-    pub fn write<T: Copy>(&self, process_id: i32, address: u64, value: &T) -> KResult<()> {
+    pub fn write<T: Copy>(&self, process_id: ProcessId, address: u64, value: &T) -> KResult<()> {
         let buffer = unsafe {
             std::slice::from_raw_parts(
                 std::mem::transmute::<_, *mut u8>(value),
@@ -237,7 +238,12 @@ impl KernelInterface {
     }
 
     #[must_use]
-    pub fn write_slice<T: Copy>(&self, process_id: i32, address: u64, buffer: &[T]) -> KResult<()> {
+    pub fn write_slice<T: Copy>(
+        &self,
+        process_id: ProcessId,
+        address: u64,
+        buffer: &[T],
+    ) -> KResult<()> {
         let result = unsafe {
             self.execute_request(&RequestWrite {
                 process_id,
@@ -270,7 +276,7 @@ impl KernelInterface {
     #[must_use]
     pub fn find_pattern(
         &self,
-        process_id: i32,
+        process_id: ProcessId,
         address: u64,
         length: usize,
         pattern: &dyn SearchPattern,
@@ -315,7 +321,7 @@ impl KernelInterface {
         }
     }
 
-    pub fn request_modules(&self, filter: ProcessFilter) -> KResult<(i32, Vec<ModuleInfo>)> {
+    pub fn request_modules(&self, filter: ProcessFilter) -> KResult<(ProcessId, Vec<ModuleInfo>)> {
         let kfilter = match filter {
             ProcessFilter::Id { id } => requests::ProcessFilter::Id { id },
             ProcessFilter::Name { name } => requests::ProcessFilter::Name {
@@ -360,7 +366,7 @@ impl KernelInterface {
         }
     }
 
-    pub fn request_cs2_modules(&self) -> KResult<(i32, Vec<ModuleInfo>)> {
+    pub fn request_cs2_modules(&self) -> KResult<(ProcessId, Vec<ModuleInfo>)> {
         let mut buffer = Vec::with_capacity(128);
         buffer.resize_with(128, Default::default);
 
