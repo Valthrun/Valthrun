@@ -53,4 +53,7 @@ pub enum OverlayError {
 
     #[error("failed to create a vulkan surface: {0}")]
     VulkanSurfaceCreationFailed(VkResult),
+
+    #[error("composite alpha is unsupported")]
+    VulkanCompositeAlphaUnsupported,
 }

@@ -12,7 +12,10 @@ use ash::{
             Swapchain as SwapchainLoader,
         },
     },
-    vk,
+    vk::{
+        self,
+        CompositeAlphaFlagsKHR,
+    },
     Device,
     Entry,
     Instance,
@@ -491,6 +494,24 @@ fn create_vulkan_swapchain(
                 vulkan_context.surface_khr,
             )?
     };
+    log::debug!(
+        "Supported composite alpha: {:b}",
+        capabilities.supported_composite_alpha.as_raw()
+    );
+    let composite_alpha = if capabilities
+        .supported_composite_alpha
+        .contains(CompositeAlphaFlagsKHR::PRE_MULTIPLIED)
+    {
+        CompositeAlphaFlagsKHR::PRE_MULTIPLIED
+    } else if capabilities
+        .supported_composite_alpha
+        .contains(CompositeAlphaFlagsKHR::OPAQUE)
+    {
+        CompositeAlphaFlagsKHR::OPAQUE
+    } else {
+        return Err(OverlayError::VulkanCompositeAlphaUnsupported);
+    };
+    log::debug!("  using mode {}", composite_alpha.as_raw());
 
     // Swapchain extent
     let extent = {
@@ -540,7 +561,7 @@ fn create_vulkan_swapchain(
 
         builder
             .pre_transform(capabilities.current_transform)
-            .composite_alpha(vk::CompositeAlphaFlagsKHR::OPAQUE)
+            .composite_alpha(composite_alpha)
             .present_mode(present_mode)
             .clipped(true)
     };
@@ -651,7 +672,6 @@ pub fn record_command_buffers(
     renderer: &mut Renderer,
     draw_data: &DrawData,
 ) -> Result<()> {
-    //unsafe { device.reset_command_pool(command_pool, vk::CommandPoolResetFlags::empty())? };
     unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty())? };
 
     let command_buffer_begin_info =
