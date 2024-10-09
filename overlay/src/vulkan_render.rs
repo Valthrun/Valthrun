@@ -379,10 +379,10 @@ fn create_vulkan_swapchain(
                     vulkan_context.surface_khr,
                 )?
         };
-        if present_modes.contains(&vk::PresentModeKHR::IMMEDIATE) {
-            vk::PresentModeKHR::IMMEDIATE
-        } else if present_modes.contains(&vk::PresentModeKHR::MAILBOX) {
+        if present_modes.contains(&vk::PresentModeKHR::MAILBOX) {
             vk::PresentModeKHR::MAILBOX
+        } else if present_modes.contains(&vk::PresentModeKHR::IMMEDIATE) {
+            vk::PresentModeKHR::IMMEDIATE
         } else {
             vk::PresentModeKHR::FIFO
         }
@@ -431,7 +431,7 @@ fn create_vulkan_swapchain(
     log::debug!("Swapchain extent: {extent:?}");
 
     // Swapchain image count
-    let image_count = 2.clamp(capabilities.min_image_count, capabilities.max_image_count);
+    let image_count = 3.clamp(capabilities.min_image_count, capabilities.max_image_count);
     log::debug!(
         "Swapchain image count ([{}; {}]): {}",
         capabilities.min_image_count,
