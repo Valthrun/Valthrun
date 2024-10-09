@@ -1,6 +1,8 @@
 use std::time::Instant;
 
-use ash::vk;
+use ash::vk::{
+    self,
+};
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
 use imgui::{
@@ -24,7 +26,10 @@ use imgui_winit_support::{
             ControlFlow,
             EventLoop,
         },
-        platform::windows::WindowExtWindows,
+        platform::{
+            run_return::EventLoopExtRunReturn,
+            windows::WindowExtWindows,
+        },
         window::{
             Window,
             WindowBuilder,
@@ -104,7 +109,9 @@ mod vulkan_render;
 use vulkan_render::*;
 
 mod util;
+mod vulkan_debug;
 mod vulkan_driver;
+mod vulkan_instance;
 
 pub fn show_error_message(title: &str, message: &str) {
     let title_wide = util::to_wide_chars(title);
@@ -219,7 +226,7 @@ pub struct System {
     pub vulkan_context: VulkanContext,
     swapchain: Swapchain,
 
-    frame_data: [FrameData; 1],
+    frame_data: Vec<FrameData>,
     frame_data_index: usize,
 
     pub imgui: Context,
@@ -235,9 +242,9 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
     let window = create_window(&event_loop, &options.title)?;
 
     let vulkan_context = VulkanContext::new(&window, &options.title)?;
-    let frame_data = [
+    let frame_data = vec![
         FrameData::new(&vulkan_context)?,
-        //FrameData::new(&vulkan_context)?,
+        // FrameData::new(&vulkan_context)?,
     ];
     let swapchain = Swapchain::new(&vulkan_context)?;
 
@@ -395,6 +402,7 @@ impl Drop for FrameData {
             }
 
             self.device.destroy_fence(self.render_fence, None);
+
             self.device
                 .destroy_semaphore(self.semaphore_image_available, None);
             self.device
@@ -408,28 +416,29 @@ impl Drop for FrameData {
 }
 
 impl System {
-    pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
+    pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> i32
     where
         U: FnMut(&mut SystemRuntimeController) -> bool + 'static,
         R: FnMut(&mut imgui::Ui) -> bool + 'static,
     {
         let System {
-            event_loop,
+            mut event_loop,
             window,
 
             vulkan_context,
             mut swapchain,
 
-            frame_data: frame_datas,
-            mut frame_data_index,
-
             imgui,
             mut platform,
             mut renderer,
 
+            frame_data: frame_datas,
+            mut frame_data_index,
+
             window_tracker,
             ..
         } = self;
+
         let mut last_frame = Instant::now();
 
         let mut runtime_controller = SystemRuntimeController {
@@ -447,8 +456,13 @@ impl System {
 
         let mut dirty_swapchain = false;
 
+        let vulkan_context = &vulkan_context;
+        let swapchain = &mut swapchain;
+        let renderer = &mut renderer;
+        let frame_datas = &frame_datas;
+
         let mut perf = PerfTracker::new(PERF_RECORDS);
-        event_loop.run(move |event, _, control_flow| {
+        let result = event_loop.run_return(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             platform.handle_event(runtime_controller.imgui.io_mut(), &window, &event);
 
@@ -474,7 +488,6 @@ impl System {
                     /* Update */
                     {
                         if !runtime_controller.update_state(&window) {
-                            log::info!("Target window has been closed. Exiting overlay.");
                             *control_flow = ControlFlow::Exit;
                             return;
                         }
@@ -597,7 +610,7 @@ impl System {
                             swapchain.framebuffers[image_index as usize],
                             swapchain.render_pass,
                             swapchain.extent,
-                            &mut renderer,
+                            renderer,
                             &draw_data,
                         )
                         .expect("Failed to record command buffer");
@@ -656,7 +669,12 @@ impl System {
                 } => *control_flow = ControlFlow::Exit,
                 _ => {}
             }
-        })
+        });
+
+        if let Err(err) = unsafe { vulkan_context.device.device_wait_idle() } {
+            log::warn!("Failed to wait for device idle: {}", err);
+        };
+        result
     }
 }
 

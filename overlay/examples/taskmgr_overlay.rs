@@ -23,6 +23,7 @@ fn main() -> anyhow::Result<()> {
         })),
     })?;
     let mut text_input = Default::default();
+    let mut run_loop = true;
     overlay.main_loop(
         |controller| {
             controller.toggle_debug_overlay(true);
@@ -37,6 +38,10 @@ fn main() -> anyhow::Result<()> {
                     ui.text(format!("FPS: {:.2}", ui.io().framerate));
                     ui.input_text("Test-Input", &mut text_input).build();
 
+                    if ui.button("Close") {
+                        run_loop = false
+                    }
+
                     ui.text("Привет, мир!");
                     ui.text("Chào thế giới!");
                     ui.text("Chào thế giới!");
@@ -48,7 +53,9 @@ fn main() -> anyhow::Result<()> {
                     ui.text(" ♣▄♠░ ");
                     ui.text("♣♠░:D ︻デ── ");
                 });
-            true
+
+            run_loop
         },
     );
+    Ok(())
 }

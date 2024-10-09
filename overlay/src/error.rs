@@ -56,4 +56,10 @@ pub enum OverlayError {
 
     #[error("composite alpha is unsupported")]
     VulkanCompositeAlphaUnsupported,
+
+    #[error("vulkan missing required extension: {0}")]
+    VulkanRequiredExtensionUnsupported(String),
+
+    #[error("vulkan missing required layer: {0}")]
+    VulkanRequiredLayerUnsupported(String),
 }

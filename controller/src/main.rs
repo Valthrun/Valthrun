@@ -715,5 +715,7 @@ fn main_overlay() -> anyhow::Result<()> {
             app.render(ui);
             true
         },
-    )
+    );
+
+    Ok(())
 }
