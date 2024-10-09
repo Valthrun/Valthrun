@@ -306,6 +306,8 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
 
                             "Color" => "Color", // TODO: What is this (3x or 4x f32?)?
 
+                            "CNetworkedQuantizedFloat" => "f32",
+
                             _ => return Ok(None),
                         }
                         .to_string(),
@@ -404,14 +406,14 @@ fn read_enum_binding(
         });
     }
 
-    Ok((
-        binding
-            .type_scope()?
-            .reference_schema()?
-            .scope_name()?
-            .to_string_lossy()?,
-        definition,
-    ))
+    let scope_name = binding
+        .type_scope()?
+        .reference_schema()?
+        .scope_name()?
+        .to_string_lossy()?;
+
+    definition.schema_scope_name = scope_name.clone();
+    Ok((scope_name, definition))
 }
 
 fn read_class_binding(
@@ -503,17 +505,20 @@ fn read_class_binding(
             .push(parse_metadata(metadata).context("metadata parse")?);
     }
 
-    Ok((
-        binding
-            .type_scope()?
-            .reference_schema()?
-            .scope_name()?
-            .to_string_lossy()?,
-        definition,
-    ))
+    let scope_name = binding
+        .type_scope()?
+        .reference_schema()?
+        .scope_name()?
+        .to_string_lossy()?;
+
+    definition.schema_scope_name = scope_name.clone();
+    Ok((scope_name, definition))
 }
 
-pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<SchemaScope>> {
+pub fn dump_schema(
+    cs2: &CS2Handle,
+    scope_filter: Option<&[&str]>,
+) -> anyhow::Result<Vec<SchemaScope>> {
     let schema_system_address = find_schema_system(cs2)?;
     let schema_system = cs2.reference_schema::<CSchemaSystem>(&[schema_system_address])?;
 
@@ -538,17 +543,13 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
         let scope = scope_ptr.read_schema()?;
 
         let scope_name = scope.scope_name()?.to_string_lossy()?;
-        if client_only && (scope_name != "client.dll" && scope_name != "!GlobalTypes") {
-            continue;
-        }
+        log::trace!("Dumping scope {} @ {:X}", scope_name, scope.memory.address);
 
-        log::trace!("Dumping {} @ {:X}", scope_name, scope.memory.address);
         let declared_classes = scope.type_declared_class()?;
         let declared_classes = declared_classes
             .elements()?
             .read_entries(declared_classes.highest_entry()?.wrapping_add(1) as usize)?;
 
-        log::debug!("XX: {}", declared_classes.len());
         for rb_node in declared_classes {
             let declared_class = rb_node
                 .value()?
@@ -556,17 +557,25 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
                 .cast::<CSchemaTypeDeclaredClass>()
                 .reference_schema()?;
 
-            let (scope_name, definition) = read_class_binding(cs2, &declared_class.declaration()?)
-                .context(format!(
+            let (class_scope_name, definition) =
+                read_class_binding(cs2, &declared_class.declaration()?).context(format!(
                     "class binding {:X}",
                     declared_class.declaration()?.address()?
                 ))?;
-            let schema_scope = match schema_scops.entry(scope_name) {
+
+            if let Some(filter) = &scope_filter {
+                if !filter.contains(&class_scope_name.as_str()) {
+                    continue;
+                }
+            }
+
+            let schema_scope = match schema_scops.entry(scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
                     entry.insert(SchemaScope {
                         schema_name,
+
                         classes: Default::default(),
                         enums: Default::default(),
                     })
@@ -588,13 +597,20 @@ pub fn dump_schema(cs2: &CS2Handle, client_only: bool) -> anyhow::Result<Vec<Sch
                 .cast::<CSchemaTypeDeclaredEnum>()
                 .reference_schema()?;
 
-            let (scope_name, definition) = read_enum_binding(&declared_enum.declaration()?)?;
-            let schema_scope = match schema_scops.entry(scope_name) {
+            let (enum_scope_name, definition) = read_enum_binding(&declared_enum.declaration()?)?;
+            if let Some(filter) = &scope_filter {
+                if !filter.contains(&enum_scope_name.as_str()) {
+                    continue;
+                }
+            }
+
+            let schema_scope = match schema_scops.entry(scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
                     entry.insert(SchemaScope {
                         schema_name,
+
                         classes: Default::default(),
                         enums: Default::default(),
                     })
