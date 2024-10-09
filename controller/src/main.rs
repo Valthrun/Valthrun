@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-#![feature(const_fn_floating_point_arithmetic)]
 
 use std::{
     cell::{
@@ -40,6 +39,7 @@ use cs2::{
     CS2Handle,
     CS2HandleState,
     CS2Offsets,
+    ConVars,
 };
 use enhancements::{
     Enhancement,
@@ -99,7 +99,6 @@ use crate::{
     winver::version_info,
 };
 
-mod cache;
 mod enhancements;
 mod radar;
 mod settings;
@@ -258,8 +257,8 @@ impl Application {
         };
 
         for enhancement in self.enhancements.iter() {
-            let mut hack = enhancement.borrow_mut();
-            hack.update(&update_context)?;
+            let mut enhancement = enhancement.borrow_mut();
+            enhancement.update(&update_context)?;
         }
 
         let read_calls = self.cs2.ke_interface.total_read_calls();
@@ -325,8 +324,8 @@ impl Application {
             }
         }
 
-        for hack in self.enhancements.iter() {
-            let hack = hack.borrow();
+        for enhancement in self.enhancements.iter() {
+            let hack = enhancement.borrow();
             if let Err(err) = hack.render(&self.app_state, ui) {
                 log::error!("{:?}", err);
             }
@@ -421,7 +420,14 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create(true)?;
-    let schema = cs2::dump_schema(&cs2, !args.all_classes)?;
+    let schema = cs2::dump_schema(
+        &cs2,
+        if args.all_classes {
+            None
+        } else {
+            Some(&["client.dll", "!GlobalTypes"])
+        },
+    )?;
 
     let output = File::options()
         .create(true)
@@ -554,6 +560,13 @@ fn main_overlay() -> anyhow::Result<()> {
     }
 
     offsets_runtime::setup_provider(&cs2)?;
+
+    let cvars = ConVars::new(cs2.clone()).context("cvars")?;
+    let cvar_sensitivity = cvars
+        .find_cvar("sensitivity")
+        .context("cvar ensitivity")?
+        .context("missing cvar ensitivity")?;
+
     app_state
         .resolve::<CS2Offsets>(())
         .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?;
@@ -628,11 +641,11 @@ fn main_overlay() -> anyhow::Result<()> {
         web_radar: Default::default(),
 
         enhancements: vec![
+            Rc::new(RefCell::new(AntiAimPunsh::new(cvar_sensitivity))),
             Rc::new(RefCell::new(PlayerESP::new())),
             Rc::new(RefCell::new(SpectatorsListIndicator::new())),
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
-            Rc::new(RefCell::new(AntiAimPunsh::new())),
             Rc::new(RefCell::new(GrenadeHelper::new())),
         ],
 

@@ -18,7 +18,7 @@ pub struct ConVars {
 }
 
 define_schema! {
-    pub struct ConVar[0x50] {
+    pub struct ConVar[0x48] {
         pub name: PtrCStr = 0x00,
         pub description: PtrCStr = 0x20,
 
@@ -40,7 +40,7 @@ define_schema! {
     pub struct CCVar[0xFF] {
         pub entries: Ptr<[CCVarEntry]> = 0x40,
         pub entries_capacity: u64 = 0x48,
-        pub entries_count: u16 = 0x56,
+        pub entries_count: u16 = 0x52,
     }
 }
 
@@ -64,6 +64,7 @@ impl ConVars {
 
     pub fn find_cvar(&self, name: &str) -> anyhow::Result<Option<ConVar>> {
         let entry_count = self.ccvars.entries_count()? as usize;
+
         let entries = self.ccvars.entries()?.read_entries(entry_count)?;
         for entry in entries {
             let con_var = entry.con_var()?.read_schema()?;

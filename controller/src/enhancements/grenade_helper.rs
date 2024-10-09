@@ -56,7 +56,7 @@ impl GrenadeSpotInfo {
     }
 }
 
-const DEFAULT_EYE_HEIGHT: Vector3<f32> = Vector3::new(0.0, 0.0, 64.093811);
+pub const DEFAULT_EYE_HEIGHT: Vector3<f32> = Vector3::new(0.0, 0.0, 64.093811);
 pub struct GrenadeHelper {
     grenade_states: BTreeMap<usize, GrenadeState>,
     current_map: String,
