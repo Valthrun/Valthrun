@@ -26,13 +26,7 @@ impl MouseController {
                 null_mut(),
             )
         };
-
-        if h_driver == INVALID_HANDLE_VALUE {
-            eprintln!("Failed to open driver.");
-        } else {
-            println!("Driver opened successfully.");
-        }
-
+        
         MouseController { h_driver }
     }
 
@@ -50,7 +44,6 @@ impl MouseController {
     
     fn send_mouse_event(&self, x: i32, y: i32) -> bool {
         if self.h_driver == INVALID_HANDLE_VALUE {
-            eprintln!("Invalid driver handle. Cannot send mouse event.");
             return false;
         }
 
@@ -70,12 +63,6 @@ impl MouseController {
             )
         };
 
-        if success != 0 {
-            println!("Mouse event sent successfully: x={}, y={}", x, y);
-        } else {
-            eprintln!("Failed to send mouse event.");
-        }
-
         success != 0
     }
 }
@@ -86,7 +73,6 @@ impl Drop for MouseController {
             unsafe {
                 CloseHandle(self.h_driver);
             }
-            println!("Driver handle closed.");
         }
     }
 }
