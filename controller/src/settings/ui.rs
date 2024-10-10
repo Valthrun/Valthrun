@@ -320,14 +320,6 @@ impl SettingsUI {
                         
                         ui.set_next_item_width(150.0);
                         ui.slider_config("Aim Speed", 1.0, 10.0).display_format("%.1f").build(&mut settings.aimbot_speed);
-                    
-                        let bone_options = ["head", "neck", "chest", "stomach"];
-                        let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aimbot_target_bone).unwrap_or(0);
-                        ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
-                        settings.aimbot_target_bone = bone_options[current_bone_index].to_string();
-                    
-                        // New toggle for constant mouse-down movement
-                        ui.checkbox(obfstr!("Enable Constant Mouse Down"), &mut settings.enable_constant_mouse_down);
                     }
                     
                     
