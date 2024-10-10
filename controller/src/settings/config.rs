@@ -71,6 +71,22 @@ fn default_esp_mode() -> KeyToggleMode {
     KeyToggleMode::AlwaysOn
 }
 
+fn default_aimbot_mode() -> KeyToggleMode {
+    KeyToggleMode::Trigger
+}
+
+fn default_key_aimbot() -> Option<HotKey> {
+    Some(Key::MouseLeft.into())
+}
+
+fn default_aimbot_target_bone() -> String {
+    "head".to_string() 
+}
+
+fn default_enable_constant_mouse_down() -> bool {
+    false
+}
+
 fn default_trigger_bot_mode() -> KeyToggleMode {
     KeyToggleMode::Trigger
 }
@@ -212,6 +228,24 @@ pub struct AppSettings {
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,
+
+    #[serde(default = "default_aimbot_mode")]
+    pub aimbot_mode: KeyToggleMode,
+
+    #[serde(default = "default_key_aimbot")]
+    pub key_aimbot: Option<HotKey>,
+
+    #[serde(default = "default_f32::<5, 1>")]
+    pub aimbot_fov: f32,
+
+    #[serde(default = "default_f32::<150, 100>")]
+    pub aimbot_speed: f32,
+
+    #[serde(default = "default_aimbot_target_bone")]
+    pub aimbot_target_bone: String,
+
+    #[serde(default = "default_enable_constant_mouse_down")]
+    pub enable_constant_mouse_down: bool,
 
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,

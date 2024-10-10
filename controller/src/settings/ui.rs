@@ -303,7 +303,34 @@ impl SettingsUI {
 
                         self.render_grenade_helper_transfer(&mut settings.grenade_helper, ui);
                     }
-
+                    
+                    if let Some(_) = ui.tab_item(obfstr!("Aimbot")) {
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum(obfstr!("Aimbot Mode"), &[
+                            (KeyToggleMode::Off, "Always Off"),
+                            (KeyToggleMode::Trigger, "Trigger"),
+                            (KeyToggleMode::Toggle, "Toggle"),
+                            (KeyToggleMode::AlwaysOn, "Always On"),
+                        ], &mut settings.aimbot_mode);
+                    
+                        ui.button_key_optional(obfstr!("Aimbot key"), &mut settings.key_aimbot, [150.0, 0.0]);
+                    
+                        ui.set_next_item_width(150.0);
+                        ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
+                        
+                        ui.set_next_item_width(150.0);
+                        ui.slider_config("Aim Speed", 1.0, 10.0).display_format("%.1f").build(&mut settings.aimbot_speed);
+                    
+                        let bone_options = ["head", "neck", "chest", "stomach"];
+                        let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aimbot_target_bone).unwrap_or(0);
+                        ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
+                        settings.aimbot_target_bone = bone_options[current_bone_index].to_string();
+                    
+                        // New toggle for constant mouse-down movement
+                        ui.checkbox(obfstr!("Enable Constant Mouse Down"), &mut settings.enable_constant_mouse_down);
+                    }
+                    
+                    
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("Trigger Bot"), &[

@@ -40,6 +40,7 @@ tokio = { version = "1.36.0", features = ["full"] }
 radar-client = { version = "0.1.0", path = "../radar/client" }
 serde_with = "3.8.3"
 rfd = "0.14.1"
+winapi = { version = "0.3", features = ["fileapi", "handleapi", "ioapiset", "synchapi", "errhandlingapi"] }
 
 [build-dependencies]
 winres = "0.1"
