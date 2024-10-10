@@ -18,20 +18,20 @@ use std::thread::sleep;
 
 pub struct Aimbot {
     toggle: KeyToggle,
-    fov: f32,
-    aim_speed: f32,
+    fov: f32,                          // FOV fetched from settings
+    aim_speed: f32,                    // Aim speed fetched from settings
     is_active: bool,
-    last_mouse_move: Instant, // To track the time for constant mouse down movement
-    current_target: Option<[f32; 2]>, // Store the current target
-    is_mouse_pressed: bool,           // Track if the mouse is pressed
+    last_mouse_move: Instant,          // Track the time for constant mouse down movement
+    current_target: Option<[f32; 2]>,  // Store the current target
+    is_mouse_pressed: bool,            // Track if the mouse is pressed
 }
 
 impl Aimbot {
     pub fn new() -> Self {
         Self {
             toggle: KeyToggle::new(),
-            fov: 3.0,
-            aim_speed: 5.0,
+            fov: 3.0,                   // Default FOV, updated dynamically from settings
+            aim_speed: 2.5,              // Default aim speed, updated dynamically from settings
             is_active: false,
             last_mouse_move: Instant::now(), // Initialize the timer
             current_target: None,
@@ -41,7 +41,7 @@ impl Aimbot {
 
     fn world_to_screen(&self, view: &ViewController, world_position: &Vector3<f32>) -> Option<[f32; 2]> {
         view.world_to_screen(world_position, true).map(|vec| [vec.x, vec.y])
-    }    
+    }
 
     fn move_mouse_down(&mut self, mouse: &MouseController) {
         if self.last_mouse_move.elapsed() >= Duration::from_millis(100) {
@@ -51,9 +51,7 @@ impl Aimbot {
     }
 
     fn find_best_target(&mut self, ctx: &UpdateContext) -> Option<[f32; 2]> {
-        // Check if mouse is pressed
         if self.is_mouse_pressed && self.current_target.is_some() {
-            // If mouse is pressed, continue aiming at the current target
             return self.current_target;
         }
     
@@ -86,23 +84,26 @@ impl Aimbot {
                         if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
                             continue;
                         }
-    
-                        // Convert bone position to screen space
-                        if let Some(screen_position) = self.world_to_screen(&view, &state.position) {
-                            // Calculate the distance from the crosshair
-                            let dx = screen_position[0] - crosshair_pos[0];
-                            let dy = screen_position[1] - crosshair_pos[1];
-                            let distance_from_crosshair = (dx * dx + dy * dy).sqrt();
-    
-                            // Calculate the angle between the crosshair and the target
-                            let angle_to_target = distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
-    
-                            // Check if the target is within the FOV
-                            if angle_to_target <= self.fov / 2.0 {
-                                // If the target is closer than the previous best target, update the best target
-                                if distance_from_crosshair < lowest_distance_from_crosshair {
-                                    lowest_distance_from_crosshair = distance_from_crosshair;
-                                    best_target = Some(screen_position);
+                    
+                        // Check if the bone name contains "head"
+                        if bone.name.to_lowercase().contains("head") {
+                            // Convert bone (head) position to screen space
+                            if let Some(screen_position) = self.world_to_screen(&view, &state.position) {
+                                // Calculate the distance from the crosshair (X and Y axes)
+                                let dx = screen_position[0] - crosshair_pos[0];
+                                let dy = screen_position[1] - crosshair_pos[1];
+                                let distance_from_crosshair = (dx * dx + dy * dy).sqrt();
+                    
+                                // Calculate the angle between the crosshair and the target
+                                let angle_to_target = distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
+                    
+                                // Check if the target is within the FOV
+                                if angle_to_target <= self.fov / 2.0 {
+                                    // If the head is closer than the previous best target, update the best target
+                                    if distance_from_crosshair < lowest_distance_from_crosshair {
+                                        lowest_distance_from_crosshair = distance_from_crosshair;
+                                        best_target = Some(screen_position);  // Update the target to be the head
+                                    }
                                 }
                             }
                         }
@@ -118,7 +119,7 @@ impl Aimbot {
     
         best_target
     }
-    
+
     // Function to simulate mouse press and release
     pub fn on_mouse_pressed(&mut self) {
         self.is_mouse_pressed = true;
@@ -145,7 +146,11 @@ impl Aimbot {
 impl Enhancement for Aimbot {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
         let settings = ctx.states.resolve::<AppSettings>(())?;
-        
+
+        // Update the aimbot settings from the configuration
+        self.fov = settings.aimbot_fov;         // Fetch FOV from the config
+        self.aim_speed = settings.aimbot_speed; // Fetch aim speed from the config
+
         // Check if the constant mouse down movement is enabled
         if settings.enable_constant_mouse_down {
             let mouse = MouseController::new();
