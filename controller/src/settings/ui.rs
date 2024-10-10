@@ -317,9 +317,16 @@ impl SettingsUI {
                     
                         ui.set_next_item_width(150.0);
                         ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
-                        
+                    
                         ui.set_next_item_width(150.0);
                         ui.slider_config("Aim Speed", 1.0, 10.0).display_format("%.1f").build(&mut settings.aimbot_speed);
+                        
+                        ui.set_next_item_width(150.0);
+                        let bone_options = ["head", "neck", "spine"];
+                        let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aim_bone).unwrap_or(0);
+                        ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
+                        settings.aim_bone = bone_options[current_bone_index].to_string();
+
                     }
                     
                     

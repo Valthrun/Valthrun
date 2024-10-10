@@ -79,6 +79,10 @@ fn default_key_aimbot() -> Option<HotKey> {
     Some(Key::MouseLeft.into())
 }
 
+fn default_aim_bone() -> String {
+    "head".to_string()  // Default aim bone is "head"
+}
+
 fn default_enable_constant_mouse_down() -> bool {
     false
 }
@@ -237,6 +241,9 @@ pub struct AppSettings {
     #[serde(default = "default_f32::<150, 100>")]
     pub aimbot_speed: f32,
 
+    #[serde(default = "default_aim_bone")]
+    pub aim_bone: String, 
+    
     #[serde(default = "default_enable_constant_mouse_down")]
     pub enable_constant_mouse_down: bool,
 

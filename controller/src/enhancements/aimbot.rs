@@ -24,6 +24,7 @@ pub struct Aimbot {
     last_mouse_move: Instant,          // Track the time for constant mouse down movement
     current_target: Option<[f32; 2]>,  // Store the current target
     is_mouse_pressed: bool,            // Track if the mouse is pressed
+    aim_bone: String,
 }
 
 impl Aimbot {
@@ -36,6 +37,7 @@ impl Aimbot {
             last_mouse_move: Instant::now(), // Initialize the timer
             current_target: None,
             is_mouse_pressed: false,
+            aim_bone: "head".to_string(),
         }
     }
 
@@ -85,9 +87,8 @@ impl Aimbot {
                             continue;
                         }
                     
-                        // Check if the bone name contains "head"
-                        if bone.name.to_lowercase().contains("head") {
-                            // Convert bone (head) position to screen space
+                        if bone.name.to_lowercase().contains(&self.aim_bone) {
+                            // Convert the selected bone position to screen space
                             if let Some(screen_position) = self.world_to_screen(&view, &state.position) {
                                 // Calculate the distance from the crosshair (X and Y axes)
                                 let dx = screen_position[0] - crosshair_pos[0];
@@ -99,15 +100,15 @@ impl Aimbot {
                     
                                 // Check if the target is within the FOV
                                 if angle_to_target <= self.fov / 2.0 {
-                                    // If the head is closer than the previous best target, update the best target
+                                    // If the bone is closer than the previous best target, update the best target
                                     if distance_from_crosshair < lowest_distance_from_crosshair {
                                         lowest_distance_from_crosshair = distance_from_crosshair;
-                                        best_target = Some(screen_position);  // Update the target to be the head
+                                        best_target = Some(screen_position);  // Update the target to the selected bone
                                     }
                                 }
                             }
                         }
-                    }
+                    }                    
                 }
             }
         }
@@ -150,12 +151,7 @@ impl Enhancement for Aimbot {
         // Update the aimbot settings from the configuration
         self.fov = settings.aimbot_fov;         // Fetch FOV from the config
         self.aim_speed = settings.aimbot_speed; // Fetch aim speed from the config
-
-        // Check if the constant mouse down movement is enabled
-        if settings.enable_constant_mouse_down {
-            let mouse = MouseController::new();
-            self.move_mouse_down(&mouse);
-        }
+        self.aim_bone = settings.aim_bone.to_lowercase();
 
         // Other aimbot logic
         if self.toggle.update(&settings.aimbot_mode, ctx.input, &settings.key_aimbot) {
