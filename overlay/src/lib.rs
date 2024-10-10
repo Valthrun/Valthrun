@@ -1,3 +1,4 @@
+#![feature(str_from_utf16_endian)]
 use std::time::Instant;
 
 use ash::vk::{
@@ -5,10 +6,10 @@ use ash::vk::{
 };
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
+use font::FontAtlasBuilder;
 use imgui::{
     Context,
-    FontConfig,
-    FontSource,
+    FontAtlas,
     Io,
 };
 use imgui_rs_vulkan_renderer::{
@@ -104,8 +105,10 @@ mod vulkan;
 mod perf;
 pub use perf::PerfTracker;
 
+mod font;
 mod util;
 
+pub use font::UnicodeTextRenderer;
 pub use util::show_error_message;
 
 fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
@@ -155,10 +158,10 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
 pub struct OverlayOptions {
     pub title: String,
     pub target: OverlayTarget,
-    pub font_init: Option<Box<dyn Fn(&mut imgui::Context) -> ()>>,
+    pub register_fonts_callback: Option<Box<dyn Fn(&mut FontAtlas) -> ()>>,
 }
 
-fn create_imgui_context(options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
+fn create_imgui_context(_options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
 
@@ -168,32 +171,6 @@ fn create_imgui_context(options: &OverlayOptions) -> Result<(WinitPlatform, imgu
         Ok(backend) => imgui.set_clipboard_backend(ClipboardSupport(backend)),
         Err(error) => log::warn!("Failed to initialize clipboard: {}", error),
     };
-
-    // Fixed font size. Note imgui_winit_support uses "logical
-    // pixels", which are physical pixels scaled by the devices
-    // scaling factor. Meaning, 13.0 pixels should look the same size
-    // on two different screens, and thus we do not need to scale this
-    // value (as the scaling is handled by winit)
-    let font_size = 18.0;
-    imgui.fonts().add_font(&[FontSource::TtfData {
-        data: include_bytes!("../resources/Roboto-Regular.ttf"),
-        size_pixels: font_size,
-        config: Some(FontConfig {
-            // As imgui-glium-renderer isn't gamma-correct with
-            // it's font rendering, we apply an arbitrary
-            // multiplier to make the font a bit "heavier". With
-            // default imgui-glow-renderer this is unnecessary.
-            rasterizer_multiply: 1.5,
-            // Oversampling font helps improve text rendering at
-            // expense of larger font atlas texture.
-            oversample_h: 4,
-            oversample_v: 4,
-            ..FontConfig::default()
-        }),
-    }]);
-    if let Some(callback) = &options.font_init {
-        callback(&mut imgui);
-    }
 
     Ok((platform, imgui))
 }
@@ -211,12 +188,15 @@ pub struct System {
     frame_data_index: usize,
 
     pub imgui: Context,
+    pub imgui_fonts: FontAtlasBuilder,
+    pub imgui_register_fonts_callback: Option<Box<dyn Fn(&mut FontAtlas) -> ()>>,
+
     pub renderer: Renderer,
 
     pub window_tracker: WindowTracker,
 }
 
-pub fn init(options: &OverlayOptions) -> Result<System> {
+pub fn init(options: OverlayOptions) -> Result<System> {
     let window_tracker = WindowTracker::new(&options.target)?;
 
     let event_loop = EventLoop::new();
@@ -231,6 +211,13 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
 
     let (mut platform, mut imgui) = create_imgui_context(&options)?;
     platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
+
+    let mut imgui_fonts = FontAtlasBuilder::new();
+    imgui_fonts.register_font(include_bytes!("../resources/Roboto-Regular.ttf"))?;
+    imgui_fonts.register_font(include_bytes!("../resources/NotoSansTC-Regular.ttf"))?;
+    /* fallback if we do not have the roboto version of the glyph */
+    imgui_fonts.register_font(include_bytes!("../resources/unifont-15.1.05.otf"))?;
+    imgui_fonts.register_codepoints(1..255);
 
     let renderer = Renderer::with_default_allocator(
         &vulkan_context.instance,
@@ -263,6 +250,9 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
         frame_data_index: 0,
 
         imgui,
+        imgui_fonts,
+        imgui_register_fonts_callback: options.register_fonts_callback,
+
         platform,
         renderer,
 
@@ -400,7 +390,7 @@ impl System {
     pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> i32
     where
         U: FnMut(&mut SystemRuntimeController) -> bool + 'static,
-        R: FnMut(&mut imgui::Ui) -> bool + 'static,
+        R: FnMut(&imgui::Ui, &UnicodeTextRenderer) -> bool + 'static,
     {
         let System {
             mut event_loop,
@@ -410,6 +400,9 @@ impl System {
             mut swapchain,
 
             imgui,
+            imgui_fonts,
+            imgui_register_fonts_callback,
+
             mut platform,
             mut renderer,
 
@@ -424,7 +417,9 @@ impl System {
 
         let mut runtime_controller = SystemRuntimeController {
             hwnd: HWND(window.hwnd() as isize),
+
             imgui,
+            imgui_fonts,
 
             active_tracker: OverlayActiveTracker::new(),
             key_input_system: KeyboardInputSystem::new(),
@@ -500,6 +495,29 @@ impl System {
                             }
                         }
 
+                        if runtime_controller.imgui_fonts.fetch_reset_flag_updated() {
+                            let font_atlas = runtime_controller.imgui.fonts();
+                            font_atlas.clear();
+
+                            runtime_controller
+                                .imgui_fonts
+                                .rebuild_font_atlas(font_atlas, 18.0);
+
+                            if let Some(user_callback) = &imgui_register_fonts_callback {
+                                user_callback(font_atlas);
+                            }
+
+                            if let Err(err) = renderer.update_fonts_texture(
+                                vulkan_context.graphics_queue,
+                                frame_data.command_pool,
+                                &mut runtime_controller.imgui,
+                            ) {
+                                log::warn!("Failed to update fonts texture: {}", err);
+                            } else {
+                                log::debug!("Updated font texture successfully");
+                            }
+                        }
+
                         if let Err(error) =
                             platform.prepare_frame(runtime_controller.imgui.io_mut(), &window)
                         {
@@ -509,7 +527,10 @@ impl System {
                         }
 
                         let ui = runtime_controller.imgui.frame();
-                        let run = render(ui);
+                        let unicode_text =
+                            UnicodeTextRenderer::new(ui, &mut runtime_controller.imgui_fonts);
+
+                        let run = render(ui, &unicode_text);
                         if !run {
                             *control_flow = ControlFlow::ExitWithCode(0);
                             return;
@@ -663,6 +684,8 @@ pub struct SystemRuntimeController {
     pub hwnd: HWND,
 
     pub imgui: imgui::Context,
+    pub imgui_fonts: FontAtlasBuilder,
+
     debug_overlay_shown: bool,
 
     active_tracker: OverlayActiveTracker,

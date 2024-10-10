@@ -62,4 +62,10 @@ pub enum OverlayError {
 
     #[error("vulkan missing required layer: {0}")]
     VulkanRequiredLayerUnsupported(String),
+
+    #[error("target font is not a true type font")]
+    FontUnsupported,
+
+    #[error("failed to parse font face: {0}")]
+    FontFaceParsingError(#[from] ttf_parser::FaceParsingError),
 }

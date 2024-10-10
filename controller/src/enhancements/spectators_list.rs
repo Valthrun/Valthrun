@@ -2,6 +2,7 @@ use cs2::{
     LocalCameraControllerTarget,
     SpectatorList,
 };
+use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
 use crate::settings::AppSettings;
@@ -18,7 +19,12 @@ impl Enhancement for SpectatorsListIndicator {
         Ok(())
     }
 
-    fn render(&self, states: &utils_state::StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        states: &utils_state::StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         let settings = states.resolve::<AppSettings>(())?;
         if !settings.spectators_list {
             return Ok(());
@@ -42,7 +48,7 @@ impl Enhancement for SpectatorsListIndicator {
 
         for spectator in &spectators.spectators {
             ui.set_cursor_pos([offset_x, offset_y]);
-            ui.text(&spectator.spectator_name);
+            unicode_text.text(&spectator.spectator_name);
             offset_y += ui.text_line_height_with_spacing();
         }
 

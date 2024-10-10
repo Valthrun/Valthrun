@@ -10,11 +10,17 @@ pub trait Enhancement {
         Ok(false)
     }
 
-    fn render(&self, states: &StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()>;
+    fn render(
+        &self,
+        states: &StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()>;
     fn render_debug_window(
         &mut self,
         _states: &StateRegistry,
         _ui: &imgui::Ui,
+        _unicode_text: &UnicodeTextRenderer,
     ) -> anyhow::Result<()> {
         Ok(())
     }
@@ -24,6 +30,7 @@ mod bomb;
 pub use bomb::*;
 
 mod player;
+use overlay::UnicodeTextRenderer;
 pub use player::*;
 
 mod trigger;

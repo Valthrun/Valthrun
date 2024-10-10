@@ -24,6 +24,7 @@ use nalgebra::{
     Vector3,
 };
 use obfstr::obfstr;
+use overlay::UnicodeTextRenderer;
 use utils_state::{
     State,
     StateCacheType,
@@ -205,7 +206,12 @@ impl Enhancement for GrenadeHelper {
         Ok(())
     }
 
-    fn render(&self, states: &StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        states: &StateRegistry,
+        ui: &imgui::Ui,
+        _unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         let view = states.resolve::<ViewController>(())?;
         let settings = states.resolve::<AppSettings>(())?;
         let settings = &settings.grenade_helper;

@@ -5,6 +5,7 @@ use cs2::{
     ConVar,
     EntitySystem,
 };
+use overlay::UnicodeTextRenderer;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
@@ -80,7 +81,12 @@ impl Enhancement for AntiAimPunsh {
         Ok(())
     }
 
-    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        _states: &utils_state::StateRegistry,
+        _ui: &imgui::Ui,
+        _unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }
