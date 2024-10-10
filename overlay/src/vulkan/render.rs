@@ -21,10 +21,12 @@ use raw_window_handle::{
     HasRawWindowHandle,
 };
 
+use super::{
+    driver::get_vulkan_entry,
+    instance::create_vulkan_instance,
+};
 use crate::{
     error::Result,
-    vulkan_driver::get_vulkan_entry,
-    vulkan_instance::create_vulkan_instance,
     OverlayError,
 };
 
@@ -48,7 +50,7 @@ pub struct VulkanContext {
 }
 
 impl VulkanContext {
-    pub fn new(window: &Window, _name: &str) -> crate::error::Result<Self> {
+    pub fn new(window: &Window) -> crate::error::Result<Self> {
         // Vulkan instance
         let entry = get_vulkan_entry()?;
         let instance = create_vulkan_instance(&entry, window)?;

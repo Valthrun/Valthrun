@@ -15,7 +15,7 @@ use imgui_winit_support::winit::window::Window;
 use raw_window_handle::HasRawDisplayHandle;
 
 use crate::{
-    vulkan_debug,
+    vulkan::debug,
     OverlayError,
     Result,
 };
@@ -163,7 +163,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
             );
         }
 
-        ext_builder.add_extension(vulkan_debug::extension_name(), true)?;
+        ext_builder.add_extension(debug::extension_name(), true)?;
         for extension in ash_window::enumerate_required_extensions(window.raw_display_handle())? {
             ext_builder.add_extension(unsafe { CStr::from_ptr(*extension) }, true)?;
         }
@@ -182,7 +182,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
         .engine_version(vk::make_api_version(0, 1, 0, 0))
         .api_version(vk::make_api_version(0, 1, 1, 0));
 
-    let mut debug_messanger_ext = vulkan_debug::create_extension_info();
+    let mut debug_messanger_ext = debug::create_extension_info();
     let enabled_extension_names = ext_builder.enabled_extension_names();
     let enabled_layer_names = ext_builder.enabled_layer_names();
     let instance_create_info = vk::InstanceCreateInfo::builder()

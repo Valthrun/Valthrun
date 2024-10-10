@@ -43,52 +43,51 @@ use input::{
     MouseInputSystem,
 };
 use obfstr::obfstr;
+use vulkan::render::{
+    record_command_buffers,
+    Swapchain,
+    VulkanContext,
+};
 use window_tracker::WindowTracker;
-use windows::{
-    core::PCWSTR,
-    Win32::{
-        Foundation::{
-            BOOL,
-            HWND,
+use windows::Win32::{
+    Foundation::{
+        BOOL,
+        HWND,
+    },
+    Graphics::{
+        Dwm::{
+            DwmEnableBlurBehindWindow,
+            DWM_BB_BLURREGION,
+            DWM_BB_ENABLE,
+            DWM_BLURBEHIND,
         },
-        Graphics::{
-            Dwm::{
-                DwmEnableBlurBehindWindow,
-                DWM_BB_BLURREGION,
-                DWM_BB_ENABLE,
-                DWM_BLURBEHIND,
-            },
-            Gdi::CreateRectRgn,
-        },
-        UI::{
-            Input::KeyboardAndMouse::SetActiveWindow,
-            WindowsAndMessaging::{
-                GetWindowLongPtrA,
-                MessageBoxW,
-                SetWindowDisplayAffinity,
-                SetWindowLongA,
-                SetWindowLongPtrA,
-                SetWindowPos,
-                ShowWindow,
-                GWL_EXSTYLE,
-                GWL_STYLE,
-                HWND_TOPMOST,
-                MB_ICONERROR,
-                MB_OK,
-                SWP_NOACTIVATE,
-                SWP_NOMOVE,
-                SWP_NOSIZE,
-                SW_SHOWNOACTIVATE,
-                WDA_EXCLUDEFROMCAPTURE,
-                WDA_NONE,
-                WS_CLIPSIBLINGS,
-                WS_EX_LAYERED,
-                WS_EX_NOACTIVATE,
-                WS_EX_TOOLWINDOW,
-                WS_EX_TRANSPARENT,
-                WS_POPUP,
-                WS_VISIBLE,
-            },
+        Gdi::CreateRectRgn,
+    },
+    UI::{
+        Input::KeyboardAndMouse::SetActiveWindow,
+        WindowsAndMessaging::{
+            GetWindowLongPtrA,
+            SetWindowDisplayAffinity,
+            SetWindowLongA,
+            SetWindowLongPtrA,
+            SetWindowPos,
+            ShowWindow,
+            GWL_EXSTYLE,
+            GWL_STYLE,
+            HWND_TOPMOST,
+            SWP_NOACTIVATE,
+            SWP_NOMOVE,
+            SWP_NOSIZE,
+            SW_SHOWNOACTIVATE,
+            WDA_EXCLUDEFROMCAPTURE,
+            WDA_NONE,
+            WS_CLIPSIBLINGS,
+            WS_EX_LAYERED,
+            WS_EX_NOACTIVATE,
+            WS_EX_TOOLWINDOW,
+            WS_EX_TRANSPARENT,
+            WS_POPUP,
+            WS_VISIBLE,
         },
     },
 };
@@ -105,27 +104,9 @@ mod vulkan;
 mod perf;
 pub use perf::PerfTracker;
 
-mod vulkan_render;
-use vulkan_render::*;
-
 mod util;
-mod vulkan_debug;
-mod vulkan_driver;
-mod vulkan_instance;
 
-pub fn show_error_message(title: &str, message: &str) {
-    let title_wide = util::to_wide_chars(title);
-    let message_wide = util::to_wide_chars(message);
-
-    unsafe {
-        MessageBoxW(
-            HWND::default(),
-            PCWSTR::from_raw(title_wide.as_ptr()),
-            PCWSTR::from_raw(message_wide.as_ptr()),
-            MB_ICONERROR | MB_OK,
-        );
-    }
-}
+pub use util::show_error_message;
 
 fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
     let window = WindowBuilder::new()
@@ -241,7 +222,7 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
     let event_loop = EventLoop::new();
     let window = create_window(&event_loop, &options.title)?;
 
-    let vulkan_context = VulkanContext::new(&window, &options.title)?;
+    let vulkan_context = VulkanContext::new(&window)?;
     let frame_data = vec![
         FrameData::new(&vulkan_context)?,
         // FrameData::new(&vulkan_context)?,
