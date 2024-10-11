@@ -8,6 +8,7 @@ use cs2::BoneFlags;
 use cs2::CS2Model;
 use cs2::ClassNameCache;
 use cs2::PlayerPawnState;
+use crate::UnicodeTextRenderer;
 
 use crate::settings::AppSettings;
 use crate::view::{KeyToggle, LocalCrosshair, ViewController};
@@ -170,7 +171,7 @@ impl Enhancement for Aimbot {
         Ok(())
     }
 
-    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui,_unicode_text: &UnicodeTextRenderer,) -> anyhow::Result<()> {
         Ok(())
     }
 }
