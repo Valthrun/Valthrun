@@ -37,6 +37,7 @@ use imgui::{
     TreeNodeFlags,
 };
 use obfstr::obfstr;
+use overlay::UnicodeTextRenderer;
 use url::Url;
 use utils_state::StateRegistry;
 
@@ -195,9 +196,18 @@ impl SettingsUI {
         }
     }
 
-    pub fn render(&mut self, app: &Application, ui: &imgui::Ui) {
+    pub fn render(
+        &mut self,
+        app: &Application,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) {
         let content_font = ui.current_font().id();
-        let _title_font = ui.push_font(app.fonts.valthrun);
+        let _title_font = if let Some(font_id) = app.fonts.valthrun.font_id() {
+            ui.push_font(font_id)
+        } else {
+            return;
+        };
 
         ui.window(obfstr!("Valthrun"))
             .size([600.0, 300.0], Condition::FirstUseEver)
@@ -294,7 +304,7 @@ impl SettingsUI {
 
                     if let Some(_tab) = ui.tab_item(obfstr!("Grenade Helper")) {
                         if settings.grenade_helper.active {
-                            self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui);
+                            self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui, unicode_text);
                         } else {
                             let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text(obfstr!("Grenade Helper has been disabled."));
@@ -374,7 +384,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        //ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
                     if let Some(_) = ui.tab_item("Web Radar") {
@@ -1191,6 +1201,7 @@ impl SettingsUI {
         states: &StateRegistry,
         settings: &mut GrenadeSettings,
         ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
     ) {
         if let Some(target) = self.grenade_helper_pending_target.take() {
             self.grenade_helper_target = target;
@@ -1337,7 +1348,13 @@ impl SettingsUI {
                     /* Nothing to render */
                 }
                 GrenadeSettingsTarget::Map { map_name, .. } => {
-                    self.render_grenade_helper_target_map(states, settings, ui, &map_name.clone());
+                    self.render_grenade_helper_target_map(
+                        states,
+                        settings,
+                        ui,
+                        &map_name.clone(),
+                        unicode_text,
+                    );
                 }
             }
         }
@@ -1349,6 +1366,7 @@ impl SettingsUI {
         settings: &mut GrenadeSettings,
         ui: &imgui::Ui,
         map_name: &str,
+        unicode_text: &UnicodeTextRenderer,
     ) {
         /* the left tree */
         let content_region = ui.content_region_avail();
@@ -1398,6 +1416,7 @@ impl SettingsUI {
                             .selected(grenade.id == self.grenade_helper_selected_id)
                             .flags(SelectableFlags::SPAN_ALL_COLUMNS)
                             .build();
+                        unicode_text.register_unicode_text(&grenade.name);
 
                         if clicked {
                             self.grenade_helper_pending_selected_id = Some(grenade.id);
@@ -1510,6 +1529,7 @@ impl SettingsUI {
                 ui.text("Name");
                 ui.input_text("##grenade_helper_spot_name", &mut current_grenade.name)
                     .build();
+                unicode_text.register_unicode_text(&current_grenade.name);
 
                 ui.text("Description");
                 ui.input_text_multiline(
@@ -1518,6 +1538,7 @@ impl SettingsUI {
                     [0.0, 100.0],
                 )
                 .build();
+                unicode_text.register_unicode_text(&current_grenade.description);
 
                 ui.text("Eye position");
                 ui.input_float3(
@@ -1652,12 +1673,7 @@ impl SettingsUI {
 
                 if current_grenade.id == 0 {
                     let region_avail = ui.content_region_max();
-                    ui.set_cursor_pos([
-                        region_avail[0] - 100.0,
-                        region_avail[1]
-                            - original_style.frame_padding[1] * 2.0
-                            - ui.text_line_height(),
-                    ]);
+                    ui.set_cursor_pos([region_avail[0] - 100.0, ui.cursor_pos()[1]]);
                     if ui.button_with_size("Create", [100.0, 0.0]) {
                         if let Some(mut grenade) = self.grenade_helper_new_item.take() {
                             let grenades =

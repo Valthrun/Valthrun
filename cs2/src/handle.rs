@@ -24,11 +24,12 @@ use utils_state::{
     StateRegistry,
 };
 use valthrun_kernel_interface::{
-    IoctrlDriverInterface,
+    com_from_env,
     KernelInterface,
     KeyboardState,
     ModuleInfo,
     MouseState,
+    ProcessId,
 };
 
 use crate::{
@@ -83,17 +84,14 @@ pub struct CS2Handle {
     metrics: bool,
 
     modules: Vec<ModuleInfo>,
-    process_id: i32,
+    process_id: ProcessId,
 
     pub ke_interface: KernelInterface,
 }
 
 impl CS2Handle {
     pub fn create(metrics: bool) -> anyhow::Result<Arc<Self>> {
-        let interface = Box::new(IoctrlDriverInterface::create(obfstr!(
-            "\\\\.\\GLOBALROOT\\Device\\valthrun"
-        ))?);
-        let interface = KernelInterface::create(interface)?;
+        let interface = KernelInterface::create(com_from_env()?)?;
 
         /*
          * Please no not analyze me:
@@ -101,7 +99,9 @@ impl CS2Handle {
          *
          * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
          */
-        interface.toggle_process_protection(true)?;
+        if let Err(err) = interface.toggle_process_protection(true) {
+            log::warn!("Failed to enable process protection: {}", err)
+        };
 
         let (process_id, modules) = interface.request_cs2_modules()?;
         log::debug!(
@@ -136,7 +136,7 @@ impl CS2Handle {
             .find(|module| module.base_dll_name() == target.get_module_name())
     }
 
-    pub fn process_id(&self) -> i32 {
+    pub fn process_id(&self) -> ProcessId {
         self.process_id
     }
 

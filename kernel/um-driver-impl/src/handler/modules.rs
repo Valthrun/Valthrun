@@ -1,4 +1,7 @@
-use core::slice;
+use core::{
+    slice,
+    str,
+};
 use std::mem;
 
 use valthrun_driver_shared::{
@@ -10,22 +13,23 @@ use valthrun_driver_shared::{
     },
     ProcessModuleInfo,
 };
-use windows::Win32::{
-    Foundation::HMODULE,
-    System::{
-        ProcessStatus::{
-            EnumProcessModules,
-            GetModuleFileNameExA,
-            GetModuleInformation,
-        },
-        Threading::{
-            PROCESS_QUERY_INFORMATION,
-            PROCESS_VM_READ,
-        },
+use windows::Win32::System::{
+    ProcessStatus::{
+        GetModuleBaseNameA,
+        GetModuleInformation,
+    },
+    Threading::{
+        PROCESS_QUERY_INFORMATION,
+        PROCESS_VM_READ,
     },
 };
 
-use crate::util;
+use crate::util::{
+    self,
+    list_process_modules,
+    list_system_process_ids,
+    ProcessId,
+};
 
 pub fn get_cs2_modules(
     req: &RequestCSModule,
@@ -45,42 +49,75 @@ pub fn get_cs2_modules(
     )
 }
 
+fn find_process_id_by_name(name: &str) -> anyhow::Result<Vec<ProcessId>> {
+    let processes = list_system_process_ids()?;
+    let mut matching_ids = Vec::new();
+    for process_id in processes {
+        let Ok(process) =
+            util::open_process_by_id(process_id, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ)
+        else {
+            continue;
+        };
+
+        let modules = list_process_modules(&process, Some(1))?;
+        let Some(main_module) = modules.first() else {
+            continue;
+        };
+
+        let mut name_buffer = [0; 0xFF];
+        let name_length =
+            unsafe { GetModuleBaseNameA(process.raw_handle(), *main_module, &mut name_buffer) };
+        if name_length == 0 {
+            continue;
+        }
+
+        let process_name =
+            unsafe { str::from_utf8_unchecked(&name_buffer[0..name_length as usize]) };
+        if process_name == name {
+            matching_ids.push(process_id);
+        }
+    }
+
+    Ok(matching_ids)
+}
+
 pub fn get_modules(
     req: &RequestProcessModules,
     res: &mut ResponseProcessModules,
 ) -> anyhow::Result<()> {
-    let process = match req.filter {
-        ProcessFilter::Id { id } => {
-            match util::open_process_by_id(id as u32, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ) {
-                Ok(handle) => handle,
-                Err(err) => {
-                    log::warn!("Failed to open process {} for enumeration: {}", id, err);
-                    *res = ResponseProcessModules::NoProcess;
-                    return Ok(());
-                }
+    let process_id = match req.filter {
+        ProcessFilter::Id { id } => id as u32,
+        ProcessFilter::Name { name, name_length } => {
+            let name =
+                unsafe { str::from_utf8_unchecked(slice::from_raw_parts(name, name_length)) };
+
+            let process_ids = find_process_id_by_name(name)?;
+            if process_ids.is_empty() {
+                *res = ResponseProcessModules::NoProcess;
+                return Ok(());
+            } else if process_ids.len() > 1 {
+                *res = ResponseProcessModules::UbiquitousProcesses(process_ids.len());
+                return Ok(());
             }
+
+            process_ids[0]
         }
-        ProcessFilter::Name { .. } => anyhow::bail!("not supported"),
     };
+    let process =
+        match util::open_process_by_id(process_id, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ) {
+            Ok(handle) => handle,
+            Err(err) => {
+                log::warn!(
+                    "Failed to open process {} for enumeration: {}",
+                    process_id,
+                    err
+                );
+                *res = ResponseProcessModules::NoProcess;
+                return Ok(());
+            }
+        };
 
-    let modules = unsafe {
-        let mut modules = Vec::new();
-        modules.resize(1000, HMODULE::default());
-
-        let mut bytes_needed = 0;
-        let success = EnumProcessModules(
-            process.raw_handle(),
-            modules.as_mut_ptr(),
-            (modules.len() * mem::size_of::<HMODULE>()) as u32,
-            &mut bytes_needed,
-        );
-        if !success.as_bool() {
-            anyhow::bail!("EnumProcessModules failed");
-        }
-
-        modules.set_len(bytes_needed as usize / mem::size_of::<HMODULE>());
-        modules
-    };
+    let modules = util::list_process_modules(&process, None)?;
     log::debug!("Process module count: {}", modules.len());
 
     if modules.len() > req.module_buffer_length {
@@ -96,7 +133,7 @@ pub fn get_modules(
     let mut module_buffer_index = 0;
     for hmodule in modules.iter() {
         let bytes_copied = unsafe {
-            GetModuleFileNameExA(
+            GetModuleBaseNameA(
                 process.raw_handle(),
                 *hmodule,
                 &mut module_buffer[module_buffer_index].base_dll_name,
@@ -134,7 +171,7 @@ pub fn get_modules(
 
     *res = ResponseProcessModules::Success(ProcessModuleInfo {
         module_count: module_buffer_index,
-        process_id: 0,
+        process_id,
     });
     Ok(())
 }

@@ -61,6 +61,9 @@ impl SchemaScope {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct EnumDefinition {
+    #[serde(default)]
+    pub schema_scope_name: String,
+
     /// Enums public name
     pub enum_name: String,
 
@@ -128,6 +131,8 @@ impl EnumMember {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ClassDefinition {
+    #[serde(default)]
+    pub schema_scope_name: String,
     pub class_name: String,
     pub class_size: u64,
     #[serde(skip_serializing_if = "Option::is_none")]

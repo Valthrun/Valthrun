@@ -39,6 +39,7 @@ use cs2::{
     CS2Handle,
     CS2HandleState,
     CS2Offsets,
+    ConVars,
 };
 use enhancements::{
     Enhancement,
@@ -59,6 +60,7 @@ use overlay::{
     OverlayOptions,
     OverlayTarget,
     SystemRuntimeController,
+    UnicodeTextRenderer,
 };
 use radar::WebRadar;
 use settings::{
@@ -99,7 +101,6 @@ use crate::{
     winver::version_info,
 };
 
-mod cache;
 mod enhancements;
 mod radar;
 mod settings;
@@ -143,8 +144,24 @@ pub struct UpdateContext<'a> {
     pub cs2: &'a Arc<CS2Handle>,
 }
 
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct FontReference {
+    inner: Arc<RefCell<Option<FontId>>>,
+}
+
+impl FontReference {
+    pub fn font_id(&self) -> Option<FontId> {
+        self.inner.borrow().clone()
+    }
+
+    pub fn set_id(&self, font_id: FontId) {
+        *self.inner.borrow_mut() = Some(font_id);
+    }
+}
+
+#[derive(Clone, Default)]
 pub struct AppFonts {
-    valthrun: FontId,
+    valthrun: FontReference,
 }
 
 pub struct Application {
@@ -258,8 +275,8 @@ impl Application {
         };
 
         for enhancement in self.enhancements.iter() {
-            let mut hack = enhancement.borrow_mut();
-            hack.update(&update_context)?;
+            let mut enhancement = enhancement.borrow_mut();
+            enhancement.update(&update_context)?;
         }
 
         let read_calls = self.cs2.ke_interface.total_read_calls();
@@ -269,19 +286,20 @@ impl Application {
         Ok(())
     }
 
-    pub fn render(&self, ui: &imgui::Ui) {
+    pub fn render(&self, ui: &imgui::Ui, unicode_text: &UnicodeTextRenderer) {
         ui.window("overlay")
             .draw_background(false)
             .no_decoration()
             .no_inputs()
             .size(ui.io().display_size, Condition::Always)
             .position([0.0, 0.0], Condition::Always)
-            .build(|| self.render_overlay(ui));
+            .build(|| self.render_overlay(ui, unicode_text));
 
         {
             for enhancement in self.enhancements.iter() {
                 let mut enhancement = enhancement.borrow_mut();
-                if let Err(err) = enhancement.render_debug_window(&self.app_state, ui) {
+                if let Err(err) = enhancement.render_debug_window(&self.app_state, ui, unicode_text)
+                {
                     log::error!("{:?}", err);
                 }
             }
@@ -289,11 +307,11 @@ impl Application {
 
         if self.settings_visible {
             let mut settings_ui = self.settings_ui.borrow_mut();
-            settings_ui.render(self, ui)
+            settings_ui.render(self, ui, unicode_text)
         }
     }
 
-    fn render_overlay(&self, ui: &imgui::Ui) {
+    fn render_overlay(&self, ui: &imgui::Ui, unicode_text: &UnicodeTextRenderer) {
         let settings = self.settings();
 
         if settings.valthrun_watermark {
@@ -325,9 +343,9 @@ impl Application {
             }
         }
 
-        for hack in self.enhancements.iter() {
-            let hack = hack.borrow();
-            if let Err(err) = hack.render(&self.app_state, ui) {
+        for enhancement in self.enhancements.iter() {
+            let hack = enhancement.borrow();
+            if let Err(err) = hack.render(&self.app_state, ui, unicode_text) {
                 log::error!("{:?}", err);
             }
         }
@@ -421,7 +439,14 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create(true)?;
-    let schema = cs2::dump_schema(&cs2, !args.all_classes)?;
+    let schema = cs2::dump_schema(
+        &cs2,
+        if args.all_classes {
+            None
+        } else {
+            Some(&["client.dll", "!GlobalTypes"])
+        },
+    )?;
 
     let output = File::options()
         .create(true)
@@ -554,23 +579,28 @@ fn main_overlay() -> anyhow::Result<()> {
     }
 
     offsets_runtime::setup_provider(&cs2)?;
+
+    let cvars = ConVars::new(cs2.clone()).context("cvars")?;
+    let cvar_sensitivity = cvars
+        .find_cvar("sensitivity")
+        .context("cvar ensitivity")?
+        .context("missing cvar ensitivity")?;
+
     app_state
         .resolve::<CS2Offsets>(())
         .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?;
 
     log::debug!("Initialize overlay");
-    let app_fonts: Rc<RefCell<Option<AppFonts>>> = Default::default();
+    let app_fonts: AppFonts = Default::default();
     let overlay_options = OverlayOptions {
         title: obfstr!("CS2 Overlay").to_string(),
         target: OverlayTarget::WindowOfProcess(cs2.process_id() as u32),
-        font_init: Some(Box::new({
+        register_fonts_callback: Some(Box::new({
             let app_fonts = app_fonts.clone();
 
-            move |imgui| {
-                let mut app_fonts = app_fonts.borrow_mut();
-
+            move |atlas| {
                 let font_size = 18.0;
-                let valthrun_font = imgui.fonts().add_font(&[FontSource::TtfData {
+                let valthrun_font = atlas.add_font(&[FontSource::TtfData {
                     data: include_bytes!("../resources/Valthrun-Regular.ttf"),
                     size_pixels: font_size,
                     config: Some(FontConfig {
@@ -581,14 +611,12 @@ fn main_overlay() -> anyhow::Result<()> {
                     }),
                 }]);
 
-                *app_fonts = Some(AppFonts {
-                    valthrun: valthrun_font,
-                });
+                app_fonts.valthrun.set_id(valthrun_font);
             }
         })),
     };
 
-    let mut overlay = match overlay::init(&overlay_options) {
+    let mut overlay = match overlay::init(overlay_options) {
         Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
@@ -617,22 +645,18 @@ fn main_overlay() -> anyhow::Result<()> {
     }
 
     let app = Application {
-        fonts: app_fonts
-            .borrow_mut()
-            .take()
-            .context("failed to initialize app fonts")?,
-
+        fonts: app_fonts,
         app_state,
 
         cs2: cs2.clone(),
         web_radar: Default::default(),
 
         enhancements: vec![
+            Rc::new(RefCell::new(AntiAimPunsh::new(cvar_sensitivity))),
             Rc::new(RefCell::new(PlayerESP::new())),
             Rc::new(RefCell::new(SpectatorsListIndicator::new())),
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
-            Rc::new(RefCell::new(AntiAimPunsh::new())),
             Rc::new(RefCell::new(GrenadeHelper::new())),
             Rc::new(RefCell::new(Aimbot::new())),
         ],
@@ -675,7 +699,7 @@ fn main_overlay() -> anyhow::Result<()> {
                 }
             }
         },
-        move |ui| {
+        move |ui, unicode_text| {
             let mut app = app.borrow_mut();
 
             if let Some((timeout, target)) = &update_timeout {
@@ -700,8 +724,10 @@ fn main_overlay() -> anyhow::Result<()> {
                 }
             }
 
-            app.render(ui);
+            app.render(ui, unicode_text);
             true
         },
-    )
+    );
+
+    Ok(())
 }

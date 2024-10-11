@@ -9,6 +9,7 @@ members = [
 
     "kernel/interface",
     "kernel/shared",
+    "kernel/um-driver-impl",
 
     "radar/client",
     "radar/client-standalone",
@@ -20,7 +21,6 @@ members = [
     "cs2",
     "overlay",
 ]
-exclude = ["kernel/driver"]
 
 [profile.dev]
 incremental = true

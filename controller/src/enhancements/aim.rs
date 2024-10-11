@@ -1,31 +1,34 @@
+use core::f32;
+
 use anyhow::Context;
 use cs2::{
+    ConVar,
     EntitySystem,
-    Globals,
 };
+use overlay::UnicodeTextRenderer;
 use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 use crate::settings::AppSettings;
 
 pub struct AntiAimPunsh {
-    mouse_sensitivity: f32,
+    mouse_sensitivity: ConVar,
 
     mouse_adjustment_x: i32,
     mouse_adjustment_y: i32,
 
-    last_tick_base: u32,
+    punch_vec: Option<mint::Vector2<f32>>,
 }
 
 impl AntiAimPunsh {
-    pub fn new() -> Self {
+    pub fn new(mouse_sensitivity: ConVar) -> Self {
         Self {
-            mouse_sensitivity: 0.8,
+            mouse_sensitivity,
 
             mouse_adjustment_x: 0,
             mouse_adjustment_y: 0,
 
-            last_tick_base: 0,
+            punch_vec: None,
         }
     }
 }
@@ -50,52 +53,40 @@ impl Enhancement for AntiAimPunsh {
             .read_schema()?;
 
         if local_pawn.m_iShotsFired()? <= 1 {
+            self.mouse_adjustment_x = 0;
+            self.mouse_adjustment_y = 0;
             return Ok(());
         }
 
-        let globals = ctx.states.resolve::<Globals>(())?;
-        let current_tick = globals.frame_count_2()?;
+        let mouse_sensitivity = self.mouse_sensitivity.fl_value()?;
+        let punch_angle = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngle()?) * 2.0;
 
-        let punch_angle = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngle()?);
-        let punch_vel = nalgebra::Vector4::from_row_slice(&local_pawn.m_aimPunchAngleVel()?);
+        let mouse_x = (punch_angle.y / (mouse_sensitivity * 0.022)).round() as i32;
+        let mouse_y = (punch_angle.x / (mouse_sensitivity * 0.022)).round() as i32;
 
-        let mut punch_base = local_pawn.m_aimPunchTickBase()? as u32;
-        if punch_base > current_tick {
-            punch_base = current_tick;
-        }
-        let punch_elapsed = (current_tick - punch_base) as f32;
+        let delta_x = mouse_x - self.mouse_adjustment_x;
+        let delta_y = mouse_y - self.mouse_adjustment_y;
 
-        let ltime = 20.0;
-        let xpunch_elapsed = punch_elapsed;
-        let total_punch_angle = if xpunch_elapsed < ltime {
-            (punch_angle + punch_vel * xpunch_elapsed / 128.0) * (ltime - xpunch_elapsed) / ltime
-        } else {
-            nalgebra::Vector4::<f32>::zeros()
-        };
-
-        let deg_one = settings.mouse_x_360 as f32 / 360.0;
-        let target_mouse_y = (total_punch_angle.x * deg_one * -2.25).round() as i32;
-        let delta_mouse_y = target_mouse_y - self.mouse_adjustment_y;
-        self.mouse_adjustment_y = target_mouse_y;
-
-        let target_mouse_x = (total_punch_angle.y * deg_one * 2.0).round() as i32;
-        let delta_mouse_x = target_mouse_x - self.mouse_adjustment_x;
-        self.mouse_adjustment_x = target_mouse_x;
-
-        if delta_mouse_y != 0 || delta_mouse_x != 0 {
+        if delta_x != 0 || delta_y != 0 {
             ctx.cs2.send_mouse_state(&[MouseState {
-                last_y: delta_mouse_y,
-                last_x: delta_mouse_x,
+                last_y: -delta_y,
+                last_x: delta_x,
                 ..Default::default()
             }])?;
+
+            self.mouse_adjustment_x = mouse_x;
+            self.mouse_adjustment_y = mouse_y;
         }
 
-        // self.last_tick_base = punch_base;
-        // log::debug!("X: {:?} | {:?} | {} ({}) | {} ({}) | {} ({})", punch_vel, total_punch_angle, punch_base, current_tick - punch_base, target_mouse_x, delta_mouse_x, target_mouse_y, delta_mouse_y);
         Ok(())
     }
 
-    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        _states: &utils_state::StateRegistry,
+        _ui: &imgui::Ui,
+        _unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         Ok(())
     }
 }

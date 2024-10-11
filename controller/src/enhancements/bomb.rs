@@ -2,6 +2,7 @@ use cs2::{
     PlantedC4,
     PlantedC4State,
 };
+use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
 use crate::{
@@ -27,7 +28,12 @@ impl Enhancement for BombInfoIndicator {
         Ok(())
     }
 
-    fn render(&self, states: &utils_state::StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        states: &utils_state::StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         let settings = states.resolve::<AppSettings>(())?;
         if !settings.bomb_timer {
             return Ok(());
@@ -71,7 +77,7 @@ impl Enhancement for BombInfoIndicator {
                     };
 
                     ui.set_cursor_pos_x(offset_x);
-                    ui.text_colored(
+                    unicode_text.text_colored(
                         color,
                         &format!(
                             "Defused in {:.3} by {}",

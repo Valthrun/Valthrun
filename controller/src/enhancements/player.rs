@@ -11,6 +11,7 @@ use cs2::{
 use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use imgui::ImColor32;
 use obfstr::obfstr;
+use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
 use crate::{
@@ -221,7 +222,12 @@ impl Enhancement for PlayerESP {
         Ok(())
     }
 
-    fn render(&self, states: &utils_state::StateRegistry, ui: &imgui::Ui) -> anyhow::Result<()> {
+    fn render(
+        &self,
+        states: &utils_state::StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
         let settings = states.resolve::<AppSettings>(())?;
         let view = states.resolve::<ViewController>(())?;
 
@@ -443,6 +449,7 @@ impl Enhancement for PlayerESP {
                             .calculate_color(player_rel_health, distance),
                         &entry.player_name,
                     );
+                    unicode_text.register_unicode_text(&entry.player_name);
                 }
 
                 if esp_settings.info_weapon {
