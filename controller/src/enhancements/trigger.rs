@@ -157,7 +157,7 @@ impl Enhancement for TriggerBot {
                     } else {
                         self.state = TriggerState::Active;
                     }
-                    /* regardsless of the next state, we always need to execute the current action */
+                    /* regardless of the next state, we always need to execute the current action */
                     break;
                 }
                 TriggerState::Sleep { delay, timestamp } => {

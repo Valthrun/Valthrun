@@ -337,6 +337,8 @@ impl SettingsUI {
                         ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
                         settings.aim_bone = bone_options[current_bone_index].to_string();
 
+                        ui.set_next_item_width(150.0);
+                        ui.checkbox(obfstr!("Team Check"), &mut settings.aimbot_team_check);
                     }
                     
                     

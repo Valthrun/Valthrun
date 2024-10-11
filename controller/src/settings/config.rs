@@ -83,9 +83,7 @@ fn default_aim_bone() -> String {
     "head".to_string()  // Default aim bone is "head"
 }
 
-fn default_enable_constant_mouse_down() -> bool {
-    false
-}
+fn default_aimbot_team_check() -> bool { false }
 
 fn default_trigger_bot_mode() -> KeyToggleMode {
     KeyToggleMode::Trigger
@@ -235,6 +233,9 @@ pub struct AppSettings {
     #[serde(default = "default_key_aimbot")]
     pub key_aimbot: Option<HotKey>,
 
+    #[serde(default = "bool_true")]
+    pub aimbot_team_check: bool,
+
     #[serde(default = "default_f32::<5, 1>")]
     pub aimbot_fov: f32,
 
@@ -242,10 +243,7 @@ pub struct AppSettings {
     pub aimbot_speed: f32,
 
     #[serde(default = "default_aim_bone")]
-    pub aim_bone: String, 
-    
-    #[serde(default = "default_enable_constant_mouse_down")]
-    pub enable_constant_mouse_down: bool,
+    pub aim_bone: String,
 
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,

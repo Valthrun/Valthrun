@@ -1,4 +1,6 @@
 use std::time::{Instant};
+
+use anyhow::Context;
 use cs2::{EntitySystem, CEntityIdentityEx};
 use nalgebra::Vector3;
 use obfstr::obfstr;
@@ -6,10 +8,12 @@ use cs2::BoneFlags;
 use cs2::CS2Model;
 use cs2::ClassNameCache;
 use cs2::PlayerPawnState;
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
+use cs2_schema_generated::EntityHandle;
 use crate::UnicodeTextRenderer;
 
 use crate::settings::AppSettings;
-use crate::view::{KeyToggle, ViewController};
+use crate::view::{KeyToggle, LocalCrosshair, ViewController};
 use crate::UpdateContext;
 use super::Enhancement;
 use valthrun_kernel_interface::MouseState;
@@ -24,6 +28,7 @@ pub struct Aimbot {
     current_target: Option<[f32; 2]>,  // Store the current target
     is_mouse_pressed: bool,            // Track if the mouse is pressed
     aim_bone: String,
+    aimbot_team_check: bool,
 }
 
 impl Aimbot {
@@ -37,6 +42,7 @@ impl Aimbot {
             current_target: None,
             is_mouse_pressed: false,
             aim_bone: "head".to_string(),
+            aimbot_team_check: true,
         }
     }
 
@@ -48,37 +54,37 @@ impl Aimbot {
         if self.is_mouse_pressed && self.current_target.is_some() {
             return self.current_target;
         }
-    
+
         let entities = ctx.states.resolve::<EntitySystem>(()).ok()?;
         let view = ctx.states.resolve::<ViewController>(()).ok()?;
         let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?; // Store the result here
-    
+
         let local_player_position = view.get_camera_world_position()?; // Get local player position
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0]; // Center of the screen
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance_from_crosshair = f32::MAX; // Track the closest target in FOV
         const UNITS_TO_METERS: f32 = 0.01905;
-    
+
         for entity_identity in entities.all_identities() {
             let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info().ok()?).ok()?; // Use the stored value
             if entity_class.map(|name| *name == "C_CSPlayerPawn").unwrap_or(false) {
                 let entry = ctx.states.resolve::<PlayerPawnState>(entity_identity.handle::<()>().ok()?.get_entity_index()).ok()?;
                 if let PlayerPawnState::Alive(player_info) = &*entry {
                     let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
-    
+
                     // Calculate distance between the local player and the target
                     let distance = (player_info.position - local_player_position).norm() * UNITS_TO_METERS;
-    
+
                     // Skip self (local player) if distance is < 3.0
                     if distance < 2.0 {
                         continue;
                     }
-    
+
                     for (bone, state) in entry_model.bones.iter().zip(player_info.bone_states.iter()) {
                         if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
                             continue;
                         }
-                    
+
                         if bone.name.to_lowercase().contains(&self.aim_bone) {
                             // Convert the selected bone position to screen space
                             if let Some(screen_position) = self.world_to_screen(&view, &state.position) {
@@ -86,10 +92,10 @@ impl Aimbot {
                                 let dx = screen_position[0] - crosshair_pos[0];
                                 let dy = screen_position[1] - crosshair_pos[1];
                                 let distance_from_crosshair = (dx * dx + dy * dy).sqrt();
-                    
+
                                 // Calculate the angle between the crosshair and the target
                                 let angle_to_target = distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
-                    
+
                                 // Check if the target is within the FOV
                                 if angle_to_target <= self.fov / 2.0 {
                                     // If the bone is closer than the previous best target, update the best target
@@ -100,16 +106,16 @@ impl Aimbot {
                                 }
                             }
                         }
-                    }                    
+                    }
                 }
             }
         }
-    
+
         // Update current target when the mouse is pressed and a new best target is found
         if self.is_mouse_pressed {
             self.current_target = best_target;
         }
-    
+
         best_target
     }
 
@@ -123,7 +129,46 @@ impl Aimbot {
         self.current_target = None; // Clear the current target when the mouse is released
     }
 
-    fn aim_at_target(&self, ctx: &UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<()> {
+    fn aim_at_target(&self, ctx: &UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<bool> {
+        let settings = ctx.states.resolve::<AppSettings>(())?;
+        let crosshair = ctx.states.resolve::<LocalCrosshair>(())?;
+        let entities = ctx.states.resolve::<EntitySystem>(())?;
+        let target = match crosshair.current_target() {
+            Some(target) => target,
+            None => return Ok(false),
+        };
+
+        if !target
+            .entity_type
+            .as_ref()
+            .map(|t| t == "C_CSPlayerPawn")
+            .unwrap_or(false)
+        {
+            return Ok(false);
+        }
+
+        if settings.aimbot_team_check {
+            let crosshair_entity = entities
+                .get_by_handle(&EntityHandle::<C_CSPlayerPawn>::from_index(
+                    target.entity_id,
+                ))?
+                .context("missing crosshair player pawn")?
+                .entity()?
+                .read_schema()?;
+
+            let local_player_controller = entities.get_local_player_controller()?;
+            if local_player_controller.is_null()? {
+                return Ok(false);
+            }
+
+            let local_player_controller = local_player_controller.reference_schema()?;
+
+            let target_player = crosshair_entity.as_schema::<C_CSPlayerPawn>()?;
+            if target_player.m_iTeamNum()? == local_player_controller.m_iTeamNum()? {
+                return Ok(false);
+            }
+        }
+
         let view = ctx.states.resolve::<ViewController>(())?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let aim_adjustment = [
@@ -131,12 +176,13 @@ impl Aimbot {
             (target_screen_position[1] - crosshair_pos[1]) / self.aim_speed,
         ];
 
+
         ctx.cs2.send_mouse_state(&[MouseState {
-            last_y: aim_adjustment[1] as i32,
             last_x: aim_adjustment[0] as i32,
+            last_y: aim_adjustment[1] as i32,
             ..Default::default()
         }])?;
-        Ok(())
+        Ok(true)
     }
 }
 
@@ -148,6 +194,7 @@ impl Enhancement for Aimbot {
         self.fov = settings.aimbot_fov;         // Fetch FOV from the config
         self.aim_speed = settings.aimbot_speed; // Fetch aim speed from the config
         self.aim_bone = settings.aim_bone.to_lowercase();
+        self.aimbot_team_check = settings.aimbot_team_check;
 
         // Other aimbot logic
         if self.toggle.update(&settings.aimbot_mode, ctx.input, &settings.key_aimbot) {
@@ -166,7 +213,7 @@ impl Enhancement for Aimbot {
         Ok(())
     }
 
-    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui,_unicode_text: &UnicodeTextRenderer,) -> anyhow::Result<()> {
+    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui, _unicode_text: &UnicodeTextRenderer) -> anyhow::Result<()> {
         Ok(())
     }
 }
