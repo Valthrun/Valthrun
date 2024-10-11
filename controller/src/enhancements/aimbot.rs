@@ -1,7 +1,5 @@
-use std::time::{Duration, Instant};
-use anyhow::Context;
-use cs2::{EntitySystem, LocalCameraControllerTarget, CEntityIdentityEx};
-use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
+use std::time::{Instant};
+use cs2::{EntitySystem, CEntityIdentityEx};
 use nalgebra::Vector3;
 use obfstr::obfstr;
 use cs2::BoneFlags;
@@ -11,11 +9,11 @@ use cs2::PlayerPawnState;
 use crate::UnicodeTextRenderer;
 
 use crate::settings::AppSettings;
-use crate::view::{KeyToggle, LocalCrosshair, ViewController};
+use crate::view::{KeyToggle, ViewController};
 use crate::UpdateContext;
 use super::Enhancement;
-use crate::enhancements::mouse_controllers::MouseController;
-use std::thread::sleep;
+use valthrun_kernel_interface::MouseState;
+
 
 pub struct Aimbot {
     toggle: KeyToggle,
@@ -44,13 +42,6 @@ impl Aimbot {
 
     fn world_to_screen(&self, view: &ViewController, world_position: &Vector3<f32>) -> Option<[f32; 2]> {
         view.world_to_screen(world_position, true).map(|vec| [vec.x, vec.y])
-    }
-
-    fn move_mouse_down(&mut self, mouse: &MouseController) {
-        if self.last_mouse_move.elapsed() >= Duration::from_millis(100) {
-            mouse.move_mouse_down(5);
-            self.last_mouse_move = Instant::now();
-        }
     }
 
     fn find_best_target(&mut self, ctx: &UpdateContext) -> Option<[f32; 2]> {
@@ -132,16 +123,20 @@ impl Aimbot {
         self.current_target = None; // Clear the current target when the mouse is released
     }
 
-    fn aim_at_target(&self, ctx: &UpdateContext, target_screen_position: [f32; 2]) {
-        let view = ctx.states.resolve::<ViewController>(()).unwrap();
+    fn aim_at_target(&self, ctx: &UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<()> {
+        let view = ctx.states.resolve::<ViewController>(())?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let aim_adjustment = [
             (target_screen_position[0] - crosshair_pos[0]) / self.aim_speed,
             (target_screen_position[1] - crosshair_pos[1]) / self.aim_speed,
         ];
 
-        let mouse = MouseController::new();
-        mouse.move_mouse(aim_adjustment[0] as i32, aim_adjustment[1] as i32); // Move the mouse accordingly
+        ctx.cs2.send_mouse_state(&[MouseState {
+            last_y: aim_adjustment[1] as i32,
+            last_x: aim_adjustment[0] as i32,
+            ..Default::default()
+        }])?;
+        Ok(())
     }
 }
 
@@ -164,7 +159,7 @@ impl Enhancement for Aimbot {
 
         if self.toggle.enabled {
             if let Some(target_screen_position) = self.find_best_target(ctx) {
-                self.aim_at_target(ctx, target_screen_position);
+                self.aim_at_target(ctx, target_screen_position)?;
             }
         }
 
