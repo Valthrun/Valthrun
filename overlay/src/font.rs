@@ -5,10 +5,8 @@ use std::{
 };
 
 use imgui::{
-    FontAtlas,
     FontConfig,
     FontGlyphRanges,
-    FontId,
     FontSource,
 };
 use ttf_parser::{
@@ -157,16 +155,16 @@ impl FontAtlasBuilder {
         self.register_codepoints(value.chars().map(|c| c as u32));
     }
 
-    pub fn rebuild_font_atlas(&self, atlas: &mut FontAtlas, size_pixels: f32) -> FontId {
+    pub fn build_font_source(&self, size_pixels: f32) -> (Vec<FontSource>, GlyphRangeMemoryGuard) {
         let mut font_sources = Vec::with_capacity(self.fonts.len());
+        let mut glyph_range_buffers: Vec<Vec<u32>> = Vec::with_capacity(self.fonts.len());
+
         for font in self.fonts.iter() {
             let Some(range) = font.create_glyph_range() else {
                 /* this font is unused */
                 continue;
             };
 
-            /* TODO: Somehow do not leak the data here and keep only as long as needed (maybe until next atlas build?) */
-            let range = range.leak();
             font_sources.push(FontSource::TtfData {
                 data: &font.ttf_data,
                 size_pixels,
@@ -176,11 +174,14 @@ impl FontAtlasBuilder {
                     oversample_h: 4,
                     oversample_v: 4,
 
-                    glyph_ranges: FontGlyphRanges::from_slice(range),
+                    glyph_ranges: FontGlyphRanges::from_slice(unsafe {
+                        mem::transmute(range.as_slice())
+                    }),
 
                     ..FontConfig::default()
                 }),
             });
+            glyph_range_buffers.push(range);
         }
 
         if font_sources.is_empty() {
@@ -188,8 +189,17 @@ impl FontAtlasBuilder {
             font_sources.push(FontSource::DefaultFontData { config: None });
         }
 
-        atlas.add_font(&font_sources)
+        (
+            font_sources,
+            GlyphRangeMemoryGuard {
+                _buffers: glyph_range_buffers,
+            },
+        )
     }
+}
+
+pub struct GlyphRangeMemoryGuard {
+    _buffers: Vec<Vec<u32>>,
 }
 
 pub struct UnicodeTextRenderer<'a> {

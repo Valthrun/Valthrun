@@ -7,7 +7,7 @@ fn main() -> anyhow::Result<()> {
         .init();
 
     log::info!("Initialize overlay");
-    let mut overlay = overlay::init(overlay::OverlayOptions {
+    let overlay = overlay::init(overlay::OverlayOptions {
         title: "Task Manager Overlay".to_string(),
         target: OverlayTarget::WindowTitle("Task Manager".into()),
         register_fonts_callback: None,

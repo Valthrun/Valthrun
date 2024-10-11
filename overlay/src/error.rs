@@ -68,4 +68,7 @@ pub enum OverlayError {
 
     #[error("failed to parse font face: {0}")]
     FontFaceParsingError(#[from] ttf_parser::FaceParsingError),
+
+    #[error("desktop window manager has composition disabled")]
+    DwmCompositionDisabled,
 }

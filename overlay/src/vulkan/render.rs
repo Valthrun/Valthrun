@@ -408,13 +408,8 @@ fn create_vulkan_swapchain(
         .contains(CompositeAlphaFlagsKHR::PRE_MULTIPLIED)
     {
         CompositeAlphaFlagsKHR::PRE_MULTIPLIED
-    } else if capabilities
-        .supported_composite_alpha
-        .contains(CompositeAlphaFlagsKHR::OPAQUE)
-    {
-        CompositeAlphaFlagsKHR::OPAQUE
     } else {
-        return Err(OverlayError::VulkanCompositeAlphaUnsupported);
+        CompositeAlphaFlagsKHR::INHERIT
     };
     log::debug!("  using mode {}", composite_alpha.as_raw());
 

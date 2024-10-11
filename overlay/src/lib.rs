@@ -58,11 +58,15 @@ use windows::Win32::{
     Graphics::{
         Dwm::{
             DwmEnableBlurBehindWindow,
+            DwmIsCompositionEnabled,
             DWM_BB_BLURREGION,
             DWM_BB_ENABLE,
             DWM_BLURBEHIND,
         },
-        Gdi::CreateRectRgn,
+        Gdi::{
+            CreateRectRgn,
+            DeleteObject,
+        },
     },
     UI::{
         Input::KeyboardAndMouse::SetActiveWindow,
@@ -133,11 +137,16 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
                     as isize,
             );
 
+            if !DwmIsCompositionEnabled()?.as_bool() {
+                return Err(OverlayError::DwmCompositionDisabled);
+            }
+
             let mut bb: DWM_BLURBEHIND = Default::default();
             bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
             bb.fEnable = BOOL::from(true);
             bb.hRgnBlur = CreateRectRgn(0, 0, 1, 1);
             DwmEnableBlurBehindWindow(hwnd, &bb)?;
+            DeleteObject(bb.hRgnBlur);
 
             // Move the window to the top
             SetWindowPos(
@@ -499,10 +508,10 @@ impl System {
                             let font_atlas = runtime_controller.imgui.fonts();
                             font_atlas.clear();
 
-                            runtime_controller
-                                .imgui_fonts
-                                .rebuild_font_atlas(font_atlas, 18.0);
+                            let (font_sources, _glyph_memory) =
+                                runtime_controller.imgui_fonts.build_font_source(18.0);
 
+                            font_atlas.add_font(&font_sources);
                             if let Some(user_callback) = &imgui_register_fonts_callback {
                                 user_callback(font_atlas);
                             }
