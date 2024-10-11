@@ -319,7 +319,7 @@ impl SettingsUI {
                         ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
                     
                         ui.set_next_item_width(150.0);
-                        ui.slider_config("Aim Speed", 1.0, 10.0).display_format("%.1f").build(&mut settings.aimbot_speed);
+                        ui.slider_config("Aim Smoothing", 1.0, 10.0).display_format("%.1f").build(&mut settings.aimbot_speed);
                         
                         ui.set_next_item_width(150.0);
                         let bone_options = ["head", "neck", "spine"];

@@ -78,7 +78,7 @@ impl Aimbot {
                     let distance = (player_info.position - local_player_position).norm() * UNITS_TO_METERS;
     
                     // Skip self (local player) if distance is < 3.0
-                    if distance < 3.0 {
+                    if distance < 2.0 {
                         continue;
                     }
     
