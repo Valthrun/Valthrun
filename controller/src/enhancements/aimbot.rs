@@ -58,8 +58,8 @@ impl Aimbot {
         let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?; // Store the result here
 
         let local_player_position = view.get_camera_world_position()?; // Get local player position
-        let local_player_controller = entities.get_local_player_controller().ok()?;
-        let local_player_controller = local_player_controller.reference_schema().ok()?;
+        let get_local_player_controller = entities.get_local_player_controller().ok()?;
+        let local_player_controller = get_local_player_controller.reference_schema().ok()?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0]; // Center of the screen
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance_from_crosshair = f32::MAX; // Track the closest target in FOV
@@ -72,6 +72,15 @@ impl Aimbot {
                 if let PlayerPawnState::Alive(player_info) = &*entry {
                     let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
 
+                    // ignore flash
+
+                    //player alive check
+
+                    //player in gui check
+
+                    // respect wall check
+
+                    //team_mate check
                     if settings.aimbot_team_check && local_player_controller.m_iTeamNum().unwrap() == player_info.team_id {
                         continue;
                     }

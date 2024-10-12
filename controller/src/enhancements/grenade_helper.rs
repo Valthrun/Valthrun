@@ -327,7 +327,6 @@ impl Enhancement for GrenadeHelper {
                     }
 
 
-
                     if let Some(_window) = ui
                         .window(format!("##grenade_info_{}", grenade.id))
                         .position(
@@ -336,7 +335,7 @@ impl Enhancement for GrenadeHelper {
                         )
                         .position_pivot([0.0, 0.5])
                         .no_decoration()
-                        .draw_background(false  )
+                        .draw_background(false)
                         .no_inputs()
                         .always_auto_resize(true)
                         .begin()
