@@ -130,6 +130,7 @@ impl State for PlayerPawnState {
         let current_controller = entities.get_by_handle(&controller_handle)?;
 
         let player_team = player_pawn.m_iTeamNum()?;
+
         let player_name = if let Some(identity) = &current_controller {
             let player_controller = identity.entity()?.reference_schema()?;
             CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
@@ -151,6 +152,7 @@ impl State for PlayerPawnState {
             // );
             return Ok(Self::Dead);
         };
+
 
         let player_has_defuser = player_pawn
             .m_pItemServices()?

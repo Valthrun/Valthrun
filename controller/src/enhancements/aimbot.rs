@@ -6,8 +6,9 @@ use cs2::BoneFlags;
 use cs2::CS2Model;
 use cs2::ClassNameCache;
 use cs2::PlayerPawnState;
+use cs2_schema_generated::cs2::client::{C_CSPlayerPawn};
+use cs2_schema_generated::EntityHandle;
 use crate::UnicodeTextRenderer;
-
 use crate::settings::AppSettings;
 use crate::view::{KeyToggle, ViewController};
 use crate::UpdateContext;
@@ -58,8 +59,6 @@ impl Aimbot {
         let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?; // Store the result here
 
         let local_player_position = view.get_camera_world_position()?; // Get local player position
-        let get_local_player_controller = entities.get_local_player_controller().ok()?;
-        let local_player_controller = get_local_player_controller.reference_schema().ok()?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0]; // Center of the screen
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance_from_crosshair = f32::MAX; // Track the closest target in FOV
@@ -72,16 +71,26 @@ impl Aimbot {
                 if let PlayerPawnState::Alive(player_info) = &*entry {
                     let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
 
+                    let local_pawn_index = entities.get_local_player_controller().ok()?.reference_schema().ok()?.m_hPlayerPawn().ok()?.value;
+                    let local_pawn = match entities
+                        .get_by_handle::<C_CSPlayerPawn>(&EntityHandle::from_index(local_pawn_index)).ok()?
+                    {
+                        Some(identity) => identity
+                            .entity().ok()?
+                            .read_schema().ok()?,
+                        None => continue
+                    };
+
                     // ignore flash
-
-                    //player alive check
-
+                    if local_pawn.m_flFlashBangTime().unwrap() > 0.0 {
+                        continue;
+                    }
                     //player in gui check
 
                     // respect wall check
 
                     //team_mate check
-                    if settings.aimbot_team_check && local_player_controller.m_iTeamNum().unwrap() == player_info.team_id {
+                    if settings.aimbot_team_check && local_pawn.m_iTeamNum().unwrap() == player_info.team_id {
                         continue;
                     }
 
