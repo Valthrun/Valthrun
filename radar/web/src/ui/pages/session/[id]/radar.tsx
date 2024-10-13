@@ -281,9 +281,15 @@ const MapBombPing = React.memo((props: {
 const BombDetails = React.memo(() => {
     const { players, bomb } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
+    const displayBombDetails = useAppSelector(state => state.radarSettings.displayBombDetails);
 
     if (!bomb) {
         /* we need the map and bomb info */
+        return null;
+    }
+
+    if(!displayBombDetails){
+        /* radar setting if false */
         return null;
     }
 
