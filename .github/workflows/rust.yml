@@ -1,0 +1,145 @@
+name: Rust
+
+on:
+  push:
+    branches: ["master", "amd", "radar"]
+  pull_request:
+    branches: ["master"]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  rust-check:
+    name: Rust Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Check fmt
+        run: rustup component add rustfmt && cargo fmt --check
+
+  build-radar-web:
+    name: Radar Web Scripts
+    runs-on: ubuntu-latest
+    needs: [rust-check]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set Node.js 16.x
+        uses: actions/setup-node@v3
+        with:
+          node-version: 16.x
+          cache: "yarn"
+          cache-dependency-path: |
+            radar/web/yarn.lock
+      - name: Run install
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: install
+          dir: radar/web
+      - name: Build production bundle
+        uses: borales/actions-yarn@v4
+        with:
+          cmd: build
+          dir: radar/web
+        env:
+          NODE_ENV: production
+      - uses: actions/upload-artifact@v3
+        name: Upload
+        with:
+          name: radar-www
+          path: radar/web/dist
+
+  # TODO: Build as Matrix for Linux & Windows
+  build-radar-server:
+    name: Radar Server (${{ matrix.build }})
+    needs: [rust-check]
+    strategy:
+      matrix:
+        build: [linux, windows]
+        include:
+          - build: linux
+            os: ubuntu-20.04
+            target: radar-server-standalone
+            # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
+            flags: ""
+
+          - build: windows
+            os: windows-latest
+            target: radar-server-standalone.exe
+            flags: -Ctarget-feature=+crt-static
+
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build
+        run: cargo build --verbose --release --bin radar-server-standalone
+        env:
+          RUSTFLAGS: ${{ matrix.flags }}
+      - uses: actions/upload-artifact@v3
+        name: Upload radar server
+        with:
+          name: radar-server-${{ matrix.build }}
+          path: target/release/${{ matrix.target }}
+
+  build-radar-client:
+    name: Radar Client
+    runs-on: windows-latest
+    needs: [rust-check]
+
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build
+        run: cargo build --verbose --release --bin radar-client-standalone
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+
+  build-overlay:
+    name: CS2 Overlay
+    runs-on: windows-latest
+    needs: [rust-check]
+
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly
+          override: true
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+      - name: Build
+        run: cargo build --verbose --release --bin controller
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+      # Right now there are no tests specified
+      # - name: Run tests
+      #   run: cargo test --verbose
