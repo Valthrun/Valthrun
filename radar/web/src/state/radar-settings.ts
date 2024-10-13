@@ -6,12 +6,14 @@ export type State = {
     dialogOpen: boolean,
 
     iconSize: number,
+    displayBombDetails: boolean,
 };
 const slice = createSlice({
     name: "radar-settings",
     initialState: (): State => ({
         dialogOpen: false,
-        iconSize: 3.0
+        iconSize: 3.0,
+        displayBombDetails: true,
     }),
     reducers: {
         updateRadarSettings: (state, action: PayloadAction<Partial<State>>) => {

@@ -8,6 +8,7 @@ import ImageYellowCross from "../../../../assets/yellow_cross.png";
 import ImageYellowDot from "../../../../assets/yellow_dot.png";
 import ImageBomb from "../../../../assets/bomb.png";
 import { useAppSelector } from "../../../../state";
+import { green, red } from '@mui/material/colors';
 
 export const ContextRadarState = React.createContext<RadarState>({
     players: [],
@@ -54,14 +55,25 @@ export const RadarRenderer = React.memo(() => {
                 p: 3,
             }}>
                 <Typography variant={"h5"}>{mapInfo?.displayName ?? worldName}</Typography>
-                <SqareContainer>
-                    <MapRenderer />
-                    {!mapInfo && (
-                        <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                            <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
-                        </Box>
-                    )}
-                </SqareContainer>
+                <Box sx={{
+                    height: "100%",
+                    width: "100%",
+
+                    display: "flex",
+                    flexDirection: "row",
+
+                    p: 3,
+                }}>
+                    <BombDetails />
+                    <SqareContainer>
+                        <MapRenderer />
+                        {!mapInfo && (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
+                            </Box>
+                        )}
+                    </SqareContainer>
+                </Box>
             </Box>
         </ContextMap.Provider>
     );
@@ -264,5 +276,92 @@ const MapBombPing = React.memo((props: {
                 "--pos-y": `${bombY * 100 / mapSize - iconSize / 2 + (floor?.offset.y ?? 0)}%`,
             } as any}
         />
+    )
+});
+
+const BombDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+    const displayBombDetails = useAppSelector(state => state.radarSettings.displayBombDetails);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    if(!displayBombDetails){
+        /* radar setting if false */
+        return null;
+    }
+
+    return (
+        <Box sx={{
+            width: `10%`
+        }}
+
+        style={{
+            "flex-shrink": 2,
+            "white-space": "pre-wrap",
+            "overflow-wrap": "break-word",
+        } as any}
+        >
+            <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state.variant}</Typography>
+            {bomb.state.variant == "active" || bomb.state.variant == "detonated" || bomb.state.variant == "defused" ? <PlantDetails /> : null}
+        </Box>
+    )
+});
+
+const PlantDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    if (bomb.state.variant == "dropped" || bomb.state.variant == "carried" ){
+        return null;
+    }
+
+    return (
+        <Box>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.state.bomb_site == 0 ? "A" : "B"}</Typography>
+            {bomb.state.variant == 'active' ? <DefuseDetails /> : null}
+        </Box>
+    )
+});
+
+const DefuseDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    if (bomb.state.variant != "active" ){
+        return null;
+    }
+
+    let defuseColor = "grey.600";
+    if(bomb.state.defuser != null){
+        if (bomb.state.time_detonation < bomb.state.defuser.timeRemaining){
+            defuseColor = red['600'];
+        } else{
+            defuseColor = green['600'];
+        }
+    }else{
+        defuseColor = "grey.600";
+    }
+
+    return (
+        <Box>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.state.time_detonation}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.state.defuser != null ? bomb.state.defuser.playerName : 'None'}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: defuseColor }}>Defuse in: {bomb.state.defuser != null ? bomb.state.defuser.timeRemaining : 'None' }</Typography>
+        </Box>
     )
 });

@@ -21,7 +21,7 @@ pub struct BombDefuser {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
+#[serde(rename_all = "camelCase", tag = "variant")]
 pub enum C4State {
     /// Bomb is dropped
     Dropped,
@@ -30,19 +30,34 @@ pub enum C4State {
     Carried,
 
     /// Bomb is currently actively ticking
-    Active {
+    Active{
+        /// Planted bomb site
+        /// 0 = A
+        /// 1 = B
+        bomb_site: u8,
+
         /// Time remaining (in seconds) until detonation
         time_detonation: f32,
 
         /// Current bomb defuser
-        defuse: Option<BombDefuser>,
+        defuser: Option<BombDefuser>,
     },
 
     /// Bomb has detonated
-    Detonated,
+    Detonated{
+        /// Planted bomb site
+        /// 0 = A
+        /// 1 = B
+        bomb_site: u8,
+    },
 
     /// Bomb has been defused
-    Defused,
+    Defused{
+        /// Planted bomb site
+        /// 0 = A
+        /// 1 = B
+        bomb_site: u8,
+    },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
@@ -74,9 +89,4 @@ pub struct RadarPlayerInfo {
 pub struct RadarBombInfo {
     pub position: [f32; 3],
     pub state: C4State,
-
-    /// Planted bomb site
-    /// 0 = A
-    /// 1 = B
-    pub bomb_site: Option<u8>,
 }
