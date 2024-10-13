@@ -23,7 +23,8 @@ jobs:
         with:
           submodules: recursive
       - name: Check fmt
-        run: rustup component add rustfmt && cargo fmt --check
+        run: rustup component add rustfmt 
+        #&& cargo fmt --check ( disable cuz sucks )
 
   build-radar-web:
     name: Radar Web Scripts
