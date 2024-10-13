@@ -52,12 +52,11 @@ jobs:
         env:
           NODE_ENV: production
       - uses: actions/upload-artifact@v3
-        name: Upload
+        name: Upload Web Artifact
         with:
-          name: radar-www
+          name: radar-web
           path: radar/web/dist
 
-  # TODO: Build as Matrix for Linux & Windows
   build-radar-server:
     name: Radar Server (${{ matrix.build }})
     needs: [rust-check]
@@ -68,7 +67,6 @@ jobs:
           - build: linux
             os: ubuntu-20.04
             target: radar-server-standalone
-            # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
             flags: ""
 
           - build: windows
@@ -93,7 +91,7 @@ jobs:
         env:
           RUSTFLAGS: ${{ matrix.flags }}
       - uses: actions/upload-artifact@v3
-        name: Upload radar server
+        name: Upload Radar Server
         with:
           name: radar-server-${{ matrix.build }}
           path: target/release/${{ matrix.target }}
@@ -119,6 +117,11 @@ jobs:
         run: cargo build --verbose --release --bin radar-client-standalone
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
+      - uses: actions/upload-artifact@v3
+        name: Upload Radar Client
+        with:
+          name: radar-client
+          path: target/release/radar-client-standalone.exe
 
   build-overlay:
     name: CS2 Overlay
@@ -141,6 +144,8 @@ jobs:
         run: cargo build --verbose --release --bin controller
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
-      # Right now there are no tests specified
-      # - name: Run tests
-      #   run: cargo test --verbose
+      - uses: actions/upload-artifact@v3
+        name: Upload CS2 Overlay
+        with:
+          name: cs2-overlay
+          path: target/release/controller.exe
