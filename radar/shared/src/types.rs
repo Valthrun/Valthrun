@@ -30,13 +30,7 @@ pub enum C4State {
     Carried,
 
     /// Bomb is currently actively ticking
-    Active {
-        /// Time remaining (in seconds) until detonation
-        time_detonation: f32,
-
-        /// Current bomb defuser
-        defuse: Option<BombDefuser>,
-    },
+    Active,
 
     /// Bomb has detonated
     Detonated,
@@ -79,4 +73,10 @@ pub struct RadarBombInfo {
     /// 0 = A
     /// 1 = B
     pub bomb_site: Option<u8>,
+
+    /// Time remaining (in seconds) until detonation
+    pub time_detonation: Option<f32>,
+
+    /// Current bomb defuser
+    pub defuser: Option<BombDefuser>,
 }

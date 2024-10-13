@@ -45,6 +45,8 @@ impl BombData for C_C4 {
                 position,
                 state: C4State::Dropped,
                 bomb_site: None,
+                time_detonation: None,
+                defuser: None,
             });
         }
 
@@ -52,6 +54,8 @@ impl BombData for C_C4 {
             position,
             state: C4State::Carried,
             bomb_site: None,
+            time_detonation: None,
+            defuser: None,
         })
     }
 }
@@ -69,6 +73,8 @@ impl BombData for C_PlantedC4 {
                 position,
                 state: C4State::Defused,
                 bomb_site,
+                time_detonation: None,
+                defuser: None,
             });
         }
 
@@ -78,6 +84,8 @@ impl BombData for C_PlantedC4 {
                 position,
                 bomb_site,
                 state: C4State::Detonated,
+                time_detonation: None,
+                defuser: None,
             });
         }
 
@@ -115,11 +123,10 @@ impl BombData for C_PlantedC4 {
 
         Ok(RadarBombInfo {
             position,
-            state: C4State::Active {
-                time_detonation: time_blow - globals.time_2()?,
-                defuse: defusing,
-            },
+            state: C4State::Active,
             bomb_site,
+            time_detonation: Some(time_blow - globals.time_2()?),
+            defuser: defusing,
         })
     }
 }
