@@ -63,7 +63,7 @@ export const RadarRenderer = React.memo(() => {
 
                     p: 3,
                 }}>
-                    <PlantDetails />
+                    <BombDetails />
                     <SqareContainer>
                         <MapRenderer />
                         {!mapInfo && (
@@ -278,7 +278,7 @@ const MapBombPing = React.memo((props: {
     )
 });
 
-const PlantDetails = React.memo(() => {
+const BombDetails = React.memo(() => {
     const { players, bomb } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
 
@@ -301,12 +301,12 @@ const PlantDetails = React.memo(() => {
         >
             <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
             <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state}</Typography>
-            {bomb.state == "active" ? <DefuseDetails /> : null}
+            {bomb.state == "active" ? <PlantDetails /> : null}
         </Box>
     )
 });
 
-const DefuseDetails = React.memo(() => {
+const PlantDetails = React.memo(() => {
     const { players, bomb } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
 
@@ -323,6 +323,26 @@ const DefuseDetails = React.memo(() => {
         <Box>
             <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.bombSite == 0 ? "A" : "B"}</Typography>
             <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.timeDetonation}</Typography>
+            {bomb.defuser != null ? <DefuseDetails /> : null}
+        </Box>
+    )
+});
+
+const DefuseDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    if (bomb.defuser != null ){
+        return null;
+    }
+
+    return (
+        <Box>
             <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.defuser.playerName != null ? bomb.defuser.playerName : 'None'}</Typography>
             <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defuse in: {bomb.defuser.timeRemaining  != null ? bomb.defuser.timeRemaining : 'None' }</Typography>
         </Box>
