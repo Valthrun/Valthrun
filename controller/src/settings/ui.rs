@@ -313,7 +313,7 @@ impl SettingsUI {
 
                         self.render_grenade_helper_transfer(&mut settings.grenade_helper, ui);
                     }
-                    
+
                     if let Some(_) = ui.tab_item(obfstr!("Aimbot")) {
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("Aimbot Mode"), &[
@@ -322,15 +322,16 @@ impl SettingsUI {
                             (KeyToggleMode::Toggle, "Toggle"),
                             (KeyToggleMode::AlwaysOn, "Always On"),
                         ], &mut settings.aimbot_mode);
-                    
-                        ui.button_key_optional(obfstr!("Aimbot key"), &mut settings.key_aimbot, [150.0, 0.0]);
-                    
+
+                        ui.button_key_optional(obfstr!("Primary Aimbot Key"), &mut settings.key_aimbot, [150.0, 0.0]);
+                        ui.button_key_optional(obfstr!("Secondary Aimbot Key"), &mut settings.key_aimbot_secondary, [150.0, 0.0]);
+
                         ui.set_next_item_width(150.0);
                         ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
-                    
+
                         ui.set_next_item_width(150.0);
                         ui.slider_config("Aim Smoothing", 1.0, 15.0).display_format("%.1f").build(&mut settings.aimbot_speed);
-                        
+
                         ui.set_next_item_width(150.0);
                         let bone_options = ["head", "neck", "spine"];
                         let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aim_bone).unwrap_or(0);
@@ -340,8 +341,8 @@ impl SettingsUI {
                         ui.set_next_item_width(150.0);
                         ui.checkbox(obfstr!("Team Check"), &mut settings.aimbot_team_check);
                     }
-                    
-                    
+
+
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("Trigger Bot"), &[
