@@ -343,7 +343,7 @@ const DefuseDetails = React.memo(() => {
         return null;
     }
 
-    if (bomb.defuser != null ){
+    if (bomb.defuser == null ){
         return null;
     }
 
