@@ -44,14 +44,12 @@ impl BombData for C_C4 {
             return Ok(RadarBombInfo {
                 position,
                 state: C4State::Dropped,
-                bomb_site: None,
             });
         }
 
         Ok(RadarBombInfo {
             position,
             state: C4State::Carried,
-            bomb_site: None,
         })
     }
 }
@@ -62,13 +60,14 @@ impl BombData for C_PlantedC4 {
         let entities = generator.states.resolve::<EntitySystem>(())?;
 
         let position = self.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?;
-        let bomb_site = Some(self.m_nBombSite()? as u8);
+        let bomb_site = self.m_nBombSite()? as u8;
 
         if self.m_bBombDefused()? {
             return Ok(RadarBombInfo {
                 position,
-                state: C4State::Defused,
-                bomb_site,
+                state: C4State::Defused{
+                    bomb_site,
+                },
             });
         }
 
@@ -76,8 +75,9 @@ impl BombData for C_PlantedC4 {
         if time_blow <= globals.time_2()? {
             return Ok(RadarBombInfo {
                 position,
-                bomb_site,
-                state: C4State::Detonated,
+                state: C4State::Detonated{
+                    bomb_site,
+                },
             });
         }
 
@@ -115,11 +115,11 @@ impl BombData for C_PlantedC4 {
 
         Ok(RadarBombInfo {
             position,
-            state: C4State::Active {
+            state: C4State::Active{
+                bomb_site,
                 time_detonation: time_blow - globals.time_2()?,
-                defuse: defusing,
+                defuser: defusing,
             },
-            bomb_site,
         })
     }
 }

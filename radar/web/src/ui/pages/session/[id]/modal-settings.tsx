@@ -1,4 +1,4 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Modal, Slider, Typography } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Modal, Slider, Typography, Switch } from "@mui/material";
 import { useAppDispatch, useAppSelector } from "../../../../state"
 import { updateRadarSettings } from "../../../../state/radar-settings";
 import React from "react";
@@ -18,6 +18,7 @@ export default React.memo(() => {
             </DialogTitle>
             <DialogContent sx={{ width: "15em", height: "10em", overflow: "visible" }}>
                 <SettingIconSize />
+                <SettingBombDisplay />
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => dispatch(updateRadarSettings({ dialogOpen: false }))}>Close</Button>
@@ -42,6 +43,21 @@ const SettingIconSize = React.memo(() => {
                 onChange={(_event, value) => dispatch(updateRadarSettings({ iconSize: value }))}
 
                 valueLabelDisplay={"auto"}
+            />
+        </Box>
+    );
+})
+
+const SettingBombDisplay = React.memo(() => {
+    const value = useAppSelector(state => state.radarSettings.displayBombDetails);
+    const dispatch = useAppDispatch();
+
+    return (
+        <Box>
+            <Typography variant={"subtitle1"}>Display Bomb Details</Typography>
+            <Switch
+                checked={value}
+                onChange={(_event, value) => dispatch(updateRadarSettings({ displayBombDetails: value }))}
             />
         </Box>
     );
