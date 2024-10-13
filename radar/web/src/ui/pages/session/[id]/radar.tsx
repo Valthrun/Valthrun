@@ -54,14 +54,25 @@ export const RadarRenderer = React.memo(() => {
                 p: 3,
             }}>
                 <Typography variant={"h5"}>{mapInfo?.displayName ?? worldName}</Typography>
-                <SqareContainer>
-                    <MapRenderer />
-                    {!mapInfo && (
-                        <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                            <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
-                        </Box>
-                    )}
-                </SqareContainer>
+                <Box sx={{
+                    height: "100%",
+                    width: "100%",
+
+                    display: "flex",
+                    flexDirection: "row",
+
+                    p: 3,
+                }}>
+                    <PlantDetails />
+                    <SqareContainer>
+                        <MapRenderer />
+                        {!mapInfo && (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
+                            </Box>
+                        )}
+                    </SqareContainer>
+                </Box>
             </Box>
         </ContextMap.Provider>
     );
@@ -264,5 +275,56 @@ const MapBombPing = React.memo((props: {
                 "--pos-y": `${bombY * 100 / mapSize - iconSize / 2 + (floor?.offset.y ?? 0)}%`,
             } as any}
         />
+    )
+});
+
+const PlantDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    return (
+        <Box sx={{
+            width: `10%`
+        }}
+
+        style={{
+            "flex-shrink": 2,
+            "word-wrap": "break-word",
+            "white-space": "pre-wrap",
+            "word-break": "break-word",
+        } as any}
+        >
+            <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state}</Typography>
+            {bomb.state == "active" ? <DefuseDetails /> : null}
+        </Box>
+    )
+});
+
+const DefuseDetails = React.memo(() => {
+    const { players, bomb } = React.useContext(ContextRadarState);
+    const map = React.useContext(ContextMap);
+
+    if (!bomb) {
+        /* we need the map and bomb info */
+        return null;
+    }
+
+    if (bomb.state != 'active' ){
+        return null;
+    }
+
+    return (
+        <Box>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.bombSite == 0 ? "A" : "B"}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.timeDetonation}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.defuser.playerName != null ? bomb.defuser.playerName : 'None'}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defuse in: {bomb.defuser.timeRemaining  != null ? bomb.defuser.timeRemaining : 'None' }</Typography>
+        </Box>
     )
 });
