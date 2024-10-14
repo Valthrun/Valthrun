@@ -301,9 +301,8 @@ const BombDetails = React.memo(() => {
 
         style={{
             "flex-shrink": 2,
-            "word-wrap": "break-word",
             "white-space": "pre-wrap",
-            "word-break": "break-word",
+            "overflow-wrap": "break-word",
         } as any}
         >
             <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
@@ -328,7 +327,7 @@ const PlantDetails = React.memo(() => {
 
     return (
         <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.state.data.bomb_site == 0 ? "A" : "B"}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.state.bomb_site == 0 ? "A" : "B"}</Typography>
             {bomb.state.variant == 'active' ? <DefuseDetails /> : null}
         </Box>
     )
@@ -348,8 +347,8 @@ const DefuseDetails = React.memo(() => {
     }
 
     let defuseColor = "grey.600";
-    if(bomb.state.data.defuser != null){
-        if (bomb.state.data.time_detonation < bomb.state.data.defuser.timeRemaining){
+    if(bomb.state.defuser != null){
+        if (bomb.state.time_detonation < bomb.state.defuser.timeRemaining){
             defuseColor = red['600'];
         } else{
             defuseColor = green['600'];
@@ -360,9 +359,9 @@ const DefuseDetails = React.memo(() => {
 
     return (
         <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.state.data.time_detonation}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.state.data.defuser != null ? bomb.state.data.defuser.playerName : 'None'}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: defuseColor }}>Defuse in: {bomb.state.data.defuser != null ? bomb.state.data.defuser.timeRemaining : 'None' }</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.state.time_detonation}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.state.defuser != null ? bomb.state.defuser.playerName : 'None'}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: defuseColor }}>Defuse in: {bomb.state.defuser != null ? bomb.state.defuser.timeRemaining : 'None' }</Typography>
         </Box>
     )
 });

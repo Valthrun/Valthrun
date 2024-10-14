@@ -184,26 +184,20 @@ export type C4State =
     | {variant: 'dropped'}
     | {
         variant:'active',
-        data:{
-            bomb_site: number,
-            time_detonation: number,
-            defuser: BombDefuser | null,
-        },
+        bomb_site: number,
+        time_detonation: number,
+        defuser: BombDefuser | null,
     }
     | {
         variant:'detonated',
-        data: {
-            bomb_site: number,
-        },
+        bomb_site: number,
     }
     | {
         variant:'defused',
-        data: {
-            bomb_site: number,
-        },
+        bomb_site: number,
     };
 
 export type BombDefuser = {
-    timeRemaining: number;
-    playerName: string
+    timeRemaining: number,
+    playerName: string,
 };

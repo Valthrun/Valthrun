@@ -21,7 +21,7 @@ pub struct BombDefuser {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase", tag = "variant", content = "data")]
+#[serde(rename_all = "camelCase", tag = "variant")]
 pub enum C4State {
     /// Bomb is dropped
     Dropped,
