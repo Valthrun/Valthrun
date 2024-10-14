@@ -102,6 +102,14 @@ impl EspColor {
         }
     }
 
+    fn interpolate_color(start: [f32; 3], end: [f32; 3], t: f32) -> [f32; 3] {
+        [
+            start[0] + (end[0] - start[0]) * t,
+            start[1] + (end[1] - start[1]) * t,
+            start[2] + (end[2] - start[2]) * t,
+        ]
+    }
+
     /// Calculate the target color.
     /// Health should be in [0.0;1.0]
     pub fn calculate_color(&self, health: f32, distance: f32) -> [f32; 4] {
@@ -119,18 +127,10 @@ impl EspColor {
 
                 let color = if health > 0.5 {
                     let t = (health - 0.5) * 2.0;
-                    [
-                        mid_rgb[0] + (max_rgb[0] - mid_rgb[0]) * t,
-                        mid_rgb[1] + (max_rgb[1] - mid_rgb[1]) * t,
-                        mid_rgb[2] + (max_rgb[2] - mid_rgb[2]) * t,
-                    ]
+                    Self::interpolate_color(mid_rgb, max_rgb, t)
                 } else {
                     let t = health * 2.0;
-                    [
-                        min_rgb[0] + (mid_rgb[0] - min_rgb[0]) * t,
-                        min_rgb[1] + (mid_rgb[1] - min_rgb[1]) * t,
-                        min_rgb[2] + (mid_rgb[2] - min_rgb[2]) * t,
-                    ]
+                    Self::interpolate_color(min_rgb, mid_rgb, t)
                 };
                 [color[0], color[1], color[2], *alpha]
             }
@@ -149,7 +149,7 @@ impl EspColor {
                 far,
                 alpha,
             } => {
-                let max_distance = 80.0;
+                let max_distance = 50.0;
                 let min_distance = 0.0;
                 // let mid_distance = (max_distance + min_distance) / 2.0;
 
@@ -157,28 +157,17 @@ impl EspColor {
                 let color_mid = mid.as_f32();
                 let color_far = far.as_f32();
 
-                let t = (distance - min_distance) / (max_distance - min_distance);
-                let t = t.clamp(0.0, 1.0);
+                let t = ((distance - min_distance) / (max_distance - min_distance)).clamp(0.0, 1.0);
 
-                let result = if t < 0.5 {
+                let color = if t < 0.5 {
                     let t2 = t * 2.0;
-                    [
-                        color_near[0] + t2 * (color_mid[0] - color_near[0]),
-                        color_near[1] + t2 * (color_mid[1] - color_near[1]),
-                        color_near[2] + t2 * (color_mid[2] - color_near[2]),
-                        *alpha,
-                    ]
+                    Self::interpolate_color(color_near, color_mid, t2)
                 } else {
                     let t2 = (t - 0.5) * 2.0;
-                    [
-                        color_mid[0] + t2 * (color_far[0] - color_mid[0]),
-                        color_mid[1] + t2 * (color_far[1] - color_mid[1]),
-                        color_mid[2] + t2 * (color_far[2] - color_mid[2]),
-                        *alpha,
-                    ]
+                    Self::interpolate_color(color_mid, color_far, t2)
                 };
 
-                result
+                [color[0], color[1], color[2], *alpha]
             }
         }
     }
