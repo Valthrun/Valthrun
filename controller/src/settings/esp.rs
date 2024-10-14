@@ -67,10 +67,24 @@ impl From<[f32; 4]> for Color {
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
 pub enum EspColor {
-    HealthBasedRainbow,
-    HealthBased { max: Color, min: Color },
-    Static { value: Color },
-    DistanceBased,
+    HealthBasedRainbow {
+        alpha: f32,
+    },
+    HealthBased {
+        max: Color,
+        mid: Color,
+        min: Color,
+        alpha: f32,
+    },
+    Static {
+        value: Color,
+    },
+    DistanceBased {
+        near: Color,
+        mid: Color,
+        far: Color,
+        alpha: f32,
+    },
 }
 
 impl Default for EspColor {
@@ -93,42 +107,78 @@ impl EspColor {
     pub fn calculate_color(&self, health: f32, distance: f32) -> [f32; 4] {
         match self {
             Self::Static { value } => value.as_f32(),
-            Self::HealthBased { max, min } => {
-                let min_rgb = min.as_f32();
+            Self::HealthBased {
+                max,
+                mid,
+                min,
+                alpha,
+            } => {
                 let max_rgb = max.as_f32();
+                let mid_rgb = mid.as_f32();
+                let min_rgb = min.as_f32();
 
-                [
-                    min_rgb[0] + (max_rgb[0] - min_rgb[0]) * health,
-                    min_rgb[1] + (max_rgb[1] - min_rgb[1]) * health,
-                    min_rgb[2] + (max_rgb[2] - min_rgb[2]) * health,
-                    min_rgb[3] + (max_rgb[3] - min_rgb[3]) * health,
-                ]
+                let color = if health > 0.5 {
+                    let t = (health - 0.5) * 2.0;
+                    [
+                        mid_rgb[0] + (max_rgb[0] - mid_rgb[0]) * t,
+                        mid_rgb[1] + (max_rgb[1] - mid_rgb[1]) * t,
+                        mid_rgb[2] + (max_rgb[2] - mid_rgb[2]) * t,
+                    ]
+                } else {
+                    let t = health * 2.0;
+                    [
+                        min_rgb[0] + (mid_rgb[0] - min_rgb[0]) * t,
+                        min_rgb[1] + (mid_rgb[1] - min_rgb[1]) * t,
+                        min_rgb[2] + (mid_rgb[2] - min_rgb[2]) * t,
+                    ]
+                };
+                [color[0], color[1], color[2], *alpha]
             }
-            Self::HealthBasedRainbow => {
+            Self::HealthBasedRainbow { alpha } => {
                 let sin_value = |offset: f32| {
                     (2.0 * std::f32::consts::PI * health * 0.75 + offset).sin() * 0.5 + 1.0
                 };
                 let r: f32 = sin_value(0.0);
                 let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-                [r, g, b, 1.0]
+                [r, g, b, *alpha]
             }
-            Self::DistanceBased => {
+            Self::DistanceBased {
+                near,
+                mid,
+                far,
+                alpha,
+            } => {
                 let max_distance = 80.0;
                 let min_distance = 0.0;
+                // let mid_distance = (max_distance + min_distance) / 2.0;
 
-                let color_near = [1.0, 0.0, 0.0, 0.75];
-                let color_far = [0.0, 1.0, 0.0, 0.75];
+                let color_near = near.as_f32();
+                let color_mid = mid.as_f32();
+                let color_far = far.as_f32();
 
                 let t = (distance - min_distance) / (max_distance - min_distance);
                 let t = t.clamp(0.0, 1.0);
 
-                [
-                    color_near[0] + t * (color_far[0] - color_near[0]),
-                    color_near[1] + t * (color_far[1] - color_near[1]),
-                    color_near[2] + t * (color_far[2] - color_near[2]),
-                    0.75,
-                ]
+                let result = if t < 0.5 {
+                    let t2 = t * 2.0;
+                    [
+                        color_near[0] + t2 * (color_mid[0] - color_near[0]),
+                        color_near[1] + t2 * (color_mid[1] - color_near[1]),
+                        color_near[2] + t2 * (color_mid[2] - color_near[2]),
+                        *alpha,
+                    ]
+                } else {
+                    let t2 = (t - 0.5) * 2.0;
+                    [
+                        color_mid[0] + t2 * (color_far[0] - color_mid[0]),
+                        color_mid[1] + t2 * (color_far[1] - color_mid[1]),
+                        color_mid[2] + t2 * (color_far[2] - color_mid[2]),
+                        *alpha,
+                    ]
+                };
+
+                result
             }
         }
     }
@@ -147,8 +197,8 @@ impl EspColorType {
         match color {
             EspColor::Static { .. } => Self::Static,
             EspColor::HealthBased { .. } => Self::HealthBased,
-            EspColor::HealthBasedRainbow => Self::HealthBasedRainbow,
-            EspColor::DistanceBased => Self::DistanceBased,
+            EspColor::HealthBasedRainbow { .. } => Self::HealthBasedRainbow,
+            EspColor::DistanceBased { .. } => Self::DistanceBased,
         }
     }
 }
