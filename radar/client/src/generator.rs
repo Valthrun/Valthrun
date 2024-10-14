@@ -9,119 +9,82 @@ use cs2::{
     PlayerPawnState,
     StateCurrentMap,
 };
-use cs2_schema_generated::cs2::{
-    client::{
-        CEntityIdentity,
-        C_PlantedC4,
-        C_C4,
-    },
-    globals::CSWeaponState_t,
+use cs2_schema_generated::cs2::client::{
+    CEntityIdentity,
+    C_PlantedC4,
+    C_C4,
 };
 use obfstr::obfstr;
 use radar_shared::{
     BombDefuser,
-    C4State,
-    RadarBombInfo,
+    PlantedC4State,
+    RadarC4,
+    RadarPlantedC4,
     RadarPlayerInfo,
-    RadarSettings,
     RadarState,
 };
 use utils_state::StateRegistry;
 
 pub trait RadarGenerator: Send {
-    fn generate_state(&mut self, settings: &RadarSettings) -> anyhow::Result<RadarState>;
+    fn generate_state(&mut self) -> anyhow::Result<RadarState>;
 }
 
-trait BombData {
-    fn read_bomb_data(&self, generator: &CS2RadarGenerator) -> anyhow::Result<RadarBombInfo>;
-}
-
-impl BombData for C_C4 {
-    fn read_bomb_data(&self, _generator: &CS2RadarGenerator) -> anyhow::Result<RadarBombInfo> {
-        let position = self.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?;
-
-        if self.m_iState()? as u32 == CSWeaponState_t::WEAPON_NOT_CARRIED as u32 {
-            return Ok(RadarBombInfo {
-                position,
-                state: C4State::Dropped,
-            });
-        }
-
-        Ok(RadarBombInfo {
-            position,
-            state: C4State::Carried,
-        })
+fn planted_c4_to_radar_state(
+    generator: &CS2RadarGenerator,
+    planted_c4: &C_PlantedC4,
+) -> anyhow::Result<PlantedC4State> {
+    if planted_c4.m_bBombDefused()? {
+        return Ok(PlantedC4State::Defused {});
     }
-}
 
-impl BombData for C_PlantedC4 {
-    fn read_bomb_data(&self, generator: &CS2RadarGenerator) -> anyhow::Result<RadarBombInfo> {
-        let globals = generator.states.resolve::<Globals>(())?;
-        let entities = generator.states.resolve::<EntitySystem>(())?;
-
-        let position = self.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?;
-        let bomb_site = self.m_nBombSite()? as u8;
-
-        if self.m_bBombDefused()? {
-            return Ok(RadarBombInfo {
-                position,
-                state: C4State::Defused{
-                    bomb_site,
-                },
-            });
-        }
-
-        let time_blow = self.m_flC4Blow()?.m_Value()?;
-        if time_blow <= globals.time_2()? {
-            return Ok(RadarBombInfo {
-                position,
-                state: C4State::Detonated{
-                    bomb_site,
-                },
-            });
-        }
-
-        let is_defusing = self.m_bBeingDefused()?;
-        let defusing = if is_defusing {
-            let time_defuse = self.m_flDefuseCountDown()?.m_Value()?;
-
-            let handle_defuser = self.m_hBombDefuser()?;
-            let defuser = entities
-                .get_by_handle(&handle_defuser)?
-                .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
-                .entity()?
-                .reference_schema()?;
-
-            let defuser_controller = defuser.m_hController()?;
-            let defuser_controller = entities
-                .get_by_handle(&defuser_controller)?
-                .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
-                .entity()?
-                .reference_schema()?;
-
-            let defuser_name = CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
-                .ok()
-                .map(CStr::to_string_lossy)
-                .unwrap_or("Name Error".into())
-                .to_string();
-
-            Some(BombDefuser {
-                time_remaining: time_defuse - globals.time_2()?,
-                player_name: defuser_name,
-            })
-        } else {
-            None
-        };
-
-        Ok(RadarBombInfo {
-            position,
-            state: C4State::Active{
-                bomb_site,
-                time_detonation: time_blow - globals.time_2()?,
-                defuser: defusing,
-            },
-        })
+    let globals = generator.states.resolve::<Globals>(())?;
+    let time_fuse = planted_c4.m_flC4Blow()?.m_Value()?;
+    if time_fuse <= globals.time_2()? {
+        return Ok(PlantedC4State::Detonated {});
     }
+
+    let entities = generator.states.resolve::<EntitySystem>(())?;
+    let time_total = planted_c4.m_flTimerLength()?;
+
+    let defuser = if planted_c4.m_bBeingDefused()? {
+        let time_defuse = planted_c4.m_flDefuseCountDown()?.m_Value()?;
+        let time_total = planted_c4.m_flDefuseLength()?;
+
+        let handle_defuser = planted_c4.m_hBombDefuser()?;
+        let defuser = entities
+            .get_by_handle(&handle_defuser)?
+            .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
+            .entity()?
+            .reference_schema()?;
+
+        let defuser_controller = defuser.m_hController()?;
+        let defuser_controller = entities
+            .get_by_handle(&defuser_controller)?
+            .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
+            .entity()?
+            .reference_schema()?;
+
+        let defuser_name = CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
+            .ok()
+            .map(CStr::to_string_lossy)
+            .unwrap_or("Name Error".into())
+            .to_string();
+
+        Some(BombDefuser {
+            time_remaining: time_defuse - globals.time_2()?,
+            time_total: time_total,
+
+            player_name: defuser_name,
+        })
+    } else {
+        None
+    };
+
+    Ok(PlantedC4State::Active {
+        time_detonation: time_fuse - globals.time_2()?,
+        time_total,
+        defuser,
+    })
 }
 
 pub struct CS2RadarGenerator {
@@ -144,6 +107,7 @@ impl CS2RadarGenerator {
         match &*player_info {
             PlayerPawnState::Alive(info) => Ok(Some(RadarPlayerInfo {
                 controller_entity_id: info.controller_entity_id,
+                pawn_entity_id: info.pawn_entity_id,
 
                 player_name: info.player_name.clone(),
                 player_flashtime: info.player_flashtime,
@@ -162,7 +126,7 @@ impl CS2RadarGenerator {
 }
 
 impl RadarGenerator for CS2RadarGenerator {
-    fn generate_state(&mut self, _settings: &RadarSettings) -> anyhow::Result<RadarState> {
+    fn generate_state(&mut self) -> anyhow::Result<RadarState> {
         self.states.invalidate_states();
 
         let current_map = self.states.resolve::<StateCurrentMap>(())?;
@@ -174,7 +138,9 @@ impl RadarGenerator for CS2RadarGenerator {
                 .map(|v| v.as_str())
                 .unwrap_or("<empty>")
                 .to_string(),
-            bomb: None,
+
+            planted_c4: None,
+            c4_entities: Default::default(),
         };
 
         let entities = self.states.resolve::<EntitySystem>(())?;
@@ -205,18 +171,47 @@ impl RadarGenerator for CS2RadarGenerator {
                         );
                     }
                 },
-                "C_C4" | "C_PlantedC4" => {
-                    let bomb_ptr: Box<dyn BombData> = match entity_class.as_str() {
-                        "C_C4" => Box::new(entity_identity.entity_ptr::<C_C4>()?.read_schema()?),
-                        "C_PlantedC4" => {
-                            Box::new(entity_identity.entity_ptr::<C_PlantedC4>()?.read_schema()?)
-                        }
-                        _ => unreachable!(),
-                    };
+                "C_PlantedC4" => {
+                    let planted_c4 = entity_identity.entity_ptr::<C_PlantedC4>()?.read_schema()?;
 
-                    if let Ok(bomb_data) = bomb_ptr.read_bomb_data(self) {
-                        radar_state.bomb = Some(bomb_data);
+                    let position = planted_c4
+                        .m_pGameSceneNode()?
+                        .read_schema()?
+                        .m_vecAbsOrigin()?;
+                    let bomb_site = planted_c4.m_nBombSite()? as u8;
+
+                    match planted_c4_to_radar_state(self, &planted_c4) {
+                        Ok(state) => {
+                            radar_state.planted_c4 = Some(RadarPlantedC4 {
+                                position,
+                                bomb_site,
+                                state,
+                            })
+                        }
+                        Err(err) => {
+                            log::warn!("Failed to generate planted C4 state: {}", err);
+                        }
                     }
+                }
+                "C_C4" => {
+                    let c4 = entity_identity.entity_ptr::<C_C4>()?.read_schema()?;
+                    if c4.m_bBombPlanted()? {
+                        /* this bomb has been planted already */
+                        continue;
+                    }
+
+                    let owner = c4.m_hOwnerEntity()?;
+                    let position = c4.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?;
+
+                    radar_state.c4_entities.push(RadarC4 {
+                        entity_id: entity_identity.handle::<()>()?.get_entity_index(),
+                        position,
+                        owner_entity_id: if owner.is_valid() {
+                            Some(owner.get_entity_index())
+                        } else {
+                            None
+                        },
+                    });
                 }
                 _ => {}
             }

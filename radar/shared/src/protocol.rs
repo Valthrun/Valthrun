@@ -2,49 +2,43 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use typescript_type_def::TypeDef;
 
-use crate::{
-    RadarSettings,
-    RadarState,
-};
+use crate::RadarState;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub enum RadarUpdate {
-    Settings { settings: RadarSettings },
-    State { state: RadarState },
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 pub enum SubscribeResult {
     Success,
     SessionDoesNotExists,
     // SessionRequiresPassword,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
+#[serde(rename_all = "kebab-case", tag = "type", content = "payload")]
 pub enum S2CMessage {
     // Generic responses
-    ResponseSuccess,
+    ResponseSuccess {},
     ResponseError { error: String },
 
-    ResponseInvalidClientState,
+    ResponseInvalidClientState {},
     ResponseInitializePublish { session_id: String, version: u32 },
-    ResponseSubscribeSuccess,
-    ResponseSessionInvalidId,
+    ResponseSubscribeSuccess {},
+    ResponseSessionInvalidId {},
 
-    NotifyRadarUpdate { update: RadarUpdate },
+    NotifyRadarState { state: RadarState },
     NotifyViewCount { viewers: usize },
-    NotifySessionClosed,
+    NotifySessionClosed {},
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, TypeDef)]
+#[serde(rename_all = "kebab-case", tag = "type", content = "payload")]
 pub enum C2SMessage {
     InitializePublish { version: u32 },
     InitializeSubscribe { version: u32, session_id: String },
 
-    RadarUpdate { update: RadarUpdate },
+    NotifyRadarState { state: RadarState },
 
-    Disconnect { message: String },
+    Disconnect { reason: String },
 }
 
 pub enum ClientEvent<T> {

@@ -306,7 +306,7 @@ impl RadarServer {
             while let Some(event) = rx.recv().await {
                 match event {
                     ClientEvent::RecvMessage(command) => {
-                        if let C2SMessage::Disconnect { message } = &command {
+                        if let C2SMessage::Disconnect { reason: message } = &command {
                             /* client requested a disconnect */
                             log::debug!("Client send disconnect with reason: {}", message);
                             break;
@@ -375,7 +375,7 @@ impl RadarServer {
         };
 
         log::info!("Session {} closed", session_id);
-        session.broadcast(&S2CMessage::NotifySessionClosed);
+        session.broadcast(&S2CMessage::NotifySessionClosed {});
 
         for client_id in session.subscriber.keys() {
             let client = match self.clients.get(client_id) {
