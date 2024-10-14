@@ -102,11 +102,12 @@ impl EspColor {
         }
     }
 
-    fn interpolate_color(start: [f32; 3], end: [f32; 3], t: f32) -> [f32; 3] {
+    fn interpolate_color(start: [f32; 4], end: [f32; 4], t: f32) -> [f32; 4] {
         [
             start[0] + (end[0] - start[0]) * t,
             start[1] + (end[1] - start[1]) * t,
             start[2] + (end[2] - start[2]) * t,
+            start[3] + (end[3] - start[3]) * t,
         ]
     }
 
