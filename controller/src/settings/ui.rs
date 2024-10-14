@@ -340,6 +340,9 @@ impl SettingsUI {
 
                         ui.set_next_item_width(150.0);
                         ui.checkbox(obfstr!("Team Check"), &mut settings.aimbot_team_check);
+
+                        ui.set_next_item_width(150.0);
+                        ui.checkbox(obfstr!("View FOV"), &mut settings.aimbot_view_fov);
                     }
 
 
@@ -1548,7 +1551,7 @@ impl SettingsUI {
                     &mut current_grenade.description,
                     [0.0, 100.0],
                 )
-                .build();
+                    .build();
                 unicode_text.register_unicode_text(&current_grenade.description);
 
                 ui.text("Eye position");

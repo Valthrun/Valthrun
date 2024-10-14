@@ -34,6 +34,7 @@ pub struct Aimbot {
     is_mouse_pressed: bool, // Track if the mouse is pressed
     aim_bone: String,
     aimbot_team_check: bool,
+    aimbot_view_fov: bool,
 }
 
 impl Aimbot {
@@ -48,6 +49,7 @@ impl Aimbot {
             is_mouse_pressed: false,
             aim_bone: "head".to_string(),
             aimbot_team_check: true,
+            aimbot_view_fov: true,
         }
     }
 
@@ -73,8 +75,6 @@ impl Aimbot {
             None => return None
         };
 
-        log::warn!("Flash Duration:{}", local_pawn.m_flFlashBangTime().unwrap());
-
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0]; // Center of the screen
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance_from_crosshair = f32::MAX; // Track the closest target in FOV
@@ -85,8 +85,8 @@ impl Aimbot {
             if entity_class.map(|name| *name == "C_CSPlayerPawn").unwrap_or(false) {
                 let entry = ctx.states.resolve::<PlayerPawnState>(entity_identity.handle::<()>().ok()?.get_entity_index()).ok()?;
                 if let PlayerPawnState::Alive(player_info) = &*entry {
-                    let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?; // ignore flash
-                    if local_pawn.m_flFlashBangTime().unwrap() > 0.0 {
+                    let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
+                    if local_pawn.m_flFlashBangTime().unwrap() > 0.0 { // ignore flash
                         continue;
                     } //player in gui check// respect wall check//team_mate check
                     if settings.aimbot_team_check && local_pawn.m_iTeamNum().unwrap() == player_info.team_id {
@@ -186,6 +186,28 @@ impl Enhancement for Aimbot {
     }
 
     fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui, _unicode_text: &UnicodeTextRenderer) -> anyhow::Result<()> {
+        let settings = _states.resolve::<AppSettings>(())?;
+        let view = _states.resolve::<ViewController>(())?;
+        let draw_list = _ui.get_window_draw_list();
+        let cursor_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
+        fn fov_to_radius(fov: f32, screen_width: f32) -> f32 {
+            // Calculate the radius of the FOV circle based on the FOV and screen width
+            let fov_in_radians = fov.to_radians(); // Convert to radians
+            let half_fov = fov_in_radians / 2.0; // Half FOV angle
+            let radius = (screen_width / 2.0) * (half_fov.tan()); // Calculate radius based on half FOV
+            radius
+        }
+
+        // assume that fov is enabled
+        if settings.aimbot_view_fov {
+            draw_list
+                .add_circle(
+                    cursor_pos,
+                    fov_to_radius(settings.aimbot_fov, view.screen_bounds.x),
+                    (1.0, 1.0, 1.0, 1.0))
+                .filled(false)
+                .build();
+        }
         Ok(())
     }
 }

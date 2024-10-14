@@ -578,7 +578,6 @@ dependencies = [
  "url",
  "utils-state",
  "valthrun-kernel-interface",
- "winapi",
  "windows 0.53.0",
  "winres",
 ]
