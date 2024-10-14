@@ -1,4 +1,5 @@
 import { EventEmitter } from "../utils/ee";
+import { C2SMessage, RadarState, S2CMessage } from "./definitions";
 
 
 export type SubscriberClientState = {
@@ -13,13 +14,14 @@ export interface SubscriberClientEvents {
     "radar.state": RadarState,
 }
 
+type T = S2CMessage;
 export class SubscriberClient {
     readonly events: EventEmitter<SubscriberClientEvents>;
 
     private currentState: SubscriberClientState;
     private connection: WebSocket | null;
 
-    private commandHandler: { [T in keyof S2CMessage]?: (payload: S2CMessage[T]) => void } = {};
+    private commandHandler: { [T in S2CMessage["type"]]?: (payload: (S2CMessage & { type: T })["payload"]) => void } = {};
 
     constructor(
         readonly targetAddress: string,
@@ -29,25 +31,25 @@ export class SubscriberClient {
         this.connection = null;
 
         this.commandHandler = {};
-        this.commandHandler["ResponseError"] = payload => {
+        this.commandHandler["response-error"] = payload => {
             this.updateState({ state: "failed", reason: payload.error });
             this.closeSocket();
         };
 
-        this.commandHandler["ResponseSessionInvalidId"] = () => {
+        this.commandHandler["response-session-invalid-id"] = () => {
             this.updateState({ state: "failed", reason: "session does not exists" });
             this.closeSocket();
         };
 
-        this.commandHandler["ResponseSubscribeSuccess"] = () => {
+        this.commandHandler["response-subscribe-success"] = () => {
             this.updateState({ state: "connected" });
         };
 
-        this.commandHandler["NotifyRadarUpdate"] = payload => {
-            this.events.emit("radar.state", payload.update.State.state)
+        this.commandHandler["notify-radar-state"] = payload => {
+            this.events.emit("radar.state", payload.state)
         };
 
-        this.commandHandler["NotifySessionClosed"] = () => {
+        this.commandHandler["notify-session-closed"] = () => {
             this.updateState({ state: "disconnected" });
         };
     }
@@ -89,7 +91,7 @@ export class SubscriberClient {
         this.connection = new WebSocket(this.targetAddress);
         this.connection.onopen = () => {
             this.updateState({ state: "initializing" });
-            this.sendCommand("InitializeSubscribe", {
+            this.sendCommand("initialize-subscribe", {
                 version: 1,
                 session_id: sessionId
             });
@@ -113,91 +115,25 @@ export class SubscriberClient {
                 payload = { [payload]: null } as any;
             }
 
-            for (const key of Object.keys(payload)) {
-                const commandHandler = this.commandHandler[key as any as keyof S2CMessage];
-                if (typeof commandHandler === "function") {
-                    commandHandler(payload[key as keyof typeof payload] as any);
-                }
+            const commandHandler = this.commandHandler[payload.type];
+            if (typeof commandHandler === "function") {
+                commandHandler(payload.payload as any);
             }
         };
     }
 
-    public sendCommand<T extends keyof C2SMessage>(command: T, payload: C2SMessage[T]) {
+    public sendCommand<T extends C2SMessage["type"]>(command: T, payload: (C2SMessage & { type: T })["payload"]) {
         this.connection.send(JSON.stringify({
-            [command]: payload
+            type: command,
+            payload
         }));
     }
 }
 
-export type C2SMessage = {
-    "InitializeSubscribe": { version: number, session_id: string },
-}
+export const kDefaultRadarState: RadarState = {
+    players: [],
+    worldName: "<empty>",
 
-export type S2CMessage = {
-    "ResponseSuccess": void,
-    "ResponseError": { error: string },
-    "ResponseInvalidClientState": void,
-    "ResponseInitializePublish": { session_id: string, version: number },
-    "ResponseSubscribeSuccess": void,
-    "ResponseSessionInvalidId": void,
-
-    "NotifyRadarUpdate": {
-        update: RadarUpdate
-    },
-    "NotifySessionClosed": void
-}
-
-
-export type RadarUpdate = {
-    "State": { state: RadarState },
-    /* "Settings": any */
-};
-
-export type RadarState = {
-    players: RadarPlayerInfo[],
-    worldName: string,
-    bomb: RadarBombInfo,
-};
-
-export type RadarPlayerInfo = {
-    controllerEntityId: number,
-    teamId: number,
-
-    playerHealth: number,
-    playerHasDefuser: boolean,
-    playerName: string,
-    playerFlashtime: number,
-
-    weapon: number,
-
-    position: [number, number, number],
-    rotation: number,
-};
-
-export type RadarBombInfo = {
-    position: [number, number, number],
-    state: C4State,
-};
-
-export type C4State =
-    | {variant: 'carried'}
-    | {variant: 'dropped'}
-    | {
-        variant:'active',
-        bomb_site: number,
-        time_detonation: number,
-        defuser: BombDefuser | null,
-    }
-    | {
-        variant:'detonated',
-        bomb_site: number,
-    }
-    | {
-        variant:'defused',
-        bomb_site: number,
-    };
-
-export type BombDefuser = {
-    timeRemaining: number,
-    playerName: string,
+    c4Entities: [],
+    plantedC4: null
 };

@@ -11,14 +11,10 @@ use anyhow::{
     Context,
     Error,
 };
-use radar_shared::{
-    protocol::{
-        C2SMessage,
-        ClientEvent,
-        RadarUpdate,
-        S2CMessage,
-    },
-    RadarSettings,
+use radar_shared::protocol::{
+    C2SMessage,
+    ClientEvent,
+    S2CMessage,
 };
 use tokio::{
     self,
@@ -43,8 +39,6 @@ pub struct WebRadarPublisher {
 
     generator: RefCell<Box<dyn RadarGenerator>>,
     generate_interval: Pin<Box<Interval>>,
-
-    settings: RadarSettings,
 
     transport_tx: Sender<C2SMessage>,
     transport_rx: Receiver<ClientEvent<S2CMessage>>,
@@ -90,11 +84,6 @@ impl WebRadarPublisher {
             transport_tx: tx,
 
             generate_interval: Box::pin(time::interval(Duration::from_millis(50))),
-
-            settings: RadarSettings {
-                show_team_players: true,
-                show_enemy_players: true,
-            },
         })
     }
 
@@ -107,7 +96,7 @@ impl WebRadarPublisher {
             .transport_tx
             .send_timeout(
                 C2SMessage::Disconnect {
-                    message: "connection close".to_string(),
+                    reason: "connection close".to_string(),
                 },
                 Duration::from_secs(1),
             )
@@ -139,10 +128,8 @@ impl Future for WebRadarPublisher {
         }
 
         while let Poll::Ready(_) = self.generate_interval.poll_tick(cx) {
-            match self.generator.borrow_mut().generate_state(&self.settings) {
-                Ok(state) => self.send_message(C2SMessage::RadarUpdate {
-                    update: RadarUpdate::State { state },
-                }),
+            match self.generator.borrow_mut().generate_state() {
+                Ok(state) => self.send_message(C2SMessage::NotifyRadarState { state }),
                 Err(err) => {
                     log::warn!("Failed to generate radar state: {:#}", err);
                 }

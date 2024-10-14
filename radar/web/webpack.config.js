@@ -24,6 +24,11 @@ module.exports = {
         use: ["style-loader", "css-loader"],
       },
       {
+        test: /\.svg$/i,
+        issuer: /\.[jt]sx?$/,
+        use: ['@svgr/webpack'],
+      },
+      {
         test: /\.(png|jpe?g|gif|jp2|webp)$/,
         loader: "file-loader",
         options: {
@@ -31,7 +36,7 @@ module.exports = {
         },
       },
       {
-        test: /\.(woff(2)?|eot|ttf|otf|svg|)$/,
+        test: /\.(woff(2)?|eot|ttf|otf|)$/,
         type: "asset",
         parser: {
           dataUrlCondition: {

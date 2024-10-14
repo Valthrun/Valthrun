@@ -2,76 +2,60 @@ use serde::{
     Deserialize,
     Serialize,
 };
+use typescript_type_def::TypeDef;
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase")]
-pub struct RadarSettings {
-    pub show_team_players: bool,
-    pub show_enemy_players: bool,
-}
-
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 #[serde(rename_all = "camelCase")]
 pub struct BombDefuser {
     /// Total time remaining for a successful bomb defuse
     pub time_remaining: f32,
 
+    /// Total time (in seconds) for the defusal
+    pub time_total: f32,
+
     /// The defusers player name
     pub player_name: String,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-#[serde(rename_all = "camelCase", tag = "variant")]
-pub enum C4State {
-    /// Bomb is dropped
-    Dropped,
-
-    /// Bomb is carried
-    Carried,
-
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
+#[serde(rename_all = "kebab-case", tag = "state")]
+pub enum PlantedC4State {
     /// Bomb is currently actively ticking
-    Active{
-        /// Planted bomb site
-        /// 0 = A
-        /// 1 = B
-        bomb_site: u8,
-
+    Active {
         /// Time remaining (in seconds) until detonation
+        #[serde(rename = "timeDetonation")]
         time_detonation: f32,
+
+        /// Total time (in seconds) for the detonation
+        #[serde(rename = "timeTotal")]
+        time_total: f32,
 
         /// Current bomb defuser
         defuser: Option<BombDefuser>,
     },
 
     /// Bomb has detonated
-    Detonated{
-        /// Planted bomb site
-        /// 0 = A
-        /// 1 = B
-        bomb_site: u8,
-    },
+    Detonated {},
 
     /// Bomb has been defused
-    Defused{
-        /// Planted bomb site
-        /// 0 = A
-        /// 1 = B
-        bomb_site: u8,
-    },
+    Defused {},
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarState {
-    pub players: Vec<RadarPlayerInfo>,
-    pub bomb: Option<RadarBombInfo>,
     pub world_name: String,
+    pub players: Vec<RadarPlayerInfo>,
+
+    pub planted_c4: Option<RadarPlantedC4>,
+    pub c4_entities: Vec<RadarC4>,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 #[serde(rename_all = "camelCase")]
 pub struct RadarPlayerInfo {
     pub controller_entity_id: u32,
+    pub pawn_entity_id: u32,
     pub team_id: u8,
 
     pub player_health: i32,
@@ -84,9 +68,23 @@ pub struct RadarPlayerInfo {
     pub rotation: f32,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 #[serde(rename_all = "camelCase")]
-pub struct RadarBombInfo {
+pub struct RadarPlantedC4 {
     pub position: [f32; 3],
-    pub state: C4State,
+
+    /// Planted bomb site
+    /// 0 = A
+    /// 1 = B
+    pub bomb_site: u8,
+
+    pub state: PlantedC4State,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
+#[serde(rename_all = "camelCase")]
+pub struct RadarC4 {
+    pub entity_id: u32,
+    pub position: [f32; 3],
+    pub owner_entity_id: Option<u32>,
 }

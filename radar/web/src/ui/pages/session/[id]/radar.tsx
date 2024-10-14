@@ -1,5 +1,5 @@
 import * as React from "react";
-import { RadarPlayerInfo, RadarBombInfo, RadarState } from "../../../../backend/connection";
+import { kDefaultRadarState } from "../../../../backend/connection";
 import { LoadedMap, loadMap } from "../../../../map-info";
 import { Box, Typography } from "@mui/material";
 import ImageBlueCross from "../../../../assets/blue_cross.png";
@@ -8,18 +8,14 @@ import ImageYellowCross from "../../../../assets/yellow_cross.png";
 import ImageYellowDot from "../../../../assets/yellow_dot.png";
 import ImageBomb from "../../../../assets/bomb.png";
 import { useAppSelector } from "../../../../state";
-import { green, red } from '@mui/material/colors';
+import BombIndicator from "../../../components/bomb/bomb-indicator";
+import { RadarC4, RadarPlayerInfo, RadarState } from "../../../../backend/definitions";
 
-export const ContextRadarState = React.createContext<RadarState>({
-    players: [],
-    worldName: "de_anubis",
-    bomb: null,
-});
-
-
+export const ContextRadarState = React.createContext<RadarState>(kDefaultRadarState);
 const ContextMap = React.createContext<LoadedMap>(null);
+
 export const RadarRenderer = React.memo(() => {
-    const { worldName } = React.useContext(ContextRadarState);
+    const { worldName, plantedC4 } = React.useContext(ContextRadarState);
     const [mapInfo, setMapInfo] = React.useState<LoadedMap>(null);
 
     React.useEffect(() => {
@@ -62,9 +58,24 @@ export const RadarRenderer = React.memo(() => {
                     display: "flex",
                     flexDirection: "row",
 
+                    position: "relative",
                     p: 3,
                 }}>
-                    <BombDetails />
+                    <Box sx={{
+                        position: "absolute",
+                        zIndex: 1,
+
+                        top: "1em",
+                        left: 0,
+                        right: 0,
+
+                        display: "flex",
+                        flexDirection: "row",
+                        justifyContent: "center"
+                    }}>
+                        {plantedC4 && <BombIndicator state={plantedC4.state} />}
+                    </Box>
+                    {/* <BombDetails /> */}
                     <SqareContainer>
                         <MapRenderer />
                         {!mapInfo && (
@@ -131,7 +142,7 @@ const SqareContainer = React.memo((props: {
 });
 
 const MapRenderer = React.memo(() => {
-    const { players, bomb } = React.useContext(ContextRadarState);
+    const { players, c4Entities, plantedC4 } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
 
     return (
@@ -146,7 +157,8 @@ const MapRenderer = React.memo(() => {
                 }}
             />
             {players.map(player => <MapPlayerPing playerInfo={player} key={`player-${player.controllerEntityId}`} />)}
-            <MapBombPing bombInfo={bomb} />
+            {c4Entities.map(entity => <MapC4 position={entity.position} key={`c4-${entity.entityId}`} />)}
+            {plantedC4 && <MapC4 position={plantedC4.position} key="planted-c4" />}
         </Box>
     )
 });
@@ -235,25 +247,25 @@ export const MapPlayerIcon = (props: {
     );
 };
 
-const MapBombPing = React.memo((props: {
-    bombInfo: RadarBombInfo,
+const MapC4 = React.memo((props: {
+    position: [number, number, number],
 }) => {
+    const { position } = props;
     const map = React.useContext(ContextMap);
     const iconSize = useAppSelector(state => state.radarSettings.iconSize);
-    if (!map || !props.bombInfo) {
-        /* we need the map and bomb info */
+    if (!map) {
         return null;
     }
 
-    let bombX = props.bombInfo.position[0];
-    let bombY = props.bombInfo.position[1];
+    let bombX = position[0];
+    let bombY = position[1];
 
     const mapSize = map.metaInfo.resolution * 1024;
     const offsets = map.metaInfo.offset;
     bombX += offsets.x;
     bombY += offsets.y;
 
-    const [floor] = map.metaInfo.floors.filter(floor => floor.zRange.min <= props.bombInfo.position[2] && props.bombInfo.position[2] <= floor.zRange.max);
+    const [floor] = map.metaInfo.floors.filter(floor => floor.zRange.min <= position[2] && position[2] <= floor.zRange.max);
 
     return (
         <Box
@@ -276,92 +288,5 @@ const MapBombPing = React.memo((props: {
                 "--pos-y": `${bombY * 100 / mapSize - iconSize / 2 + (floor?.offset.y ?? 0)}%`,
             } as any}
         />
-    )
-});
-
-const BombDetails = React.memo(() => {
-    const { players, bomb } = React.useContext(ContextRadarState);
-    const map = React.useContext(ContextMap);
-    const displayBombDetails = useAppSelector(state => state.radarSettings.displayBombDetails);
-
-    if (!bomb) {
-        /* we need the map and bomb info */
-        return null;
-    }
-
-    if(!displayBombDetails){
-        /* radar setting if false */
-        return null;
-    }
-
-    return (
-        <Box sx={{
-            width: `10%`
-        }}
-
-        style={{
-            "flex-shrink": 2,
-            "white-space": "pre-wrap",
-            "overflow-wrap": "break-word",
-        } as any}
-        >
-            <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state.variant}</Typography>
-            {bomb.state.variant == "active" || bomb.state.variant == "detonated" || bomb.state.variant == "defused" ? <PlantDetails /> : null}
-        </Box>
-    )
-});
-
-const PlantDetails = React.memo(() => {
-    const { players, bomb } = React.useContext(ContextRadarState);
-    const map = React.useContext(ContextMap);
-
-    if (!bomb) {
-        /* we need the map and bomb info */
-        return null;
-    }
-
-    if (bomb.state.variant == "dropped" || bomb.state.variant == "carried" ){
-        return null;
-    }
-
-    return (
-        <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.state.bomb_site == 0 ? "A" : "B"}</Typography>
-            {bomb.state.variant == 'active' ? <DefuseDetails /> : null}
-        </Box>
-    )
-});
-
-const DefuseDetails = React.memo(() => {
-    const { players, bomb } = React.useContext(ContextRadarState);
-    const map = React.useContext(ContextMap);
-
-    if (!bomb) {
-        /* we need the map and bomb info */
-        return null;
-    }
-
-    if (bomb.state.variant != "active" ){
-        return null;
-    }
-
-    let defuseColor = "grey.600";
-    if(bomb.state.defuser != null){
-        if (bomb.state.time_detonation < bomb.state.defuser.timeRemaining){
-            defuseColor = red['600'];
-        } else{
-            defuseColor = green['600'];
-        }
-    }else{
-        defuseColor = "grey.600";
-    }
-
-    return (
-        <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.state.time_detonation}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.state.defuser != null ? bomb.state.defuser.playerName : 'None'}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: defuseColor }}>Defuse in: {bomb.state.defuser != null ? bomb.state.defuser.timeRemaining : 'None' }</Typography>
-        </Box>
     )
 });

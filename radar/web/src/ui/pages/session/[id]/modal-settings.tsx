@@ -1,8 +1,7 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Modal, Slider, Typography, Switch } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Slider, Typography, Switch } from "@mui/material";
 import { useAppDispatch, useAppSelector } from "../../../../state"
 import { updateRadarSettings } from "../../../../state/radar-settings";
 import React from "react";
-import { MapPlayerIcon, MapPlayerPing } from "./radar";
 
 export default React.memo(() => {
     const isOpen = useAppSelector(state => state.radarSettings.dialogOpen);

@@ -2,12 +2,13 @@ import { Box, Typography, CircularProgress, Alert, IconButton } from "@mui/mater
 import * as React from "react";
 import { SubscriberClientProvider, useSubscriberClient } from "../../../components/connection";
 import { useParams } from "react-router-dom";
-import { RadarState } from "../../../../backend/connection";
+import { kDefaultRadarState } from "../../../../backend/connection";
 import { ContextRadarState, RadarRenderer } from "./radar";
 import { useAppDispatch } from "../../../../state";
 import ModalSettings from "./modal-settings";
 import { Settings as IconSettings } from "@mui/icons-material";
 import { updateRadarSettings } from "../../../../state/radar-settings";
+import { RadarState } from "../../../../backend/definitions";
 
 const kServerUrl: string | null = process.env.SERVER_URL;
 export default React.memo(() => {
@@ -137,11 +138,7 @@ const ClientStateDisconnected = React.memo(() => {
 const ClientStateConnected = React.memo(() => {
     const client = useSubscriberClient();
     const state = useSubscriberClientState();
-    const [radarState, setRadarState] = React.useState<RadarState>({
-        players: [],
-        worldName: "de_anubis",
-        bomb: null,
-    });
+    const [radarState, setRadarState] = React.useState<RadarState>(kDefaultRadarState);
 
     React.useEffect(() => client.events.on("radar.state", update => setRadarState(update)), [client]);
 

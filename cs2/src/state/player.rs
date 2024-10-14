@@ -32,6 +32,7 @@ use crate::{
 #[derive(Debug, Clone)]
 pub struct PlayerPawnInfo {
     pub controller_entity_id: u32,
+    pub pawn_entity_id: u32,
     pub team_id: u8,
 
     pub player_health: i32,
@@ -190,6 +191,8 @@ impl State for PlayerPawnState {
 
         Ok(Self::Alive(PlayerPawnInfo {
             controller_entity_id: controller_handle.get_entity_index(),
+            pawn_entity_id: pawn_entity_index,
+
             team_id: player_team,
 
             player_name,
