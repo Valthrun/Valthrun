@@ -19,6 +19,7 @@ use crate::{
         AppSettings,
         EspBoxType,
         EspConfig,
+        EspHeadDot,
         EspHealthBar,
         EspPlayerSettings,
         EspSelector,
@@ -293,6 +294,54 @@ impl Enhancement for PlayerESP {
                     )
                     .thickness(esp_settings.skeleton_width)
                     .build();
+                }
+            }
+
+            if esp_settings.head_dot != EspHeadDot::None {
+                if let Some(head_bone_index) = entry_model
+                    .bones
+                    .iter()
+                    .position(|bone| bone.name == "head_0")
+                {
+                    if let Some(head_state) = entry.bone_states.get(head_bone_index) {
+                        if let (Some(head_position), Some(head_far)) = (
+                            view.world_to_screen(
+                                &(head_state.position
+                                    + nalgebra::Vector3::new(0.0, 0.0, esp_settings.head_dot_z)),
+                                true,
+                            ),
+                            view.world_to_screen(
+                                &(head_state.position
+                                    + nalgebra::Vector3::new(
+                                        0.0,
+                                        0.0,
+                                        esp_settings.head_dot_z + 2.0,
+                                    )),
+                                true,
+                            ),
+                        ) {
+                            let color = esp_settings
+                                .head_dot_color
+                                .calculate_color(player_rel_health, distance);
+
+                            let radius =
+                                (head_position.y - head_far.y) * esp_settings.head_dot_base_radius;
+                            let circle = draw.add_circle(head_position, radius, color);
+
+                            match esp_settings.head_dot {
+                                EspHeadDot::Filled => {
+                                    circle.filled(true).build();
+                                }
+                                EspHeadDot::NotFilled => {
+                                    circle
+                                        .filled(false)
+                                        .thickness(esp_settings.head_dot_thickness)
+                                        .build();
+                                }
+                                EspHeadDot::None => unreachable!(),
+                            }
+                        }
+                    }
                 }
             }
 
