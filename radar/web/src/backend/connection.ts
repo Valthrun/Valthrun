@@ -177,17 +177,31 @@ export type RadarPlayerInfo = {
 export type RadarBombInfo = {
     position: [number, number, number],
     state: C4State,
-    bombSite: number | null,
-    timeDetonation: number | null,
-    defuser: BombDefuser | null,
 };
 
 export type C4State =
-    | 'carried'
-    | 'dropped'
-    | 'active'
-    | 'detonated'
-    | 'defused';
+    | {variant: 'carried'}
+    | {variant: 'dropped'}
+    | {
+        variant:'active',
+        data:{
+            bomb_site: number,
+            time_detonation: number,
+            defuser: BombDefuser | null,
+        },
+    }
+    | {
+        variant:'detonated',
+        data: {
+            bomb_site: number,
+        },
+    }
+    | {
+        variant:'defused',
+        data: {
+            bomb_site: number,
+        },
+    };
 
 export type BombDefuser = {
     timeRemaining: number;

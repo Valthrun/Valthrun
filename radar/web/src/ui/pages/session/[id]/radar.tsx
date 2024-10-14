@@ -8,6 +8,7 @@ import ImageYellowCross from "../../../../assets/yellow_cross.png";
 import ImageYellowDot from "../../../../assets/yellow_dot.png";
 import ImageBomb from "../../../../assets/bomb.png";
 import { useAppSelector } from "../../../../state";
+import { green, red } from '@mui/material/colors';
 
 export const ContextRadarState = React.createContext<RadarState>({
     players: [],
@@ -306,8 +307,8 @@ const BombDetails = React.memo(() => {
         } as any}
         >
             <Typography variant={"h6"} sx={{ alignSelf: "center", color: "grey.500" }}>Bomb Info</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state}</Typography>
-            {bomb.state == "active" ? <PlantDetails /> : null}
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Status: {bomb.state.variant}</Typography>
+            {bomb.state.variant == "active" || bomb.state.variant == "detonated" || bomb.state.variant == "defused" ? <PlantDetails /> : null}
         </Box>
     )
 });
@@ -321,15 +322,14 @@ const PlantDetails = React.memo(() => {
         return null;
     }
 
-    if (bomb.state != 'active' ){
+    if (bomb.state.variant == "dropped" || bomb.state.variant == "carried" ){
         return null;
     }
 
     return (
         <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.bombSite == 0 ? "A" : "B"}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.timeDetonation}</Typography>
-            {bomb.defuser != null ? <DefuseDetails /> : null}
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb Site: {bomb.state.data.bomb_site == 0 ? "A" : "B"}</Typography>
+            {bomb.state.variant == 'active' ? <DefuseDetails /> : null}
         </Box>
     )
 });
@@ -343,14 +343,26 @@ const DefuseDetails = React.memo(() => {
         return null;
     }
 
-    if (bomb.defuser == null ){
+    if (bomb.state.variant != "active" ){
         return null;
+    }
+
+    let defuseColor = "grey.600";
+    if(bomb.state.data.defuser != null){
+        if (bomb.state.data.time_detonation < bomb.state.data.defuser.timeRemaining){
+            defuseColor = red['600'];
+        } else{
+            defuseColor = green['600'];
+        }
+    }else{
+        defuseColor = "grey.600";
     }
 
     return (
         <Box>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.defuser.playerName != null ? bomb.defuser.playerName : 'None'}</Typography>
-            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defuse in: {bomb.defuser.timeRemaining  != null ? bomb.defuser.timeRemaining : 'None' }</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Bomb explode in: {bomb.state.data.time_detonation}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: "grey.600" }}>Defusing by: {bomb.state.data.defuser != null ? bomb.state.data.defuser.playerName : 'None'}</Typography>
+            <Typography variant={"body1"} sx={{ alignSelf: "left", color: defuseColor }}>Defuse in: {bomb.state.data.defuser != null ? bomb.state.data.defuser.timeRemaining : 'None' }</Typography>
         </Box>
     )
 });
