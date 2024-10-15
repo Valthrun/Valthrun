@@ -6,13 +6,16 @@ use cs2::{
     ClassNameCache,
     EntitySystem,
     Globals,
-    PlayerPawnState,
+    PlayerPawnInfo,
     StateCurrentMap,
 };
-use cs2_schema_generated::cs2::client::{
-    CEntityIdentity,
-    C_PlantedC4,
-    C_C4,
+use cs2_schema_generated::{
+    cs2::client::{
+        C_CSPlayerPawn,
+        C_PlantedC4,
+        C_C4,
+    },
+    EntityHandle,
 };
 use obfstr::obfstr;
 use radar_shared::{
@@ -20,7 +23,7 @@ use radar_shared::{
     PlantedC4State,
     RadarC4,
     RadarPlantedC4,
-    RadarPlayerInfo,
+    RadarPlayerPawn,
     RadarState,
 };
 use utils_state::StateRegistry;
@@ -96,32 +99,31 @@ impl CS2RadarGenerator {
         Ok(Self { states })
     }
 
-    fn generate_player_info(
+    fn generate_pawn_info(
         &self,
-        player_pawn: &CEntityIdentity,
-    ) -> anyhow::Result<Option<RadarPlayerInfo>> {
-        let player_info = self
-            .states
-            .resolve::<PlayerPawnState>(player_pawn.handle::<()>()?.get_entity_index())?;
+        player_pawn_handle: EntityHandle<C_CSPlayerPawn>,
+    ) -> anyhow::Result<RadarPlayerPawn> {
+        let pawn_info = self.states.resolve::<PlayerPawnInfo>(player_pawn_handle)?;
 
-        match &*player_info {
-            PlayerPawnState::Alive(info) => Ok(Some(RadarPlayerInfo {
-                controller_entity_id: info.controller_entity_id,
-                pawn_entity_id: info.pawn_entity_id,
+        Ok(RadarPlayerPawn {
+            controller_entity_id: pawn_info.controller_entity_id,
+            pawn_entity_id: pawn_info.pawn_entity_id,
 
-                player_name: info.player_name.clone(),
-                player_flashtime: info.player_flashtime,
-                player_has_defuser: info.player_has_defuser,
-                player_health: info.player_health,
+            player_name: pawn_info.player_name.clone().unwrap_or_default(),
+            player_flashtime: pawn_info.player_flashtime,
+            player_has_defuser: pawn_info.player_has_defuser,
+            player_health: pawn_info.player_health,
 
-                position: [info.position.x, info.position.y, info.position.z],
-                rotation: info.rotation,
+            position: [
+                pawn_info.position.x,
+                pawn_info.position.y,
+                pawn_info.position.z,
+            ],
+            rotation: pawn_info.rotation,
 
-                team_id: info.team_id,
-                weapon: info.weapon.id(),
-            })),
-            _ => Ok(None),
-        }
+            team_id: pawn_info.team_id,
+            weapon: pawn_info.weapon.id(),
+        })
     }
 }
 
@@ -131,7 +133,7 @@ impl RadarGenerator for CS2RadarGenerator {
 
         let current_map = self.states.resolve::<StateCurrentMap>(())?;
         let mut radar_state = RadarState {
-            players: Vec::with_capacity(16),
+            player_pawns: Vec::with_capacity(16),
             world_name: current_map
                 .current_map
                 .as_ref()
@@ -174,9 +176,8 @@ impl RadarGenerator for CS2RadarGenerator {
                 };
 
             match entity_class.as_str() {
-                "C_CSPlayerPawn" => match self.generate_player_info(entity_identity) {
-                    Ok(Some(info)) => radar_state.players.push(info),
-                    Ok(None) => {}
+                "C_CSPlayerPawn" => match self.generate_pawn_info(entity_identity.handle()?) {
+                    Ok(info) => radar_state.player_pawns.push(info),
                     Err(error) => {
                         log::warn!(
                             "Failed to generate player pawn ESP info for {}: {:#}",

@@ -45,7 +45,7 @@ pub enum PlantedC4State {
 #[serde(rename_all = "camelCase")]
 pub struct RadarState {
     pub world_name: String,
-    pub players: Vec<RadarPlayerInfo>,
+    pub player_pawns: Vec<RadarPlayerPawn>,
 
     pub planted_c4: Option<RadarPlantedC4>,
     pub c4_entities: Vec<RadarC4>,
@@ -55,16 +55,17 @@ pub struct RadarState {
 
 #[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]
 #[serde(rename_all = "camelCase")]
-pub struct RadarPlayerInfo {
-    pub controller_entity_id: u32,
+pub struct RadarPlayerPawn {
+    pub controller_entity_id: Option<u32>,
     pub pawn_entity_id: u32,
     pub team_id: u8,
 
+    pub player_name: String,
     pub player_health: i32,
     pub player_has_defuser: bool,
-    pub player_name: String,
-    pub weapon: u16,
     pub player_flashtime: f32,
+
+    pub weapon: u16,
 
     pub position: [f32; 3],
     pub rotation: f32,
