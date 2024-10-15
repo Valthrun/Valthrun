@@ -30,7 +30,6 @@ impl ServerCommandHandler {
 
                 S2CMessage::ResponseInitializePublish {
                     session_id: session.session_id.clone(),
-                    version: 1,
                 }
             }
             C2SMessage::InitializeSubscribe { session_id, .. } => {

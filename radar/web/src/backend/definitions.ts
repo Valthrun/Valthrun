@@ -113,7 +113,6 @@ export type S2CMessage = ({
     "type": "response-initialize-publish";
     "payload": {
         "session_id": string;
-        "version": U32;
     };
 } | {
     "type": "response-subscribe-success";
@@ -141,12 +140,10 @@ export type S2CMessage = ({
 export type C2SMessage = ({
     "type": "initialize-publish";
     "payload": {
-        "version": U32;
     };
 } | {
     "type": "initialize-subscribe";
     "payload": {
-        "version": U32;
         "session_id": string;
     };
 } | {
@@ -160,3 +157,38 @@ export type C2SMessage = ({
         "reason": string;
     };
 });
+export type HandshakeProtocolV1 = ({
+    "InitializePublish": {
+        "version": U32;
+    };
+} | {
+    "InitializeSubscribe": {
+        "version": U32;
+    };
+} | {
+    "ResponseError": {
+        "error": string;
+    };
+});
+export type HandshakeProtocolV2 = ({
+    "type": "request-initialize";
+    "payload": {
+        "clientVersion": U32;
+    };
+} | {
+    "type": "response-success";
+    "payload": {
+        "serverVersion": U32;
+    };
+} | {
+    "type": "response-incompatible";
+    "payload": {
+        "supportedVersions": (U32)[];
+    };
+} | {
+    "type": "response-generic-failure";
+    "payload": {
+        "message": string;
+    };
+});
+export type HandshakeMessage = (HandshakeProtocolV1 | HandshakeProtocolV2);
