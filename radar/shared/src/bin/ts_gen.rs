@@ -3,6 +3,7 @@ use std::fs::File;
 use anyhow::Context;
 use radar_shared::protocol::{
     C2SMessage,
+    HandshakeMessage,
     S2CMessage,
 };
 use typescript_type_def::{
@@ -31,7 +32,11 @@ fn main() -> anyhow::Result<()> {
         .open(&target)
         .context("open target")?;
 
-    let definitions = &[&S2CMessage::INFO, &C2SMessage::INFO];
+    let definitions = &[
+        &S2CMessage::INFO,
+        &C2SMessage::INFO,
+        &HandshakeMessage::INFO,
+    ];
     write_definition_file_from_type_infos(&mut output, options, definitions)?;
 
     println!("Definitions written to {}", target);
