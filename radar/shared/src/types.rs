@@ -49,6 +49,8 @@ pub struct RadarState {
 
     pub planted_c4: Option<RadarPlantedC4>,
     pub c4_entities: Vec<RadarC4>,
+
+    pub local_controller_entity_id: Option<u32>,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, TypeDef)]

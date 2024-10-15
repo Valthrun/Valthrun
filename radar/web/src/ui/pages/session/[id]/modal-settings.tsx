@@ -1,11 +1,14 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Slider, Typography, Switch } from "@mui/material";
+import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Slider, Typography, Switch, IconButton } from "@mui/material";
 import { useAppDispatch, useAppSelector } from "../../../../state"
-import { updateRadarSettings } from "../../../../state/radar-settings";
+import { kDefaultRadarSettings, RadarSettingsState, updateRadarSettings } from "../../../../state/radar-settings";
 import React from "react";
+import { MuiColorInput } from "mui-color-input";
+import { SettingsBackupRestore as IconReset } from "@mui/icons-material";
 
 export default React.memo(() => {
     const isOpen = useAppSelector(state => state.radarSettings.dialogOpen);
     const dispatch = useAppDispatch();
+    const highlightBroadcaster = useAppSelector(state => state.radarSettings.showDotOwn);
 
     return (
         <Dialog
@@ -15,9 +18,23 @@ export default React.memo(() => {
             <DialogTitle>
                 Radar Settings
             </DialogTitle>
-            <DialogContent sx={{ width: "15em", height: "10em", overflow: "visible" }}>
+            <DialogContent
+                sx={{
+                    minWidth: "15em",
+                    width: "25em",
+
+                    minHeight: "10em",
+                    overflow: "auto",
+                }}
+            >
                 <SettingIconSize />
-                <SettingBombDisplay />
+
+                <SettingBoolean target="displayBombDetails" title="Display Bomb Details" />
+                <SettingBoolean target="showDotOwn" title="Highlight broadacster" />
+
+                <SettingDotColor target="colorDotCT" title="CT Color" />
+                <SettingDotColor target="colorDotT" title="T Color" />
+                {highlightBroadcaster && <SettingDotColor target="colorDotOwn" title="Own Color" />}
             </DialogContent>
             <DialogActions>
                 <Button onClick={() => dispatch(updateRadarSettings({ dialogOpen: false }))}>Close</Button>
@@ -47,17 +64,66 @@ const SettingIconSize = React.memo(() => {
     );
 })
 
-const SettingBombDisplay = React.memo(() => {
-    const value = useAppSelector(state => state.radarSettings.displayBombDetails);
+const SettingBoolean = React.memo((props: {
+    title: string,
+    target: keyof RadarSettingsState & ("displayBombDetails" | "showDotOwn")
+}) => {
+    const { target, title } = props;
+    const value = useAppSelector(state => state.radarSettings[target]);
     const dispatch = useAppDispatch();
 
     return (
         <Box>
-            <Typography variant={"subtitle1"}>Display Bomb Details</Typography>
+            <Typography variant={"subtitle1"}>
+                {title}
+            </Typography>
             <Switch
                 checked={value}
-                onChange={(_event, value) => dispatch(updateRadarSettings({ displayBombDetails: value }))}
+                onChange={(_event, value) => dispatch(updateRadarSettings({ [target]: value }))}
             />
         </Box>
     );
 })
+
+const SettingDotColor = React.memo((props: {
+    title: string,
+    target: keyof RadarSettingsState & ("colorDotCT" | "colorDotT" | "colorDotOwn"),
+}) => {
+    const value = useAppSelector(state => state.radarSettings[props.target]);
+    const dispatch = useAppDispatch();
+
+    return (
+        <Box>
+            <Typography variant={"subtitle1"}>
+                {props.title}
+            </Typography>
+            <Box sx={{
+                display: "flex",
+                flexDirection: "row",
+                gap: "1em"
+            }}>
+                <MuiColorInput
+                    fullWidth
+                    sx={{ minWidth: "5em" }}
+                    size="small"
+
+                    format="hex"
+                    value={value}
+                    onChange={event => dispatch(updateRadarSettings({
+                        [props.target]: event
+                    }))}
+                />
+                <IconButton
+                    onClick={() => {
+                        dispatch(updateRadarSettings({
+                            [props.target]: kDefaultRadarSettings[props.target]
+                        }))
+                    }}
+                    title="Reset value"
+                >
+                    <IconReset />
+                </IconButton>
+            </Box>
+        </Box>
+    );
+});

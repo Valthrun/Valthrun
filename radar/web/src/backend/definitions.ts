@@ -93,6 +93,7 @@ export type RadarState = {
     "players": (RadarPlayerInfo)[];
     "plantedC4": (RadarPlantedC4 | null);
     "c4Entities": (RadarC4)[];
+    "localControllerEntityId": (U32 | null);
 };
 export type Usize = number;
 export type S2CMessage = ({
