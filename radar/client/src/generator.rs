@@ -141,10 +141,24 @@ impl RadarGenerator for CS2RadarGenerator {
 
             planted_c4: None,
             c4_entities: Default::default(),
+
+            local_controller_entity_id: None,
         };
 
         let entities = self.states.resolve::<EntitySystem>(())?;
         let class_name_cache = self.states.resolve::<ClassNameCache>(())?;
+
+        let local_controller = entities.get_local_player_controller()?;
+        if !local_controller.is_null()? {
+            let local_controller_id = local_controller
+                .reference_schema()?
+                .m_pEntity()?
+                .reference_schema()?
+                .handle::<()>()?
+                .get_entity_index();
+
+            radar_state.local_controller_entity_id = Some(local_controller_id);
+        }
 
         for entity_identity in entities.all_identities() {
             let entity_class =
@@ -173,6 +187,10 @@ impl RadarGenerator for CS2RadarGenerator {
                 },
                 "C_PlantedC4" => {
                     let planted_c4 = entity_identity.entity_ptr::<C_PlantedC4>()?.read_schema()?;
+                    if !planted_c4.m_bC4Activated()? {
+                        /* skip this C4 */
+                        continue;
+                    }
 
                     let position = planted_c4
                         .m_pGameSceneNode()?

@@ -13,7 +13,13 @@ module.exports = {
       {
         test: /\.tsx?$/,
         use: "babel-loader",
-        exclude: /node_modules/,
+        exclude: /node_modules/
+      },
+      {
+        test: /\.m?js/,
+        resolve: {
+          fullySpecified: false,
+        },
       },
       {
         test: /\.s[ac]ss$/i,
@@ -51,6 +57,7 @@ module.exports = {
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
+
   },
   output: {
     filename: "assets/web-radar.[contenthash].js",
