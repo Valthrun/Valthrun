@@ -1,37 +1,36 @@
 import { EventEmitter } from "../utils/ee";
 import { C2SMessage, HandshakeProtocolV2, RadarState, S2CMessage } from "./definitions";
 
-
-export type SubscriberClientState = {
-    state: "new" | "connecting" | "handshaking" | "initializing" | "connected" | "disconnected",
-} | {
-    state: "failed",
-    reason: string
-};
+export type SubscriberClientState =
+    | {
+        state: "new" | "connecting" | "handshaking" | "initializing" | "connected" | "disconnected";
+    }
+    | {
+        state: "failed";
+        reason: string;
+    };
 
 export interface SubscriberClientEvents {
-    "state_changed": SubscriberClientState,
-    "radar.state": RadarState,
+    state_changed: SubscriberClientState;
+    "radar.state": RadarState;
 }
 
-type T = S2CMessage;
 export class SubscriberClient {
     readonly events: EventEmitter<SubscriberClientEvents>;
 
     private currentState: SubscriberClientState;
     private connection: WebSocket | null;
 
-    private commandHandler: { [T in S2CMessage["type"]]?: (payload: (S2CMessage & { type: T })["payload"]) => void } = {};
+    private commandHandler: { [T in S2CMessage["type"]]?: (payload: (S2CMessage & { type: T })["payload"]) => void } =
+        {};
 
-    constructor(
-        readonly targetAddress: string,
-    ) {
+    constructor(readonly targetAddress: string) {
         this.events = new EventEmitter();
         this.currentState = { state: "new" };
         this.connection = null;
 
         this.commandHandler = {};
-        this.commandHandler["response-error"] = payload => {
+        this.commandHandler["response-error"] = (payload) => {
             this.updateState({ state: "failed", reason: payload.error });
             this.closeSocket();
         };
@@ -45,8 +44,8 @@ export class SubscriberClient {
             this.updateState({ state: "connected" });
         };
 
-        this.commandHandler["notify-radar-state"] = payload => {
-            this.events.emit("radar.state", payload.state)
+        this.commandHandler["notify-radar-state"] = (payload) => {
+            this.events.emit("radar.state", payload.state);
         };
 
         this.commandHandler["notify-session-closed"] = () => {
@@ -91,12 +90,14 @@ export class SubscriberClient {
         this.connection = new WebSocket(this.targetAddress);
         this.connection.onopen = () => {
             this.updateState({ state: "handshaking" });
-            this.connection.send(JSON.stringify({
-                type: "request-initialize",
-                payload: {
-                    clientVersion: 2
-                }
-            } satisfies HandshakeProtocolV2));
+            this.connection.send(
+                JSON.stringify({
+                    type: "request-initialize",
+                    payload: {
+                        clientVersion: 2,
+                    },
+                } satisfies HandshakeProtocolV2),
+            );
         };
 
         this.connection.onerror = () => {
@@ -111,9 +112,9 @@ export class SubscriberClient {
             }
         };
 
-        this.connection.onmessage = event => {
+        this.connection.onmessage = (event) => {
             if (this.currentState.state === "handshaking") {
-                let payload = JSON.parse(event.data as string) as HandshakeProtocolV2;
+                const payload = JSON.parse(event.data as string) as HandshakeProtocolV2;
                 switch (payload.type) {
                     case "response-generic-failure":
                         this.updateState({ state: "failed", reason: payload.payload.message });
@@ -128,7 +129,7 @@ export class SubscriberClient {
                     case "response-success":
                         this.updateState({ state: "initializing" });
                         this.sendCommand("initialize-subscribe", {
-                            session_id: sessionId
+                            session_id: sessionId,
                         });
                         break;
 
@@ -138,7 +139,7 @@ export class SubscriberClient {
                         break;
                 }
             } else if (this.currentState.state === "initializing" || this.currentState.state === "connected") {
-                let payload = JSON.parse(event.data as string) as S2CMessage;
+                const payload = JSON.parse(event.data as string) as S2CMessage;
                 const commandHandler = this.commandHandler[payload.type];
                 if (typeof commandHandler === "function") {
                     commandHandler(payload.payload as any);
@@ -147,11 +148,16 @@ export class SubscriberClient {
         };
     }
 
-    public sendCommand<T extends C2SMessage["type"]>(command: T, payload: (C2SMessage | HandshakeProtocolV2 & { type: T })["payload"]) {
-        this.connection.send(JSON.stringify({
-            type: command,
-            payload
-        }));
+    public sendCommand<T extends C2SMessage["type"]>(
+        command: T,
+        payload: (C2SMessage | (HandshakeProtocolV2 & { type: T }))["payload"],
+    ) {
+        this.connection.send(
+            JSON.stringify({
+                type: command,
+                payload,
+            }),
+        );
     }
 }
 
@@ -162,5 +168,5 @@ export const kDefaultRadarState: RadarState = {
     worldName: "<empty>",
 
     c4Entities: [],
-    plantedC4: null
+    plantedC4: null,
 };

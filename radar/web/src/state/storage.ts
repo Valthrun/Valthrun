@@ -1,1 +1,1 @@
-export { default as kReduxPersistLocalStorage } from 'redux-persist/lib/storage'
+export { default as kReduxPersistLocalStorage } from "redux-persist/lib/storage";

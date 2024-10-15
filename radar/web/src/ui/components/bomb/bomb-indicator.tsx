@@ -1,9 +1,9 @@
+import { Box, Paper, Typography } from "@mui/material";
+import * as colors from "@mui/material/colors";
 import React from "react";
-import { Box, Paper, Typography, useTheme } from "@mui/material";
+import { PlantedC4State } from "../../../backend/definitions";
 import IconC4 from "./icon_c4.svg";
 import IconDefuse from "./icon_defuse.svg";
-import * as colors from "@mui/material/colors";
-import { PlantedC4State } from "../../../backend/definitions";
 
 const StateBackground = (props: { state: PlantedC4State }) => {
     const { state } = props;
@@ -44,23 +44,23 @@ const StateBackground = (props: { state: PlantedC4State }) => {
                 left: 0,
                 bottom: 0,
 
-                background
+                background,
             }}
             width={`${(progress * 100).toFixed(0)}%`}
         />
     );
-}
+};
 
 const formatTime = (time: number): string => {
     const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time) - (minutes * 60);
+    const seconds = Math.floor(time) - minutes * 60;
     const millis = time - Math.floor(time);
     if (minutes > 0) {
         return `${`${minutes}`.padStart(2, "0")}:${`${seconds}`.padStart(2, "0")}:${`${Math.round(millis * 100)}`.padStart(2, "0")}`;
     } else {
         return `${`${seconds}`.padStart(2, "0")}:${`${Math.round(millis * 100)}`.padStart(2, "0")}`;
     }
-}
+};
 
 export default React.memo((props: { state: PlantedC4State }) => {
     const { state } = props;
@@ -99,32 +99,37 @@ export default React.memo((props: { state: PlantedC4State }) => {
     }
 
     return (
-        <Paper variant="outlined" sx={{
-            width: "12em",
-            height: "3em",
+        <Paper
+            variant="outlined"
+            sx={{
+                width: "12em",
+                height: "3em",
 
-            position: "relative",
-            overflow: "hidden",
-        }}>
-            <Box sx={{
-                position: "absolute",
-                zIndex: 2,
+                position: "relative",
+                overflow: "hidden",
+            }}
+        >
+            <Box
+                sx={{
+                    position: "absolute",
+                    zIndex: 2,
 
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
 
-                display: "flex",
-                flexDirection: "row",
+                    display: "flex",
+                    flexDirection: "row",
 
-                paddingLeft: 1,
-                paddingRight: 1,
+                    paddingLeft: 1,
+                    paddingRight: 1,
 
-                "> *": {
-                    alignSelf: "center"
-                }
-            }}>
+                    "> *": {
+                        alignSelf: "center",
+                    },
+                }}
+            >
                 <Icon width="2em" height="2em" fill={textColor} />
                 <Typography variant="h6" sx={{ marginLeft: "auto", marginRight: "auto", color: textColor }}>
                     {text}
@@ -133,4 +138,4 @@ export default React.memo((props: { state: PlantedC4State }) => {
             <StateBackground state={state} />
         </Paper>
     );
-})
+});
