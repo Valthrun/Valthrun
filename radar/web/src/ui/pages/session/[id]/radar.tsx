@@ -5,7 +5,7 @@ import { Box, Typography } from "@mui/material";
 import ImageBomb from "../../../../assets/bomb.png";
 import { useAppSelector } from "../../../../state";
 import BombIndicator from "../../../components/bomb/bomb-indicator";
-import { RadarPlayerInfo, RadarState } from "../../../../backend/definitions";
+import { RadarPlayerPawn, RadarState } from "../../../../backend/definitions";
 import { useContext, useState } from "react";
 import IconPlayer from "./icon_player.svg";
 import IconPlayerDead from "./icon_player_dead.svg";
@@ -136,7 +136,7 @@ const SqareContainer = React.memo((props: {
 });
 
 const MapRenderer = React.memo(() => {
-    const { players, c4Entities, plantedC4 } = React.useContext(ContextRadarState);
+    const { playerPawns, c4Entities, plantedC4 } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
 
     const { colorDotCT, colorDotT, colorDotOwn } = useAppSelector(state => state.radarSettings);
@@ -151,17 +151,17 @@ const MapRenderer = React.memo(() => {
                 fill: "#fff"
             },
             ".team-t": {
-                ".icon_player_svg__player-dot": {
+                ".icon_player_svg__player-dot, .icon_player_dead_svg__player_cross": {
                     fill: colorDotT
                 }
             },
             ".team-ct": {
-                ".icon_player_svg__player-dot": {
+                ".icon_player_svg__player-dot, .icon_player_dead_svg__player_cross": {
                     fill: colorDotCT
                 }
             },
             ".broadcaster": {
-                ".icon_player_svg__player-dot": {
+                ".icon_player_svg__player-dot, .icon_player_dead_svg__player_cross": {
                     fill: colorDotOwn
                 }
             }
@@ -175,7 +175,7 @@ const MapRenderer = React.memo(() => {
                     backgroundSize: "contain",
                 }}
             />
-            {players.map(player => <MapPlayerPing playerInfo={player} key={`player-${player.controllerEntityId}`} />)}
+            {playerPawns.map(pawn => <MapPlayerPawn playerInfo={pawn} key={`player-${pawn.controllerEntityId}`} />)}
             {c4Entities.map(entity => <MapC4 position={entity.position} key={`c4-${entity.entityId}`} />)}
             {plantedC4 && <MapC4 position={plantedC4.position} key="planted-c4" />}
         </Box>
@@ -203,8 +203,8 @@ const useMapPosition = (position: [number, number, number]): [number, number] | 
     ]
 }
 
-export const MapPlayerPing = React.memo((props: {
-    playerInfo: RadarPlayerInfo
+export const MapPlayerPawn = React.memo((props: {
+    playerInfo: RadarPlayerPawn
 }) => {
     const showOwn = useAppSelector(state => state.radarSettings.showDotOwn);
     const { localControllerEntityId } = useContext(ContextRadarState);
@@ -232,12 +232,18 @@ export const MapPlayerIcon = (props: {
 
     isBroadcaster: boolean
 }) => {
-    const { position, rotation, isBroadcaster } = props;
+    const { position, health, rotation, isBroadcaster } = props;
     const mapWidth = useContext(SqareContext);
     const iconSize = useAppSelector(state => state.radarSettings.iconSize);
     const iconWidth = mapWidth * iconSize / 100;
 
-    let Icon = IconPlayer;
+    let Icon;
+    if (health <= 0) {
+        Icon = IconPlayerDead;
+    } else {
+        Icon = IconPlayer;
+    }
+
     return (
         <Icon
             style={{

@@ -4,17 +4,17 @@
 export type U32 = number;
 export type U8 = number;
 export type I32 = number;
-export type U16 = number;
 export type F32 = number;
-export type RadarPlayerInfo = {
-    "controllerEntityId": U32;
+export type U16 = number;
+export type RadarPlayerPawn = {
+    "controllerEntityId": (U32 | null);
     "pawnEntityId": U32;
     "teamId": U8;
+    "playerName": string;
     "playerHealth": I32;
     "playerHasDefuser": boolean;
-    "playerName": string;
-    "weapon": U16;
     "playerFlashtime": F32;
+    "weapon": U16;
     "position": [F32, F32, F32];
     "rotation": F32;
 };
@@ -90,7 +90,7 @@ export type RadarC4 = {
 };
 export type RadarState = {
     "worldName": string;
-    "players": (RadarPlayerInfo)[];
+    "playerPawns": (RadarPlayerPawn)[];
     "plantedC4": (RadarPlantedC4 | null);
     "c4Entities": (RadarC4)[];
     "localControllerEntityId": (U32 | null);

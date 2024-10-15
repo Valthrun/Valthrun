@@ -131,7 +131,9 @@ export class SubscriberClient {
 }
 
 export const kDefaultRadarState: RadarState = {
-    players: [],
+    localControllerEntityId: null,
+
+    playerPawns: [],
     worldName: "<empty>",
 
     c4Entities: [],
