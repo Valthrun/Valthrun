@@ -195,7 +195,7 @@ const MapRenderer = React.memo(() => {
                 }}
             />
             {playerPawns.map((pawn) => (
-                <MapPlayerPawn playerInfo={pawn} key={`player-${pawn.controllerEntityId}`} />
+                <MapPlayerPawn playerInfo={pawn} key={`player-${pawn.pawnEntityId}`} />
             ))}
             {c4Entities.map((entity) => (
                 <MapC4 position={entity.position} key={`c4-${entity.entityId}`} />
