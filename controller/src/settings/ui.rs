@@ -1015,13 +1015,14 @@ impl SettingsUI {
         {
             match color {
                 EspColor::HealthBasedRainbow { alpha } => {
+                    ui.same_line();
                     ui.set_next_item_width(100.0);
                     ui.slider_config(
                         &format!("##{}_rainbow_alpha", ui.table_row_index()),
                         0.1,
                         1.0,
                     )
-                    .display_format("Alpha: %.2f")
+                    .display_format("%.2f")
                     .build(alpha);
                 }
                 EspColor::Static { value } => {
@@ -1094,7 +1095,6 @@ impl SettingsUI {
                         *min = Color::from_f32(min_value);
                     }
 
-                    ui.text("Alpha");
                     ui.same_line();
                     ui.set_next_item_width(100.0);
                     ui.slider_config(
@@ -1102,7 +1102,7 @@ impl SettingsUI {
                         0.1,
                         1.0,
                     )
-                    .display_format("Alpha: %.2f")
+                    .display_format("%.2f")
                     .build(alpha);
                 }
                 EspColor::DistanceBased {
@@ -1159,7 +1159,7 @@ impl SettingsUI {
                         *far = Color::from_f32(far_color);
                     }
 
-                    ui.text("Alpha");
+                    ui.text("Alpha:");
                     ui.same_line();
                     ui.set_next_item_width(100.0);
                     ui.slider_config(
