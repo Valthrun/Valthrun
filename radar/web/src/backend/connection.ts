@@ -1,16 +1,18 @@
 import { EventEmitter } from "../utils/ee";
+import { C2SMessage, HandshakeProtocolV2, RadarState, S2CMessage } from "./definitions";
 
-
-export type SubscriberClientState = {
-    state: "new" | "connecting" | "initializing" | "connected" | "disconnected",
-} | {
-    state: "failed",
-    reason: string
-};
+export type SubscriberClientState =
+    | {
+        state: "new" | "connecting" | "handshaking" | "initializing" | "connected" | "disconnected";
+    }
+    | {
+        state: "failed";
+        reason: string;
+    };
 
 export interface SubscriberClientEvents {
-    "state_changed": SubscriberClientState,
-    "radar.state": RadarState,
+    state_changed: SubscriberClientState;
+    "radar.state": RadarState;
 }
 
 export class SubscriberClient {
@@ -19,35 +21,34 @@ export class SubscriberClient {
     private currentState: SubscriberClientState;
     private connection: WebSocket | null;
 
-    private commandHandler: { [T in keyof S2CMessage]?: (payload: S2CMessage[T]) => void } = {};
+    private commandHandler: { [T in S2CMessage["type"]]?: (payload: (S2CMessage & { type: T })["payload"]) => void } =
+        {};
 
-    constructor(
-        readonly targetAddress: string,
-    ) {
+    constructor(readonly targetAddress: string) {
         this.events = new EventEmitter();
         this.currentState = { state: "new" };
         this.connection = null;
 
         this.commandHandler = {};
-        this.commandHandler["ResponseError"] = payload => {
+        this.commandHandler["response-error"] = (payload) => {
             this.updateState({ state: "failed", reason: payload.error });
             this.closeSocket();
         };
 
-        this.commandHandler["ResponseSessionInvalidId"] = () => {
+        this.commandHandler["response-session-invalid-id"] = () => {
             this.updateState({ state: "failed", reason: "session does not exists" });
             this.closeSocket();
         };
 
-        this.commandHandler["ResponseSubscribeSuccess"] = () => {
+        this.commandHandler["response-subscribe-success"] = () => {
             this.updateState({ state: "connected" });
         };
 
-        this.commandHandler["NotifyRadarUpdate"] = payload => {
-            this.events.emit("radar.state", payload.update.State.state)
+        this.commandHandler["notify-radar-state"] = (payload) => {
+            this.events.emit("radar.state", payload.state);
         };
 
-        this.commandHandler["NotifySessionClosed"] = () => {
+        this.commandHandler["notify-session-closed"] = () => {
             this.updateState({ state: "disconnected" });
         };
     }
@@ -88,11 +89,15 @@ export class SubscriberClient {
         this.updateState({ state: "connecting" });
         this.connection = new WebSocket(this.targetAddress);
         this.connection.onopen = () => {
-            this.updateState({ state: "initializing" });
-            this.sendCommand("InitializeSubscribe", {
-                version: 1,
-                session_id: sessionId
-            });
+            this.updateState({ state: "handshaking" });
+            this.connection.send(
+                JSON.stringify({
+                    type: "request-initialize",
+                    payload: {
+                        clientVersion: 2,
+                    },
+                } satisfies HandshakeProtocolV2),
+            );
         };
 
         this.connection.onerror = () => {
@@ -107,91 +112,61 @@ export class SubscriberClient {
             }
         };
 
-        this.connection.onmessage = event => {
-            let payload = JSON.parse(event.data as string) as S2CMessage;
-            if (typeof payload === "string") {
-                payload = { [payload]: null } as any;
-            }
+        this.connection.onmessage = (event) => {
+            if (this.currentState.state === "handshaking") {
+                const payload = JSON.parse(event.data as string) as HandshakeProtocolV2;
+                switch (payload.type) {
+                    case "response-generic-failure":
+                        this.updateState({ state: "failed", reason: payload.payload.message });
+                        this.closeSocket();
+                        break;
 
-            for (const key of Object.keys(payload)) {
-                const commandHandler = this.commandHandler[key as any as keyof S2CMessage];
+                    case "response-incompatible":
+                        this.updateState({ state: "failed", reason: "protocol incompatible" });
+                        this.closeSocket();
+                        break;
+
+                    case "response-success":
+                        this.updateState({ state: "initializing" });
+                        this.sendCommand("initialize-subscribe", {
+                            session_id: sessionId,
+                        });
+                        break;
+
+                    default:
+                        this.updateState({ state: "failed", reason: "invalid handshake response" });
+                        this.closeSocket();
+                        break;
+                }
+            } else if (this.currentState.state === "initializing" || this.currentState.state === "connected") {
+                const payload = JSON.parse(event.data as string) as S2CMessage;
+                const commandHandler = this.commandHandler[payload.type];
                 if (typeof commandHandler === "function") {
-                    commandHandler(payload[key as keyof typeof payload] as any);
+                    commandHandler(payload.payload as any);
                 }
             }
         };
     }
 
-    public sendCommand<T extends keyof C2SMessage>(command: T, payload: C2SMessage[T]) {
-        this.connection.send(JSON.stringify({
-            [command]: payload
-        }));
+    public sendCommand<T extends C2SMessage["type"]>(
+        command: T,
+        payload: (C2SMessage | (HandshakeProtocolV2 & { type: T }))["payload"],
+    ) {
+        this.connection.send(
+            JSON.stringify({
+                type: command,
+                payload,
+            }),
+        );
     }
 }
 
-export type C2SMessage = {
-    "InitializeSubscribe": { version: number, session_id: string },
-}
+export const kDefaultRadarState: RadarState = {
+    localControllerEntityId: null,
 
-export type S2CMessage = {
-    "ResponseSuccess": void,
-    "ResponseError": { error: string },
-    "ResponseInvalidClientState": void,
-    "ResponseInitializePublish": { session_id: string, version: number },
-    "ResponseSubscribeSuccess": void,
-    "ResponseSessionInvalidId": void,
+    playerPawns: [],
+    worldName: "<empty>",
 
-    "NotifyRadarUpdate": {
-        update: RadarUpdate
-    },
-    "NotifySessionClosed": void
-}
-
-
-export type RadarUpdate = {
-    "State": { state: RadarState },
-    /* "Settings": any */
-};
-
-export type RadarState = {
-    players: RadarPlayerInfo[],
-    worldName: string,
-    bomb: RadarBombInfo,
-};
-
-export type RadarPlayerInfo = {
-    controllerEntityId: number,
-    teamId: number,
-
-    playerHealth: number,
-    playerHasDefuser: boolean,
-    playerName: string,
-    playerFlashtime: number,
-
-    weapon: number,
-
-    position: [number, number, number],
-    rotation: number,
-};
-
-export type RadarBombInfo = {
-    position: [number, number, number],
-    state: C4State,
-    bombSite: number | null,
-};
-
-export type C4State =
-    | { variant: 'Carried' }
-    | { variant: 'Dropped'}
-    | {
-    variant: 'Active';
-    timeDetonation: number;
-    defuse: BombDefuser | null;
-}
-    | { variant: 'Detonated' }
-    | { variant: 'Defused' };
-
-export type BombDefuser = {
-    timeRemaining: number;
-    playerName: string
+    c4Entities: [],
+    plantedC4: null,
 };

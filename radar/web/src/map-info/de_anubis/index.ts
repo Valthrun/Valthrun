@@ -1,20 +1,20 @@
 import { LoadedMap } from "..";
-import kImageRadar from "./radar.png";
 import kImageBuyZones from "./overlay_buyzones.png";
+import kImageRadar from "./radar.png";
 
 export default {
     mapName: "de_anubis",
     displayName: "Anubis",
 
     metaInfo: {
-        "resolution": 5.25,
+        resolution: 5.25,
 
-        "offset": {
-            "x": 2830,
-            "y": 2030
+        offset: {
+            x: 2830,
+            y: 2030,
         },
 
-        "floors": []
+        floors: [],
     },
 
     overlayBuyzones: kImageBuyZones,

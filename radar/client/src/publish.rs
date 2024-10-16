@@ -11,14 +11,10 @@ use anyhow::{
     Context,
     Error,
 };
-use radar_shared::{
-    protocol::{
-        C2SMessage,
-        ClientEvent,
-        RadarUpdate,
-        S2CMessage,
-    },
-    RadarSettings,
+use radar_shared::protocol::{
+    C2SMessage,
+    ClientEvent,
+    S2CMessage,
 };
 use tokio::{
     self,
@@ -34,7 +30,7 @@ use tokio::{
 use url::Url;
 
 use crate::{
-    create_ws_connection,
+    create_ws_transport,
     RadarGenerator,
 };
 
@@ -44,15 +40,13 @@ pub struct WebRadarPublisher {
     generator: RefCell<Box<dyn RadarGenerator>>,
     generate_interval: Pin<Box<Interval>>,
 
-    settings: RadarSettings,
-
     transport_tx: Sender<C2SMessage>,
     transport_rx: Receiver<ClientEvent<S2CMessage>>,
 }
 
 impl WebRadarPublisher {
     pub async fn connect(generator: Box<dyn RadarGenerator>, url: &Url) -> anyhow::Result<Self> {
-        let (tx, rx) = create_ws_connection(url).await?;
+        let (tx, rx) = create_ws_transport(url).await?;
         Self::create_from_transport(generator, tx, rx).await
     }
 
@@ -61,7 +55,7 @@ impl WebRadarPublisher {
         tx: Sender<C2SMessage>,
         mut rx: Receiver<ClientEvent<S2CMessage>>,
     ) -> anyhow::Result<Self> {
-        let _ = tx.send(C2SMessage::InitializePublish { version: 1 }).await;
+        let _ = tx.send(C2SMessage::InitializePublish {}).await;
         let event = tokio::select! {
             message = rx.recv() => message.context("unexpected client disconnect")?,
             _ = time::sleep(Duration::from_secs(5)) => {
@@ -90,11 +84,6 @@ impl WebRadarPublisher {
             transport_tx: tx,
 
             generate_interval: Box::pin(time::interval(Duration::from_millis(50))),
-
-            settings: RadarSettings {
-                show_team_players: true,
-                show_enemy_players: true,
-            },
         })
     }
 
@@ -107,7 +96,7 @@ impl WebRadarPublisher {
             .transport_tx
             .send_timeout(
                 C2SMessage::Disconnect {
-                    message: "connection close".to_string(),
+                    reason: "connection close".to_string(),
                 },
                 Duration::from_secs(1),
             )
@@ -139,10 +128,8 @@ impl Future for WebRadarPublisher {
         }
 
         while let Poll::Ready(_) = self.generate_interval.poll_tick(cx) {
-            match self.generator.borrow_mut().generate_state(&self.settings) {
-                Ok(state) => self.send_message(C2SMessage::RadarUpdate {
-                    update: RadarUpdate::State { state },
-                }),
+            match self.generator.borrow_mut().generate_state() {
+                Ok(state) => self.send_message(C2SMessage::NotifyRadarState { state }),
                 Err(err) => {
                     log::warn!("Failed to generate radar state: {:#}", err);
                 }

@@ -1,22 +1,21 @@
-import { configureStore } from '@reduxjs/toolkit'
+import { configureStore } from "@reduxjs/toolkit";
 import { TypedUseSelectorHook, useDispatch, useSelector } from "react-redux";
-import kReducerRadarSettings from "./radar-settings";
-import { persistStore } from "redux-persist";
 import {
+    persistStore,
     FLUSH as ReduxPersistFlush,
-    REHYDRATE as ReduxPersistRehydrate,
     PAUSE as ReduxPersistPause,
     PERSIST as ReduxPersistPersist,
     PURGE as ReduxPersistPurge,
     REGISTER as ReduxPersistRegister,
+    REHYDRATE as ReduxPersistRehydrate,
 } from "redux-persist";
+import kReducerRadarSettings from "./radar-settings";
 
 export const appStore = configureStore({
     reducer: {
         radarSettings: kReducerRadarSettings,
     },
-    middleware: getDefaultMiddleware => {
-
+    middleware: (getDefaultMiddleware) => {
         return getDefaultMiddleware({
             serializableCheck: {
                 ignoredActions: [
@@ -25,19 +24,19 @@ export const appStore = configureStore({
                     ReduxPersistPause,
                     ReduxPersistPersist,
                     ReduxPersistPurge,
-                    ReduxPersistRegister
-                ]
-            }
-        })
-    }
+                    ReduxPersistRegister,
+                ],
+            },
+        });
+    },
 });
 
 export async function initializeAppStore() {
-    await new Promise<void>(resolve => persistStore(appStore, null, resolve));
+    await new Promise<void>((resolve) => persistStore(appStore, null, resolve));
 }
 
-export type RootState = ReturnType<typeof appStore.getState>
-export type AppDispatch = typeof appStore.dispatch
+export type RootState = ReturnType<typeof appStore.getState>;
+export type AppDispatch = typeof appStore.dispatch;
 
 export const useAppDispatch = () => useDispatch<AppDispatch>();
 export const useAppSelector: TypedUseSelectorHook<RootState> = useSelector;

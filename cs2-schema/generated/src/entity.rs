@@ -1,5 +1,9 @@
 use std::{
     fmt::Debug,
+    hash::{
+        Hash,
+        Hasher,
+    },
     marker::PhantomData,
 };
 
@@ -50,6 +54,18 @@ impl<T> Debug for EntityHandle<T> {
                 &format_args!("0x{:X}", &self.get_serial_number()),
             )
             .finish()
+    }
+}
+
+impl<T> PartialEq for EntityHandle<T> {
+    fn eq(&self, other: &Self) -> bool {
+        self.get_entity_index() == other.get_entity_index()
+    }
+}
+
+impl<T> Hash for EntityHandle<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.get_entity_index().hash(state);
     }
 }
 

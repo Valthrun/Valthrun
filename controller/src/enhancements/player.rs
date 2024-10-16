@@ -496,9 +496,12 @@ impl Enhancement for PlayerESP {
                         esp_settings
                             .info_name_color
                             .calculate_color(player_rel_health, distance),
-                        &entry.player_name,
+                        entry.player_name.as_ref().map_or("unknown", String::as_str),
                     );
-                    unicode_text.register_unicode_text(&entry.player_name);
+
+                    if let Some(player_name) = &entry.player_name {
+                        unicode_text.register_unicode_text(player_name);
+                    }
                 }
 
                 if esp_settings.info_weapon {

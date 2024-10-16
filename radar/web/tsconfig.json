@@ -1,15 +1,15 @@
 {
-  "compilerOptions": {
-    "outDir": "./dist/",
-    "noImplicitAny": true,
-    "module": "ESNext",
-    "resolveJsonModule": true,
-    "esModuleInterop": true,
-    "target": "es6",
-    "jsx": "react",
-    "allowJs": true,
-    "moduleResolution": "node",
-    "lib": ["DOM", "DOM.Iterable"]
-  },
-  "include": ["src"]
+    "compilerOptions": {
+        "outDir": "./dist/",
+        "noImplicitAny": true,
+        "module": "ESNext",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "target": "es6",
+        "jsx": "react",
+        "allowJs": true,
+        "moduleResolution": "node",
+        "lib": ["DOM", "DOM.Iterable"]
+    },
+    "include": ["src"]
 }

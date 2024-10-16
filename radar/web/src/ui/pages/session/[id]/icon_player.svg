@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg
+    fill="#000000" version="1.1" viewBox="0 0 512 512"
+    xml:space="preserve" xmlns="http://www.w3.org/2000/svg"
+>
+    <path
+        transform="matrix(1.4606 0 0 1.5468 -30.436 37.533)"
+        d="m309.27 178.87-227.12-1.3683 114.75-196.01z"
+        stroke-width=".26458"
+        class="view-cone"
+    />
+    <circle
+        cx="255.4"
+        cy="336"
+        r="166.02"
+        stroke-width=".30081"
+        class="player-dot"
+    />
+</svg>
