@@ -67,24 +67,10 @@ impl From<[f32; 4]> for Color {
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
 pub enum EspColor {
-    HealthBasedRainbow {
-        alpha: f32,
-    },
-    HealthBased {
-        max: Color,
-        mid: Color,
-        min: Color,
-        alpha: f32,
-    },
-    Static {
-        value: Color,
-    },
-    DistanceBased {
-        near: Color,
-        mid: Color,
-        far: Color,
-        alpha: f32,
-    },
+    HealthBasedRainbow { alpha: f32 },
+    HealthBased { max: Color, mid: Color, min: Color },
+    Static { value: Color },
+    DistanceBased { near: Color, mid: Color, far: Color },
 }
 
 impl Default for EspColor {
@@ -116,24 +102,18 @@ impl EspColor {
     pub fn calculate_color(&self, health: f32, distance: f32) -> [f32; 4] {
         match self {
             Self::Static { value } => value.as_f32(),
-            Self::HealthBased {
-                max,
-                mid,
-                min,
-                alpha,
-            } => {
+            Self::HealthBased { max, mid, min } => {
                 let max_rgb = max.as_f32();
                 let mid_rgb = mid.as_f32();
                 let min_rgb = min.as_f32();
 
-                let color = if health > 0.5 {
+                if health > 0.5 {
                     let t = (health - 0.5) * 2.0;
                     Self::interpolate_color(mid_rgb, max_rgb, t)
                 } else {
                     let t = health * 2.0;
                     Self::interpolate_color(min_rgb, mid_rgb, t)
-                };
-                [color[0], color[1], color[2], *alpha]
+                }
             }
             Self::HealthBasedRainbow { alpha } => {
                 let sin_value = |offset: f32| {
@@ -144,15 +124,9 @@ impl EspColor {
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
                 [r, g, b, *alpha]
             }
-            Self::DistanceBased {
-                near,
-                mid,
-                far,
-                alpha,
-            } => {
+            Self::DistanceBased { near, mid, far } => {
                 let max_distance = 50.0;
                 let min_distance = 0.0;
-                // let mid_distance = (max_distance + min_distance) / 2.0;
 
                 let color_near = near.as_f32();
                 let color_mid = mid.as_f32();
@@ -160,15 +134,13 @@ impl EspColor {
 
                 let t = ((distance - min_distance) / (max_distance - min_distance)).clamp(0.0, 1.0);
 
-                let color = if t < 0.5 {
+                if t < 0.5 {
                     let t2 = t * 2.0;
                     Self::interpolate_color(color_near, color_mid, t2)
                 } else {
                     let t2 = (t - 0.5) * 2.0;
                     Self::interpolate_color(color_mid, color_far, t2)
-                };
-
-                [color[0], color[1], color[2], *alpha]
+                }
             }
         }
     }
