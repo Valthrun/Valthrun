@@ -998,14 +998,12 @@ impl SettingsUI {
                         max: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
                         mid: Color::from_f32([1.0, 1.0, 0.0, 1.0]),
                         min: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
-                        alpha: 1.0,
                     },
                     EspColorType::HealthBasedRainbow => EspColor::HealthBasedRainbow { alpha: 1.0 },
                     EspColorType::DistanceBased => EspColor::DistanceBased {
                         near: Color::from_f32([1.0, 0.0, 0.0, 1.0]),
                         mid: Color::from_f32([1.0, 1.0, 0.0, 1.0]),
                         far: Color::from_f32([0.0, 1.0, 0.0, 1.0]),
-                        alpha: 1.0,
                     },
                 }
             }
@@ -1042,19 +1040,14 @@ impl SettingsUI {
                         *value = Color::from_f32(color_value);
                     }
                 }
-                EspColor::HealthBased {
-                    max,
-                    mid,
-                    min,
-                    alpha,
-                } => {
+                EspColor::HealthBased { max, mid, min } => {
                     let mut max_value = max.as_f32();
                     if {
                         ui.color_edit4_config(
                             &format!("##{}_health_max", ui.table_row_index()),
                             &mut max_value,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
@@ -1071,7 +1064,7 @@ impl SettingsUI {
                             &format!("##{}_health_mid", ui.table_row_index()),
                             &mut mid_value,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
@@ -1088,38 +1081,22 @@ impl SettingsUI {
                             &format!("##{}_health_min", ui.table_row_index()),
                             &mut min_value,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
                     } {
                         *min = Color::from_f32(min_value);
                     }
-
-                    ui.text("Alpha:");
-                    ui.same_line();
-                    ui.set_next_item_width(100.0);
-                    ui.slider_config(
-                        &format!("##{}_health_alpha", ui.table_row_index()),
-                        0.1,
-                        1.0,
-                    )
-                    .display_format("%.2f")
-                    .build(alpha);
                 }
-                EspColor::DistanceBased {
-                    near,
-                    mid,
-                    far,
-                    alpha,
-                } => {
+                EspColor::DistanceBased { near, mid, far } => {
                     let mut near_color = near.as_f32();
                     if ui
                         .color_edit4_config(
                             &format!("##{}_near", ui.table_row_index()),
                             &mut near_color,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
@@ -1136,7 +1113,7 @@ impl SettingsUI {
                             &format!("##{}_mid", ui.table_row_index()),
                             &mut mid_color,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
@@ -1153,24 +1130,13 @@ impl SettingsUI {
                             &format!("##{}_far", ui.table_row_index()),
                             &mut far_color,
                         )
-                        .alpha_bar(false)
+                        .alpha_bar(true)
                         .inputs(false)
                         .label(false)
                         .build()
                     {
                         *far = Color::from_f32(far_color);
                     }
-
-                    ui.text("Alpha:");
-                    ui.same_line();
-                    ui.set_next_item_width(100.0);
-                    ui.slider_config(
-                        &format!("##{}_distance_alpha", ui.table_row_index()),
-                        0.1,
-                        1.0,
-                    )
-                    .display_format("%.2f")
-                    .build(alpha);
                 }
             }
         }
