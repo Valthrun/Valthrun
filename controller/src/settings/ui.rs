@@ -62,6 +62,7 @@ use crate::{
     settings::{
         AppSettings,
         EspBoxType,
+        EspHeadDot,
         EspHealthBar,
         EspPlayerSettings,
         EspTracePosition,
@@ -751,6 +752,17 @@ impl SettingsUI {
                 }
 
                 {
+                    const HEAD_DOT_TYPES: [(EspHeadDot, &'static str); 3] = [
+                        (EspHeadDot::None, "No"),
+                        (EspHeadDot::Filled, "Filled"),
+                        (EspHeadDot::NotFilled, "Not Filled"),
+                    ];
+
+                    ui.set_next_item_width(COMBO_WIDTH);
+                    ui.combo_enum(obfstr!("head dot"), &HEAD_DOT_TYPES, &mut config.head_dot);
+                }
+
+                {
                     const TRACER_LINE_TYPES: [(EspTracePosition, &'static str); 7] = [
                         (EspTracePosition::None, "No"),
                         (EspTracePosition::TopLeft, "Top left"),
@@ -867,6 +879,40 @@ impl SettingsUI {
                         1.0,
                         10.0,
                         &mut config.skeleton_width,
+                    );
+
+                    ui.table_next_row();
+                    Self::render_esp_settings_player_style_color(
+                        ui,
+                        obfstr!("Head dot color"),
+                        &mut config.head_dot_color,
+                    );
+
+                    ui.table_next_row();
+                    Self::render_esp_settings_player_style_width(
+                        ui,
+                        obfstr!("Head dot thickness"),
+                        1.0,
+                        5.0,
+                        &mut config.head_dot_thickness,
+                    );
+
+                    ui.table_next_row();
+                    Self::render_esp_settings_player_style_width(
+                        ui,
+                        obfstr!("Head dot radius"),
+                        0.0,
+                        10.0,
+                        &mut config.head_dot_base_radius,
+                    );
+
+                    ui.table_next_row();
+                    Self::render_esp_settings_player_style_width(
+                        ui,
+                        obfstr!("Head dot z offset"),
+                        0.0,
+                        10.0,
+                        &mut config.head_dot_z,
                     );
 
                     ui.table_next_row();

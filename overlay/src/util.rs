@@ -29,8 +29,8 @@ pub fn show_error_message(title: &str, message: &str) {
     unsafe {
         MessageBoxW(
             HWND::default(),
-            PCWSTR::from_raw(title_wide.as_ptr()),
             PCWSTR::from_raw(message_wide.as_ptr()),
+            PCWSTR::from_raw(title_wide.as_ptr()),
             MB_ICONERROR | MB_OK,
         );
     }

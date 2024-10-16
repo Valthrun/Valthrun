@@ -187,6 +187,13 @@ pub enum EspTracePosition {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspHeadDot {
+    None,
+    Filled,
+    NotFilled,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct EspPlayerSettings {
     pub box_type: EspBoxType,
     pub box_color: EspColor,
@@ -221,6 +228,12 @@ pub struct EspPlayerSettings {
     pub info_flag_kit: bool,
     pub info_flag_flashed: bool,
     pub info_flags_color: EspColor,
+
+    pub head_dot: EspHeadDot,
+    pub head_dot_color: EspColor,
+    pub head_dot_thickness: f32,
+    pub head_dot_base_radius: f32,
+    pub head_dot_z: f32,
 }
 
 const ESP_COLOR_FRIENDLY: EspColor = EspColor::from_rgba(0.0, 1.0, 0.0, 0.75);
@@ -279,6 +292,12 @@ impl EspPlayerSettings {
             info_flag_kit: false,
             info_flag_flashed: false,
             info_flags_color: color.clone(),
+
+            head_dot: EspHeadDot::None,
+            head_dot_color: color.clone(),
+            head_dot_thickness: 2.0,
+            head_dot_base_radius: 3.0,
+            head_dot_z: 1.0,
         }
     }
 }
