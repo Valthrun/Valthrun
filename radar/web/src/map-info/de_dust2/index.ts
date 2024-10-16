@@ -10,8 +10,8 @@ export default {
         "resolution": 4.40,
 
         "offset": {
-            "x": 2470,
-            "y": 1255
+            "x": -2470,
+            "y": 3239
         },
 
         "floors": []

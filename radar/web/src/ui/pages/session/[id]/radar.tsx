@@ -1,6 +1,6 @@
 import * as React from "react";
 import { kDefaultRadarState } from "../../../../backend/connection";
-import { LoadedMap, loadMap } from "../../../../map-info";
+import { LoadedMap, loadMap, MapImage } from "../../../../map-info";
 import { Box, Typography } from "@mui/material";
 import ImageBomb from "../../../../assets/bomb.png";
 import { useAppSelector } from "../../../../state";
@@ -17,6 +17,8 @@ export const RadarRenderer = React.memo(() => {
     const { worldName, plantedC4 } = React.useContext(ContextRadarState);
     const [mapInfo, setMapInfo] = React.useState<LoadedMap>(null);
     const showBombDetails = useAppSelector(state => state.radarSettings.displayBombDetails);
+    const showLowerRadar = useAppSelector(state => state.radarSettings.displayLowerRadar);
+    const radarStyleSelector = useAppSelector(state => state.radarSettings.radarStyleSelector);
 
     React.useEffect(() => {
         let obsolete = false;
@@ -38,6 +40,41 @@ export const RadarRenderer = React.memo(() => {
             obsolete = true;
         }
     }, [worldName]);
+
+    const [sqareSize, setSqareSize] = useState(1);
+    const refContainer = React.useRef<HTMLDivElement>();
+    const observer = React.useMemo(() => {
+        return new ResizeObserver(events => {
+            const event = events[events.length - 1];
+            const { width, height } = event.contentRect;
+            const sqareSize = Math.min(width, height);
+            setSqareSize(sqareSize);
+        });
+    }, [setSqareSize]);
+
+    React.useEffect(() => {
+        if (!refContainer.current) {
+            return;
+        }
+
+        observer.observe(refContainer.current);
+        return () => observer.disconnect();
+    }, [refContainer, observer]);
+
+
+
+    const displayRadarLevel = (level:keyof MapImage['images'])=>{ 
+        return (                  
+            <SqareContainer sqareSize={sqareSize}>
+                <MapRenderer level={level} radarStyle={radarStyleSelector ? "SimpleRadar" : "Official"}/>
+                {!mapInfo && (
+                    <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                        <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
+                    </Box>
+                )}
+            </SqareContainer>
+        )
+    }
 
     return (
         <ContextMap.Provider value={mapInfo}>
@@ -75,14 +112,10 @@ export const RadarRenderer = React.memo(() => {
                     }}>
                         {showBombDetails && plantedC4 && <BombIndicator state={plantedC4.state} />}
                     </Box>
-                    <SqareContainer>
-                        <MapRenderer />
-                        {!mapInfo && (
-                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
-                            </Box>
-                        )}
-                    </SqareContainer>
+                    <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "row" }} ref={refContainer}>
+                        {displayRadarLevel('default')}
+                        {showLowerRadar ? displayRadarLevel('lower') : null}
+                    </Box>
                 </Box>
             </Box>
         </ContextMap.Provider>
@@ -92,30 +125,16 @@ export const RadarRenderer = React.memo(() => {
 const SqareContext = React.createContext<number>(1);
 const SqareContainer = React.memo((props: {
     children: React.ReactNode,
+    sqareSize: number
 }) => {
-    const [sqareSize, setSqareSize] = useState(1);
-    const refContainer = React.useRef<HTMLDivElement>();
-    const observer = React.useMemo(() => {
-        return new ResizeObserver(events => {
-            const event = events[events.length - 1];
-            const { width, height } = event.contentRect;
-            const sqareSize = Math.min(width, height);
-            setSqareSize(sqareSize);
-        });
-    }, [setSqareSize]);
+    
 
-    React.useEffect(() => {
-        if (!refContainer.current) {
-            return;
-        }
+//check if need two level design
 
-        observer.observe(refContainer.current);
-        return () => observer.disconnect();
-    }, [refContainer, observer]);
 
     return (
-        <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "column" }} ref={refContainer}>
-            <Box
+        
+            <Box 
                 sx={{
                     marginTop: "auto",
                     marginLeft: "auto",
@@ -123,23 +142,46 @@ const SqareContainer = React.memo((props: {
                     marginBottom: "auto"
                 }}
                 style={{
-                    width: `${sqareSize}px`,
-                    height: `${sqareSize}px`,
+                    width: `${props.sqareSize}px`,
+                    height: `${props.sqareSize}px`,
                 } as any}
             >
-                <SqareContext.Provider value={sqareSize}>
+                <SqareContext.Provider value={props.sqareSize}>
                     {props.children}
                 </SqareContext.Provider>
             </Box>
-        </Box>
     )
 });
 
-const MapRenderer = React.memo(() => {
+const MapRenderer = React.memo((props:{level:keyof MapImage['images'], radarStyle:MapImage['name'] }) => {
     const { playerPawns, c4Entities, plantedC4 } = React.useContext(ContextRadarState);
     const map = React.useContext(ContextMap);
-
     const { colorDotCT, colorDotT, colorDotOwn } = useAppSelector(state => state.radarSettings);
+
+    if (!map) {
+        /* we need the map info */
+        return null;
+    }
+
+    let radarMapImage = map.mapImages.find((item:MapImage)=>{
+        return item.name == props.radarStyle
+    }) as MapImage
+
+    let playerPawnsDisplay = playerPawns.filter((pawn)=>{
+        if(map.verticalSections[props.level].altitudeMin <= pawn.position[2] && pawn.position[2] <= map.verticalSections[props.level].altitudeMax){
+            return true
+        }
+        return false
+    })
+
+    let c4EntitiesDisplay = c4Entities.filter((entity)=>{
+        if(map.verticalSections[props.level].altitudeMin <= entity.position[2] && entity.position[2] <= map.verticalSections[props.level].altitudeMax){
+            return true
+        }
+        return false
+    })
+
+
     return (
         <Box sx={{
             position: "relative",
@@ -170,13 +212,13 @@ const MapRenderer = React.memo(() => {
                 sx={{
                     height: "100%",
                     width: "100%",
-                    backgroundImage: `url("${map?.overlayRadar}")`,
+                    backgroundImage: `url("${radarMapImage?.images[props.level]}")`,
                     backgroundPosition: "center",
-                    backgroundSize: "contain",
+                    backgroundSize: "cover",
                 }}
             />
-            {playerPawns.map(pawn => <MapPlayerPawn playerInfo={pawn} key={`player-${pawn.controllerEntityId}`} />)}
-            {c4Entities.map(entity => <MapC4 position={entity.position} key={`c4-${entity.entityId}`} />)}
+            {playerPawnsDisplay.map(pawn => <MapPlayerPawn playerInfo={pawn} key={`player-${pawn.pawnEntityId}`} />)}
+            {c4EntitiesDisplay.map(entity => <MapC4 position={entity.position} key={`c4-${entity.entityId}`} />)}
             {plantedC4 && <MapC4 position={plantedC4.position} key="planted-c4" />}
         </Box>
     )
@@ -189,19 +231,14 @@ const useMapPosition = (position: [number, number, number]): [number, number] | 
         return null;
     }
 
-    const { metaInfo } = map;
-    const offsets = metaInfo.offset;
-    const mapSize = metaInfo.resolution * 1024;
+    const mapSize = map.scale * 1024;
 
-    const floorOffset = map.metaInfo.floors.find(floor => floor.zRange.min <= position[2] && position[2] <= floor.zRange.max)?.offset ?? {
-        x: 0,
-        y: 0
-    };
     return [
-        (position[0] + offsets.x) * 100 / mapSize + floorOffset.x,
-        (position[1] + offsets.y) * 100 / mapSize + floorOffset.y
-    ]
-}
+        (position[0] - map.pos_x) * 100 / mapSize,
+        (position[1] - map.pos_y) * 100 / -mapSize 
+    ];
+};
+
 
 export const MapPlayerPawn = React.memo((props: {
     playerInfo: RadarPlayerPawn
@@ -249,7 +286,7 @@ export const MapPlayerIcon = (props: {
             style={{
                 position: "absolute",
 
-                bottom: `${position[1] * mapWidth / 100 - iconWidth / 2}px`,
+                top: `${position[1] * mapWidth / 100 - iconWidth / 2}px`,
                 left: `${position[0] * mapWidth / 100 - iconWidth / 2}px`,
 
                 rotate: `${rotation + 90}deg`,
@@ -271,7 +308,7 @@ const MapC4 = React.memo((props: {
     return (
         <Box
             sx={{
-                bottom: "var(--pos-y)",
+                top: "var(--pos-y)",
                 left: "var(--pos-x)",
 
                 height: `${iconSize}%`,

@@ -1,21 +1,22 @@
-export type MapMetaFloor = {
-    "offset": {
-        "x": number,
-        "y": number
-    },
-    "zRange": {
-        "min": number,
-        "max": number
-    }
+export type VerticalSection = {
+        default:
+        {
+            altitudeMax: number,
+            altitudeMin: number,
+        },
+        lower?:
+        {
+            altitudeMax: number,
+            altitudeMin: number,
+        }
 }
 
-export type MapMetaData = {
-    resolution: number,
-    offset: {
-        "x": number,
-        "y": number,
-    },
-    floors: MapMetaFloor[]
+export type MapImage = {
+        name: string,
+        images:{
+            default: string,
+            lower?: string
+        }
 }
 
 export const kRegisteredMaps: Record<string, () => Promise<LoadedMap>> = {
@@ -36,10 +37,13 @@ export type LoadedMap = {
     mapName: string,
     displayName: string,
 
-    metaInfo: MapMetaData,
+    pos_x: number,
+    pos_y: number,
+    scale: number,
 
-    overlayBuyzones: string,
-    overlayRadar: string
+    verticalSections?: VerticalSection,
+
+    mapImages: Array<MapImage>
 };
 
 export const loadMap = async (name: string): Promise<LoadedMap | null> => {
