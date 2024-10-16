@@ -569,7 +569,7 @@ pub fn dump_schema(
                 }
             }
 
-            let schema_scope = match schema_scops.entry(scope_name.clone()) {
+            let schema_scope = match schema_scops.entry(class_scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
@@ -604,7 +604,7 @@ pub fn dump_schema(
                 }
             }
 
-            let schema_scope = match schema_scops.entry(scope_name.clone()) {
+            let schema_scope = match schema_scops.entry(enum_scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
