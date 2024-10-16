@@ -1015,6 +1015,7 @@ impl SettingsUI {
         {
             match color {
                 EspColor::HealthBasedRainbow { alpha } => {
+                    ui.text("Alpha:");
                     ui.same_line();
                     ui.set_next_item_width(100.0);
                     ui.slider_config(
@@ -1095,6 +1096,7 @@ impl SettingsUI {
                         *min = Color::from_f32(min_value);
                     }
 
+                    ui.text("Alpha:");
                     ui.same_line();
                     ui.set_next_item_width(100.0);
                     ui.slider_config(
