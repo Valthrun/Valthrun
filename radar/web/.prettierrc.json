@@ -1,0 +1,19 @@
+{
+    "endOfLine": "lf",
+    "printWidth": 120,
+    "quoteProps": "as-needed",
+    "singleQuote": false,
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "overrides": [
+        {
+            "files": ["*.yml", "**.yaml", "**/*.yml", "**/*.yaml"],
+            "options": {
+                "tabWidth": 4
+            }
+        }
+    ],
+    "plugins": ["@ianvs/prettier-plugin-sort-imports"],
+    "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],
+    "importOrderTypeScriptVersion": "5.0.0"
+}

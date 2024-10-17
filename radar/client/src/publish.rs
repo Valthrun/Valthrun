@@ -30,7 +30,7 @@ use tokio::{
 use url::Url;
 
 use crate::{
-    create_ws_connection,
+    create_ws_transport,
     RadarGenerator,
 };
 
@@ -46,7 +46,7 @@ pub struct WebRadarPublisher {
 
 impl WebRadarPublisher {
     pub async fn connect(generator: Box<dyn RadarGenerator>, url: &Url) -> anyhow::Result<Self> {
-        let (tx, rx) = create_ws_connection(url).await?;
+        let (tx, rx) = create_ws_transport(url).await?;
         Self::create_from_transport(generator, tx, rx).await
     }
 
@@ -55,7 +55,7 @@ impl WebRadarPublisher {
         tx: Sender<C2SMessage>,
         mut rx: Receiver<ClientEvent<S2CMessage>>,
     ) -> anyhow::Result<Self> {
-        let _ = tx.send(C2SMessage::InitializePublish { version: 1 }).await;
+        let _ = tx.send(C2SMessage::InitializePublish {}).await;
         let event = tokio::select! {
             message = rx.recv() => message.context("unexpected client disconnect")?,
             _ = time::sleep(Duration::from_secs(5)) => {

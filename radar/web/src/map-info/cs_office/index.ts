@@ -6,14 +6,14 @@ export default {
     displayName: "Office",
 
     metaInfo: {
-        "resolution": 4.26,
+        resolution: 4.26,
 
-        "offset": {
-            "x": 1900,
-            "y": 2425
+        offset: {
+            x: 1900,
+            y: 2425,
         },
 
-        "floors": []
+        floors: [],
     },
 
     overlayBuyzones: "empty",

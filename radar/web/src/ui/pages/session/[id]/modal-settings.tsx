@@ -1,23 +1,29 @@
-import { Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, Slider, Typography, Switch, IconButton } from "@mui/material";
-import { useAppDispatch, useAppSelector } from "../../../../state"
-import { kDefaultRadarSettings, RadarSettingsState, updateRadarSettings } from "../../../../state/radar-settings";
-import React from "react";
-import { MuiColorInput } from "mui-color-input";
 import { SettingsBackupRestore as IconReset } from "@mui/icons-material";
+import {
+    Box,
+    Button,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
+    IconButton,
+    Slider,
+    Switch,
+    Typography,
+} from "@mui/material";
+import { MuiColorInput } from "mui-color-input";
+import React from "react";
+import { useAppDispatch, useAppSelector } from "../../../../state";
+import { kDefaultRadarSettings, RadarSettingsState, updateRadarSettings } from "../../../../state/radar-settings";
 
 export default React.memo(() => {
-    const isOpen = useAppSelector(state => state.radarSettings.dialogOpen);
+    const isOpen = useAppSelector((state) => state.radarSettings.dialogOpen);
     const dispatch = useAppDispatch();
-    const highlightBroadcaster = useAppSelector(state => state.radarSettings.showDotOwn);
+    const highlightBroadcaster = useAppSelector((state) => state.radarSettings.showDotOwn);
 
     return (
-        <Dialog
-            open={isOpen}
-            onClose={() => dispatch(updateRadarSettings({ dialogOpen: false }))}
-        >
-            <DialogTitle>
-                Radar Settings
-            </DialogTitle>
+        <Dialog open={isOpen} onClose={() => dispatch(updateRadarSettings({ dialogOpen: false }))}>
+            <DialogTitle>Radar Settings</DialogTitle>
             <DialogContent
                 sx={{
                     minWidth: "15em",
@@ -46,7 +52,7 @@ export default React.memo(() => {
 });
 
 const SettingIconSize = React.memo(() => {
-    const value = useAppSelector(state => state.radarSettings.iconSize);
+    const value = useAppSelector((state) => state.radarSettings.iconSize);
     const dispatch = useAppDispatch();
 
     return (
@@ -56,15 +62,13 @@ const SettingIconSize = React.memo(() => {
                 min={0.1}
                 max={5.0}
                 step={0.1}
-
                 value={value}
                 onChange={(_event, value) => dispatch(updateRadarSettings({ iconSize: value }))}
-
                 valueLabelDisplay={"auto"}
             />
         </Box>
     );
-})
+});
 
 const SettingBoolean = React.memo((props: {
     title: string,
@@ -74,58 +78,61 @@ const SettingBoolean = React.memo((props: {
     const value = useAppSelector(state => state.radarSettings[target]);
     const dispatch = useAppDispatch();
 
-    return (
-        <Box>
-            <Typography variant={"subtitle1"}>
-                {title}
-            </Typography>
-            <Switch
-                checked={value}
-                onChange={(_event, value) => dispatch(updateRadarSettings({ [target]: value }))}
-            />
-        </Box>
-    );
-})
-
-const SettingDotColor = React.memo((props: {
-    title: string,
-    target: keyof RadarSettingsState & ("colorDotCT" | "colorDotT" | "colorDotOwn"),
-}) => {
-    const value = useAppSelector(state => state.radarSettings[props.target]);
-    const dispatch = useAppDispatch();
-
-    return (
-        <Box>
-            <Typography variant={"subtitle1"}>
-                {props.title}
-            </Typography>
-            <Box sx={{
-                display: "flex",
-                flexDirection: "row",
-                gap: "1em"
-            }}>
-                <MuiColorInput
-                    fullWidth
-                    sx={{ minWidth: "5em" }}
-                    size="small"
-
-                    format="hex"
-                    value={value}
-                    onChange={event => dispatch(updateRadarSettings({
-                        [props.target]: event
-                    }))}
+        return (
+            <Box>
+                <Typography variant={"subtitle1"}>{title}</Typography>
+                <Switch
+                    checked={value}
+                    onChange={(_event, value) => dispatch(updateRadarSettings({ [target]: value }))}
                 />
-                <IconButton
-                    onClick={() => {
-                        dispatch(updateRadarSettings({
-                            [props.target]: kDefaultRadarSettings[props.target]
-                        }))
-                    }}
-                    title="Reset value"
-                >
-                    <IconReset />
-                </IconButton>
             </Box>
-        </Box>
-    );
-});
+        );
+    },
+);
+
+const SettingDotColor = React.memo(
+    (props: { title: string; target: keyof RadarSettingsState & ("colorDotCT" | "colorDotT" | "colorDotOwn") }) => {
+        const value = useAppSelector((state) => state.radarSettings[props.target]);
+        const dispatch = useAppDispatch();
+
+        return (
+            <Box>
+                <Typography variant={"subtitle1"}>{props.title}</Typography>
+                <Box
+                    sx={{
+                        display: "flex",
+                        flexDirection: "row",
+                        gap: "1em",
+                    }}
+                >
+                    <MuiColorInput
+                        fullWidth
+                        sx={{ minWidth: "5em" }}
+                        size="small"
+                        format="hex"
+                        value={value}
+                        onChange={(event) =>
+                            dispatch(
+                                updateRadarSettings({
+                                    [props.target]: event,
+                                }),
+                            )
+                        }
+                    />
+                    <IconButton
+                        onClick={() => {
+                            dispatch(
+                                updateRadarSettings({
+                                    [props.target]: kDefaultRadarSettings[props.target],
+                                }),
+                            );
+                        }}
+                        title="Reset value"
+                    >
+                        <IconReset />
+                    </IconButton>
+                </Box>
+            </Box>
+        );
+    },
+);
