@@ -36,6 +36,8 @@ export default React.memo(() => {
                 <SettingIconSize />
 
                 <SettingBoolean target="displayBombDetails" title="Display Bomb Details" />
+                <SettingBoolean target="displayLowerRadar" title="Display Lower Radar" />
+                <SettingBoolean target="radarStyleSelector" title="Use Old Style" />
                 <SettingBoolean target="showDotOwn" title="Highlight broadacster" />
 
                 <SettingDotColor target="colorDotCT" title="CT Color" />
@@ -68,11 +70,13 @@ const SettingIconSize = React.memo(() => {
     );
 });
 
-const SettingBoolean = React.memo(
-    (props: { title: string; target: keyof RadarSettingsState & ("displayBombDetails" | "showDotOwn") }) => {
-        const { target, title } = props;
-        const value = useAppSelector((state) => state.radarSettings[target]);
-        const dispatch = useAppDispatch();
+const SettingBoolean = React.memo((props: {
+    title: string,
+    target: keyof RadarSettingsState & ("displayBombDetails" | "showDotOwn" | "displayLowerRadar" | "radarStyleSelector")
+}) => {
+    const { target, title } = props;
+    const value = useAppSelector(state => state.radarSettings[target]);
+    const dispatch = useAppDispatch();
 
         return (
             <Box>

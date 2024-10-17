@@ -1,20 +1,20 @@
 import { LoadedMap } from "..";
-import kImageBuyZones from "./overlay_buyzones.png";
 import kImageRadar from "./radar.png";
+import kImageBuyZones from "./overlay_buyzones.png";
 
 export default {
     mapName: "de_dust2",
     displayName: "Dust 2",
 
     metaInfo: {
-        resolution: 4.4,
+        "resolution": 4.40,
 
-        offset: {
-            x: 2470,
-            y: 1255,
+        "offset": {
+            "x": -2470,
+            "y": 3239
         },
 
-        floors: [],
+        "floors": []
     },
 
     overlayBuyzones: kImageBuyZones,
