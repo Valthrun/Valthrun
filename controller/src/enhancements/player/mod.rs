@@ -255,7 +255,7 @@ impl Enhancement for PlayerESP {
                     .iter()
                     .position(|bone| bone.name == "head_0")
                 {
-                    if let Some(head_state) = entry.bone_states.get(head_bone_index) {
+                    if let Some(head_state) = pawn_model.bone_states.get(head_bone_index) {
                         if let (Some(head_position), Some(head_far)) = (
                             view.world_to_screen(
                                 &(head_state.position

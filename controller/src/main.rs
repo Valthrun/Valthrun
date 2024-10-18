@@ -90,7 +90,6 @@ use crate::{
 mod enhancements;
 mod radar;
 mod settings;
-mod util;
 mod utils;
 mod view;
 mod winver;
