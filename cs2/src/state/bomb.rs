@@ -1,7 +1,10 @@
 use std::ffi::CStr;
 
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::C_PlantedC4;
+use cs2_schema_generated::cs2::client::{
+    C_BasePlayerPawn,
+    C_PlantedC4,
+};
 use obfstr::obfstr;
 use utils_state::{
     State,
@@ -9,11 +12,12 @@ use utils_state::{
     StateRegistry,
 };
 
+use super::StateGlobals;
 use crate::{
     CEntityIdentityEx,
     ClassNameCache,
-    EntitySystem,
-    Globals,
+    StateCS2Memory,
+    StateEntityList,
 };
 
 #[derive(Debug)]
@@ -61,11 +65,12 @@ impl State for PlantedC4 {
     type Parameter = ();
 
     fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
-        let globals = states.resolve::<Globals>(())?;
-        let entities = states.resolve::<EntitySystem>(())?;
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let globals = states.resolve::<StateGlobals>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
         let class_name_cache = states.resolve::<ClassNameCache>(())?;
 
-        for entity_identity in entities.all_identities().iter() {
+        for entity_identity in entities.entities().iter() {
             let class_name = class_name_cache
                 .lookup(&entity_identity.entity_class_info()?)
                 .context("class name")?;
@@ -79,9 +84,9 @@ impl State for PlantedC4 {
             }
 
             let bomb = entity_identity
-                .entity_ptr::<C_PlantedC4>()?
-                .read_schema()
-                .context("bomb schame")?;
+                .entity_ptr::<dyn C_PlantedC4>()?
+                .value_copy(memory.view())?
+                .context("bomb entity nullptr")?;
 
             if !bomb.m_bC4Activated()? {
                 /* This bomb hasn't been activated (yet) */
@@ -113,17 +118,17 @@ impl State for PlantedC4 {
 
                 let handle_defuser = bomb.m_hBombDefuser()?;
                 let defuser = entities
-                    .get_by_handle(&handle_defuser)?
-                    .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
-                    .entity()?
-                    .reference_schema()?;
+                    .entity_from_handle(&handle_defuser)
+                    .context("missing bomb defuser pawn")?
+                    .value_reference(memory.view_arc())
+                    .context("defuser pawn nullptr")?;
 
                 let defuser_controller = defuser.m_hController()?;
                 let defuser_controller = entities
-                    .get_by_handle(&defuser_controller)?
+                    .entity_from_handle(&defuser_controller)
                     .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
-                    .entity()?
-                    .reference_schema()?;
+                    .value_reference(memory.view_arc())
+                    .context("defuser constroller nullptr")?;
 
                 let defuser_name =
                     CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)

@@ -1,10 +1,13 @@
 #![allow(dead_code)]
 
 use std::{
-    any::Any,
+    error::Error,
     ffi::CStr,
     fmt::Debug,
-    ops::Deref,
+    ops::{
+        Deref,
+        DerefMut,
+    },
     sync::{
         Arc,
         Weak,
@@ -12,12 +15,11 @@ use std::{
 };
 
 use anyhow::Context;
-use cs2_schema_declaration::{
-    MemoryDriver,
-    MemoryHandle,
-    SchemaValue,
-};
 use obfstr::obfstr;
+use raw_struct::{
+    FromMemoryView,
+    MemoryView,
+};
 use utils_state::{
     State,
     StateCacheType,
@@ -37,25 +39,21 @@ use crate::{
     SignatureType,
 };
 
-pub struct CSMemoryDriver(Weak<CS2Handle>);
-impl MemoryDriver for CSMemoryDriver {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
+struct CS2MemoryView {
+    handle: Weak<CS2Handle>,
+}
 
-    fn read_slice(&self, address: u64, slice: &mut [u8]) -> anyhow::Result<()> {
-        let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
-        cs2.read_slice(&[address], slice)
-    }
-
-    fn read_cstring(
+impl MemoryView for CS2MemoryView {
+    fn read_memory(
         &self,
-        address: u64,
-        expected_length: Option<usize>,
-        _max_length: Option<usize>,
-    ) -> anyhow::Result<String> {
-        let cs2 = self.0.upgrade().context("cs2 handle has been dropped")?;
-        cs2.read_string(&[address], expected_length)
+        offset: u64,
+        buffer: &mut [u8],
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let Some(handle) = self.handle.upgrade() else {
+            return Err(anyhow::anyhow!("CS2 handle gone").into());
+        };
+
+        Ok(handle.read_slice(&[offset], buffer)?)
     }
 }
 
@@ -212,42 +210,10 @@ impl CS2Handle {
         }
     }
 
-    fn create_memory_driver(&self) -> Arc<dyn MemoryDriver> {
-        Arc::new(CSMemoryDriver(self.weak_self.clone())) as Arc<(dyn MemoryDriver + 'static)>
-    }
-
-    /// Read the whole schema class and return a wrapper around the data.
-    pub fn read_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        let address = if offsets.len() == 1 {
-            offsets[0]
-        } else {
-            let base = self.read_sized::<u64>(&offsets[0..offsets.len() - 1])?;
-            base + offsets[offsets.len() - 1]
-        };
-
-        let schema_size = T::value_size().context("schema must have a size")?;
-        let mut memory = MemoryHandle::from_driver(&self.create_memory_driver(), address);
-        memory.cache(schema_size as usize)?;
-
-        T::from_memory(memory)
-    }
-
-    /// Reference an address in memory and wrap the schema class around it.
-    /// Every member accessor will read the current bytes from the process memory.
-    ///
-    /// This function should be used if a class is only accessed once or twice.
-    pub fn reference_schema<T: SchemaValue>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        let address = if offsets.len() == 1 {
-            offsets[0]
-        } else {
-            let base = self.read_sized::<u64>(&offsets[0..offsets.len() - 1])?;
-            base + offsets[offsets.len() - 1]
-        };
-
-        T::from_memory(MemoryHandle::from_driver(
-            &self.create_memory_driver(),
-            address,
-        ))
+    pub fn create_memory_view(&self) -> Arc<dyn MemoryView + Send + Sync> {
+        Arc::new(CS2MemoryView {
+            handle: self.weak_self.clone(),
+        })
     }
 
     pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
@@ -270,7 +236,8 @@ impl CS2Handle {
                 )
             })?;
 
-        let value = self.reference_schema::<u32>(&[inst_offset + signature.offset])? as u64;
+        let value = u32::read_object(&*self.create_memory_view(), inst_offset + signature.offset)
+            .map_err(|err| anyhow::anyhow!("{}", err))? as u64;
         let value = match &signature.value_type {
             SignatureType::Offset => value,
             SignatureType::RelativeAddress { inst_length } => inst_offset + value + inst_length,
@@ -288,27 +255,32 @@ impl CS2Handle {
                 self.module_address(module, value).unwrap_or(u64::MAX)
             ),
         }
+
         Ok(value)
     }
 }
 
-pub struct CS2HandleState(Arc<CS2Handle>);
+pub struct StateVariable<T: 'static + Send + Sync>(T);
 
-impl CS2HandleState {
-    pub fn new(value: Arc<CS2Handle>) -> Self {
+impl<T: 'static + Send + Sync> StateVariable<T> {
+    pub fn new(value: T) -> Self {
         Self(value)
     }
 
-    pub fn handle(&self) -> &Arc<CS2Handle> {
+    pub fn value(&self) -> &T {
         &self.0
+    }
+
+    pub fn value_mut(&mut self) -> &mut T {
+        &mut self.0
     }
 }
 
-impl State for CS2HandleState {
+impl<T: 'static + Send + Sync> State for StateVariable<T> {
     type Parameter = ();
 
     fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
-        anyhow::bail!("CS2 handle state must be manually set")
+        anyhow::bail!("StateVariable must be manually set")
     }
 
     fn cache_type() -> StateCacheType {
@@ -316,10 +288,29 @@ impl State for CS2HandleState {
     }
 }
 
-impl Deref for CS2HandleState {
-    type Target = CS2Handle;
+impl<T: 'static + Send + Sync> Deref for StateVariable<T> {
+    type Target = T;
 
     fn deref(&self) -> &Self::Target {
-        &*self.0
+        self.value()
+    }
+}
+
+impl<T: 'static + Send + Sync> DerefMut for StateVariable<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.value_mut()
+    }
+}
+
+pub type StateCS2Handle = StateVariable<Arc<CS2Handle>>;
+pub type StateCS2Memory = StateVariable<Arc<dyn MemoryView + Send + Sync>>;
+
+impl StateCS2Memory {
+    pub fn view_arc(&self) -> Arc<dyn MemoryView> {
+        self.value().clone()
+    }
+
+    pub fn view(&self) -> &dyn MemoryView {
+        &**self.value()
     }
 }

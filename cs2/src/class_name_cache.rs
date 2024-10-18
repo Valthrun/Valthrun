@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
 use anyhow::Context;
-use cs2_schema_declaration::Ptr;
+use raw_struct::builtins::Ptr64;
 use utils_state::{
     State,
     StateCacheType,
@@ -11,8 +11,8 @@ use utils_state::{
 use crate::{
     CEntityIdentityEx,
     CS2Handle,
-    CS2HandleState,
-    EntitySystem,
+    StateCS2Handle,
+    StateEntityList,
 };
 
 pub struct ClassNameCache {
@@ -35,9 +35,9 @@ impl State for ClassNameCache {
     }
 
     fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
-        let cs2 = states.resolve::<CS2HandleState>(())?;
-        let entities = states.resolve::<EntitySystem>(())?;
-        for identity in entities.all_identities() {
+        let cs2 = states.resolve::<StateCS2Handle>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
+        for identity in entities.entities() {
             self.register_class_info(&cs2, identity.entity_class_info()?)
                 .with_context(|| {
                     format!(
@@ -51,8 +51,12 @@ impl State for ClassNameCache {
 }
 
 impl ClassNameCache {
-    fn register_class_info(&mut self, cs2: &CS2Handle, class_info: Ptr<()>) -> anyhow::Result<()> {
-        let address = class_info.address()?;
+    fn register_class_info(
+        &mut self,
+        cs2: &CS2Handle,
+        class_info: Ptr64<()>,
+    ) -> anyhow::Result<()> {
+        let address = class_info.address;
         if self.lookup.contains_key(&address) {
             /* we already know the name for this class */
             return Ok(());
@@ -64,8 +68,8 @@ impl ClassNameCache {
         Ok(())
     }
 
-    pub fn lookup(&self, class_info: &Ptr<()>) -> anyhow::Result<Option<&String>> {
-        let address = class_info.address()?;
+    pub fn lookup(&self, class_info: &Ptr64<()>) -> anyhow::Result<Option<&String>> {
+        let address = class_info.address;
         Ok(self.lookup.get(&address))
     }
 

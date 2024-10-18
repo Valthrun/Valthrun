@@ -1,6 +1,7 @@
 use cs2::{
-    CS2HandleState,
-    CS2Offsets,
+    CS2Offset,
+    StateCS2Handle,
+    StateResolvedOffset,
 };
 use imgui::ImColor32;
 use utils_state::{
@@ -31,10 +32,10 @@ impl State for ViewController {
     }
 
     fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
-        let cs2 = states.resolve::<CS2HandleState>(())?;
-        let offsets = states.resolve::<CS2Offsets>(())?;
+        let cs2 = states.resolve::<StateCS2Handle>(())?;
+        let offset = states.resolve::<StateResolvedOffset>(CS2Offset::ViewMatrix)?;
 
-        self.view_matrix = cs2.read_sized(&[offsets.view_matrix])?;
+        self.view_matrix = cs2.read_sized(&[offset.address])?;
         Ok(())
     }
 }

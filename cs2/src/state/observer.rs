@@ -1,8 +1,11 @@
 use std::ffi::CStr;
 
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::C_CSObserverPawn;
-use obfstr::obfstr;
+use cs2_schema_generated::cs2::client::{
+    CBasePlayerController,
+    C_BasePlayerPawn,
+    C_CSObserverPawn,
+};
 use utils_state::{
     State,
     StateCacheType,
@@ -12,7 +15,9 @@ use utils_state::{
 use crate::{
     CEntityIdentityEx,
     ClassNameCache,
-    EntitySystem,
+    StateCS2Memory,
+    StateEntityList,
+    StateLocalPlayerController,
 };
 
 pub struct SpectatorInfo {
@@ -28,11 +33,12 @@ impl State for SpectatorList {
     type Parameter = u32;
 
     fn create(states: &StateRegistry, target_entity_id: Self::Parameter) -> anyhow::Result<Self> {
-        let entities = states.resolve::<EntitySystem>(())?;
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
         let class_name_cache = states.resolve::<ClassNameCache>(())?;
 
         let mut spectators = Vec::new();
-        for entity_identity in entities.all_identities() {
+        for entity_identity in entities.entities() {
             let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info()?)?;
             if entity_class
                 .map(|name| *name != "C_CSObserverPawn")
@@ -42,14 +48,14 @@ impl State for SpectatorList {
             }
 
             let observer_pawn = entity_identity
-                .entity_ptr::<C_CSObserverPawn>()?
-                .read_schema()?;
+                .entity_ptr::<dyn C_CSObserverPawn>()?
+                .value_copy(memory.view())?
+                .context("entity nullptr")?;
 
             let observer_target_handle = {
                 let observer_services = observer_pawn
                     .m_pObserverServices()?
-                    .try_reference_schema()
-                    .with_context(|| obfstr!("failed to read observer services").to_string())?;
+                    .value_reference(memory.view_arc());
 
                 match observer_services {
                     Some(observer) => observer.m_hObserverTarget()?,
@@ -64,18 +70,18 @@ impl State for SpectatorList {
             }
 
             let observer_controller_handle = observer_pawn.m_hController()?;
-            let current_player_controller = entities.get_by_handle(&observer_controller_handle)?;
-            let player_controller = if let Some(identity) = &current_player_controller {
-                identity.entity()?.reference_schema()?
-            } else {
-                continue;
-            };
+            let current_player_controller = entities
+                .entity_from_handle(&observer_controller_handle)
+                .context("missing observer controller")?
+                .value_reference(memory.view_arc())
+                .context("nullptr")?;
 
-            let spectator_name = CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
-                .context("player name missing nul terminator")?
-                .to_str()
-                .context("invalid player name")?
-                .to_string();
+            let spectator_name =
+                CStr::from_bytes_until_nul(&current_player_controller.m_iszPlayerName()?)
+                    .context("player name missing nul terminator")?
+                    .to_str()
+                    .context("invalid player name")?
+                    .to_string();
 
             spectators.push(SpectatorInfo { spectator_name });
         }
@@ -101,12 +107,13 @@ impl State for LocalCameraControllerTarget {
     type Parameter = ();
 
     fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
-        let entities = states.resolve::<EntitySystem>(())?;
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let local_player_controller = states.resolve::<StateLocalPlayerController>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
 
-        let local_player_controller = entities
-            .get_local_player_controller()?
-            .try_reference_schema()
-            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
+        let local_player_controller = local_player_controller
+            .instance
+            .value_reference(memory.view_arc());
 
         let player_controller = match local_player_controller {
             Some(controller) => controller,
@@ -131,8 +138,10 @@ impl State for LocalCameraControllerTarget {
             })
         } else {
             let observer_pawn =
-                match { entities.get_by_handle(&player_controller.m_hObserverPawn()?)? } {
-                    Some(pawn) => pawn.entity()?.reference_schema()?,
+                match { entities.entity_from_handle(&player_controller.m_hObserverPawn()?) } {
+                    Some(pawn) => pawn
+                        .value_reference(memory.view_arc())
+                        .context("entity nullptr")?,
                     None => {
                         /* this is odd... */
                         return Ok(Self {
@@ -144,7 +153,8 @@ impl State for LocalCameraControllerTarget {
 
             let observer_target_handle = observer_pawn
                 .m_pObserverServices()?
-                .reference_schema()?
+                .value_reference(memory.view_arc())
+                .context("m_pObserverServices nullptr")?
                 .m_hObserverTarget()?;
 
             if !observer_target_handle.is_valid() {

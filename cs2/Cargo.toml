@@ -6,13 +6,15 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.72"
-obfstr = "0.4.3"
+anyhow = { workspace = true }
+obfstr = { workspace = true }
 valthrun-kernel-interface = { path = "../kernel/interface" }
-log = "0.4.19"
+log = { workspace = true }
 serde_json = "1.0.104"
-nalgebra = "0.32.3"
-cs2-schema-declaration = { path = "../cs2-schema/declaration" }
+nalgebra = { workspace = true }
 cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
 utils-state = { version = "0.1.0", path = "../utils/state" }
+raw_struct = { workspace = true }
+env_logger = { workspace = true }
+cs2-schema-definition = { version = "0.1.0", path = "../cs2-schema/definition" }

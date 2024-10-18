@@ -187,6 +187,11 @@ impl PubClient {
                             let message = match serde_json::from_slice(message.as_bytes()) {
                                 Ok(message) => message,
                                 Err(err) => {
+                                    log::trace!(
+                                        "Unparseable message ({}): {}",
+                                        err,
+                                        String::from_utf8_lossy(message.as_bytes())
+                                    );
                                     let _ = message_rx_tx
                                         .send(ClientEvent::RecvError(err.into()))
                                         .await;

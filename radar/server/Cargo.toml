@@ -4,12 +4,12 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.75"
+anyhow = { workspace = true }
 bincode = "1.3.3"
-env_logger = "0.10.1"
+env_logger = { workspace = true }
 futures = "0.3.29"
 futures-util = "0.3.29"
-log = "0.4.20"
+log = { workspace = true }
 radar-shared = { version = "0.1.0", path = "../shared" }
 rand = "0.8.5"
 serde_json = "1.0.108"
