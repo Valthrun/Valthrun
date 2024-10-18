@@ -4,21 +4,29 @@ version = "0.4.5"
 edition = "2021"
 
 [dependencies]
-cs2 = { path = "../cs2" }
-cs2-schema-generated = { path = "../cs2-schema/generated" }
-valthrun-kernel-interface = { path = "../kernel/interface" }
-overlay = { path = "../overlay" }
-anyhow = "1.0.72"
-log = "0.4.19"
-env_logger = "0.10.0"
+anyhow = { workspace = true }
+log = { workspace = true }
+env_logger = { workspace = true }
+raw_struct = { workspace = true }
+obfstr = { workspace = true }
+nalgebra = { workspace = true }
+mint = { workspace = true }
+
 serde = { version = "1.0.178", features = ["derive"] }
 serde_json = "1.0.104"
-imgui = { version = "0.11", features = ["tables-api"] }
-obfstr = "0.4.3"
-nalgebra = "0.32.3"
-mint = "0.5.9"
-clap = { version = "4.3.19", features = ["derive"] }
 serde_yaml = "0.9.25"
+serde_with = "3.8.3"
+
+cs2 = { path = "../cs2" }
+cs2-schema-generated = { path = "../cs2-schema/generated" }
+cs2-schema-cutl = { version = "0.1.0", path = "../cs2-schema/cutl" }
+valthrun-kernel-interface = { path = "../kernel/interface" }
+overlay = { path = "../overlay" }
+utils-state = { version = "0.1.0", path = "../utils/state" }
+radar-client = { version = "0.1.0", path = "../radar/client" }
+
+imgui = { version = "0.11", features = ["tables-api"] }
+clap = { version = "4.3.19", features = ["derive"] }
 windows = { version = "0.53.0", features = [
     "Win32_System_Console",
     "Win32_System_SystemInformation",
@@ -31,14 +39,9 @@ windows = { version = "0.53.0", features = [
 ] }
 rand = "0.8.5"
 libloading = "0.7.4"
-utils-state = { version = "0.1.0", path = "../utils/state" }
 url = "2.5.0"
 tokio = { version = "1.36.0", features = ["full"] }
-radar-client = { version = "0.1.0", path = "../radar/client" }
-serde_with = "3.8.3"
 rfd = "0.14.1"
-cs2-schema-cutl = { version = "0.1.0", path = "../cs2-schema/cutl" }
-raw_struct = { version = "0.1.3" }
 
 [build-dependencies]
 winres = "0.1"

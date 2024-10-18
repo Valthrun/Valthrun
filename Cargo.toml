@@ -34,3 +34,12 @@ debug = false
 [profile.release]
 panic = "abort"
 lto = true
+
+[workspace.dependencies]
+raw_struct = { version = "0.1.3" }
+anyhow = "1.0.75"
+log = "0.4.19"
+env_logger = "0.10.0"
+obfstr = "0.4.3"
+nalgebra = "0.32.3"
+mint = "0.5.9"
