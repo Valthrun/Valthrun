@@ -3,7 +3,7 @@ resolver = "2"
 members = [
     "utils/state",
 
-    "cs2-schema/declaration",
+    "cs2-schema/definition",
     "cs2-schema/cutl",
     "cs2-schema/generated",
 
@@ -17,13 +17,19 @@ members = [
     "radar/server-standalone",
     "radar/shared",
 
-    "controller",
     "cs2",
     "overlay",
+    "controller",
 ]
 
 [profile.dev]
 incremental = true
+
+# build the build scripts and proc-macros in release to speedup the compilation process
+[profile.dev.build-override]
+opt-level = 3
+codegen-units = 256
+debug = false
 
 [profile.release]
 panic = "abort"

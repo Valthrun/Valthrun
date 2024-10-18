@@ -7,117 +7,123 @@ use utils_state::{
 };
 
 use crate::{
-    CS2Handle,
-    CS2HandleState,
     Module,
     Signature,
+    StateCS2Handle,
 };
 
-/// Offsets which needs to be scaned for on runtime.
-/// Mostly global variables.
-#[derive(Debug, Clone)]
-pub struct CS2Offsets {
-    /// Address of the client globals
-    pub globals: u64,
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum CS2Offset {
+    Globals,
+    BuildInfo,
 
-    /// Address for the local player controller ptr
-    pub local_controller: u64,
+    LocalController,
+    GlobalEntityList,
 
-    /// Address for the global entity list ptr
-    pub global_entity_list: u64,
+    ViewMatrix,
+    NetworkGameClientInstance,
 
-    /// Address for the global world to screen view matrix
-    pub view_matrix: u64,
-
-    /// Offset of the CNetworkGameClient
-    pub network_game_client_instance: u64,
+    CCVars,
+    SchemaSystem,
 }
 
-impl State for CS2Offsets {
-    type Parameter = ();
+impl CS2Offset {
+    pub fn signature(&self) -> (Module, Signature) {
+        match *self {
+            Self::Globals => (
+                Module::Client,
+                Signature::relative_address(
+                    obfstr!("client globals"),
+                    obfstr!("48 8B 05 ? ? ? ? 8B 48 04 FF C1"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+            Self::BuildInfo => (
+                Module::Engine,
+                Signature::relative_address(
+                    obfstr!("client build info"),
+                    obfstr!("48 8B 1D ? ? ? ? 48 85 DB 74 6B"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+            Self::LocalController => (
+                Module::Client,
+                Signature::relative_address(
+                    obfstr!("local player controller ptr"),
+                    obfstr!("48 83 3D ? ? ? ? ? 0F 95"),
+                    0x03,
+                    0x08,
+                ),
+            ),
+            Self::GlobalEntityList => (
+                Module::Client,
+                Signature::relative_address(
+                    obfstr!("global entity list"),
+                    obfstr!("4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+            Self::ViewMatrix => (
+                Module::Client,
+                Signature::relative_address(
+                    obfstr!("world view matrix"),
+                    obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+            Self::NetworkGameClientInstance => (
+                Module::Engine,
+                Signature::relative_address(
+                    obfstr!("network game client instance"),
+                    obfstr!("48 83 3D ? ? ? ? ? 48 8B D9 8B 0D"),
+                    0x03,
+                    0x08,
+                ),
+            ),
+            Self::CCVars => (
+                Module::Tier0,
+                Signature::relative_address(
+                    obfstr!("CCVars"),
+                    obfstr!("4C 8D 3D ? ? ? ? 0F 28"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+            Self::SchemaSystem => (
+                Module::Schemasystem,
+                Signature::relative_address(
+                    obfstr!("schema system instance"),
+                    obfstr!("48 8B 0D ? ? ? ? 48 8B 55 A0"),
+                    0x03,
+                    0x07,
+                ),
+            ),
+        }
+    }
+}
 
-    fn create(states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
-        let cs2 = states.resolve::<CS2HandleState>(())?;
-        let cs2 = &*cs2;
+pub struct StateResolvedOffset {
+    pub address: u64,
+}
 
-        Ok(Self {
-            globals: Self::find_globals(cs2).with_context(|| obfstr!("cs2 globals").to_string())?,
-            local_controller: Self::find_local_player_controller_ptr(cs2)
-                .with_context(|| obfstr!("local player controller ptr").to_string())?,
-            global_entity_list: Self::find_entity_list(cs2)
-                .with_context(|| obfstr!("global entity list").to_string())?,
-            view_matrix: Self::find_view_matrix(cs2)
-                .with_context(|| obfstr!("view matrix").to_string())?,
-            network_game_client_instance: Self::find_network_game_client_instance(cs2)
-                .with_context(|| obfstr!("network game client instance").to_string())?,
-        })
+impl State for StateResolvedOffset {
+    type Parameter = CS2Offset;
+
+    fn create(states: &StateRegistry, offset: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<StateCS2Handle>(())?;
+        let (module, signature) = offset.signature();
+
+        let address = cs2
+            .resolve_signature(module, &signature)
+            .with_context(|| format!("offset {:?}", offset))?;
+        Ok(Self { address })
     }
 
     fn cache_type() -> StateCacheType {
         StateCacheType::Persistent
-    }
-}
-
-impl CS2Offsets {
-    fn find_globals(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(
-            Module::Client,
-            &Signature::relative_address(
-                obfstr!("client globals"),
-                obfstr!("48 8B 05 ? ? ? ? 8B 48 04 FF C1"),
-                0x03,
-                0x07,
-            ),
-        )
-    }
-
-    fn find_local_player_controller_ptr(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        // 48 83 3D ? ? ? ? ? 0F 95 -> IsLocalPlayerControllerValid
-        cs2.resolve_signature(
-            Module::Client,
-            &Signature::relative_address(
-                obfstr!("local player controller ptr"),
-                obfstr!("48 83 3D ? ? ? ? ? 0F 95"),
-                0x03,
-                0x08,
-            ),
-        )
-    }
-
-    fn find_entity_list(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        // 4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B -> Global entity list
-        cs2.resolve_signature(
-            Module::Client,
-            &Signature::relative_address(
-                obfstr!("global entity list"),
-                obfstr!("4C 8B 0D ? ? ? ? 48 89 5C 24 ? 8B"),
-                0x03,
-                0x07,
-            ),
-        )
-    }
-
-    fn find_view_matrix(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(
-            Module::Client,
-            &Signature::relative_address(
-                obfstr!("world view matrix"),
-                obfstr!("48 8D 0D ? ? ? ? 48 C1 E0 06"),
-                0x03,
-                0x07,
-            ),
-        )
-    }
-
-    fn find_network_game_client_instance(cs2: &CS2Handle) -> anyhow::Result<u64> {
-        cs2.resolve_signature(
-            Module::Engine,
-            &Signature::relative_address(
-                obfstr!("network game client instance"),
-                obfstr!("48 83 3D ? ? ? ? ? 48 8B D9 8B 0D"),
-                0x03,
-                0x08,
-            ),
-        )
     }
 }

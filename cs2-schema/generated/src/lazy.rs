@@ -1,7 +1,6 @@
 use std::cell::SyncUnsafeCell;
 
 use anyhow::Context;
-use cs2_schema_declaration::LazyOffset;
 
 #[derive(Debug, Clone, Copy)]
 pub struct RuntimeOffset {

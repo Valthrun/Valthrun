@@ -1,21 +1,27 @@
-use std::ffi::CStr;
+use std::{
+    ffi::CStr,
+    ops::Deref,
+};
 
 use anyhow::Context;
 use cs2::{
     CEntityIdentityEx,
     ClassNameCache,
-    EntitySystem,
-    Globals,
-    PlayerPawnInfo,
+    StateCS2Memory,
     StateCurrentMap,
+    StateEntityList,
+    StateGlobals,
+    StateLocalPlayerController,
+    StatePawnInfo,
 };
-use cs2_schema_generated::{
-    cs2::client::{
-        C_CSPlayerPawn,
-        C_PlantedC4,
-        C_C4,
-    },
-    EntityHandle,
+use cs2_schema_cutl::EntityHandle;
+use cs2_schema_generated::cs2::client::{
+    CEntityInstance,
+    C_BaseEntity,
+    C_BasePlayerPawn,
+    C_CSPlayerPawn,
+    C_PlantedC4,
+    C_C4,
 };
 use obfstr::obfstr;
 use radar_shared::{
@@ -34,19 +40,20 @@ pub trait RadarGenerator: Send {
 
 fn planted_c4_to_radar_state(
     generator: &CS2RadarGenerator,
-    planted_c4: &C_PlantedC4,
+    planted_c4: &dyn C_PlantedC4,
 ) -> anyhow::Result<PlantedC4State> {
     if planted_c4.m_bBombDefused()? {
         return Ok(PlantedC4State::Defused {});
     }
 
-    let globals = generator.states.resolve::<Globals>(())?;
+    let globals = generator.states.resolve::<StateGlobals>(())?;
     let time_fuse = planted_c4.m_flC4Blow()?.m_Value()?;
     if time_fuse <= globals.time_2()? {
         return Ok(PlantedC4State::Detonated {});
     }
 
-    let entities = generator.states.resolve::<EntitySystem>(())?;
+    let memory = generator.states.resolve::<StateCS2Memory>(())?;
+    let entities = generator.states.resolve::<StateEntityList>(())?;
     let time_total = planted_c4.m_flTimerLength()?;
 
     let defuser = if planted_c4.m_bBeingDefused()? {
@@ -55,17 +62,17 @@ fn planted_c4_to_radar_state(
 
         let handle_defuser = planted_c4.m_hBombDefuser()?;
         let defuser = entities
-            .get_by_handle(&handle_defuser)?
+            .entity_from_handle(&handle_defuser)
             .with_context(|| obfstr!("missing bomb defuser player pawn").to_string())?
-            .entity()?
-            .reference_schema()?;
+            .value_reference(memory.view_arc())
+            .context("entity nullptr")?;
 
         let defuser_controller = defuser.m_hController()?;
         let defuser_controller = entities
-            .get_by_handle(&defuser_controller)?
+            .entity_from_handle(&defuser_controller)
             .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
-            .entity()?
-            .reference_schema()?;
+            .value_reference(memory.view_arc())
+            .context("entity nullptr")?;
 
         let defuser_name = CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
             .ok()
@@ -101,9 +108,9 @@ impl CS2RadarGenerator {
 
     fn generate_pawn_info(
         &self,
-        player_pawn_handle: EntityHandle<C_CSPlayerPawn>,
+        player_pawn_handle: EntityHandle<dyn C_CSPlayerPawn>,
     ) -> anyhow::Result<RadarPlayerPawn> {
-        let pawn_info = self.states.resolve::<PlayerPawnInfo>(player_pawn_handle)?;
+        let pawn_info = self.states.resolve::<StatePawnInfo>(player_pawn_handle)?;
 
         Ok(RadarPlayerPawn {
             controller_entity_id: pawn_info.controller_entity_id,
@@ -131,6 +138,7 @@ impl RadarGenerator for CS2RadarGenerator {
     fn generate_state(&mut self) -> anyhow::Result<RadarState> {
         self.states.invalidate_states();
 
+        let memory = self.states.resolve::<StateCS2Memory>(())?;
         let current_map = self.states.resolve::<StateCurrentMap>(())?;
         let mut radar_state = RadarState {
             player_pawns: Vec::with_capacity(16),
@@ -147,29 +155,30 @@ impl RadarGenerator for CS2RadarGenerator {
             local_controller_entity_id: None,
         };
 
-        let entities = self.states.resolve::<EntitySystem>(())?;
+        let local_controller = self.states.resolve::<StateLocalPlayerController>(())?;
+        let entities = self.states.resolve::<StateEntityList>(())?;
         let class_name_cache = self.states.resolve::<ClassNameCache>(())?;
 
-        let local_controller = entities.get_local_player_controller()?;
-        if !local_controller.is_null()? {
+        if let Some(local_controller) = local_controller.instance.value_reference(memory.view_arc())
+        {
             let local_controller_id = local_controller
-                .reference_schema()?
                 .m_pEntity()?
-                .reference_schema()?
+                .value_reference(memory.view_arc())
+                .context("m_pEntity nullptr")?
                 .handle::<()>()?
                 .get_entity_index();
 
             radar_state.local_controller_entity_id = Some(local_controller_id);
         }
 
-        for entity_identity in entities.all_identities() {
+        for entity_identity in entities.entities() {
             let entity_class =
                 match class_name_cache.lookup(&entity_identity.entity_class_info()?)? {
                     Some(entity_class) => entity_class,
                     None => {
                         log::warn!(
                             "Failed to get entity class info {:X}",
-                            entity_identity.memory.address,
+                            entity_identity.entity_class_info()?.address,
                         );
                         continue;
                     }
@@ -187,7 +196,10 @@ impl RadarGenerator for CS2RadarGenerator {
                     }
                 },
                 "C_PlantedC4" => {
-                    let planted_c4 = entity_identity.entity_ptr::<C_PlantedC4>()?.read_schema()?;
+                    let planted_c4 = entity_identity
+                        .entity_ptr::<dyn C_PlantedC4>()?
+                        .value_copy(memory.view())?
+                        .context("null entity ptr")?;
                     if !planted_c4.m_bC4Activated()? {
                         /* skip this C4 */
                         continue;
@@ -195,11 +207,12 @@ impl RadarGenerator for CS2RadarGenerator {
 
                     let position = planted_c4
                         .m_pGameSceneNode()?
-                        .read_schema()?
+                        .value_reference(memory.view_arc())
+                        .context("m_pGameSceneNode nullptr")?
                         .m_vecAbsOrigin()?;
                     let bomb_site = planted_c4.m_nBombSite()? as u8;
 
-                    match planted_c4_to_radar_state(self, &planted_c4) {
+                    match planted_c4_to_radar_state(self, planted_c4.deref()) {
                         Ok(state) => {
                             radar_state.planted_c4 = Some(RadarPlantedC4 {
                                 position,
@@ -213,14 +226,22 @@ impl RadarGenerator for CS2RadarGenerator {
                     }
                 }
                 "C_C4" => {
-                    let c4 = entity_identity.entity_ptr::<C_C4>()?.read_schema()?;
+                    let c4 = entity_identity
+                        .entity_ptr::<dyn C_C4>()?
+                        .value_copy(memory.view())?
+                        .context("entity ptr null")?;
+
                     if c4.m_bBombPlanted()? {
                         /* this bomb has been planted already */
                         continue;
                     }
 
                     let owner = c4.m_hOwnerEntity()?;
-                    let position = c4.m_pGameSceneNode()?.read_schema()?.m_vecAbsOrigin()?;
+                    let position = c4
+                        .m_pGameSceneNode()?
+                        .value_reference(memory.view_arc())
+                        .context("m_pGameSceneNode nullptr")?
+                        .m_vecAbsOrigin()?;
 
                     radar_state.c4_entities.push(RadarC4 {
                         entity_id: entity_identity.handle::<()>()?.get_entity_index(),

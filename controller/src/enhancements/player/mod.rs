@@ -3,13 +3,15 @@ use cs2::{
     CEntityIdentityEx,
     CS2Model,
     ClassNameCache,
-    EntitySystem,
     LocalCameraControllerTarget,
-    PlayerPawnInfo,
     PlayerPawnState,
+    StateCS2Memory,
+    StateEntityList,
+    StateLocalPlayerController,
+    StatePawnInfo,
+    StatePawnModelInfo,
 };
-use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
-use imgui::ImColor32;
+use info_layout::PlayerInfoLayout;
 use obfstr::obfstr;
 use overlay::UnicodeTextRenderer;
 
@@ -31,9 +33,16 @@ use crate::{
     },
 };
 
+mod info_layout;
+
+struct PlayerESPInfo {
+    pawn_info: StatePawnInfo,
+    pawn_model: StatePawnModelInfo,
+}
+
 pub struct PlayerESP {
     toggle: KeyToggle,
-    players: Vec<PlayerPawnInfo>,
+    players: Vec<PlayerESPInfo>,
     local_team_id: u8,
 }
 
@@ -49,7 +58,7 @@ impl PlayerESP {
     fn resolve_esp_player_config<'a>(
         &self,
         settings: &'a AppSettings,
-        target: &PlayerPawnInfo,
+        target: &StatePawnInfo,
     ) -> Option<&'a EspPlayerSettings> {
         let mut esp_target = Some(EspSelector::PlayerTeamVisibility {
             enemy: target.team_id != self.local_team_id,
@@ -79,78 +88,11 @@ impl PlayerESP {
     }
 }
 
-struct PlayerInfoLayout<'a> {
-    ui: &'a imgui::Ui,
-    draw: &'a imgui::DrawListMut<'a>,
-
-    vmin: nalgebra::Vector2<f32>,
-    vmax: nalgebra::Vector2<f32>,
-
-    line_count: usize,
-    font_scale: f32,
-
-    has_2d_box: bool,
-}
-
-impl<'a> PlayerInfoLayout<'a> {
-    pub fn new(
-        ui: &'a imgui::Ui,
-        draw: &'a imgui::DrawListMut<'a>,
-        screen_bounds: mint::Vector2<f32>,
-        vmin: nalgebra::Vector2<f32>,
-        vmax: nalgebra::Vector2<f32>,
-        has_2d_box: bool,
-    ) -> Self {
-        let target_scale_raw = (vmax.y - vmin.y) / screen_bounds.y * 8.0;
-        let target_scale = target_scale_raw.clamp(0.5, 1.25);
-        ui.set_window_font_scale(target_scale);
-
-        Self {
-            ui,
-            draw,
-
-            vmin,
-            vmax,
-
-            line_count: 0,
-            font_scale: target_scale,
-
-            has_2d_box,
-        }
-    }
-
-    pub fn add_line(&mut self, color: impl Into<ImColor32>, text: &str) {
-        let [text_width, _] = self.ui.calc_text_size(text);
-
-        let mut pos = if self.has_2d_box {
-            let mut pos = self.vmin;
-            pos.x = self.vmax.x + 5.0;
-            pos
-        } else {
-            let mut pos = self.vmax.clone();
-            pos.x -= (self.vmax.x - self.vmin.x) / 2.0;
-            pos.x -= text_width / 2.0;
-            pos
-        };
-        pos.y += self.line_count as f32 * self.font_scale * (self.ui.text_line_height())
-            + 4.0 * self.line_count as f32;
-
-        self.draw.add_text([pos.x, pos.y], color, text);
-        self.line_count += 1;
-    }
-}
-
-impl Drop for PlayerInfoLayout<'_> {
-    fn drop(&mut self) {
-        self.ui.set_window_font_scale(1.0);
-    }
-}
-
 const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
 const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
-        let entities = ctx.states.resolve::<EntitySystem>(())?;
+        let entities = ctx.states.resolve::<StateEntityList>(())?;
         let class_name_cache = ctx.states.resolve::<ClassNameCache>(())?;
         let settings = ctx.states.resolve::<AppSettings>(())?;
         if self
@@ -173,22 +115,25 @@ impl Enhancement for PlayerESP {
 
         self.players.reserve(16);
 
-        let local_player_controller = entities.get_local_player_controller()?;
-        if local_player_controller.is_null()? {
+        let memory = ctx.states.resolve::<StateCS2Memory>(())?;
+        let local_player_controller = ctx.states.resolve::<StateLocalPlayerController>(())?;
+        let Some(local_player_controller) = local_player_controller
+            .instance
+            .value_reference(memory.view_arc())
+        else {
             return Ok(());
-        }
+        };
 
-        let local_player_controller = local_player_controller.reference_schema()?;
         self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
 
         let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
-        let target_entity_id = match &view_target.target_entity_id {
+        let view_target_entity_id = match &view_target.target_entity_id {
             Some(value) => *value,
             None => return Ok(()),
         };
 
-        for entity_identity in entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index() == target_entity_id {
+        for entity_identity in entities.entities() {
+            if entity_identity.handle::<()>()?.get_entity_index() == view_target_entity_id {
                 continue;
             }
 
@@ -201,23 +146,25 @@ impl Enhancement for PlayerESP {
                 continue;
             }
 
-            let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
-            match ctx
+            let pawn_state = ctx
                 .states
-                .resolve::<PlayerPawnState>(entity_identity.handle::<()>()?.get_entity_index())
-            {
-                Ok(info) => match &*info {
-                    PlayerPawnState::Alive(info) => self.players.push(info.clone()),
-                    PlayerPawnState::Dead => continue,
-                },
-                Err(error) => {
-                    log::warn!(
-                        "Failed to generate player pawn ESP info for {:X}: {:#}",
-                        player_pawn.address()?,
-                        error
-                    );
-                }
+                .resolve::<PlayerPawnState>(entity_identity.handle()?)?;
+            if *pawn_state != PlayerPawnState::Alive {
+                continue;
             }
+
+            let pawn_info = ctx
+                .states
+                .resolve::<StatePawnInfo>(entity_identity.handle()?)?;
+
+            let pawn_model = ctx
+                .states
+                .resolve::<StatePawnModelInfo>(entity_identity.handle()?)?;
+
+            self.players.push(PlayerESPInfo {
+                pawn_info: pawn_info.clone(),
+                pawn_model: pawn_model.clone(),
+            });
         }
 
         Ok(())
@@ -241,8 +188,13 @@ impl Enhancement for PlayerESP {
         };
 
         for entry in self.players.iter() {
-            let distance = (entry.position - view_world_position).norm() * UNITS_TO_METERS;
-            let esp_settings = match self.resolve_esp_player_config(&settings, entry) {
+            let PlayerESPInfo {
+                pawn_info,
+                pawn_model,
+            } = entry;
+
+            let distance = (pawn_info.position - view_world_position).norm() * UNITS_TO_METERS;
+            let esp_settings = match self.resolve_esp_player_config(&settings, pawn_info) {
                 Some(settings) => settings,
                 None => continue,
             };
@@ -252,16 +204,16 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
+            let player_rel_health = (pawn_info.player_health as f32 / 100.0).clamp(0.0, 1.0);
 
-            let entry_model = states.resolve::<CS2Model>(entry.model_address)?;
+            let entry_model = states.resolve::<CS2Model>(pawn_model.model_address)?;
             let player_2d_box = view.calculate_box_2d(
-                &(entry_model.vhull_min + entry.position),
-                &(entry_model.vhull_max + entry.position),
+                &(entry_model.vhull_min + pawn_info.position),
+                &(entry_model.vhull_max + pawn_info.position),
             );
 
             if esp_settings.skeleton {
-                let bones = entry_model.bones.iter().zip(entry.bone_states.iter());
+                let bones = entry_model.bones.iter().zip(pawn_model.bone_states.iter());
 
                 for (bone, state) in bones {
                     if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
@@ -275,7 +227,7 @@ impl Enhancement for PlayerESP {
                     };
 
                     let parent_position = match view
-                        .world_to_screen(&entry.bone_states[parent_index].position, true)
+                        .world_to_screen(&pawn_model.bone_states[parent_index].position, true)
                     {
                         Some(position) => position,
                         None => continue,
@@ -362,8 +314,8 @@ impl Enhancement for PlayerESP {
                 EspBoxType::Box3D => {
                     view.draw_box_3d(
                         &draw,
-                        &(entry_model.vhull_min + entry.position),
-                        &(entry_model.vhull_max + entry.position),
+                        &(entry_model.vhull_min + pawn_info.position),
+                        &(entry_model.vhull_max + pawn_info.position),
                         esp_settings
                             .box_color
                             .calculate_color(player_rel_health, distance)
@@ -496,16 +448,19 @@ impl Enhancement for PlayerESP {
                         esp_settings
                             .info_name_color
                             .calculate_color(player_rel_health, distance),
-                        entry.player_name.as_ref().map_or("unknown", String::as_str),
+                        pawn_info
+                            .player_name
+                            .as_ref()
+                            .map_or("unknown", String::as_str),
                     );
 
-                    if let Some(player_name) = &entry.player_name {
+                    if let Some(player_name) = &pawn_info.player_name {
                         unicode_text.register_unicode_text(player_name);
                     }
                 }
 
                 if esp_settings.info_weapon {
-                    let text = entry.weapon.display_name();
+                    let text = pawn_info.weapon.display_name();
                     player_info.add_line(
                         esp_settings
                             .info_weapon_color
@@ -515,7 +470,7 @@ impl Enhancement for PlayerESP {
                 }
 
                 if esp_settings.info_hp_text {
-                    let text = format!("{} HP", entry.player_health);
+                    let text = format!("{} HP", pawn_info.player_health);
                     player_info.add_line(
                         esp_settings
                             .info_hp_text_color
@@ -525,11 +480,11 @@ impl Enhancement for PlayerESP {
                 }
 
                 let mut player_flags = Vec::new();
-                if esp_settings.info_flag_kit && entry.player_has_defuser {
+                if esp_settings.info_flag_kit && pawn_info.player_has_defuser {
                     player_flags.push("Kit");
                 }
 
-                if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
+                if esp_settings.info_flag_flashed && pawn_info.player_flashtime > 0.0 {
                     player_flags.push("flashed");
                 }
 
@@ -552,7 +507,7 @@ impl Enhancement for PlayerESP {
                 }
             }
 
-            if let Some(pos) = view.world_to_screen(&entry.position, false) {
+            if let Some(pos) = view.world_to_screen(&pawn_info.position, false) {
                 let tracer_origin = match esp_settings.tracer_lines {
                     EspTracePosition::TopLeft => Some([0.0, 0.0]),
                     EspTracePosition::TopCenter => Some([view.screen_bounds.x / 2.0, 0.0]),
