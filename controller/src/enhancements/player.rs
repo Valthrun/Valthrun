@@ -234,6 +234,7 @@ impl Enhancement for PlayerESP {
 
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
+        const MAX_HEAD_SIZE: f32 = 250.0;
 
         let view_world_position = match view.get_camera_world_position() {
             Some(view_world_position) => view_world_position,
@@ -325,7 +326,9 @@ impl Enhancement for PlayerESP {
                                 .calculate_color(player_rel_health, distance);
 
                             let radius =
-                                (head_position.y - head_far.y) * esp_settings.head_dot_base_radius;
+                                f32::min(f32::abs(head_position.y - head_far.y), MAX_HEAD_SIZE)
+                                    * esp_settings.head_dot_base_radius;
+
                             let circle = draw.add_circle(head_position, radius, color);
 
                             match esp_settings.head_dot {
