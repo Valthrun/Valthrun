@@ -1,15 +1,15 @@
-use std::{
-    ffi::CString,
-    time::Instant,
-};
+#![feature(str_from_utf16_endian)]
+use std::time::Instant;
 
-use ash::vk;
+use ash::vk::{
+    self,
+};
 use clipboard::ClipboardSupport;
 use copypasta::ClipboardContext;
+use font::FontAtlasBuilder;
 use imgui::{
     Context,
-    FontConfig,
-    FontSource,
+    FontAtlas,
     Io,
 };
 use imgui_rs_vulkan_renderer::{
@@ -27,7 +27,10 @@ use imgui_winit_support::{
             ControlFlow,
             EventLoop,
         },
-        platform::windows::WindowExtWindows,
+        platform::{
+            run_return::EventLoopExtRunReturn,
+            windows::WindowExtWindows,
+        },
         window::{
             Window,
             WindowBuilder,
@@ -41,52 +44,55 @@ use input::{
     MouseInputSystem,
 };
 use obfstr::obfstr;
+use vulkan::render::{
+    record_command_buffers,
+    Swapchain,
+    VulkanContext,
+};
 use window_tracker::WindowTracker;
-use windows::{
-    core::PCSTR,
-    Win32::{
-        Foundation::{
-            BOOL,
-            HWND,
+use windows::Win32::{
+    Foundation::{
+        BOOL,
+        HWND,
+    },
+    Graphics::{
+        Dwm::{
+            DwmEnableBlurBehindWindow,
+            DwmIsCompositionEnabled,
+            DWM_BB_BLURREGION,
+            DWM_BB_ENABLE,
+            DWM_BLURBEHIND,
         },
-        Graphics::{
-            Dwm::{
-                DwmEnableBlurBehindWindow,
-                DWM_BB_BLURREGION,
-                DWM_BB_ENABLE,
-                DWM_BLURBEHIND,
-            },
-            Gdi::CreateRectRgn,
+        Gdi::{
+            CreateRectRgn,
+            DeleteObject,
         },
-        UI::{
-            Input::KeyboardAndMouse::SetActiveWindow,
-            WindowsAndMessaging::{
-                GetWindowLongPtrA,
-                MessageBoxA,
-                SetWindowDisplayAffinity,
-                SetWindowLongA,
-                SetWindowLongPtrA,
-                SetWindowPos,
-                ShowWindow,
-                GWL_EXSTYLE,
-                GWL_STYLE,
-                HWND_TOPMOST,
-                MB_ICONERROR,
-                MB_OK,
-                SWP_NOACTIVATE,
-                SWP_NOMOVE,
-                SWP_NOSIZE,
-                SW_SHOWNOACTIVATE,
-                WDA_EXCLUDEFROMCAPTURE,
-                WDA_NONE,
-                WS_CLIPSIBLINGS,
-                WS_EX_LAYERED,
-                WS_EX_NOACTIVATE,
-                WS_EX_TOOLWINDOW,
-                WS_EX_TRANSPARENT,
-                WS_POPUP,
-                WS_VISIBLE,
-            },
+    },
+    UI::{
+        Input::KeyboardAndMouse::SetActiveWindow,
+        WindowsAndMessaging::{
+            GetWindowLongPtrA,
+            SetWindowDisplayAffinity,
+            SetWindowLongA,
+            SetWindowLongPtrA,
+            SetWindowPos,
+            ShowWindow,
+            GWL_EXSTYLE,
+            GWL_STYLE,
+            HWND_TOPMOST,
+            SWP_NOACTIVATE,
+            SWP_NOMOVE,
+            SWP_NOSIZE,
+            SW_SHOWNOACTIVATE,
+            WDA_EXCLUDEFROMCAPTURE,
+            WDA_NONE,
+            WS_CLIPSIBLINGS,
+            WS_EX_LAYERED,
+            WS_EX_NOACTIVATE,
+            WS_EX_TOOLWINDOW,
+            WS_EX_TRANSPARENT,
+            WS_POPUP,
+            WS_VISIBLE,
         },
     },
 };
@@ -103,24 +109,11 @@ mod vulkan;
 mod perf;
 pub use perf::PerfTracker;
 
-mod vulkan_render;
-use vulkan_render::*;
-
+mod font;
 mod util;
-mod vulkan_driver;
 
-pub fn show_error_message(title: &str, message: &str) {
-    let title = CString::new(title).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
-    let message = CString::new(message).unwrap_or_else(|_| CString::new("[[ NulError ]]").unwrap());
-    unsafe {
-        MessageBoxA(
-            HWND::default(),
-            PCSTR::from_raw(message.as_ptr() as *const u8),
-            PCSTR::from_raw(title.as_ptr() as *const u8),
-            MB_ICONERROR | MB_OK,
-        );
-    }
-}
+pub use font::UnicodeTextRenderer;
+pub use util::show_error_message;
 
 fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
     let window = WindowBuilder::new()
@@ -144,11 +137,16 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
                     as isize,
             );
 
+            if !DwmIsCompositionEnabled()?.as_bool() {
+                return Err(OverlayError::DwmCompositionDisabled);
+            }
+
             let mut bb: DWM_BLURBEHIND = Default::default();
             bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
             bb.fEnable = BOOL::from(true);
             bb.hRgnBlur = CreateRectRgn(0, 0, 1, 1);
             DwmEnableBlurBehindWindow(hwnd, &bb)?;
+            DeleteObject(bb.hRgnBlur);
 
             // Move the window to the top
             SetWindowPos(
@@ -169,10 +167,10 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
 pub struct OverlayOptions {
     pub title: String,
     pub target: OverlayTarget,
-    pub font_init: Option<Box<dyn Fn(&mut imgui::Context) -> ()>>,
+    pub register_fonts_callback: Option<Box<dyn Fn(&mut FontAtlas) -> ()>>,
 }
 
-fn create_imgui_context(options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
+fn create_imgui_context(_options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
 
@@ -182,32 +180,6 @@ fn create_imgui_context(options: &OverlayOptions) -> Result<(WinitPlatform, imgu
         Ok(backend) => imgui.set_clipboard_backend(ClipboardSupport(backend)),
         Err(error) => log::warn!("Failed to initialize clipboard: {}", error),
     };
-
-    // Fixed font size. Note imgui_winit_support uses "logical
-    // pixels", which are physical pixels scaled by the devices
-    // scaling factor. Meaning, 13.0 pixels should look the same size
-    // on two different screens, and thus we do not need to scale this
-    // value (as the scaling is handled by winit)
-    let font_size = 18.0;
-    imgui.fonts().add_font(&[FontSource::TtfData {
-        data: include_bytes!("../resources/Roboto-Regular.ttf"),
-        size_pixels: font_size,
-        config: Some(FontConfig {
-            // As imgui-glium-renderer isn't gamma-correct with
-            // it's font rendering, we apply an arbitrary
-            // multiplier to make the font a bit "heavier". With
-            // default imgui-glow-renderer this is unnecessary.
-            rasterizer_multiply: 1.5,
-            // Oversampling font helps improve text rendering at
-            // expense of larger font atlas texture.
-            oversample_h: 4,
-            oversample_v: 4,
-            ..FontConfig::default()
-        }),
-    }]);
-    if let Some(callback) = &options.font_init {
-        callback(&mut imgui);
-    }
 
     Ok((platform, imgui))
 }
@@ -219,73 +191,53 @@ pub struct System {
     pub platform: WinitPlatform,
 
     pub vulkan_context: VulkanContext,
-    command_buffer: vk::CommandBuffer,
     swapchain: Swapchain,
-    image_available_semaphore: vk::Semaphore,
-    render_finished_semaphore: vk::Semaphore,
-    fence: vk::Fence,
+
+    frame_data: Vec<FrameData>,
+    frame_data_index: usize,
 
     pub imgui: Context,
+    pub imgui_fonts: FontAtlasBuilder,
+    pub imgui_register_fonts_callback: Option<Box<dyn Fn(&mut FontAtlas) -> ()>>,
+
     pub renderer: Renderer,
 
     pub window_tracker: WindowTracker,
 }
 
-pub fn init(options: &OverlayOptions) -> Result<System> {
+pub fn init(options: OverlayOptions) -> Result<System> {
     let window_tracker = WindowTracker::new(&options.target)?;
 
     let event_loop = EventLoop::new();
     let window = create_window(&event_loop, &options.title)?;
 
-    let vulkan_context = VulkanContext::new(&window, &options.title)?;
-    let command_buffer = {
-        let allocate_info = vk::CommandBufferAllocateInfo::builder()
-            .command_pool(vulkan_context.command_pool)
-            .level(vk::CommandBufferLevel::PRIMARY)
-            .command_buffer_count(1);
-
-        unsafe {
-            vulkan_context
-                .device
-                .allocate_command_buffers(&allocate_info)?[0]
-        }
-    };
-
+    let vulkan_context = VulkanContext::new(&window)?;
+    let frame_data = vec![
+        FrameData::new(&vulkan_context)?,
+        // FrameData::new(&vulkan_context)?,
+    ];
     let swapchain = Swapchain::new(&vulkan_context)?;
-    let image_available_semaphore = {
-        let semaphore_info = vk::SemaphoreCreateInfo::builder();
-        unsafe {
-            vulkan_context
-                .device
-                .create_semaphore(&semaphore_info, None)?
-        }
-    };
-    let render_finished_semaphore = {
-        let semaphore_info = vk::SemaphoreCreateInfo::builder();
-        unsafe {
-            vulkan_context
-                .device
-                .create_semaphore(&semaphore_info, None)?
-        }
-    };
-    let fence = {
-        let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
-        unsafe { vulkan_context.device.create_fence(&fence_info, None)? }
-    };
 
     let (mut platform, mut imgui) = create_imgui_context(&options)?;
     platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
+
+    let mut imgui_fonts = FontAtlasBuilder::new();
+    imgui_fonts.register_font(include_bytes!("../resources/Roboto-Regular.ttf"))?;
+    imgui_fonts.register_font(include_bytes!("../resources/NotoSansTC-Regular.ttf"))?;
+    /* fallback if we do not have the roboto version of the glyph */
+    imgui_fonts.register_font(include_bytes!("../resources/unifont-15.1.05.otf"))?;
+    imgui_fonts.register_codepoints(1..255);
 
     let renderer = Renderer::with_default_allocator(
         &vulkan_context.instance,
         vulkan_context.physical_device,
         vulkan_context.device.clone(),
         vulkan_context.graphics_queue,
-        vulkan_context.command_pool,
+        frame_data[0].command_pool, // Just any pool will do. Only one time thing
         swapchain.render_pass,
         &mut imgui,
         Some(Options {
-            in_flight_frames: 1,
+            in_flight_frames: frame_data.len(),
             ..Default::default()
         }),
     )?;
@@ -302,12 +254,14 @@ pub fn init(options: &OverlayOptions) -> Result<System> {
 
         vulkan_context,
         swapchain,
-        command_buffer,
-        image_available_semaphore,
-        render_finished_semaphore,
-        fence,
+
+        frame_data,
+        frame_data_index: 0,
 
         imgui,
+        imgui_fonts,
+        imgui_register_fonts_callback: options.register_fonts_callback,
+
         platform,
         renderer,
 
@@ -355,35 +309,126 @@ impl OverlayActiveTracker {
 
 const PERF_RECORDS: usize = 2048;
 
+struct FrameData {
+    device: ash::Device,
+
+    command_pool: vk::CommandPool,
+    command_buffer: vk::CommandBuffer,
+
+    semaphore_image_available: vk::Semaphore,
+    semaphore_render_finished: vk::Semaphore,
+
+    render_fence: vk::Fence,
+}
+
+impl FrameData {
+    pub fn new(instance: &VulkanContext) -> Result<Self> {
+        let device = instance.device.clone();
+
+        let command_pool = {
+            let command_pool_info = vk::CommandPoolCreateInfo::builder()
+                .queue_family_index(instance.graphics_q_index)
+                .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
+            unsafe { device.create_command_pool(&command_pool_info, None)? }
+        };
+
+        let command_buffer = {
+            let allocate_info = vk::CommandBufferAllocateInfo::builder()
+                .command_pool(command_pool)
+                .level(vk::CommandBufferLevel::PRIMARY)
+                .command_buffer_count(1);
+
+            unsafe { device.allocate_command_buffers(&allocate_info)?[0] }
+        };
+
+        let semaphore_image_available = {
+            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            unsafe { device.create_semaphore(&semaphore_info, None)? }
+        };
+
+        let semaphore_render_finished = {
+            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            unsafe { device.create_semaphore(&semaphore_info, None)? }
+        };
+
+        let render_fence = {
+            let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
+            unsafe { device.create_fence(&fence_info, None)? }
+        };
+
+        Ok(Self {
+            device,
+
+            command_pool,
+            command_buffer,
+
+            semaphore_image_available,
+            semaphore_render_finished,
+
+            render_fence,
+        })
+    }
+}
+
+impl Drop for FrameData {
+    fn drop(&mut self) {
+        log::debug!("Dropping FrameData");
+        unsafe {
+            if let Err(err) = self
+                .device
+                .wait_for_fences(&[self.render_fence], true, 10_000_000)
+            {
+                log::error!("Failed to wait on fence for frame data destory: {}", err);
+            }
+
+            self.device.destroy_fence(self.render_fence, None);
+
+            self.device
+                .destroy_semaphore(self.semaphore_image_available, None);
+            self.device
+                .destroy_semaphore(self.semaphore_render_finished, None);
+
+            self.device
+                .free_command_buffers(self.command_pool, &[self.command_buffer]);
+            self.device.destroy_command_pool(self.command_pool, None);
+        }
+    }
+}
+
 impl System {
-    pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> !
+    pub fn main_loop<U, R>(self, mut update: U, mut render: R) -> i32
     where
         U: FnMut(&mut SystemRuntimeController) -> bool + 'static,
-        R: FnMut(&mut imgui::Ui) -> bool + 'static,
+        R: FnMut(&imgui::Ui, &UnicodeTextRenderer) -> bool + 'static,
     {
         let System {
-            event_loop,
+            mut event_loop,
             window,
 
             vulkan_context,
             mut swapchain,
-            command_buffer,
-            fence,
-            image_available_semaphore,
-            render_finished_semaphore,
 
             imgui,
+            imgui_fonts,
+            imgui_register_fonts_callback,
+
             mut platform,
             mut renderer,
+
+            frame_data: frame_datas,
+            mut frame_data_index,
 
             window_tracker,
             ..
         } = self;
+
         let mut last_frame = Instant::now();
 
         let mut runtime_controller = SystemRuntimeController {
             hwnd: HWND(window.hwnd() as isize),
+
             imgui,
+            imgui_fonts,
 
             active_tracker: OverlayActiveTracker::new(),
             key_input_system: KeyboardInputSystem::new(),
@@ -396,8 +441,13 @@ impl System {
 
         let mut dirty_swapchain = false;
 
+        let vulkan_context = &vulkan_context;
+        let swapchain = &mut swapchain;
+        let renderer = &mut renderer;
+        let frame_datas = &frame_datas;
+
         let mut perf = PerfTracker::new(PERF_RECORDS);
-        event_loop.run(move |event, _, control_flow| {
+        let result = event_loop.run_return(move |event, _, control_flow| {
             *control_flow = ControlFlow::Poll;
             platform.handle_event(runtime_controller.imgui.io_mut(), &window, &event);
 
@@ -415,12 +465,14 @@ impl System {
 
                 // End of event processing
                 Event::MainEventsCleared => {
+                    frame_data_index = frame_data_index.wrapping_add(1);
+                    let frame_data = &frame_datas[frame_data_index % frame_datas.len()];
+
                     perf.mark("events cleared");
 
                     /* Update */
                     {
                         if !runtime_controller.update_state(&window) {
-                            log::info!("Target window has been closed. Exiting overlay.");
                             *control_flow = ControlFlow::Exit;
                             return;
                         }
@@ -439,6 +491,7 @@ impl System {
                         if dirty_swapchain {
                             let PhysicalSize { width, height } = window.inner_size();
                             if width > 0 && height > 0 {
+                                log::debug!("Recreate swapchain");
                                 swapchain
                                     .recreate(&vulkan_context)
                                     .expect("Failed to recreate swapchain");
@@ -451,6 +504,29 @@ impl System {
                             }
                         }
 
+                        if runtime_controller.imgui_fonts.fetch_reset_flag_updated() {
+                            let font_atlas = runtime_controller.imgui.fonts();
+                            font_atlas.clear();
+
+                            let (font_sources, _glyph_memory) =
+                                runtime_controller.imgui_fonts.build_font_source(18.0);
+
+                            font_atlas.add_font(&font_sources);
+                            if let Some(user_callback) = &imgui_register_fonts_callback {
+                                user_callback(font_atlas);
+                            }
+
+                            if let Err(err) = renderer.update_fonts_texture(
+                                vulkan_context.graphics_queue,
+                                frame_data.command_pool,
+                                &mut runtime_controller.imgui,
+                            ) {
+                                log::warn!("Failed to update fonts texture: {}", err);
+                            } else {
+                                log::debug!("Updated font texture successfully");
+                            }
+                        }
+
                         if let Err(error) =
                             platform.prepare_frame(runtime_controller.imgui.io_mut(), &window)
                         {
@@ -460,7 +536,10 @@ impl System {
                         }
 
                         let ui = runtime_controller.imgui.frame();
-                        let run = render(ui);
+                        let unicode_text =
+                            UnicodeTextRenderer::new(ui, &mut runtime_controller.imgui_fonts);
+
+                        let run = render(ui, &unicode_text);
                         if !run {
                             *control_flow = ControlFlow::ExitWithCode(0);
                             return;
@@ -500,8 +579,8 @@ impl System {
                         unsafe {
                             vulkan_context
                                 .device
-                                .wait_for_fences(&[fence], true, std::u64::MAX)
-                                .expect("Failed to wait ")
+                                .wait_for_fences(&[frame_data.render_fence], true, u64::MAX)
+                                .expect("failed to wait for render fence");
                         };
 
                         perf.mark("fence");
@@ -509,7 +588,7 @@ impl System {
                             swapchain.loader.acquire_next_image(
                                 swapchain.khr,
                                 std::u64::MAX,
-                                image_available_semaphore,
+                                frame_data.semaphore_image_available,
                                 vk::Fence::null(),
                             )
                         };
@@ -523,32 +602,31 @@ impl System {
                                 panic!("Error while acquiring next image. Cause: {}", error)
                             }
                         };
-
                         unsafe {
                             vulkan_context
                                 .device
-                                .reset_fences(&[fence])
-                                .expect("Failed to reset fences")
+                                .reset_fences(&[frame_data.render_fence])
+                                .expect("failed to reset fences");
                         };
 
                         let wait_stages = [vk::PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT];
-                        let wait_semaphores = [image_available_semaphore];
-                        let signal_semaphores = [render_finished_semaphore];
+                        let wait_semaphores = [frame_data.semaphore_image_available];
+                        let signal_semaphores = [frame_data.semaphore_render_finished];
 
                         // Re-record commands to draw geometry
                         record_command_buffers(
                             &vulkan_context.device,
-                            vulkan_context.command_pool,
-                            command_buffer,
+                            frame_data.command_pool,
+                            frame_data.command_buffer,
                             swapchain.framebuffers[image_index as usize],
                             swapchain.render_pass,
                             swapchain.extent,
-                            &mut renderer,
+                            renderer,
                             &draw_data,
                         )
                         .expect("Failed to record command buffer");
 
-                        let command_buffers = [command_buffer];
+                        let command_buffers = [frame_data.command_buffer];
                         let submit_info = [vk::SubmitInfo::builder()
                             .wait_semaphores(&wait_semaphores)
                             .wait_dst_stage_mask(&wait_stages)
@@ -560,7 +638,11 @@ impl System {
                         unsafe {
                             vulkan_context
                                 .device
-                                .queue_submit(vulkan_context.graphics_queue, &submit_info, fence)
+                                .queue_submit(
+                                    vulkan_context.graphics_queue,
+                                    &submit_info,
+                                    frame_data.render_fence,
+                                )
                                 .expect("Failed to submit work to gpu.")
                         };
                         perf.mark("after submit");
@@ -598,7 +680,12 @@ impl System {
                 } => *control_flow = ControlFlow::Exit,
                 _ => {}
             }
-        })
+        });
+
+        if let Err(err) = unsafe { vulkan_context.device.device_wait_idle() } {
+            log::warn!("Failed to wait for device idle: {}", err);
+        };
+        result
     }
 }
 
@@ -606,6 +693,8 @@ pub struct SystemRuntimeController {
     pub hwnd: HWND,
 
     pub imgui: imgui::Context,
+    pub imgui_fonts: FontAtlasBuilder,
+
     debug_overlay_shown: bool,
 
     active_tracker: OverlayActiveTracker,

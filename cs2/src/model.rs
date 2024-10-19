@@ -1,9 +1,17 @@
+use std::time::Duration;
+
 use cs2_schema_declaration::Ptr;
 use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use crate::{
     offsets_manual,
     CS2Handle,
+    CS2HandleState,
 };
 
 pub enum BoneFlags {
@@ -40,6 +48,7 @@ pub struct Bone {
 
 #[derive(Debug, Default)]
 pub struct CS2Model {
+    pub name: String,
     pub bones: Vec<Bone>,
 
     pub vhull_min: nalgebra::Vector3<f32>,
@@ -49,13 +58,31 @@ pub struct CS2Model {
     pub vview_max: nalgebra::Vector3<f32>,
 }
 
-impl CS2Model {
-    pub fn read(cs2: &CS2Handle, address: u64) -> anyhow::Result<Self> {
+impl State for CS2Model {
+    type Parameter = u64;
+
+    fn create(states: &StateRegistry, address: Self::Parameter) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
         let mut result: Self = Default::default();
-        result.do_read(cs2, address)?;
+
+        result.name = cs2.read_string(&[address + 0x08, 0], Some(32))?;
+        log::debug!(
+            "{} {} at {:X}. Caching.",
+            obfstr!("Reading player model"),
+            result.name,
+            address
+        );
+
+        result.do_read(&cs2, address)?;
         Ok(result)
     }
 
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Timed(Duration::from_secs(60))
+    }
+}
+
+impl CS2Model {
     fn do_read(&mut self, cs2: &CS2Handle, address: u64) -> anyhow::Result<()> {
         [
             self.vhull_min,
@@ -114,5 +141,11 @@ impl CS2Model {
             });
         }
         Ok(())
+    }
+}
+
+impl Drop for CS2Model {
+    fn drop(&mut self) {
+        log::debug!("Removing cached model {}", self.name);
     }
 }

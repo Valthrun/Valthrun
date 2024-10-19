@@ -1,0 +1,16 @@
+[package]
+name = "radar-client-standalone"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+clap = { version = "4.4.8", features = ["derive"] }
+cs2 = { version = "0.1.0", path = "../../cs2" }
+env_logger = "0.10.1"
+log = "0.4.20"
+radar-client = { version = "0.1.0", path = "../client" }
+radar-shared = { version = "0.1.0", path = "../shared" }
+tokio = { version = "1.34.0", features = ["io-util", "rt-multi-thread", "net"] }
+url = "2.5.0"
+utils-state = { version = "0.1.0", path = "../../utils/state" }

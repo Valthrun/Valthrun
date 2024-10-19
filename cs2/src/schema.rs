@@ -5,8 +5,8 @@ use std::collections::{
 
 use anyhow::Context;
 use cs2_schema_cutl::{
-    CUtlTSHash,
     CUtlVector,
+    UtlRBTree,
 };
 use cs2_schema_declaration::{
     define_schema,
@@ -32,12 +32,12 @@ use crate::{
 };
 
 // Returns SchemaSystem_001
-fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
+pub fn find_schema_system(cs2: &CS2Handle) -> anyhow::Result<u64> {
     cs2.resolve_signature(
         Module::Schemasystem,
         &Signature::relative_address(
             obfstr!("schema system instance"),
-            obfstr!("48 89 05 ? ? ? ? 4C 8D 45"),
+            obfstr!("48 8B 0D ? ? ? ? 48 8B 55 A0"),
             0x03,
             0x07,
         ),
@@ -49,10 +49,12 @@ define_schema! {
         Basic = 0,
         T = 1,
         CollectionOfT = 2,
-        TT = 3,
-        I = 4,
-        Unknown = 5,
-        None = 6,
+        TF = 3,
+        TT = 4,
+        TTF = 5,
+        I = 6,
+        Unknown = 7,
+        None = 8,
     }
 
     pub enum TypeCategory : u8 {
@@ -66,14 +68,36 @@ define_schema! {
         None = 7,
     }
 
-    pub struct CSchemaSystem[0x200] {
-        pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x190,
+    pub struct IdHashEntry[0x10] {
+        pub id: u64 = 0x00,
+        pub value: Ptr<()> = 0x08,
     }
 
-    pub struct CSchemaSystemTypeScope[0x2F00] {
+    pub struct CSchemaSystem[0x200] {
+        pub scopes: CUtlVector<Ptr<CSchemaSystemTypeScope>> = 0x188,
+    }
+
+    pub struct CSchemaSystemTypeScope[0x56E0] {
         pub scope_name: FixedCString<0x100> = 0x08,
-        pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x0588,
-        pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2DD0,
+        // pub parent_scope: Ptr<CSchemaSystemTypeScope> = 0x108,
+        // pub buildin_types_initialized: bool = 0x110,
+        // pub type_buildin: CSchemaType[14] = 0x118,
+        // pub type_ptr: ??? = 0x348,
+        // pub type_atomic: ??? = 0x378,
+        // pub type_atomic_t: ??? = 0x3A8,
+        // pub type_atomic_collection_of_t: ??? = 0x3D8
+        // pub type_atomic_tf: ??? = 0x408
+        // pub type_atomic_tt: ??? = 0x438
+        // pub type_atomic ttf: ??? = 0x468
+        // pub type_atomic_i: ??? = 0x498
+        pub type_declared_class: UtlRBTree<IdHashEntry> = 0x440,
+        pub type_declared_enum: UtlRBTree<IdHashEntry> = 0x468,
+        // pub type_???: ??? = 0x528
+        // pub type_fixed_array: ??? = 0x558
+        // pub type_bit_fields: ??? = 0x588
+
+        // pub class_bindings: CUtlTSHash<u64, Ptr<CSchemaClassBinding>> = 0x5C0,
+        // pub enum_bindings: CUtlTSHash<u64, Ptr<CSchemaEnumBinding>> = 0x2E50,
     }
 
     pub struct CSchemaType[0x20] {
@@ -85,11 +109,15 @@ define_schema! {
         pub atomic_category: AtomicCategory = 0x19,
     }
 
+    pub struct CSchemaTypeBuildin[0x28] : CSchemaType {
+        pub index: u8 = 0x20,
+    }
+
     pub struct CSchemaTypeDeclaredEnum[0x28] : CSchemaType {
         pub declaration: Ptr<CSchemaEnumBinding> = 0x20,
     }
 
-    pub struct CSchemaTypeDeclaredClass[0x28] : CSchemaType {
+    pub struct CSchemaTypeDeclaredClass[0x30] : CSchemaType {
         pub declaration: Ptr<CSchemaClassBinding> = 0x20,
     }
 
@@ -278,6 +306,8 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
 
                             "Color" => "Color", // TODO: What is this (3x or 4x f32?)?
 
+                            "CNetworkedQuantizedFloat" => "f32",
+
                             _ => return Ok(None),
                         }
                         .to_string(),
@@ -285,7 +315,9 @@ fn parse_type(cs2: &CS2Handle, schema_type: &CSchemaType) -> anyhow::Result<Opti
                 }
                 AtomicCategory::CollectionOfT => {
                     let value = schema_type.var_type()?.read_string()?;
-                    if !value.starts_with("CUtlVector<") {
+                    if !value.starts_with("CUtlVector<")
+                        || !value.starts_with("C_NetworkUtlVectorBase<")
+                    {
                         return Ok(None);
                     }
 
@@ -374,14 +406,14 @@ fn read_enum_binding(
         });
     }
 
-    Ok((
-        binding
-            .type_scope()?
-            .reference_schema()?
-            .scope_name()?
-            .to_string_lossy()?,
-        definition,
-    ))
+    let scope_name = binding
+        .type_scope()?
+        .reference_schema()?
+        .scope_name()?
+        .to_string_lossy()?;
+
+    definition.schema_scope_name = scope_name.clone();
+    Ok((scope_name, definition))
 }
 
 fn read_class_binding(
@@ -441,7 +473,8 @@ fn read_class_binding(
         let c_type = field_type.var_type()?.read_string()?;
         let rust_type = parse_type(cs2, &field_type)?;
         if rust_type.is_none() {
-            log::warn!(
+            /* Use debug here as warn will spam the log */
+            log::debug!(
                 "   Could not generate field type {} ({:?} / {:?}) for {}",
                 &c_type,
                 field_type.type_category()?,
@@ -472,17 +505,20 @@ fn read_class_binding(
             .push(parse_metadata(metadata).context("metadata parse")?);
     }
 
-    Ok((
-        binding
-            .type_scope()?
-            .reference_schema()?
-            .scope_name()?
-            .to_string_lossy()?,
-        definition,
-    ))
+    let scope_name = binding
+        .type_scope()?
+        .reference_schema()?
+        .scope_name()?
+        .to_string_lossy()?;
+
+    definition.schema_scope_name = scope_name.clone();
+    Ok((scope_name, definition))
 }
 
-pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
+pub fn dump_schema(
+    cs2: &CS2Handle,
+    scope_filter: Option<&[&str]>,
+) -> anyhow::Result<Vec<SchemaScope>> {
     let schema_system_address = find_schema_system(cs2)?;
     let schema_system = cs2.reference_schema::<CSchemaSystem>(&[schema_system_address])?;
 
@@ -507,27 +543,39 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
         let scope = scope_ptr.read_schema()?;
 
         let scope_name = scope.scope_name()?.to_string_lossy()?;
-        if scope_name != "client.dll" {
-            //continue;
-        }
+        log::trace!("Dumping scope {} @ {:X}", scope_name, scope.memory.address);
 
-        let class_bindings = scope.class_bindings()?.read_values()?;
-        let enum_bindings = scope.enum_bindings()?.read_values()?;
-        log::debug!(
-            " {:X} {} ({} classes, {} enums)",
-            scope_ptr.address()?,
-            scope_name,
-            class_bindings.len(),
-            enum_bindings.len(),
-        );
-        for schema_class in class_bindings {
-            let (scope_name, definition) = read_class_binding(cs2, &schema_class)?;
-            let schema_scope = match schema_scops.entry(scope_name) {
+        let declared_classes = scope.type_declared_class()?;
+        let declared_classes = declared_classes
+            .elements()?
+            .read_entries(declared_classes.highest_entry()?.wrapping_add(1) as usize)?;
+
+        for rb_node in declared_classes {
+            let declared_class = rb_node
+                .value()?
+                .value()?
+                .cast::<CSchemaTypeDeclaredClass>()
+                .reference_schema()?;
+
+            let (class_scope_name, definition) =
+                read_class_binding(cs2, &declared_class.declaration()?).context(format!(
+                    "class binding {:X}",
+                    declared_class.declaration()?.address()?
+                ))?;
+
+            if let Some(filter) = &scope_filter {
+                if !filter.contains(&class_scope_name.as_str()) {
+                    continue;
+                }
+            }
+
+            let schema_scope = match schema_scops.entry(scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
                     entry.insert(SchemaScope {
                         schema_name,
+
                         classes: Default::default(),
                         enums: Default::default(),
                     })
@@ -537,14 +585,32 @@ pub fn dump_schema(cs2: &CS2Handle) -> anyhow::Result<Vec<SchemaScope>> {
             schema_scope.classes.push(definition);
         }
 
-        for enum_binding in enum_bindings {
-            let (scope_name, definition) = read_enum_binding(&enum_binding)?;
-            let schema_scope = match schema_scops.entry(scope_name) {
+        let declared_enums = scope.type_declared_enum()?;
+        let declared_enums = declared_enums
+            .elements()?
+            .read_entries(declared_enums.highest_entry()?.wrapping_add(1) as usize)?;
+
+        for declared_enum in declared_enums {
+            let declared_enum = declared_enum
+                .value()?
+                .value()?
+                .cast::<CSchemaTypeDeclaredEnum>()
+                .reference_schema()?;
+
+            let (enum_scope_name, definition) = read_enum_binding(&declared_enum.declaration()?)?;
+            if let Some(filter) = &scope_filter {
+                if !filter.contains(&enum_scope_name.as_str()) {
+                    continue;
+                }
+            }
+
+            let schema_scope = match schema_scops.entry(scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
                     entry.insert(SchemaScope {
                         schema_name,
+
                         classes: Default::default(),
                         enums: Default::default(),
                     })

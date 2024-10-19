@@ -1,35 +1,72 @@
-use std::sync::Arc;
-
 use cs2::{
-    CS2Handle,
+    CS2HandleState,
     CS2Offsets,
 };
 use imgui::ImColor32;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 /// View controller which helps resolve in game
 /// coordinates into 2d screen coordinates.
 pub struct ViewController {
-    cs2_view_matrix: u64,
     view_matrix: nalgebra::Matrix4<f32>,
     pub screen_bounds: mint::Vector2<f32>,
 }
 
-impl ViewController {
-    pub fn new(offsets: Arc<CS2Offsets>) -> Self {
-        Self {
-            cs2_view_matrix: offsets.view_matrix,
+impl State for ViewController {
+    type Parameter = ();
+
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        Ok(Self {
             view_matrix: Default::default(),
             screen_bounds: mint::Vector2 { x: 0.0, y: 0.0 },
-        }
+        })
     }
 
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+
+    fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
+        let cs2 = states.resolve::<CS2HandleState>(())?;
+        let offsets = states.resolve::<CS2Offsets>(())?;
+
+        self.view_matrix = cs2.read_sized(&[offsets.view_matrix])?;
+        Ok(())
+    }
+}
+
+impl ViewController {
     pub fn update_screen_bounds(&mut self, bounds: mint::Vector2<f32>) {
         self.screen_bounds = bounds;
     }
 
-    pub fn update_view_matrix(&mut self, cs2: &CS2Handle) -> anyhow::Result<()> {
-        self.view_matrix = cs2.read_sized(&[self.cs2_view_matrix])?;
-        Ok(())
+    pub fn get_camera_world_position(&self) -> Option<nalgebra::Vector3<f32>> {
+        let view_matrix = self.view_matrix;
+        let a = view_matrix.m22 * view_matrix.m33 - view_matrix.m32 * view_matrix.m23;
+        let b = view_matrix.m32 * view_matrix.m13 - view_matrix.m12 * view_matrix.m33;
+        let c = view_matrix.m12 * view_matrix.m23 - view_matrix.m22 * view_matrix.m13;
+        let z = view_matrix.m11 * a + view_matrix.m21 * b + view_matrix.m31 * c;
+
+        if z.abs() < 0.0001 {
+            return None;
+        }
+
+        let d = view_matrix.m31 * view_matrix.m23 - view_matrix.m21 * view_matrix.m33;
+        let e = view_matrix.m11 * view_matrix.m33 - view_matrix.m31 * view_matrix.m13;
+        let f = view_matrix.m21 * view_matrix.m13 - view_matrix.m11 * view_matrix.m23;
+        let g = view_matrix.m21 * view_matrix.m32 - view_matrix.m31 * view_matrix.m22;
+        let h = view_matrix.m31 * view_matrix.m12 - view_matrix.m11 * view_matrix.m32;
+        let k = view_matrix.m11 * view_matrix.m22 - view_matrix.m21 * view_matrix.m12;
+
+        let x = (a * view_matrix.m41 + d * view_matrix.m42 + g * view_matrix.m43) / z;
+        let y = (b * view_matrix.m41 + e * view_matrix.m42 + h * view_matrix.m43) / z;
+        let z = (c * view_matrix.m41 + f * view_matrix.m42 + k * view_matrix.m43) / z;
+
+        Some(nalgebra::Vector3::new(-x, -y, -z))
     }
 
     /// Returning an mint::Vector2<f32> as the result should be used via ImGui.

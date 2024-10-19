@@ -8,7 +8,7 @@
 Valthrun is an open source external Counter-Strike 2 read only kernel-level gameplay enhancer.  
 That's a lot of descriptive words, but what does each of them mean?  
 - `Valthrun` The name of this project
-- `Open Source` This application is open source and for everyone to learn from
+- `open source` This application is open source and for everyone to learn from
 - `external` We do not inject any DLLs into the target process
 - `read only` We do not write to the CS2 process in any way, therefore being impossible to detect by scanning the process memory
 - `kernel` We do not use any user level WinAPIs in order to get information from the CS2 process
@@ -16,26 +16,31 @@ That's a lot of descriptive words, but what does each of them mean?
 This project is mainly a fun example for exploring the Windows Kernel with [Rust](https://www.rust-lang.org) and exploring the world of game enhancements :)
 
 # WARNING
-Valthrun is **not** plug 'n play.  
-Please read [How to use](https://wiki.valth.run/#/010_getting-started/010_overview) carefully and try troubleshooting issues on your own.  
-The goal is to achieve maximum stealth in order to avoid being detected.
+Valthrun is **not** a plug 'n play solution.  
+Instead Valthrun aims to achieve maximum stealth and stay invisible for other applications.  
+Please read [How to use](https://wiki.valth.run/getting-started/) carefully and try troubleshooting issues on your own.  
+
   
 # Features
 Due to Valthrun being read-only (as of now), there are limitations on what features are possible to implement (eg. skin changer).
 Regardless of this limitation, Valthrun supports the following features:  
 
-- Player ESP
-  Two modes are supported: `Skeleton` and `Boxes`
+- External radar  
+  Publish your game for everybody on https://radar.valth.run
+- Player ESP  
+  ESP with a lot of configuration possibilities like: `Skeleton`, `Boxes3D` and `Boxes2D` 
   - Configurable colors to distinguish between enemy and team players
-  - ESP includes player health
+  - ESP includes player health, a health bar, weapon and a lot more
 - Bomb Info
   - Time until the bomb detonation
   - Defuser info such as a defuse timer
   - Bomb site where the bomb is located
-- Trigger Bot
+- Trigger Bot  
+  Shoot your enemy (or team mates) as soon they enter your crosshair
 - Spectator info
   - List of player currently watching you / the observer target
-- Stream proof by default
+- Stream proof by default  
+  Never show your Valthrun overlay on any screen shares
 
 To access Valthruns settings overlay press `PAUSE`.
 
@@ -45,11 +50,11 @@ To access Valthruns settings overlay press `PAUSE`.
 
 # How to use / Getting started
 Please follow this guide to get started:  
-https://wiki.valth.run/#/010_getting-started/010_overview
+https://wiki.valth.run/getting-started/
 
 # Troubleshooting
-If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/#/):  
-https://wiki.valth.run/#/
+If you are having issues mapping the kernel driver or starting the controller, please take a look [here](https://wiki.valth.run/category/troubleshooting):  
+https://wiki.valth.run/category/troubleshooting
   
 The issue you encounter is most likely covered. If you still have any questions or need assistance, feel free to checkout the official Valthrun Discord server ([click to join](https://discord.gg/ecKbpAPW5T)).
 

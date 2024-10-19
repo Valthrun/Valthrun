@@ -1,30 +1,17 @@
-use std::{
-    ffi::CStr,
-    sync::Arc,
-};
-
-use anyhow::{
-    Context,
-    Result,
-};
 use cs2::{
     BoneFlags,
     CEntityIdentityEx,
     CS2Model,
+    ClassNameCache,
+    EntitySystem,
+    LocalCameraControllerTarget,
+    PlayerPawnInfo,
+    PlayerPawnState,
 };
-use cs2_schema_declaration::{
-    define_schema,
-    Ptr,
-};
-use cs2_schema_generated::cs2::client::{
-    CCSPlayer_ItemServices,
-    CModelState,
-    CSkeletonInstance,
-    C_CSPlayerPawn,
-    C_C4,
-};
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use imgui::ImColor32;
 use obfstr::obfstr;
+use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
 use crate::{
@@ -32,6 +19,7 @@ use crate::{
         AppSettings,
         EspBoxType,
         EspConfig,
+        EspHeadDot,
         EspHealthBar,
         EspPlayerSettings,
         EspSelector,
@@ -41,82 +29,12 @@ use crate::{
         KeyToggle,
         ViewController,
     },
-    weapon::WeaponId,
 };
-
-pub struct PlayerInfo {
-    pub controller_entity_id: u32,
-    pub team_id: u8,
-    pub weapon_player_entity_id: u32,
-
-    pub player_health: i32,
-    pub player_has_defuser: bool,
-    pub player_name: String,
-    pub weapon: WeaponId,
-    pub player_flashtime: f32,
-
-    pub position: nalgebra::Vector3<f32>,
-    pub model: Arc<CS2Model>,
-    pub bone_states: Vec<BoneStateData>,
-}
-
-impl PlayerInfo {
-    pub fn calculate_player_box(
-        &self,
-        view: &ViewController,
-    ) -> Option<(nalgebra::Vector2<f32>, nalgebra::Vector2<f32>)> {
-        view.calculate_box_2d(
-            &(self.model.vhull_min + self.position),
-            &(self.model.vhull_max + self.position),
-        )
-    }
-}
-
-pub struct BoneStateData {
-    pub position: nalgebra::Vector3<f32>,
-}
-
-impl TryFrom<CBoneStateData> for BoneStateData {
-    type Error = anyhow::Error;
-
-    fn try_from(value: CBoneStateData) -> Result<Self, Self::Error> {
-        Ok(Self {
-            position: nalgebra::Vector3::from_row_slice(&value.position()?),
-        })
-    }
-}
-
-define_schema! {
-    pub struct CBoneStateData[0x20] {
-        pub position: [f32; 3] = 0x00,
-        pub scale: f32 = 0x0C,
-        pub rotation: [f32; 4] = 0x10,
-    }
-}
-
-trait CModelStateEx {
-    #[allow(non_snake_case)]
-    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
-    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>>;
-}
-
-impl CModelStateEx for CModelState {
-    #[allow(non_snake_case)]
-    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
-        self.memory.reference_schema(0xA0)
-    }
-
-    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>> {
-        self.memory.reference_schema(0x80)
-    }
-}
 
 pub struct PlayerESP {
     toggle: KeyToggle,
-    players: Vec<PlayerInfo>,
+    players: Vec<PlayerPawnInfo>,
     local_team_id: u8,
-    local_pos: Option<nalgebra::Vector3<f32>>,
-    c4_owner: u32,
 }
 
 impl PlayerESP {
@@ -125,121 +43,14 @@ impl PlayerESP {
             toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
-            local_pos: Default::default(),
-            c4_owner: 0,
         }
     }
 
-    fn generate_player_info(
-        &self,
-        ctx: &crate::UpdateContext,
-        player_pawn: &Ptr<C_CSPlayerPawn>,
-    ) -> anyhow::Result<Option<PlayerInfo>> {
-        let player_pawn = player_pawn
-            .read_schema()
-            .with_context(|| obfstr!("failed to read player pawn data").to_string())?;
-
-        let player_health = player_pawn.m_iHealth()?;
-        if player_health <= 0 {
-            return Ok(None);
-        }
-
-        /* Will be an instance of CSkeletonInstance */
-        let game_screen_node = player_pawn
-            .m_pGameSceneNode()?
-            .cast::<CSkeletonInstance>()
-            .read_schema()?;
-        if game_screen_node.m_bDormant()? {
-            return Ok(None);
-        }
-
-        let controller_handle = player_pawn.m_hController()?;
-        let current_controller = ctx.cs2_entities.get_by_handle(&controller_handle)?;
-
-        let player_team = player_pawn.m_iTeamNum()?;
-        let player_name = if let Some(identity) = &current_controller {
-            let player_controller = identity.entity()?.reference_schema()?;
-            CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
-                .context("player name missing nul terminator")?
-                .to_str()
-                .context("invalid player name")?
-                .to_string()
-        } else {
-            /*
-             * This is the case for pawns which are not controllel by a player controller.
-             * An example would be the main screen player pawns.
-             *
-             * Note: We're assuming, that uncontroller player pawns are neglectable while being in a match as the do not occurr.
-             * Bots (and controller bots) always have a player pawn controller.
-             */
-            // log::warn!(
-            //     "Handle at address {:p} has no valid controller!",
-            //     &controller_handle
-            // );
-            return Ok(None);
-        };
-
-        let player_has_defuser = player_pawn
-            .m_pItemServices()?
-            .cast::<CCSPlayer_ItemServices>()
-            .reference_schema()?
-            .m_bHasDefuser()?;
-
-        let position =
-            nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
-
-        let model = game_screen_node
-            .m_modelState()?
-            .m_hModel()?
-            .read_schema()?
-            .address()?;
-
-        let model = ctx.model_cache.lookup(model)?;
-        let bone_states = game_screen_node
-            .m_modelState()?
-            .bone_state_data()?
-            .read_entries(model.bones.len())?
-            .into_iter()
-            .map(|bone| bone.try_into())
-            .collect::<Result<Vec<_>>>()?;
-
-        let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
-        let (weapon_type, weapon_player_entity_id) = if let Some(weapon) = weapon {
-            let weapon_type = weapon
-                .m_AttributeManager()?
-                .m_Item()?
-                .m_iItemDefinitionIndex()?;
-
-            let weapon_player_entity_id = weapon.m_hOwnerEntity()?.get_entity_index();
-
-            (weapon_type, weapon_player_entity_id)
-        } else {
-            (WeaponId::Knife.id(), 0)
-        };
-
-        let player_flashtime = player_pawn.m_flFlashBangTime()?;
-
-        Ok(Some(PlayerInfo {
-            controller_entity_id: controller_handle.get_entity_index(),
-            team_id: player_team,
-            weapon_player_entity_id,
-
-            player_name,
-            player_has_defuser,
-            player_health,
-            weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
-            player_flashtime,
-
-            position,
-            bone_states,
-            model: model.clone(),
-        }))
-    }
 
     fn resolve_esp_player_config<'a>(
         &self,
         settings: &'a AppSettings,
-        target: &PlayerInfo,
+        target: &PlayerPawnInfo,
     ) -> Option<&'a EspPlayerSettings> {
         let mut esp_target = Some(EspSelector::PlayerTeamVisibility {
             enemy: target.team_id != self.local_team_id,
@@ -340,15 +151,18 @@ const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
 const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+        let entities = ctx.states.resolve::<EntitySystem>(())?;
+        let class_name_cache = ctx.states.resolve::<ClassNameCache>(())?;
+        let settings = ctx.states.resolve::<AppSettings>(())?;
         if self
             .toggle
-            .update(&ctx.settings.esp_mode, ctx.input, &ctx.settings.esp_toogle)
+            .update(&settings.esp_mode, ctx.input, &settings.esp_toogle)
         {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-esp-toggle"),
                 &format!(
                     "enabled: {}, mode: {:?}",
-                    self.toggle.enabled, ctx.settings.esp_mode
+                    self.toggle.enabled, settings.esp_mode
                 ),
             );
         }
@@ -360,80 +174,43 @@ impl Enhancement for PlayerESP {
 
         self.players.reserve(16);
 
-        let local_player_controller = ctx
-            .cs2_entities
-            .get_local_player_controller()?
-            .try_reference_schema()
-            .with_context(|| obfstr!("failed to read local player controller").to_string())?;
+        let local_player_controller = entities.get_local_player_controller()?;
+        if local_player_controller.is_null()? {
+            return Ok(());
+        }
 
-        let local_player_controller = match local_player_controller {
-            Some(controller) => controller,
-            None => {
-                /* We're currently not connected */
-                return Ok(());
-            }
-        };
-
-        let observice_entity_handle = if local_player_controller.m_bPawnIsAlive()? {
-            local_player_controller.m_hPawn()?.get_entity_index()
-        } else {
-            let local_obs_pawn = match {
-                ctx.cs2_entities
-                    .get_by_handle(&local_player_controller.m_hObserverPawn()?)?
-            } {
-                Some(pawn) => pawn.entity()?.reference_schema()?,
-                None => {
-                    /* this is odd... */
-                    return Ok(());
-                }
-            };
-
-            local_obs_pawn
-                .m_pObserverServices()?
-                .read_schema()?
-                .m_hObserverTarget()?
-                .get_entity_index()
-        };
-
+        let local_player_controller = local_player_controller.reference_schema()?;
         self.local_team_id = local_player_controller.m_iPendingTeamNum()?;
 
-        for entity_identity in ctx.cs2_entities.all_identities() {
-            if entity_identity.handle::<()>()?.get_entity_index() == observice_entity_handle {
-                /* current pawn we control/observe */
-                let local_pawn = entity_identity
-                    .entity_ptr::<C_CSPlayerPawn>()?
-                    .read_schema()?;
-                let local_pos =
-                    nalgebra::Vector3::<f32>::from_column_slice(&local_pawn.m_vOldOrigin()?);
-                self.local_pos = Some(local_pos);
+        let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(())?;
+        let target_entity_id = match &view_target.target_entity_id {
+            Some(value) => *value,
+            None => return Ok(()),
+        };
+
+        for entity_identity in entities.all_identities() {
+            if entity_identity.handle::<()>()?.get_entity_index() == target_entity_id {
                 continue;
             }
 
-            let entity_class = ctx
-                .class_name_cache
-                .lookup(&entity_identity.entity_class_info()?)?;
+            let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info()?)?;
             if !entity_class
                 .map(|name| *name == "C_CSPlayerPawn")
                 .unwrap_or(false)
             {
                 /* entity is not a player pawn */
 
-                if !entity_class.map(|name| name == "C_C4").unwrap_or(false) {
-                    /* Entity isn't the bomb. */
-                    continue;
-                }
-                let bomb = entity_identity
-                    .entity_ptr::<C_C4>()?
-                    .read_schema()
-                    .context("bomb schame")?;
-                let c4_owner = bomb.m_hOwnerEntity()?.get_entity_index();
-                self.c4_owner = c4_owner;
             }
 
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
-            match self.generate_player_info(ctx, &player_pawn) {
-                Ok(Some(info)) => self.players.push(info),
-                Ok(None) => {}
+            match ctx
+                .states
+                .resolve::<PlayerPawnState>(entity_identity.handle::<()>()?.get_entity_index())
+            {
+                Ok(info) => match &*info {
+                    PlayerPawnState::Alive(info) => self.players.push(info.clone()),
+                    PlayerPawnState::Dead => continue,
+                },
                 Err(error) => {
                     log::warn!(
                         "Failed to generate player pawn ESP info for {:X}: {:#}",
@@ -447,17 +224,27 @@ impl Enhancement for PlayerESP {
         Ok(())
     }
 
-    fn render(&self, settings: &AppSettings, ui: &imgui::Ui, view: &ViewController) {
+    fn render(
+        &self,
+        states: &utils_state::StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
+        let settings = states.resolve::<AppSettings>(())?;
+        let view = states.resolve::<ViewController>(())?;
+
         let draw = ui.get_window_draw_list();
         const UNITS_TO_METERS: f32 = 0.01905;
+        const MAX_HEAD_SIZE: f32 = 250.0;
+
+        let view_world_position = match view.get_camera_world_position() {
+            Some(view_world_position) => view_world_position,
+            _ => return Ok(()),
+        };
+
         for entry in self.players.iter() {
-            let distance = if let Some(local_pos) = self.local_pos {
-                let distance = (entry.position - local_pos).norm() * UNITS_TO_METERS;
-                distance
-            } else {
-                0.0
-            };
-            let esp_settings = match self.resolve_esp_player_config(settings, entry) {
+            let distance = (entry.position - view_world_position).norm() * UNITS_TO_METERS;
+            let esp_settings = match self.resolve_esp_player_config(&settings, entry) {
                 Some(settings) => settings,
                 None => continue,
             };
@@ -468,10 +255,15 @@ impl Enhancement for PlayerESP {
             }
 
             let player_rel_health = (entry.player_health as f32 / 100.0).clamp(0.0, 1.0);
-            let player_2d_box = entry.calculate_player_box(view);
+
+            let entry_model = states.resolve::<CS2Model>(entry.model_address)?;
+            let player_2d_box = view.calculate_box_2d(
+                &(entry_model.vhull_min + entry.position),
+                &(entry_model.vhull_max + entry.position),
+            );
 
             if esp_settings.skeleton {
-                let bones = entry.model.bones.iter().zip(entry.bone_states.iter());
+                let bones = entry_model.bones.iter().zip(entry.bone_states.iter());
 
                 for (bone, state) in bones {
                     if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
@@ -507,6 +299,56 @@ impl Enhancement for PlayerESP {
                 }
             }
 
+            if esp_settings.head_dot != EspHeadDot::None {
+                if let Some(head_bone_index) = entry_model
+                    .bones
+                    .iter()
+                    .position(|bone| bone.name == "head_0")
+                {
+                    if let Some(head_state) = entry.bone_states.get(head_bone_index) {
+                        if let (Some(head_position), Some(head_far)) = (
+                            view.world_to_screen(
+                                &(head_state.position
+                                    + nalgebra::Vector3::new(0.0, 0.0, esp_settings.head_dot_z)),
+                                true,
+                            ),
+                            view.world_to_screen(
+                                &(head_state.position
+                                    + nalgebra::Vector3::new(
+                                        0.0,
+                                        0.0,
+                                        esp_settings.head_dot_z + 2.0,
+                                    )),
+                                true,
+                            ),
+                        ) {
+                            let color = esp_settings
+                                .head_dot_color
+                                .calculate_color(player_rel_health, distance);
+
+                            let radius =
+                                f32::min(f32::abs(head_position.y - head_far.y), MAX_HEAD_SIZE)
+                                    * esp_settings.head_dot_base_radius;
+
+                            let circle = draw.add_circle(head_position, radius, color);
+
+                            match esp_settings.head_dot {
+                                EspHeadDot::Filled => {
+                                    circle.filled(true).build();
+                                }
+                                EspHeadDot::NotFilled => {
+                                    circle
+                                        .filled(false)
+                                        .thickness(esp_settings.head_dot_thickness)
+                                        .build();
+                                }
+                                EspHeadDot::None => unreachable!(),
+                            }
+                        }
+                    }
+                }
+            }
+
             match esp_settings.box_type {
                 EspBoxType::Box2D => {
                     if let Some((vmin, vmax)) = &player_2d_box {
@@ -524,8 +366,8 @@ impl Enhancement for PlayerESP {
                 EspBoxType::Box3D => {
                     view.draw_box_3d(
                         &draw,
-                        &(entry.model.vhull_min + entry.position),
-                        &(entry.model.vhull_max + entry.position),
+                        &(entry_model.vhull_min + entry.position),
+                        &(entry_model.vhull_max + entry.position),
                         esp_settings
                             .box_color
                             .calculate_color(player_rel_health, distance)
@@ -658,8 +500,12 @@ impl Enhancement for PlayerESP {
                         esp_settings
                             .info_name_color
                             .calculate_color(player_rel_health, distance),
-                        &entry.player_name,
+                        entry.player_name.as_ref().map_or("unknown", String::as_str),
                     );
+
+                    if let Some(player_name) = &entry.player_name {
+                        unicode_text.register_unicode_text(player_name);
+                    }
                 }
 
                 if esp_settings.info_weapon {
@@ -689,14 +535,6 @@ impl Enhancement for PlayerESP {
 
                 if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
                     player_flags.push("flashed");
-                }
-
-                if esp_settings.info_flag_c4 {
-                    if self.c4_owner == entry.weapon_player_entity_id {
-                        player_flags.push("Bomb Carrier");
-                    } /*else if self.c4_owner == 32767{ //bomb is dropped
-                          ui.text("Bomb is dropped!")
-                      } */
                 }
 
                 if !player_flags.is_empty() {
@@ -749,5 +587,7 @@ impl Enhancement for PlayerESP {
                 }
             }
         }
+
+        Ok(())
     }
 }

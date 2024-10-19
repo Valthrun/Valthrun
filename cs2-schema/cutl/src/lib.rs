@@ -1,6 +1,3 @@
-mod tshash;
-pub use tshash::*;
-
 mod vector;
 pub use vector::*;
 
@@ -9,3 +6,6 @@ pub use string::*;
 
 mod memory;
 pub use memory::*;
+
+mod rbtree;
+pub use rbtree::*;

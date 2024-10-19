@@ -17,10 +17,10 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
     )?;
 
     if buffer == read_buffer {
-        println!("Read successfull");
+        println!("Read head buffer successfull");
     } else {
         assert_eq!(buffer, read_buffer);
-        println!("Full buffer read failed!");
+        println!("Full heap buffer read failed!");
     }
 
     Ok(())
@@ -28,8 +28,8 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
-
-    let interface = KernelInterface::create("\\\\.\\GLOBALROOT\\Device\\valthrun")?;
+    let interface = KernelInterface::create(com_from_env()?)?;
+    let interface = KernelInterface::create(interface)?;
 
     let target_value = 0x42u64;
     let read_value = interface.read::<u64>(

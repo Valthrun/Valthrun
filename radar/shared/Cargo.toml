@@ -1,0 +1,9 @@
+[package]
+name = "radar-shared"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+serde = { version = "1.0.210", features = ["derive"] }
+typescript-type-def = "0.5.13"

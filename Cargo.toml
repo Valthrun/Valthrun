@@ -1,17 +1,25 @@
 [workspace]
 resolver = "2"
 members = [
+    "utils/state",
+
     "cs2-schema/declaration",
     "cs2-schema/cutl",
     "cs2-schema/generated",
+
     "kernel/interface",
     "kernel/shared",
+    "kernel/um-driver-impl",
+
+    "radar/client",
+    "radar/client-standalone",
+    "radar/server",
+    "radar/server-standalone",
+    "radar/shared",
+
     "controller",
     "cs2",
     "overlay",
-]
-exclude = [
-    "kernel/driver"
 ]
 
 [profile.dev]

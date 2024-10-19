@@ -1,0 +1,30 @@
+[package]
+name = "radar-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.75"
+bincode = "1.3.3"
+env_logger = "0.10.1"
+futures = "0.3.29"
+futures-util = "0.3.29"
+log = "0.4.20"
+radar-shared = { version = "0.1.0", path = "../shared" }
+rand = "0.8.5"
+serde_json = "1.0.108"
+tokio = { version = "1.34.0", features = [
+    "rt",
+    "time",
+    "macros",
+    "sync",
+    "signal",
+    "rt-multi-thread",
+    "net",
+] }
+tokio-bincode = "0.1.0"
+tokio-util = { version = "0.7.10", features = ["codec"] }
+warp = "0.3.6"
+
+[features]
+static-bundle = []

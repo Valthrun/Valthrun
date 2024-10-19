@@ -53,4 +53,22 @@ pub enum OverlayError {
 
     #[error("failed to create a vulkan surface: {0}")]
     VulkanSurfaceCreationFailed(VkResult),
+
+    #[error("composite alpha is unsupported")]
+    VulkanCompositeAlphaUnsupported,
+
+    #[error("vulkan missing required extension: {0}")]
+    VulkanRequiredExtensionUnsupported(String),
+
+    #[error("vulkan missing required layer: {0}")]
+    VulkanRequiredLayerUnsupported(String),
+
+    #[error("target font is not a true type font")]
+    FontUnsupported,
+
+    #[error("failed to parse font face: {0}")]
+    FontFaceParsingError(#[from] ttf_parser::FaceParsingError),
+
+    #[error("desktop window manager has composition disabled")]
+    DwmCompositionDisabled,
 }

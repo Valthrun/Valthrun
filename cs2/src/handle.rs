@@ -4,6 +4,7 @@ use std::{
     any::Any,
     ffi::CStr,
     fmt::Debug,
+    ops::Deref,
     sync::{
         Arc,
         Weak,
@@ -17,11 +18,18 @@ use cs2_schema_declaration::{
     SchemaValue,
 };
 use obfstr::obfstr;
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 use valthrun_kernel_interface::{
+    com_from_env,
     KernelInterface,
     KeyboardState,
     ModuleInfo,
     MouseState,
+    ProcessId,
 };
 
 use crate::{
@@ -76,14 +84,14 @@ pub struct CS2Handle {
     metrics: bool,
 
     modules: Vec<ModuleInfo>,
-    process_id: i32,
+    process_id: ProcessId,
 
     pub ke_interface: KernelInterface,
 }
 
 impl CS2Handle {
     pub fn create(metrics: bool) -> anyhow::Result<Arc<Self>> {
-        let interface = KernelInterface::create(obfstr!("\\\\.\\GLOBALROOT\\Device\\valthrun"))?;
+        let interface = KernelInterface::create(com_from_env()?)?;
 
         /*
          * Please no not analyze me:
@@ -91,7 +99,9 @@ impl CS2Handle {
          *
          * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
          */
-        interface.toggle_process_protection(true)?;
+        if let Err(err) = interface.toggle_process_protection(true) {
+            log::warn!("Failed to enable process protection: {}", err)
+        };
 
         let (process_id, modules) = interface.request_cs2_modules()?;
         log::debug!(
@@ -126,7 +136,7 @@ impl CS2Handle {
             .find(|module| module.base_dll_name() == target.get_module_name())
     }
 
-    pub fn process_id(&self) -> i32 {
+    pub fn process_id(&self) -> ProcessId {
         self.process_id
     }
 
@@ -252,7 +262,13 @@ impl CS2Handle {
                 module_info.module_size,
                 &*signature.pattern,
             )?
-            .context("failed to find pattern")?;
+            .with_context(|| {
+                format!(
+                    "{} {}",
+                    obfstr!("failed to find pattern"),
+                    signature.debug_name
+                )
+            })?;
 
         let value = self.reference_schema::<u32>(&[inst_offset + signature.offset])? as u64;
         let value = match &signature.value_type {
@@ -273,5 +289,37 @@ impl CS2Handle {
             ),
         }
         Ok(value)
+    }
+}
+
+pub struct CS2HandleState(Arc<CS2Handle>);
+
+impl CS2HandleState {
+    pub fn new(value: Arc<CS2Handle>) -> Self {
+        Self(value)
+    }
+
+    pub fn handle(&self) -> &Arc<CS2Handle> {
+        &self.0
+    }
+}
+
+impl State for CS2HandleState {
+    type Parameter = ();
+
+    fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
+        anyhow::bail!("CS2 handle state must be manually set")
+    }
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+}
+
+impl Deref for CS2HandleState {
+    type Target = CS2Handle;
+
+    fn deref(&self) -> &Self::Target {
+        &*self.0
     }
 }

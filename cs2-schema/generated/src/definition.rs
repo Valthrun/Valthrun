@@ -51,7 +51,7 @@ impl SchemaScope {
 
         self.classes
             .iter()
-            .try_for_each(|definition| definition.emit(output))?;
+            .try_for_each(|definition| definition.emit(&self.schema_name, output))?;
 
         writeln!(output, "}}")?;
         writeln!(output, "/* {} */", mod_name)?;
@@ -61,6 +61,9 @@ impl SchemaScope {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct EnumDefinition {
+    #[serde(default)]
+    pub schema_scope_name: String,
+
     /// Enums public name
     pub enum_name: String,
 
@@ -128,6 +131,8 @@ impl EnumMember {
 
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ClassDefinition {
+    #[serde(default)]
+    pub schema_scope_name: String,
     pub class_name: String,
     pub class_size: u64,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -140,7 +145,7 @@ pub struct ClassDefinition {
 }
 
 impl ClassDefinition {
-    fn emit(&self, output: &mut dyn std::io::Write) -> Result<()> {
+    fn emit(&self, mod_name: &str, output: &mut dyn std::io::Write) -> Result<()> {
         let class_name = self.class_name.replace(":", "_");
 
         writeln!(output, "  /* class {} ({}) */", class_name, self.class_name)?;
@@ -162,7 +167,7 @@ impl ClassDefinition {
         writeln!(output, "      pub vtable: Ptr<()> = 0x00,")?; // Every schema class has a vtable
         self.offsets
             .iter()
-            .try_for_each(|offset| offset.emit(output))?;
+            .try_for_each(|offset| offset.emit(mod_name, &self.class_name, output))?;
 
         writeln!(output, "    }}")?;
         writeln!(output, "  }}")?;
@@ -189,7 +194,12 @@ pub struct ClassField {
 }
 
 impl ClassField {
-    fn emit(&self, output: &mut dyn std::io::Write) -> Result<()> {
+    fn emit(
+        &self,
+        mod_name: &str,
+        class_name: &str,
+        output: &mut dyn std::io::Write,
+    ) -> Result<()> {
         if let Some(field_type) = &self.field_type {
             writeln!(
                 output,
@@ -199,8 +209,8 @@ impl ClassField {
             writeln!(output, "      /// Offset: 0x{:X}  ", self.offset)?;
             writeln!(
                 output,
-                "      pub {}: {} = 0x{:X},",
-                self.field_name, field_type, self.offset
+                "      pub {}: {} = RuntimeOffset::new(\"{}\", \"{}\", \"{}\"),",
+                self.field_name, field_type, mod_name, class_name, self.field_name
             )?;
         } else {
             writeln!(

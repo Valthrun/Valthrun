@@ -8,10 +8,11 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.72"
 obfstr = "0.4.3"
-valthrun-kernel-interface = { path = "../kernel/interface"}
+valthrun-kernel-interface = { path = "../kernel/interface" }
 log = "0.4.19"
 serde_json = "1.0.104"
 nalgebra = "0.32.3"
 cs2-schema-declaration = { path = "../cs2-schema/declaration" }
 cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
+utils-state = { version = "0.1.0", path = "../utils/state" }
