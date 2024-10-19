@@ -35,6 +35,8 @@ pub struct Aimbot {
     aim_bone: String,
     aimbot_team_check: bool,
     aimbot_view_fov: bool,
+    ignore_flash_alpha: f32,
+    ignore_flash: bool,
 }
 
 impl Aimbot {
@@ -50,6 +52,8 @@ impl Aimbot {
             aim_bone: "head".to_string(),
             aimbot_team_check: true,
             aimbot_view_fov: true,
+            ignore_flash_alpha: 180.0,
+            ignore_flash: true,
         }
     }
 
@@ -86,9 +90,11 @@ impl Aimbot {
                 let entry = ctx.states.resolve::<PlayerPawnState>(entity_identity.handle::<()>().ok()?.get_entity_index()).ok()?;
                 if let PlayerPawnState::Alive(player_info) = &*entry {
                     let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
-                    if local_pawn.m_flFlashBangTime().unwrap() > 0.0 { // ignore flash
+
+                    if settings.ignore_flash && local_pawn.m_flFlashOverlayAlpha().unwrap() > settings.ignore_flash_alpha{
                         continue;
-                    } //player in gui check// respect wall check//team_mate check
+                    }
+
                     if settings.aimbot_team_check && local_pawn.m_iTeamNum().unwrap() == player_info.team_id {
                         continue;
                     } // Calculate distance between the local player and the target
@@ -159,6 +165,8 @@ impl Enhancement for Aimbot {
         self.aim_speed = settings.aimbot_speed; // Fetch aim speed from the config
         self.aim_bone = settings.aim_bone.to_lowercase();
         self.aimbot_team_check = settings.aimbot_team_check; // Other aimbot logic
+        self.ignore_flash = settings.ignore_flash;
+
         if self.toggle.update(&settings.aimbot_mode, ctx.input, &settings.key_aimbot) {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-aimbot-toggle"),

@@ -89,6 +89,8 @@ fn default_aim_bone() -> String {
 
 fn default_aimbot_team_check() -> bool { true }
 
+fn default_ignore_flash() -> bool { true }
+
 fn default_aimbot_view_fov() -> bool { true }
 
 fn default_trigger_bot_mode() -> KeyToggleMode {
@@ -244,6 +246,12 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub aimbot_team_check: bool,
+
+    #[serde(default = "default_f32::<5, 1>")]
+    pub ignore_flash_alpha: f32,
+
+    #[serde(default = "bool_true")]
+    pub ignore_flash: bool,
 
     #[serde(default = "bool_true")]
     pub aimbot_view_fov: bool,
