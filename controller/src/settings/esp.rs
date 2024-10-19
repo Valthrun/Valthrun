@@ -64,7 +64,6 @@ impl From<[f32; 4]> for Color {
     }
 }
 
-
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
 pub enum EspColor {
@@ -345,7 +344,6 @@ pub enum EspConfig {
     Chicken(EspChickenSettings),
     Weapon(EspWeaponSettings),
 }
-
 
 #[derive(Debug, Clone, Copy, PartialEq, PartialOrd)]
 pub enum EspWeaponType {

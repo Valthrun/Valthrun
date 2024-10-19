@@ -8,6 +8,7 @@ use super::Enhancement;
 use crate::{
     settings::AppSettings,
     utils::ImguiUiEx,
+    view::ViewController,
 };
 pub struct BombInfoIndicator {}
 
@@ -22,11 +23,12 @@ const PLAYER_AVATAR_TOP_OFFSET: f32 = 0.004;
 /// % of the screens height
 const PLAYER_AVATAR_SIZE: f32 = 0.05;
 
+/// Units to meters in CS2
 const UNITS_TO_METERS: f32 = 0.01905;
 
-// Max distance that bomb causes dmg in meters
+// Maximum distance to be damaged by bomb
 const IS_SAFE: f32 = 33.6804;
-//in units: 1768.0
+/// UNITS -> 1768.0
 
 impl Enhancement for BombInfoIndicator {
     fn update(&mut self, _ctx: &crate::UpdateContext) -> anyhow::Result<()> {
@@ -40,14 +42,22 @@ impl Enhancement for BombInfoIndicator {
         unicode_text: &UnicodeTextRenderer,
     ) -> anyhow::Result<()> {
         let settings = states.resolve::<AppSettings>(())?;
+        let view = states.resolve::<ViewController>(())?;
         if !settings.bomb_timer {
             return Ok(());
         }
+
+        let view_world_position = match view.get_camera_world_position() {
+            Some(view_world_position) => view_world_position,
+            _ => return Ok(()),
+        };
 
         let bomb_state = states.resolve::<PlantedC4>(())?;
         if matches!(bomb_state.state, PlantedC4State::NotPlanted) {
             return Ok(());
         }
+
+        let distance = (bomb_state.bomb_pos - view_world_position).norm() * UNITS_TO_METERS;
 
         let group = ui.begin_group();
 
@@ -93,6 +103,24 @@ impl Enhancement for BombInfoIndicator {
                     ui.set_cursor_pos_x(offset_x);
                     ui.text("Not defusing");
                 }
+                if let Some(pos) = view.world_to_screen(&bomb_state.bomb_pos, false) {
+                    let y_offset = 0.0;
+                    let draw = ui.get_window_draw_list();
+                    let text = "BOMB";
+                    let [text_width, _] = ui.calc_text_size(&text);
+                    let mut pos = pos.clone();
+                    pos.x -= text_width / 2.0;
+                    pos.y += y_offset;
+                    draw.add_text(pos, [0.79, 0.11, 0.11, 1.0], text);
+                }
+                ui.set_cursor_pos_x(offset_x);
+                if distance > IS_SAFE {
+                    ui.text("You're safe!")
+                } else {
+                    let test = IS_SAFE - distance;
+                    let text = format!("Back {:.0} m", test);
+                    ui.text(text)
+                };
             }
             PlantedC4State::Defused => {
                 ui.set_cursor_pos_x(offset_x);

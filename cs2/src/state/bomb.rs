@@ -50,6 +50,9 @@ pub struct PlantedC4 {
     /// 1 = B
     pub bomb_site: u8,
 
+    // Current bomb position
+    pub bomb_pos: nalgebra::Vector3<f32>,
+
     /// Current state of the planted C4
     pub state: PlantedC4State,
 
@@ -87,11 +90,16 @@ impl State for PlantedC4 {
                 /* This bomb hasn't been activated (yet) */
                 continue;
             }
+            let game_screen_node = bomb.m_pGameSceneNode()?.read_schema()?;
+
+            let bomb_pos =
+                nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
             let bomb_site = bomb.m_nBombSite()? as u8;
             if bomb.m_bBombDefused()? {
                 return Ok(Self {
                     bomb_site,
+                    bomb_pos,
                     defuser: None,
                     state: PlantedC4State::Defused,
                 });
@@ -102,6 +110,7 @@ impl State for PlantedC4 {
             if time_blow <= globals.time_2()? {
                 return Ok(Self {
                     bomb_site,
+                    bomb_pos,
                     defuser: None,
                     state: PlantedC4State::Detonated,
                 });
@@ -142,6 +151,7 @@ impl State for PlantedC4 {
 
             return Ok(Self {
                 bomb_site,
+                bomb_pos,
                 defuser: defusing,
                 state: PlantedC4State::Active {
                     time_detonation: time_blow - globals.time_2()?,
@@ -151,6 +161,7 @@ impl State for PlantedC4 {
 
         return Ok(Self {
             bomb_site: 0,
+            bomb_pos: nalgebra::Vector3::zeros(),
             defuser: None,
             state: PlantedC4State::NotPlanted,
         });
