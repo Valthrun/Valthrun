@@ -776,6 +776,7 @@ impl SettingsUI {
                     ui.slider_config("Max distance", 0.0, 50.0)
                         .build(&mut config.near_players_distance);
                 }
+                ui.checkbox(obfstr!("C4 Carrier"), &mut config.info_flag_c4);
             }
         }
 

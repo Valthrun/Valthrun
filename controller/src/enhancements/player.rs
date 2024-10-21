@@ -1,10 +1,13 @@
 use cs2::{
+    constants,
     BoneFlags,
     CEntityIdentityEx,
     CS2Model,
     ClassNameCache,
     EntitySystem,
     LocalCameraControllerTarget,
+    PlantedC4,
+    PlantedC4State,
     PlayerPawnInfo,
     PlayerPawnState,
 };
@@ -35,6 +38,7 @@ pub struct PlayerESP {
     toggle: KeyToggle,
     players: Vec<PlayerPawnInfo>,
     local_team_id: u8,
+    c4_owner: u32,
 }
 
 impl PlayerESP {
@@ -43,6 +47,7 @@ impl PlayerESP {
             toggle: KeyToggle::new(),
             players: Default::default(),
             local_team_id: 0,
+            c4_owner: 0, // TODO: Move to cs2/src/state/player
         }
     }
 
@@ -146,8 +151,6 @@ impl Drop for PlayerInfoLayout<'_> {
     }
 }
 
-const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
-const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         let entities = ctx.states.resolve::<EntitySystem>(())?;
@@ -165,7 +168,6 @@ impl Enhancement for PlayerESP {
                 ),
             );
         }
-
         self.players.clear();
         if !self.toggle.enabled {
             return Ok(());
@@ -197,11 +199,19 @@ impl Enhancement for PlayerESP {
                 .map(|name| *name == "C_CSPlayerPawn")
                 .unwrap_or(false)
             {
-                /* entity is not a player pawn */
+                /*  entity is not a player pawn  */
+                let bomb_state = ctx.states.resolve::<PlantedC4>(())?;
+                if let PlantedC4State::NotPlanted {
+                    c4_owner_entity_index,
+                    ..
+                } = &bomb_state.state
+                {
+                    self.c4_owner = *c4_owner_entity_index;
+                }
                 continue;
             }
-
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
+
             match ctx
                 .states
                 .resolve::<PlayerPawnState>(entity_identity.handle::<()>()?.get_entity_index())
@@ -233,8 +243,6 @@ impl Enhancement for PlayerESP {
         let view = states.resolve::<ViewController>(())?;
 
         let draw = ui.get_window_draw_list();
-        const UNITS_TO_METERS: f32 = 0.01905;
-        const MAX_HEAD_SIZE: f32 = 250.0;
 
         let view_world_position = match view.get_camera_world_position() {
             Some(view_world_position) => view_world_position,
@@ -242,7 +250,8 @@ impl Enhancement for PlayerESP {
         };
 
         for entry in self.players.iter() {
-            let distance = (entry.position - view_world_position).norm() * UNITS_TO_METERS;
+            let distance =
+                (entry.position - view_world_position).norm() * constants::UNITS_TO_METERS;
             let esp_settings = match self.resolve_esp_player_config(&settings, entry) {
                 Some(settings) => settings,
                 None => continue,
@@ -325,9 +334,10 @@ impl Enhancement for PlayerESP {
                                 .head_dot_color
                                 .calculate_color(player_rel_health, distance);
 
-                            let radius =
-                                f32::min(f32::abs(head_position.y - head_far.y), MAX_HEAD_SIZE)
-                                    * esp_settings.head_dot_base_radius;
+                            let radius = f32::min(
+                                f32::abs(head_position.y - head_far.y),
+                                constants::MAX_HEAD_SIZE,
+                            ) * esp_settings.head_dot_base_radius;
 
                             let circle = draw.add_circle(head_position, radius, color);
 
@@ -425,24 +435,26 @@ impl Enhancement for PlayerESP {
                 };
 
                 if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds {
-                    const BORDER_WIDTH: f32 = 1.0;
                     draw.add_rect(
-                        [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
                         [
-                            box_x + box_width - BORDER_WIDTH / 2.0,
-                            box_y + box_height - BORDER_WIDTH / 2.0,
+                            box_x + constants::BORDER_WIDTH / 2.0,
+                            box_y + constants::BORDER_WIDTH / 2.0,
+                        ],
+                        [
+                            box_x + box_width - constants::BORDER_WIDTH / 2.0,
+                            box_y + box_height - constants::BORDER_WIDTH / 2.0,
                         ],
                         [0.0, 0.0, 0.0, 1.0],
                     )
                     .filled(false)
-                    .thickness(BORDER_WIDTH)
+                    .thickness(constants::BORDER_WIDTH)
                     .build();
 
-                    box_x += BORDER_WIDTH / 2.0 + 1.0;
-                    box_y += BORDER_WIDTH / 2.0 + 1.0;
+                    box_x += constants::BORDER_WIDTH / 2.0 + 1.0;
+                    box_y += constants::BORDER_WIDTH / 2.0 + 1.0;
 
-                    box_width -= BORDER_WIDTH + 2.0;
-                    box_height -= BORDER_WIDTH + 2.0;
+                    box_width -= constants::BORDER_WIDTH + 2.0;
+                    box_height -= constants::BORDER_WIDTH + 2.0;
 
                     if box_width < box_height {
                         /* vertical */
@@ -534,6 +546,12 @@ impl Enhancement for PlayerESP {
 
                 if esp_settings.info_flag_flashed && entry.player_flashtime > 0.0 {
                     player_flags.push("flashed");
+                }
+
+                if esp_settings.info_flag_c4 {
+                    if self.c4_owner == entry.pawn_entity_id {
+                        player_flags.push("Bomb Carrier");
+                    }
                 }
 
                 if !player_flags.is_empty() {

@@ -1,7 +1,10 @@
 use std::ffi::CStr;
 
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::C_PlantedC4;
+use cs2_schema_generated::cs2::client::{
+    C_PlantedC4,
+    C_C4,
+};
 use obfstr::obfstr;
 use utils_state::{
     State,
@@ -31,6 +34,8 @@ pub enum PlantedC4State {
     Active {
         /// Time remaining (in seconds) until detonation
         time_detonation: f32,
+        /// Current bomb position
+        bomb_position: nalgebra::Vector3<f32>,
     },
 
     /// Bomb has detonated
@@ -40,7 +45,12 @@ pub enum PlantedC4State {
     Defused,
 
     /// Bomb has not been planted
-    NotPlanted,
+    NotPlanted {
+        /// Entity ID of C4 Owner
+        c4_owner_entity_index: u32,
+        /// Current bomb position
+        bomb_position: nalgebra::Vector3<f32>,
+    },
 }
 
 /// Information about the currently active planted C4
@@ -70,14 +80,37 @@ impl State for PlantedC4 {
                 .lookup(&entity_identity.entity_class_info()?)
                 .context("class name")?;
 
+            if class_name.map(|name| name == "C_C4").unwrap_or(false) {
+                /* Bomb not planted. */
+                let bomb_not_activated = entity_identity
+                    .entity_ptr::<C_C4>()?
+                    .read_schema()
+                    .context("bomb schame")?;
+
+                let c4_owner = bomb_not_activated.m_hOwnerEntity()?.get_entity_index();
+                let bomb_screen_node = bomb_not_activated.m_pGameSceneNode()?.read_schema()?;
+                let bomb_pos_np = nalgebra::Vector3::<f32>::from_column_slice(
+                    &bomb_screen_node.m_vecAbsOrigin()?,
+                );
+                return Ok(Self {
+                    bomb_site: 0,
+                    defuser: None,
+                    state: PlantedC4State::NotPlanted {
+                        c4_owner_entity_index: c4_owner,
+                        bomb_position: bomb_pos_np,
+                    },
+                });
+            }
+
             if !class_name
                 .map(|name| name == "C_PlantedC4")
                 .unwrap_or(false)
             {
                 /* Entity isn't the planted bomb. */
+
                 continue;
             }
-
+            /* Bomb is Planted */
             let bomb = entity_identity
                 .entity_ptr::<C_PlantedC4>()?
                 .read_schema()
@@ -87,6 +120,10 @@ impl State for PlantedC4 {
                 /* This bomb hasn't been activated (yet) */
                 continue;
             }
+            let game_screen_node = bomb.m_pGameSceneNode()?.read_schema()?;
+
+            let bomb_pos =
+                nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
             let bomb_site = bomb.m_nBombSite()? as u8;
             if bomb.m_bBombDefused()? {
@@ -145,6 +182,7 @@ impl State for PlantedC4 {
                 defuser: defusing,
                 state: PlantedC4State::Active {
                     time_detonation: time_blow - globals.time_2()?,
+                    bomb_position: bomb_pos,
                 },
             });
         }
@@ -152,7 +190,10 @@ impl State for PlantedC4 {
         return Ok(Self {
             bomb_site: 0,
             defuser: None,
-            state: PlantedC4State::NotPlanted,
+            state: PlantedC4State::NotPlanted {
+                c4_owner_entity_index: 0,
+                bomb_position: nalgebra::Vector3::zeros(),
+            },
         });
     }
 

@@ -1,5 +1,4 @@
 use crate::settings::AppSettings;
-
 pub trait Enhancement {
     fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()>;
     fn update_settings(

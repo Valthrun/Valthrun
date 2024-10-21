@@ -239,6 +239,7 @@ pub struct EspPlayerSettings {
 
     pub info_flag_kit: bool,
     pub info_flag_flashed: bool,
+    pub info_flag_c4: bool,
     pub info_flags_color: EspColor,
 
     pub head_dot: EspHeadDot,
@@ -303,6 +304,7 @@ impl EspPlayerSettings {
 
             info_flag_kit: false,
             info_flag_flashed: false,
+            info_flag_c4: false,
             info_flags_color: color.clone(),
 
             head_dot: EspHeadDot::None,
