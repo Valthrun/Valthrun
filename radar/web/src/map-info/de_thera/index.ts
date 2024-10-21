@@ -1,14 +1,13 @@
 import { LoadedMap } from "..";
-import SimpleRadarDefault from "./radar_0_default.png";
 import OfficialDefault from "./radar_1_default.png";
 
 export default {
-    mapName: "de_dust",
-    displayName: "Dust",
+    mapName: "de_thera",
+    displayName: "Thera",
 
-    pos_x: -2476, // upper left world coordinate
-    pos_y: 3239,
-    scale: 4.4,
+    pos_x: -85, // upper left world coordinate
+    pos_y: 2261,
+    scale: 4.8,
 
     verticalSections: {
         default: // use the primary radar image
@@ -19,12 +18,6 @@ export default {
     },
 
     mapImages: [
-        {
-            name: "SimpleRadar",
-            images:{
-                default: SimpleRadarDefault,
-            }
-        },
         {
             name: "Official",
             images:{

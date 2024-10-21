@@ -1,14 +1,13 @@
 import { LoadedMap } from "..";
-import SimpleRadarDefault from "./radar_0_default.png";
 import OfficialDefault from "./radar_1_default.png";
 
 export default {
-    mapName: "de_dust",
-    displayName: "Dust",
+    mapName: "cs_italy",
+    displayName: "Italy",
 
-    pos_x: -2476, // upper left world coordinate
-    pos_y: 3239,
-    scale: 4.4,
+    pos_x: -2647, // upper left world coordinate
+    pos_y: 2592,
+    scale: 4.6,
 
     verticalSections: {
         default: // use the primary radar image
@@ -20,15 +19,9 @@ export default {
 
     mapImages: [
         {
-            name: "SimpleRadar",
-            images:{
-                default: SimpleRadarDefault,
-            }
-        },
-        {
             name: "Official",
             images:{
-                default: OfficialDefault,
+                default: OfficialDefault
             }
         }
     ]

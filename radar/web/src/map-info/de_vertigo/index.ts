@@ -1,34 +1,44 @@
 import { LoadedMap } from "..";
-import kImageBuyZones from "./overlay_buyzones.png";
-import kImageRadar from "./radar.png";
+import SimpleRadarDefault from "./radar_0_default.png";
+import SimpleRadarLower from "./radar_0_lower.png";
+import OfficialDefault from "./radar_1_default.png";
+import OfficialLower from "./radar_1_lower.png";
 
 export default {
     mapName: "de_vertigo",
     displayName: "Vertigo",
 
-    metaInfo: {
-        resolution: 4.96,
+    pos_x: -3168, // upper left world coordinate
+    pos_y: 1762,
+    scale: 4,
 
-        offset: {
-            x: 3890,
-            y: 3800,
+    verticalSections: {
+        default: // use the primary radar image
+        {
+            altitudeMax: 11680,
+            altitudeMin: 11485,
         },
-
-        floors: [
-            {
-                offset: {
-                    x: 0.2,
-                    y: -42.6,
-                },
-
-                zRange: {
-                    min: 11485,
-                    max: 11680,
-                },
-            },
-        ],
+        lower: // i.e. radar_x_lower.png
+        {
+            altitudeMax: 11485,
+            altitudeMin: -10000,
+        }
     },
 
-    overlayBuyzones: kImageBuyZones,
-    overlayRadar: kImageRadar,
+    mapImages: [
+        {
+            name: "SimpleRadar",
+            images:{
+                default: SimpleRadarDefault,
+                lower: SimpleRadarLower
+            }
+        },
+        {
+            name: "Official",
+            images:{
+                default: OfficialDefault,
+                lower: OfficialLower
+            }
+        }
+    ]
 } satisfies LoadedMap;
