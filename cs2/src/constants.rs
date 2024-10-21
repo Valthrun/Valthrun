@@ -1,4 +1,3 @@
-
 ///Max Health for Health Bar
 pub const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
 

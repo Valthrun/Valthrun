@@ -1,18 +1,17 @@
-use anyhow::Context;
 use cs2::{
+    constants,
     BoneFlags,
     CEntityIdentityEx,
     CS2Model,
     ClassNameCache,
     EntitySystem,
     LocalCameraControllerTarget,
+    PlantedC4,
+    PlantedC4State,
     PlayerPawnInfo,
     PlayerPawnState,
 };
-use cs2_schema_generated::cs2::client::{
-    C_CSPlayerPawn,
-    C_C4,
-};
+use cs2_schema_generated::cs2::client::C_CSPlayerPawn;
 use imgui::ImColor32;
 use obfstr::obfstr;
 use overlay::UnicodeTextRenderer;
@@ -152,9 +151,6 @@ impl Drop for PlayerInfoLayout<'_> {
     }
 }
 
-const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
-const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
-const BOMB_DROPPED: u32 = 32767;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         let entities = ctx.states.resolve::<EntitySystem>(())?;
@@ -172,7 +168,6 @@ impl Enhancement for PlayerESP {
                 ),
             );
         }
-
         self.players.clear();
         if !self.toggle.enabled {
             return Ok(());
@@ -204,22 +199,17 @@ impl Enhancement for PlayerESP {
                 .map(|name| *name == "C_CSPlayerPawn")
                 .unwrap_or(false)
             {
-                /* entity is not a player pawn */
-
-                if !entity_class.map(|name| name == "C_C4").unwrap_or(false) {
-                    /* Entity isn't the bomb. */
-                    continue;
+                /*  entity is not a player pawn  */
+                let bomb_state = ctx.states.resolve::<PlantedC4>(())?;
+                if let PlantedC4State::NotPlanted {
+                    c4_owner_entity_index,
+                    ..
+                } = &bomb_state.state
+                {
+                    self.c4_owner = *c4_owner_entity_index;
                 }
-
-                // ------ TODO: Move to cs2/state/player
-                let bomb = entity_identity
-                    .entity_ptr::<C_C4>()?
-                    .read_schema()
-                    .context("bomb schame")?;
-                let c4_owner = bomb.m_hOwnerEntity()?.get_entity_index();
-                self.c4_owner = c4_owner;
+                continue;
             }
-
             let player_pawn = entity_identity.entity_ptr::<C_CSPlayerPawn>()?;
 
             match ctx
@@ -253,8 +243,6 @@ impl Enhancement for PlayerESP {
         let view = states.resolve::<ViewController>(())?;
 
         let draw = ui.get_window_draw_list();
-        const UNITS_TO_METERS: f32 = 0.01905;
-        const MAX_HEAD_SIZE: f32 = 250.0;
 
         let view_world_position = match view.get_camera_world_position() {
             Some(view_world_position) => view_world_position,
@@ -262,7 +250,8 @@ impl Enhancement for PlayerESP {
         };
 
         for entry in self.players.iter() {
-            let distance = (entry.position - view_world_position).norm() * UNITS_TO_METERS;
+            let distance =
+                (entry.position - view_world_position).norm() * constants::UNITS_TO_METERS;
             let esp_settings = match self.resolve_esp_player_config(&settings, entry) {
                 Some(settings) => settings,
                 None => continue,
@@ -345,9 +334,10 @@ impl Enhancement for PlayerESP {
                                 .head_dot_color
                                 .calculate_color(player_rel_health, distance);
 
-                            let radius =
-                                f32::min(f32::abs(head_position.y - head_far.y), MAX_HEAD_SIZE)
-                                    * esp_settings.head_dot_base_radius;
+                            let radius = f32::min(
+                                f32::abs(head_position.y - head_far.y),
+                                constants::MAX_HEAD_SIZE,
+                            ) * esp_settings.head_dot_base_radius;
 
                             let circle = draw.add_circle(head_position, radius, color);
 
@@ -445,24 +435,26 @@ impl Enhancement for PlayerESP {
                 };
 
                 if let Some([mut box_x, mut box_y, mut box_width, mut box_height]) = box_bounds {
-                    const BORDER_WIDTH: f32 = 1.0;
                     draw.add_rect(
-                        [box_x + BORDER_WIDTH / 2.0, box_y + BORDER_WIDTH / 2.0],
                         [
-                            box_x + box_width - BORDER_WIDTH / 2.0,
-                            box_y + box_height - BORDER_WIDTH / 2.0,
+                            box_x + constants::BORDER_WIDTH / 2.0,
+                            box_y + constants::BORDER_WIDTH / 2.0,
+                        ],
+                        [
+                            box_x + box_width - constants::BORDER_WIDTH / 2.0,
+                            box_y + box_height - constants::BORDER_WIDTH / 2.0,
                         ],
                         [0.0, 0.0, 0.0, 1.0],
                     )
                     .filled(false)
-                    .thickness(BORDER_WIDTH)
+                    .thickness(constants::BORDER_WIDTH)
                     .build();
 
-                    box_x += BORDER_WIDTH / 2.0 + 1.0;
-                    box_y += BORDER_WIDTH / 2.0 + 1.0;
+                    box_x += constants::BORDER_WIDTH / 2.0 + 1.0;
+                    box_y += constants::BORDER_WIDTH / 2.0 + 1.0;
 
-                    box_width -= BORDER_WIDTH + 2.0;
-                    box_height -= BORDER_WIDTH + 2.0;
+                    box_width -= constants::BORDER_WIDTH + 2.0;
+                    box_height -= constants::BORDER_WIDTH + 2.0;
 
                     if box_width < box_height {
                         /* vertical */
@@ -557,14 +549,8 @@ impl Enhancement for PlayerESP {
                 }
 
                 if esp_settings.info_flag_c4 {
-                    let offset_x = ui.io().display_size[0] * 1730.0 / 2560.0;
-                    let offset_y = ui.io().display_size[1] * 0.004;
-                    ui.set_cursor_pos([offset_x, offset_y]);
-                    if self.c4_owner == entry.weapon_player_entity_id {
+                    if self.c4_owner == entry.pawn_entity_id {
                         player_flags.push("Bomb Carrier");
-                    } else if self.c4_owner == BOMB_DROPPED {
-                        //Bomb is dropped
-                        ui.text("Bomb is dropped!") // TODO: Move it to a properly place.
                     }
                 }
 
