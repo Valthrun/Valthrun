@@ -15,12 +15,12 @@ export default {
     verticalSections: {
         default: // use the primary radar image
         {
-            altitudeMax: 11680,
-            altitudeMin: 11485,
+            altitudeMax: 20000,
+            altitudeMin: 11700,
         },
         lower: // i.e. radar_x_lower.png
         {
-            altitudeMax: 11485,
+            altitudeMax: 11700,
             altitudeMin: -10000,
         }
     },

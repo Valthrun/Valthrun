@@ -8,7 +8,7 @@ export type RadarSettingsState = {
     iconSize: number,
     displayBombDetails: boolean,
     displayLowerRadar: boolean,
-    radarStyleSelector: boolean,
+    radarStyleSelector: string,
 
     colorDotCT: string;
     colorDotT: string;
@@ -21,7 +21,7 @@ export const kDefaultRadarSettings: RadarSettingsState = {
     iconSize: 3.0,
     displayBombDetails: true,
     displayLowerRadar: true,
-    radarStyleSelector: false,
+    radarStyleSelector: "Official",
 
     colorDotCT: "#0007ff",
     colorDotT: "#ffc933",

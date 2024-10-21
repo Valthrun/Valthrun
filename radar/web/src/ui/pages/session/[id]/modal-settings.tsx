@@ -10,6 +10,10 @@ import {
     Slider,
     Switch,
     Typography,
+    InputLabel,
+    MenuItem,
+    FormControl,
+    Select
 } from "@mui/material";
 import { MuiColorInput } from "mui-color-input";
 import React from "react";
@@ -33,11 +37,12 @@ export default React.memo(() => {
                     overflow: "auto",
                 }}
             >
+                <SettingStyleSelector />
+
                 <SettingIconSize />
 
                 <SettingBoolean target="displayBombDetails" title="Display Bomb Details" />
                 <SettingBoolean target="displayLowerRadar" title="Display Lower Radar" />
-                <SettingBoolean target="radarStyleSelector" title="Use Old Style" />
                 <SettingBoolean target="showDotOwn" title="Highlight broadacster" />
 
                 <SettingDotColor target="colorDotCT" title="CT Color" />
@@ -72,7 +77,7 @@ const SettingIconSize = React.memo(() => {
 
 const SettingBoolean = React.memo((props: {
     title: string,
-    target: keyof RadarSettingsState & ("displayBombDetails" | "showDotOwn" | "displayLowerRadar" | "radarStyleSelector")
+    target: keyof RadarSettingsState & ("displayBombDetails" | "showDotOwn" | "displayLowerRadar")
 }) => {
     const { target, title } = props;
     const value = useAppSelector(state => state.radarSettings[target]);
@@ -136,3 +141,25 @@ const SettingDotColor = React.memo(
         );
     },
 );
+
+const SettingStyleSelector = React.memo(() => {
+    const value = useAppSelector((state) => state.radarSettings.radarStyleSelector);
+    const dispatch = useAppDispatch();
+
+    return (
+        <Box>
+            <Typography variant={"subtitle1"}>Radar Style</Typography>
+            <FormControl fullWidth>
+                <Select
+                    defaultValue="Official"
+                id="radarStyleSelector"
+                value={value}
+                onChange={(_event, value) => dispatch(updateRadarSettings({ radarStyleSelector: value.props.value }))}
+                >
+                    <MenuItem value="Official">Official</MenuItem>
+                    <MenuItem value="SimpleRadar">Simple Radar</MenuItem>
+                </Select>
+            </FormControl>
+        </Box>
+    );
+});

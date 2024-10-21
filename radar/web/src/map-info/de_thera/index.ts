@@ -5,9 +5,9 @@ export default {
     mapName: "de_thera",
     displayName: "Thera",
 
-    pos_x: -85, // upper left world coordinate
-    pos_y: 2261,
-    scale: 4.8,
+    pos_x: -85.609764, // upper left world coordinate
+    pos_y: 2261.8025,
+    scale: 4.85,
 
     verticalSections: {
         default: // use the primary radar image

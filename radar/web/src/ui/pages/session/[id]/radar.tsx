@@ -65,7 +65,7 @@ export const RadarRenderer = React.memo(() => {
     const displayRadarLevel = (level:keyof MapImage['images'])=>{ 
         return (                  
             <SqareContainer sqareSize={sqareSize}>
-                <MapRenderer level={level} radarStyle={radarStyleSelector ? "SimpleRadar" : "Official"}/>
+                <MapRenderer level={level} radarStyle={radarStyleSelector}/>
                 {!mapInfo && (
                     <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
                         <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
@@ -119,7 +119,7 @@ export const RadarRenderer = React.memo(() => {
                     </Box>
                     <Box sx={{ height: "100%", width: "100%", display: "flex", flexDirection: "row" }} ref={refContainer}>
                         {displayRadarLevel('default')}
-                        {showLowerRadar ? displayRadarLevel('lower') : null}
+                        {showLowerRadar && mapInfo?.verticalSections['lower'] != null ? displayRadarLevel('lower') : null}
                     </Box>
                 </Box>
             </Box>
@@ -162,6 +162,15 @@ const MapRenderer = React.memo((props:{level:keyof MapImage['images'], radarStyl
     if (!map) {
         /* we need the map info */
         return null;
+    }
+
+    //TODO: Refactor all below conditions to be more compact/universal for future extensions for levels
+    const isStyleforThisMap = map.mapImages.some((item : MapImage) => {
+        return item.name == props.radarStyle
+    })
+
+    if(!isStyleforThisMap){
+        return "Missing style. Use other style for this map. Change in settings."
     }
 
     let radarMapImage = map.mapImages.find((item:MapImage)=>{
