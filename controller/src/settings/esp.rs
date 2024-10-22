@@ -67,10 +67,10 @@ impl From<[f32; 4]> for Color {
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 #[serde(tag = "type", content = "options")]
 pub enum EspColor {
-    HealthBasedRainbow,
-    HealthBased { max: Color, min: Color },
+    HealthBasedRainbow { alpha: f32 },
+    HealthBased { max: Color, mid: Color, min: Color },
     Static { value: Color },
-    DistanceBased,
+    DistanceBased { near: Color, mid: Color, far: Color },
 }
 
 impl Default for EspColor {
@@ -88,47 +88,59 @@ impl EspColor {
         }
     }
 
+    fn interpolate_color(start: [f32; 4], end: [f32; 4], t: f32) -> [f32; 4] {
+        [
+            start[0] + (end[0] - start[0]) * t,
+            start[1] + (end[1] - start[1]) * t,
+            start[2] + (end[2] - start[2]) * t,
+            start[3] + (end[3] - start[3]) * t,
+        ]
+    }
+
     /// Calculate the target color.
     /// Health should be in [0.0;1.0]
     pub fn calculate_color(&self, health: f32, distance: f32) -> [f32; 4] {
         match self {
             Self::Static { value } => value.as_f32(),
-            Self::HealthBased { max, min } => {
-                let min_rgb = min.as_f32();
+            Self::HealthBased { max, mid, min } => {
                 let max_rgb = max.as_f32();
+                let mid_rgb = mid.as_f32();
+                let min_rgb = min.as_f32();
 
-                [
-                    min_rgb[0] + (max_rgb[0] - min_rgb[0]) * health,
-                    min_rgb[1] + (max_rgb[1] - min_rgb[1]) * health,
-                    min_rgb[2] + (max_rgb[2] - min_rgb[2]) * health,
-                    min_rgb[3] + (max_rgb[3] - min_rgb[3]) * health,
-                ]
+                if health > 0.5 {
+                    let t = (health - 0.5) * 2.0;
+                    Self::interpolate_color(mid_rgb, max_rgb, t)
+                } else {
+                    let t = health * 2.0;
+                    Self::interpolate_color(min_rgb, mid_rgb, t)
+                }
             }
-            Self::HealthBasedRainbow => {
+            Self::HealthBasedRainbow { alpha } => {
                 let sin_value = |offset: f32| {
                     (2.0 * std::f32::consts::PI * health * 0.75 + offset).sin() * 0.5 + 1.0
                 };
                 let r: f32 = sin_value(0.0);
                 let g: f32 = sin_value(2.0 * std::f32::consts::PI / 3.0);
                 let b: f32 = sin_value(4.0 * std::f32::consts::PI / 3.0);
-                [r, g, b, 1.0]
+                [r, g, b, *alpha]
             }
-            Self::DistanceBased => {
-                let max_distance = 80.0;
+            Self::DistanceBased { near, mid, far } => {
+                let max_distance = 50.0;
                 let min_distance = 0.0;
 
-                let color_near = [1.0, 0.0, 0.0, 0.75];
-                let color_far = [0.0, 1.0, 0.0, 0.75];
+                let color_near = near.as_f32();
+                let color_mid = mid.as_f32();
+                let color_far = far.as_f32();
 
-                let t = (distance - min_distance) / (max_distance - min_distance);
-                let t = t.clamp(0.0, 1.0);
+                let t = ((distance - min_distance) / (max_distance - min_distance)).clamp(0.0, 1.0);
 
-                [
-                    color_near[0] + t * (color_far[0] - color_near[0]),
-                    color_near[1] + t * (color_far[1] - color_near[1]),
-                    color_near[2] + t * (color_far[2] - color_near[2]),
-                    0.75,
-                ]
+                if t < 0.5 {
+                    let t2 = t * 2.0;
+                    Self::interpolate_color(color_near, color_mid, t2)
+                } else {
+                    let t2 = (t - 0.5) * 2.0;
+                    Self::interpolate_color(color_mid, color_far, t2)
+                }
             }
         }
     }
@@ -147,8 +159,8 @@ impl EspColorType {
         match color {
             EspColor::Static { .. } => Self::Static,
             EspColor::HealthBased { .. } => Self::HealthBased,
-            EspColor::HealthBasedRainbow => Self::HealthBasedRainbow,
-            EspColor::DistanceBased => Self::DistanceBased,
+            EspColor::HealthBasedRainbow { .. } => Self::HealthBasedRainbow,
+            EspColor::DistanceBased { .. } => Self::DistanceBased,
         }
     }
 }
@@ -187,6 +199,13 @@ pub enum EspTracePosition {
 }
 
 #[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum EspHeadDot {
+    None,
+    Filled,
+    NotFilled,
+}
+
+#[derive(Clone, Copy, Deserialize, Serialize, PartialEq, PartialOrd)]
 pub struct EspPlayerSettings {
     pub box_type: EspBoxType,
     pub box_color: EspColor,
@@ -221,6 +240,12 @@ pub struct EspPlayerSettings {
     pub info_flag_kit: bool,
     pub info_flag_flashed: bool,
     pub info_flags_color: EspColor,
+
+    pub head_dot: EspHeadDot,
+    pub head_dot_color: EspColor,
+    pub head_dot_thickness: f32,
+    pub head_dot_base_radius: f32,
+    pub head_dot_z: f32,
 }
 
 const ESP_COLOR_FRIENDLY: EspColor = EspColor::from_rgba(0.0, 1.0, 0.0, 0.75);
@@ -279,6 +304,12 @@ impl EspPlayerSettings {
             info_flag_kit: false,
             info_flag_flashed: false,
             info_flags_color: color.clone(),
+
+            head_dot: EspHeadDot::None,
+            head_dot_color: color.clone(),
+            head_dot_thickness: 2.0,
+            head_dot_base_radius: 3.0,
+            head_dot_z: 1.0,
         }
     }
 }

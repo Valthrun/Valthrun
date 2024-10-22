@@ -6,7 +6,7 @@ use std::sync::{
 
 use cs2::{
     CS2Handle,
-    CS2HandleState,
+    StateCS2Handle,
 };
 use radar_client::{
     CS2RadarGenerator,
@@ -43,7 +43,7 @@ impl WebRadar {
     ) -> anyhow::Result<WebRadarPublisher> {
         let radar_generator = {
             let mut states = StateRegistry::new(1024 * 8);
-            states.set(CS2HandleState::new(cs2), ())?;
+            states.set(StateCS2Handle::new(cs2), ())?;
 
             Box::new(CS2RadarGenerator::new(states)?)
         };

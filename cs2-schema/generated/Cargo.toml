@@ -4,14 +4,14 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-anyhow = "1.0.72"
-nalgebra = "0.32.3"
+anyhow = { workspace = true }
+nalgebra = { workspace = true }
 serde = { version = "1.0.178", features = ["derive"] }
-cs2-schema-declaration = { path = "../declaration" }
 cs2-schema-cutl = { path = "../cutl" }
+raw_struct = { workspace = true }
 
 [build-dependencies]
-anyhow = "1.0.72" 
+anyhow = { workspace = true }
+cs2-schema-definition = { version = "0.1.0", path = "../definition" }
 serde = { version = "1.0.178", features = ["derive"] }
 serde_json = "1.0.104"
- 
