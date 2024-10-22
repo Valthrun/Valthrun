@@ -4,11 +4,14 @@ use anyhow::Context;
 use cs2::{
     CEntityIdentityEx,
     ClassNameCache,
-    EntitySystem,
+    StateCS2Memory,
+    StateEntityList,
+    StateLocalPlayerController,
 };
-use cs2_schema_generated::{
-    cs2::client::CEntityInstance,
-    EntityHandle,
+use cs2_schema_cutl::EntityHandle;
+use cs2_schema_generated::cs2::client::{
+    CEntityInstance,
+    C_CSPlayerPawnBase,
 };
 use utils_state::{
     State,
@@ -23,11 +26,11 @@ pub struct CrosshairTarget {
     pub timestamp: Instant,
 }
 
-pub struct LocalCrosshair {
+pub struct StateLocalCrosshair {
     current_target: Option<CrosshairTarget>,
 }
 
-impl State for LocalCrosshair {
+impl State for StateLocalCrosshair {
     type Parameter = ();
 
     fn create(_states: &StateRegistry, _param: Self::Parameter) -> anyhow::Result<Self> {
@@ -42,7 +45,7 @@ impl State for LocalCrosshair {
 
     fn update(&mut self, states: &StateRegistry) -> anyhow::Result<()> {
         let crosshair_entity_handle = match self.read_crosshair_entity(states)? {
-            Some(entity_id) => EntityHandle::<CEntityInstance>::from_index(entity_id),
+            Some(entity_id) => EntityHandle::<dyn CEntityInstance>::from_index(entity_id),
             None => {
                 self.current_target = None;
                 return Ok(());
@@ -56,12 +59,12 @@ impl State for LocalCrosshair {
             .unwrap_or(true);
 
         if new_target {
-            let entities = states.resolve::<EntitySystem>(())?;
+            let entities = states.resolve::<StateEntityList>(())?;
             let class_name_cache = states.resolve::<ClassNameCache>(())?;
 
             let crosshair_entity_identnity = entities
-                .get_by_handle(&crosshair_entity_handle)?
-                .context("failed to resolve crosshair entity id")?;
+                .identity_from_index(crosshair_entity_handle.get_entity_index())
+                .context("missing crosshair entity")?;
 
             let target_type =
                 class_name_cache.lookup(&crosshair_entity_identnity.entity_class_info()?)?;
@@ -77,31 +80,34 @@ impl State for LocalCrosshair {
     }
 }
 
-impl LocalCrosshair {
+impl StateLocalCrosshair {
     pub fn current_target(&self) -> Option<&CrosshairTarget> {
         self.current_target.as_ref()
     }
 
     fn read_crosshair_entity(&self, states: &StateRegistry) -> anyhow::Result<Option<u32>> {
-        let entities = states.resolve::<EntitySystem>(())?;
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let local_player_controller = states.resolve::<StateLocalPlayerController>(())?;
 
-        let local_player_controller = entities
-            .get_local_player_controller()?
-            .try_reference_schema()?;
-
-        let local_player_controller = match local_player_controller {
+        let local_player_controller = match local_player_controller
+            .instance
+            .value_reference(memory.view_arc())
+        {
             Some(local_player_controller) => local_player_controller,
             None => return Ok(None),
         };
 
-        let local_pawn_ptr =
-            match entities.get_by_handle(&local_player_controller.m_hPlayerPawn()?)? {
-                Some(ptr) => ptr.entity()?,
+        let entities = states.resolve::<StateEntityList>(())?;
+        let local_pawn =
+            match entities.entity_from_handle(&local_player_controller.m_hPlayerPawn()?) {
+                Some(ptr) => ptr
+                    .value_reference(memory.view_arc())
+                    .context("pawn nullptr")?,
                 None => return Ok(None),
             };
 
         //let entity_id = 0xFFFFFFFF;
-        let entity_id = local_pawn_ptr.reference_schema()?.m_iIDEntIndex()?;
+        let entity_id = local_pawn.m_iIDEntIndex()?;
         if entity_id != 0xFFFFFFFF {
             Ok(Some(entity_id))
         } else {

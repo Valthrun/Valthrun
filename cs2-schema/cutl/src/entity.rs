@@ -7,21 +7,23 @@ use std::{
     marker::PhantomData,
 };
 
-use cs2_schema_declaration::{
-    MemoryHandle,
-    SchemaValue,
-};
-
 /// CS2 32 bit entity handle packed with
 /// the entity index and serial number.
 #[repr(C)]
-#[derive(Default, Clone)]
-pub struct EntityHandle<T> {
+#[derive(Default)]
+pub struct EntityHandle<T: ?Sized> {
     pub value: u32,
     _data: PhantomData<T>,
 }
 
-impl<T> EntityHandle<T> {
+impl<T: ?Sized> Clone for EntityHandle<T> {
+    fn clone(&self) -> Self {
+        *self
+    }
+}
+impl<T: ?Sized> Copy for EntityHandle<T> {}
+
+impl<T: ?Sized> EntityHandle<T> {
     pub fn from_index(index: u32) -> Self {
         Self {
             value: index,
@@ -42,7 +44,7 @@ impl<T> EntityHandle<T> {
     }
 }
 
-impl<T> Debug for EntityHandle<T> {
+impl<T: ?Sized> Debug for EntityHandle<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("EntityHandle")
             .field(
@@ -57,28 +59,15 @@ impl<T> Debug for EntityHandle<T> {
     }
 }
 
-impl<T> PartialEq for EntityHandle<T> {
+impl<T: ?Sized> PartialEq for EntityHandle<T> {
     fn eq(&self, other: &Self) -> bool {
         self.get_entity_index() == other.get_entity_index()
     }
 }
 
-impl<T> Hash for EntityHandle<T> {
+impl<T: ?Sized> Hash for EntityHandle<T> {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.get_entity_index().hash(state);
-    }
-}
-
-impl<T> SchemaValue for EntityHandle<T> {
-    fn value_size() -> Option<u64> {
-        Some(0x04)
-    }
-
-    fn from_memory(memory: MemoryHandle) -> anyhow::Result<Self> {
-        Ok(Self {
-            value: SchemaValue::from_memory(memory)?,
-            _data: Default::default(),
-        })
     }
 }
 

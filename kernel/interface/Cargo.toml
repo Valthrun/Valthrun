@@ -10,13 +10,13 @@ windows = { version = "0.48.0", features = [
     "Win32_Storage_FileSystem",
     "Win32_Foundation",
     "Win32_Security",
-    "Win32_System_IO"
+    "Win32_System_IO",
 ] }
 valthrun-driver-shared = { path = "../shared" }
-log = "0.4.19"
+log = { workspace = true }
 thiserror = "1.0.44"
 libloading = "0.8.5"
 
 [dev-dependencies]
-anyhow = "1.0.75"
-env_logger = "0.10.0"
+anyhow = { workspace = true }
+env_logger = { workspace = true }

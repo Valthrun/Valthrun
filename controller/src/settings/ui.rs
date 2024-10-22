@@ -21,8 +21,8 @@ use std::{
 
 use anyhow::Context;
 use cs2::{
-    BuildInfo,
     CS2Handle,
+    StateBuildInfo,
     StateCurrentMap,
 };
 use imgui::{
@@ -238,7 +238,7 @@ impl SettingsUI {
 
                 if let Some(_tab_bar) = ui.tab_bar("main") {
                     if let Some(_tab) = ui.tab_item("Information") {
-                        let build_info = app.app_state.resolve::<BuildInfo>(()).ok();
+                        let build_info = app.app_state.resolve::<StateBuildInfo>(()).ok();
 
                         ui.text(obfstr!("Valthrun an open source CS2 external read only kernel gameplay enhancer."));
                         ui.text(&format!("{} Version {} ({})", obfstr!("Valthrun"), VERSION, env!("BUILD_TIME")));
