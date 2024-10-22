@@ -10,7 +10,6 @@ use std::{
     fmt::Debug,
     fs::File,
     io::BufWriter,
-    mem,
     path::PathBuf,
     rc::Rc,
     sync::{
@@ -35,11 +34,11 @@ use clap::{
 };
 use cs2::{
     offsets_runtime,
-    BuildInfo,
     CS2Handle,
-    CS2HandleState,
-    CS2Offsets,
     ConVars,
+    StateBuildInfo,
+    StateCS2Handle,
+    StateCS2Memory,
 };
 use enhancements::{
     Enhancement,
@@ -52,7 +51,6 @@ use imgui::{
     FontSource,
     Ui,
 };
-use libloading::Library;
 use obfstr::obfstr;
 use overlay::{
     LoadingError,
@@ -72,20 +70,9 @@ use tokio::runtime;
 use utils_state::StateRegistry;
 use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
-use windows::{
-    core::PCSTR,
-    Win32::{
-        System::{
-            ApplicationInstallationAndServicing::{
-                ActivateActCtx,
-                CreateActCtxA,
-                ACTCTXA,
-            },
-            Console::GetConsoleProcessList,
-            LibraryLoader::GetModuleHandleA,
-        },
-        UI::Shell::IsUserAnAdmin,
-    },
+use windows::Win32::{
+    System::Console::GetConsoleProcessList,
+    UI::Shell::IsUserAnAdmin,
 };
 
 use crate::{
@@ -439,8 +426,11 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     log::info!("Dumping schema. Please wait...");
 
     let cs2 = CS2Handle::create(true)?;
+    let mut state = StateRegistry::new(64);
+    state.set(StateCS2Handle::new(cs2.clone()), ())?;
+    state.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
     let schema = cs2::dump_schema(
-        &cs2,
+        &state,
         if args.all_classes {
             None
         } else {
@@ -457,23 +447,6 @@ fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
     let mut output = BufWriter::new(output);
     serde_json::to_writer_pretty(&mut output, &schema)?;
     log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
-    Ok(())
-}
-
-fn preload_vulkan_with_act_ctx() -> anyhow::Result<()> {
-    unsafe {
-        let mut act_ctx = mem::zeroed::<ACTCTXA>();
-        act_ctx.cbSize = mem::size_of_val(&act_ctx) as u32;
-        act_ctx.dwFlags = 0x80 | 0x08;
-        act_ctx.hModule = GetModuleHandleA(PCSTR::null()).context("GetModuleHandleA")?;
-        act_ctx.lpResourceName = PCSTR::from_raw(1 as *const u8);
-
-        let mut cookie = 0;
-        let ctx = CreateActCtxA(&act_ctx).context("CreateActCtxA")?;
-        ActivateActCtx(ctx, &mut cookie).context("ActivateActCtx")?;
-        Library::new("vulkan-1").context("vulkan-1")?;
-    }
-
     Ok(())
 }
 
@@ -495,10 +468,6 @@ fn main_overlay() -> anyhow::Result<()> {
     if unsafe { IsUserAnAdmin().as_bool() } {
         log::warn!("{}", obfstr!("Please do not run this as administrator!"));
         log::warn!("{}", obfstr!("Running the controller as administrator might cause failures with your graphic drivers."));
-    }
-
-    if let Err(err) = preload_vulkan_with_act_ctx() {
-        log::warn!("Act CTX preload failed: {:#}", err);
     }
 
     let settings = load_app_settings()?;
@@ -555,11 +524,12 @@ fn main_overlay() -> anyhow::Result<()> {
     cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
 
     let mut app_state = StateRegistry::new(1024 * 8);
-    app_state.set(CS2HandleState::new(cs2.clone()), ())?;
+    app_state.set(StateCS2Handle::new(cs2.clone()), ())?;
+    app_state.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
     app_state.set(settings, ())?;
 
     {
-        let cs2_build_info = app_state.resolve::<BuildInfo>(()).with_context(|| {
+        let cs2_build_info = app_state.resolve::<StateBuildInfo>(()).with_context(|| {
             obfstr!(
                 "Failed to load CS2 build info. CS2 version might be newer / older then expected"
             )
@@ -578,17 +548,13 @@ fn main_overlay() -> anyhow::Result<()> {
         );
     }
 
-    offsets_runtime::setup_provider(&cs2)?;
+    offsets_runtime::setup_provider(&app_state)?;
 
-    let cvars = ConVars::new(cs2.clone()).context("cvars")?;
+    let cvars = ConVars::new(&app_state).context("cvars")?;
     let cvar_sensitivity = cvars
         .find_cvar("sensitivity")
         .context("cvar ensitivity")?
         .context("missing cvar ensitivity")?;
-
-    app_state
-        .resolve::<CS2Offsets>(())
-        .with_context(|| obfstr!("failed to load CS2 offsets").to_string())?;
 
     log::debug!("Initialize overlay");
     let app_fonts: AppFonts = Default::default();
