@@ -1,9 +1,0 @@
-[package]
-name = "cs2-schema-declaration"
-version = "0.1.0"
-edition = "2021"
-
-[dependencies]
-anyhow = "1.0.72"
-nalgebra = "0.32.3"
-serde = { version = "1.0.178", features = ["derive"] }

@@ -1,184 +1,112 @@
-use std::ffi::CStr;
+use std::{
+    ffi::CStr,
+    ops::Deref,
+};
 
 use anyhow::{
     Context,
     Result,
 };
-use cs2_schema_declaration::{
-    define_schema,
-    Ptr,
+use cs2_schema_cutl::EntityHandle;
+use cs2_schema_generated::cs2::client::{
+    CCSPlayer_ItemServices,
+    CGameSceneNode,
+    CSkeletonInstance,
+    C_BaseEntity,
+    C_BasePlayerPawn,
+    C_CSPlayerPawn,
+    C_CSPlayerPawnBase,
+    C_EconEntity,
 };
-use cs2_schema_generated::{
-    cs2::client::{
-        CCSPlayer_ItemServices,
-        CModelState,
-        CSkeletonInstance,
-        C_CSPlayerPawn,
-    },
-    EntityHandle,
-};
-use obfstr::obfstr;
 use utils_state::{
     State,
     StateCacheType,
+    StateRegistry,
 };
 
 use crate::{
+    schema::{
+        CBoneStateData,
+        CModelStateEx,
+    },
     CS2Model,
-    EntitySystem,
+    StateCS2Memory,
+    StateEntityList,
     WeaponId,
 };
 
 #[derive(Debug, Clone)]
-pub struct PlayerPawnInfo {
-    pub controller_entity_id: u32,
+pub struct StatePawnInfo {
+    pub controller_entity_id: Option<u32>,
+    pub pawn_entity_id: u32,
     pub team_id: u8,
 
     pub player_health: i32,
     pub player_has_defuser: bool,
-    pub player_name: String,
+    pub player_name: Option<String>,
     pub weapon: WeaponId,
     pub player_flashtime: f32,
 
     pub position: nalgebra::Vector3<f32>,
     pub rotation: f32,
-
-    pub model_address: u64,
-    pub bone_states: Vec<BoneStateData>,
 }
 
-define_schema! {
-    pub struct CBoneStateData[0x20] {
-        pub position: [f32; 3] = 0x00,
-        pub scale: f32 = 0x0C,
-        pub rotation: [f32; 4] = 0x10,
-    }
-}
+impl State for StatePawnInfo {
+    type Parameter = EntityHandle<dyn C_CSPlayerPawn>;
 
-trait CModelStateEx {
-    #[allow(non_snake_case)]
-    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>>;
-    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>>;
-}
-
-impl CModelStateEx for CModelState {
-    #[allow(non_snake_case)]
-    fn m_hModel(&self) -> anyhow::Result<Ptr<Ptr<()>>> {
-        self.memory.reference_schema(0xA0)
-    }
-
-    fn bone_state_data(&self) -> anyhow::Result<Ptr<[CBoneStateData]>> {
-        self.memory.reference_schema(0x80)
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct BoneStateData {
-    pub position: nalgebra::Vector3<f32>,
-}
-
-impl TryFrom<CBoneStateData> for BoneStateData {
-    type Error = anyhow::Error;
-
-    fn try_from(value: CBoneStateData) -> Result<Self, Self::Error> {
-        Ok(Self {
-            position: nalgebra::Vector3::from_row_slice(&value.position()?),
-        })
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum PlayerPawnState {
-    Alive(PlayerPawnInfo),
-    Dead,
-}
-
-impl State for PlayerPawnState {
-    type Parameter = u32;
-
-    fn create(
-        states: &utils_state::StateRegistry,
-        pawn_entity_index: Self::Parameter,
-    ) -> anyhow::Result<Self> {
-        let entities = states.resolve::<EntitySystem>(())?;
-
-        let player_pawn = match entities
-            .get_by_handle::<C_CSPlayerPawn>(&EntityHandle::from_index(pawn_entity_index))?
-        {
-            Some(identity) => identity
-                .entity()?
-                .read_schema()
-                .with_context(|| obfstr!("failed to read player pawn data").to_string())?,
-            None => return Ok(Self::Dead),
+    fn create(states: &StateRegistry, handle: Self::Parameter) -> anyhow::Result<Self> {
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
+        let Some(player_pawn) = entities.entity_from_handle(&handle) else {
+            anyhow::bail!("entity does not exists")
         };
+        let player_pawn = player_pawn
+            .value_copy(memory.view())?
+            .context("player pawn nullptr")?;
 
         let player_health = player_pawn.m_iHealth()?;
-        if player_health <= 0 {
-            return Ok(Self::Dead);
-        }
-
-        /* Will be an instance of CSkeletonInstance */
-        let game_screen_node = player_pawn
-            .m_pGameSceneNode()?
-            .cast::<CSkeletonInstance>()
-            .read_schema()?;
-        if game_screen_node.m_bDormant()? {
-            return Ok(Self::Dead);
-        }
 
         let controller_handle = player_pawn.m_hController()?;
-        let current_controller = entities.get_by_handle(&controller_handle)?;
+        let current_controller = entities.entity_from_handle(&controller_handle);
 
         let player_team = player_pawn.m_iTeamNum()?;
 
         let player_name = if let Some(identity) = &current_controller {
-            let player_controller = identity.entity()?.reference_schema()?;
-            CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
-                .context("player name missing nul terminator")?
-                .to_str()
-                .context("invalid player name")?
-                .to_string()
+            let player_controller = identity
+                .value_reference(memory.view_arc())
+                .context("nullptr")?;
+            Some(
+                CStr::from_bytes_until_nul(&player_controller.m_iszPlayerName()?)
+                    .context("player name missing nul terminator")?
+                    .to_string_lossy()
+                    .to_string(),
+            )
         } else {
-            /*
-             * This is the case for pawns which are not controllel by a player controller.
-             * An example would be the main screen player pawns.
-             *
-             * Note: We're assuming, that uncontroller player pawns are neglectable while being in a match as the do not occurr.
-             * Bots (and controller bots) always have a player pawn controller.
-             */
-            // log::warn!(
-            //     "Handle at address {:p} has no valid controller!",
-            //     &controller_handle
-            // );
-            return Ok(Self::Dead);
+            None
         };
 
 
         let player_has_defuser = player_pawn
             .m_pItemServices()?
-            .cast::<CCSPlayer_ItemServices>()
-            .reference_schema()?
+            .value_reference(memory.view_arc())
+            .context("m_pItemServices nullptr")?
+            .cast::<dyn CCSPlayer_ItemServices>()
             .m_bHasDefuser()?;
+
+        /* Will be an instance of CSkeletonInstance */
+        let game_screen_node = player_pawn
+            .m_pGameSceneNode()?
+            .value_reference(memory.view_arc())
+            .context("game screen node nullptr")?
+            .cast::<dyn CSkeletonInstance>()
+            .copy()?;
 
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
-        let model_address = game_screen_node
-            .m_modelState()?
-            .m_hModel()?
-            .read_schema()?
-            .address()?;
-
-        let model = states.resolve::<CS2Model>(model_address)?;
-        let bone_states = game_screen_node
-            .m_modelState()?
-            .bone_state_data()?
-            .read_entries(model.bones.len())?
-            .into_iter()
-            .map(|bone| bone.try_into())
-            .collect::<Result<Vec<_>>>()?;
-
-        let weapon = player_pawn.m_pClippingWeapon()?.try_read_schema()?;
+        let weapon = player_pawn
+            .m_pClippingWeapon()?
+            .value_reference(memory.view_arc());
         let weapon_type = if let Some(weapon) = weapon {
             weapon
                 .m_AttributeManager()?
@@ -190,8 +118,14 @@ impl State for PlayerPawnState {
 
         let player_flashtime = player_pawn.m_flFlashBangTime()?;
 
-        Ok(Self::Alive(PlayerPawnInfo {
-            controller_entity_id: controller_handle.get_entity_index(),
+        Ok(Self {
+            controller_entity_id: if controller_handle.is_valid() {
+                Some(controller_handle.get_entity_index())
+            } else {
+                None
+            },
+            pawn_entity_id: handle.get_entity_index(),
+
             team_id: player_team,
 
             player_name,
@@ -202,10 +136,117 @@ impl State for PlayerPawnState {
 
             position,
             rotation: player_pawn.m_angEyeAngles()?[1],
+        })
+    }
 
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Volatile
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct BoneStateData {
+    pub position: nalgebra::Vector3<f32>,
+}
+
+impl TryFrom<&dyn CBoneStateData> for BoneStateData {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &dyn CBoneStateData) -> Result<Self, Self::Error> {
+        Ok(Self {
+            position: nalgebra::Vector3::from_row_slice(&value.position()?),
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct StatePawnModelInfo {
+    pub model_address: u64,
+    pub bone_states: Vec<BoneStateData>,
+}
+
+impl State for StatePawnModelInfo {
+    type Parameter = EntityHandle<dyn C_CSPlayerPawn>;
+
+    fn create(states: &StateRegistry, handle: Self::Parameter) -> anyhow::Result<Self> {
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
+        let Some(player_pawn) = entities.entity_from_handle(&handle) else {
+            anyhow::bail!("entity does not exists")
+        };
+        let player_pawn = player_pawn
+            .value_copy(memory.view())?
+            .context("player pawn nullptr")?;
+
+        let game_screen_node = player_pawn
+            .m_pGameSceneNode()?
+            .value_reference(memory.view_arc())
+            .context("game screen node nullptr")?
+            .cast::<dyn CSkeletonInstance>()
+            .copy()?;
+
+        let model_address = game_screen_node
+            .m_modelState()?
+            .m_hModel()?
+            .read_value(memory.view())?
+            .context("m_hModel nullptr")?
+            .address;
+
+        let model = states.resolve::<CS2Model>(model_address)?;
+        let bone_states = game_screen_node
+            .m_modelState()?
+            .bone_state_data()?
+            .elements_copy(memory.view(), 0..model.bones.len())?
+            .into_iter()
+            .map(|bone| bone.deref().try_into())
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(Self {
             bone_states,
             model_address,
-        }))
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+pub enum PlayerPawnState {
+    Alive,
+    Dead,
+}
+
+impl State for PlayerPawnState {
+    type Parameter = EntityHandle<dyn C_CSPlayerPawn>;
+
+    fn create(
+        states: &utils_state::StateRegistry,
+        handle: Self::Parameter,
+    ) -> anyhow::Result<Self> {
+        let memory = states.resolve::<StateCS2Memory>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
+
+        let player_pawn = match entities.entity_from_handle::<dyn C_CSPlayerPawn>(&handle) {
+            Some(identity) => identity
+                .value_reference(memory.view_arc())
+                .context("entity nullptr")?,
+            None => return Ok(Self::Dead),
+        };
+
+        let player_health = player_pawn.m_iHealth()?;
+        if player_health <= 0 {
+            return Ok(Self::Dead);
+        }
+
+        /* Will be an instance of CSkeletonInstance */
+        let game_screen_node = player_pawn
+            .m_pGameSceneNode()?
+            .value_reference(memory.view_arc())
+            .context("m_pGameSceneNode nullptr")?
+            .cast::<dyn CSkeletonInstance>();
+        if game_screen_node.m_bDormant()? {
+            return Ok(Self::Dead);
+        }
+
+        Ok(Self::Alive)
     }
 
     fn cache_type() -> StateCacheType {
