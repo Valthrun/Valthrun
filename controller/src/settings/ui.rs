@@ -1469,7 +1469,7 @@ impl SettingsUI {
                     display_name: "Thera".to_owned(),
                 },
                 GrenadeSettingsTarget::Map {
-                    map_name: "cs_vertigo".to_owned(),
+                    map_name: "de_vertigo".to_owned(),
                     display_name: "Vertigo".to_owned(),
                 },
             ] {
