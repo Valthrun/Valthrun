@@ -3,13 +3,13 @@ use core::f32;
 use anyhow::Context;
 use cs2::{
     schema::ConVar,
+    MouseState,
     StateCS2Memory,
     StateEntityList,
     StateLocalPlayerController,
 };
 use overlay::UnicodeTextRenderer;
 use raw_struct::Reference;
-use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 use crate::settings::AppSettings;

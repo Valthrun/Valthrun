@@ -1,11 +1,8 @@
-mod health;
-pub use health::*;
+mod init;
+pub use init::*;
 
 mod modules;
 pub use modules::*;
-
-mod init;
-pub use init::*;
 
 mod read;
 pub use read::*;

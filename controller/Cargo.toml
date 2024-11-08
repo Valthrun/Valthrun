@@ -20,7 +20,6 @@ serde_with = "3.8.3"
 cs2 = { path = "../cs2" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
 cs2-schema-cutl = { version = "0.1.0", path = "../cs2-schema/cutl" }
-valthrun-kernel-interface = { path = "../kernel/interface" }
 overlay = { path = "../overlay" }
 utils-state = { version = "0.1.0", path = "../utils/state" }
 radar-client = { version = "0.1.0", path = "../radar/client" }

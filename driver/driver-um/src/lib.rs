@@ -19,16 +19,11 @@ lazy_static! {
 fn init_request_handler() -> HandlerRegistry {
     let mut handler = HandlerRegistry::new();
 
-    handler.register(&handler::health);
-    handler.register(&handler::get_cs2_modules);
+    handler.register(&handler::init);
+    handler.register(&handler::get_modules);
     handler.register(&handler::read);
-    // handler.register(&handler::write);
-    // handler.register(&handler::protection_toggle);
     handler.register(&handler::mouse_move);
     handler.register(&handler::keyboard_state);
-    handler.register(&handler::init);
-    // handler.register(&handler::metrics_record);
-    handler.register(&handler::get_modules);
 
     handler
 }
@@ -48,21 +43,19 @@ extern "system" fn DllMain(_dll_module: *const (), call_reason: u32, _: *mut ())
 }
 
 #[no_mangle]
-extern "C" fn execute_request(
-    function_code: u16,
-    request: *const u8,
-    request_length: usize,
-    response: *mut u8,
-    response_length: usize,
-) -> u32 {
-    let request = unsafe { slice::from_raw_parts(request, request_length) };
-    let response = unsafe { slice::from_raw_parts_mut(response, response_length) };
+extern "C" fn execute_command(
+    command_id: u32,
 
-    match REQUEST_HANDLER.handle(function_code, request, response) {
-        Ok(_) => 1,
-        Err(err) => {
-            log::error!("Failed to handle {:X}: {:#?}", function_code, err);
-            0
-        }
-    }
+    payload: *mut u8,
+    payload_length: usize,
+
+    error_message: *mut u8,
+    error_message_length: usize,
+) -> u64 {
+    let payload = unsafe { slice::from_raw_parts_mut(payload, payload_length) };
+    let error_message = unsafe { slice::from_raw_parts_mut(error_message, error_message_length) };
+
+    REQUEST_HANDLER
+        .handle(command_id, payload, error_message)
+        .bits()
 }

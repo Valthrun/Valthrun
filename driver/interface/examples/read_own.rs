@@ -1,6 +1,6 @@
-use valthrun_kernel_interface::KernelInterface;
+use valthrun_driver_interface::DriverInterface;
 
-fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
+fn read_heap_buffer(interface: &DriverInterface) -> anyhow::Result<()> {
     let mut buffer = Vec::with_capacity(10_000);
     buffer.resize(10_000, 0);
 
@@ -10,11 +10,7 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 
     let mut read_buffer = Vec::new();
     read_buffer.resize(buffer.len(), 0usize);
-    interface.read_slice::<usize>(
-        std::process::id() as i32,
-        &[buffer.as_ptr() as u64],
-        &mut read_buffer,
-    )?;
+    interface.read_slice::<usize>(std::process::id(), buffer.as_ptr() as u64, &mut read_buffer)?;
 
     if buffer == read_buffer {
         println!("Read head buffer successfull");
@@ -28,14 +24,10 @@ fn read_heap_buffer(interface: &KernelInterface) -> anyhow::Result<()> {
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
-    let interface = KernelInterface::create(com_from_env()?)?;
-    let interface = KernelInterface::create(interface)?;
+    let interface = DriverInterface::create_from_env()?;
 
     let target_value = 0x42u64;
-    let read_value = interface.read::<u64>(
-        std::process::id() as i32,
-        &[&target_value as *const _ as u64],
-    );
+    let read_value = interface.read::<u64>(std::process::id(), &target_value as *const _ as u64);
 
     println!("Read result: {:X?}", read_value);
     read_heap_buffer(&interface)?;

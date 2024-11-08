@@ -4,14 +4,12 @@ use core::{
 };
 use std::mem;
 
-use valthrun_driver_shared::{
-    requests::{
-        ProcessFilter,
-        RequestCSModule,
-        RequestProcessModules,
-        ResponseProcessModules,
+use valthrun_driver_protocol::{
+    command::{
+        DriverCommandProcessModules,
+        ProcessModulesResult,
     },
-    ProcessModuleInfo,
+    types::ProcessFilter,
 };
 use windows::Win32::System::{
     ProcessStatus::{
@@ -30,24 +28,6 @@ use crate::util::{
     list_system_process_ids,
     ProcessId,
 };
-
-pub fn get_cs2_modules(
-    req: &RequestCSModule,
-    res: &mut ResponseProcessModules,
-) -> anyhow::Result<()> {
-    let process_name = "cs2.exe";
-    self::get_modules(
-        &RequestProcessModules {
-            filter: ProcessFilter::Name {
-                name: process_name.as_ptr(),
-                name_length: process_name.len(),
-            },
-            module_buffer: req.module_buffer,
-            module_buffer_length: req.module_buffer_length,
-        },
-        res,
-    )
-}
 
 fn find_process_id_by_name(name: &str) -> anyhow::Result<Vec<ProcessId>> {
     let processes = list_system_process_ids()?;
@@ -81,54 +61,56 @@ fn find_process_id_by_name(name: &str) -> anyhow::Result<Vec<ProcessId>> {
     Ok(matching_ids)
 }
 
-pub fn get_modules(
-    req: &RequestProcessModules,
-    res: &mut ResponseProcessModules,
-) -> anyhow::Result<()> {
-    let process_id = match req.filter {
+pub fn get_modules(command: &mut DriverCommandProcessModules) -> anyhow::Result<()> {
+    command.process_id = match command.target_process {
+        ProcessFilter::None => {
+            command.result = ProcessModulesResult::ProcessUnknown;
+            return Ok(());
+        }
         ProcessFilter::Id { id } => id as u32,
-        ProcessFilter::Name { name, name_length } => {
-            let name =
-                unsafe { str::from_utf8_unchecked(slice::from_raw_parts(name, name_length)) };
+        ProcessFilter::ImageBaseName { name, name_length } => {
+            let name = unsafe { slice::from_raw_parts(name, name_length) };
+            let name = String::from_utf8_lossy(name);
 
-            let process_ids = find_process_id_by_name(name)?;
+            let process_ids = find_process_id_by_name(&*name)?;
             if process_ids.is_empty() {
-                *res = ResponseProcessModules::NoProcess;
+                command.result = ProcessModulesResult::ProcessUnknown;
                 return Ok(());
             } else if process_ids.len() > 1 {
-                *res = ResponseProcessModules::UbiquitousProcesses(process_ids.len());
+                command.result = ProcessModulesResult::ProcessUbiquitous;
                 return Ok(());
             }
 
             process_ids[0]
         }
     };
-    let process =
-        match util::open_process_by_id(process_id, PROCESS_QUERY_INFORMATION | PROCESS_VM_READ) {
-            Ok(handle) => handle,
-            Err(err) => {
-                log::warn!(
-                    "Failed to open process {} for enumeration: {}",
-                    process_id,
-                    err
-                );
-                *res = ResponseProcessModules::NoProcess;
-                return Ok(());
-            }
-        };
+    let process = match util::open_process_by_id(
+        command.process_id,
+        PROCESS_QUERY_INFORMATION | PROCESS_VM_READ,
+    ) {
+        Ok(handle) => handle,
+        Err(err) => {
+            log::warn!(
+                "Failed to open process {} for enumeration: {}",
+                command.process_id,
+                err
+            );
+            command.result = ProcessModulesResult::ProcessUnknown;
+            return Ok(());
+        }
+    };
 
     let modules = util::list_process_modules(&process, None)?;
     log::debug!("Process module count: {}", modules.len());
 
-    if modules.len() > req.module_buffer_length {
-        *res = ResponseProcessModules::BufferTooSmall {
-            expected: modules.len(),
-        };
+    command.module_count = modules.len();
+    if modules.len() > command.module_buffer_length {
+        command.result = ProcessModulesResult::BufferTooSmall;
         return Ok(());
     }
 
     let module_buffer =
-        unsafe { slice::from_raw_parts_mut(req.module_buffer, req.module_buffer_length) };
+        unsafe { slice::from_raw_parts_mut(command.module_buffer, command.module_buffer_length) };
 
     let mut module_buffer_index = 0;
     for hmodule in modules.iter() {
@@ -164,14 +146,11 @@ pub fn get_modules(
             continue;
         }
 
-        module_buffer[module_buffer_index].module_size = module_info.SizeOfImage as usize;
-        module_buffer[module_buffer_index].base_address = module_info.lpBaseOfDll as usize;
+        module_buffer[module_buffer_index].module_size = module_info.SizeOfImage as u64;
+        module_buffer[module_buffer_index].base_address = module_info.lpBaseOfDll as u64;
         module_buffer_index += 1;
     }
 
-    *res = ResponseProcessModules::Success(ProcessModuleInfo {
-        module_count: module_buffer_index,
-        process_id,
-    });
+    command.result = ProcessModulesResult::Success;
     Ok(())
 }

@@ -8,7 +8,6 @@ edition = "2021"
 [dependencies]
 anyhow = { workspace = true }
 obfstr = { workspace = true }
-valthrun-kernel-interface = { path = "../kernel/interface" }
 log = { workspace = true }
 serde_json = "1.0.104"
 nalgebra = { workspace = true }
@@ -18,3 +17,4 @@ utils-state = { version = "0.1.0", path = "../utils/state" }
 raw_struct = { workspace = true }
 env_logger = { workspace = true }
 cs2-schema-definition = { version = "0.1.0", path = "../cs2-schema/definition" }
+valthrun-driver-interface = { version = "0.1.0", path = "../driver/interface" }

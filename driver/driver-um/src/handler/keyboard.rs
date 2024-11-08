@@ -3,11 +3,8 @@ use std::{
     slice,
 };
 
-use valthrun_driver_shared::{
-    requests::{
-        RequestKeyboardState,
-        ResponseKeyboardState,
-    },
+use valthrun_driver_protocol::command::{
+    DriverCommandInputKeyboard,
     KeyboardState,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -17,11 +14,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     KEYEVENTF_KEYUP,
 };
 
-pub fn keyboard_state(
-    req: &RequestKeyboardState,
-    _res: &mut ResponseKeyboardState,
-) -> anyhow::Result<()> {
-    let states = unsafe { slice::from_raw_parts(req.buffer, req.state_count) };
+pub fn keyboard_state(command: &mut DriverCommandInputKeyboard) -> anyhow::Result<()> {
+    let states = unsafe { slice::from_raw_parts(command.buffer, command.state_count) };
     let inputs = states
         .iter()
         .map(keyboard_state_to_input)

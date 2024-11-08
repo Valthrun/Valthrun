@@ -1,4 +1,4 @@
-use valthrun_kernel_interface::{
+use crate::{
     ByteSequencePattern,
     SearchPattern,
 };

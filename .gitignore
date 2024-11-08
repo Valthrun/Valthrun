@@ -3,5 +3,5 @@ _*
 !/docs/*
 .vscode
 .idea
-kernel/driver
+kernel
 docs

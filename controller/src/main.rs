@@ -36,6 +36,7 @@ use cs2::{
     offsets_runtime,
     CS2Handle,
     ConVars,
+    InterfaceError,
     StateBuildInfo,
     StateCS2Handle,
     StateCS2Memory,
@@ -68,7 +69,6 @@ use settings::{
 };
 use tokio::runtime;
 use utils_state::StateRegistry;
-use valthrun_kernel_interface::KInterfaceError;
 use view::ViewController;
 use windows::Win32::{
     System::Console::GetConsoleProcessList,
@@ -473,46 +473,24 @@ fn main_overlay() -> anyhow::Result<()> {
     let cs2 = match CS2Handle::create(settings.metrics) {
         Ok(handle) => handle,
         Err(err) => {
-            if let Some(err) = err.downcast_ref::<KInterfaceError>() {
-                if let KInterfaceError::DeviceUnavailable(error) = &err {
-                    if error.code().0 as u32 == 0x80070002 {
-                        /* The system cannot find the file specified. */
+            if let Some(err) = err.downcast_ref::<InterfaceError>() {
+                match err {
+                    &InterfaceError::InitializeDriverUnavailable => {
                         show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\n\nFor more help, checkout:\nhttps://wiki.valth.run/troubleshooting/overlay/driver_has_not_been_loaded."));
                         return Ok(());
                     }
-                } else if let KInterfaceError::DriverTooOld {
-                    driver_version_string,
-                    requested_version_string,
-                    ..
-                } = &err
-                {
-                    let message = obfstr!(
-                        "\nThe installed/loaded Valthrun driver version is too old.\nPlease ensure you installed/mapped the latest Valthrun driver.\nATTENTION: If you have manually mapped the driver, you have to restart your PC in order to load the new version."
-                    ).to_string();
-
-                    show_critical_error(&format!(
-                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
-                        message, driver_version_string, requested_version_string
-                    ));
-                    return Ok(());
-                } else if let KInterfaceError::DriverTooNew {
-                    driver_version_string,
-                    requested_version_string,
-                    ..
-                } = &err
-                {
-                    let message = obfstr!(
-                        "\nThe installed/loaded Valthrun driver version is too new.\nPlease ensure you're using the lattest controller."
-                    ).to_string();
-
-                    show_critical_error(&format!(
-                        "{}\n\nLoaded driver version: {}\nRequired driver version: {}",
-                        message, driver_version_string, requested_version_string
-                    ));
-                    return Ok(());
-                } else if let KInterfaceError::ProcessDoesNotExists = &err {
-                    show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
-                    return Ok(());
+                    &InterfaceError::DriverProtocolMissMatch {
+                        interface_protocol,
+                        driver_protocol,
+                    } => {
+                        show_critical_error(&format!("{}\nDriver Version: {}\nApplication Version: {}", obfstr!("Valthrun memory driver is too old / new to be used with the current application."), driver_protocol, interface_protocol));
+                        return Ok(());
+                    }
+                    &InterfaceError::ProcessUnknown => {
+                        show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
+                        return Ok(());
+                    }
+                    _ => {}
                 }
             }
 

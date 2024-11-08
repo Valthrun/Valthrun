@@ -7,9 +7,10 @@ members = [
     "cs2-schema/cutl",
     "cs2-schema/generated",
 
-    "kernel/interface",
-    "kernel/shared",
-    "kernel/um-driver-impl",
+    "driver/protocol",
+    "driver/interface",
+    "driver/driver-kernel",
+    "driver/driver-um",
 
     "radar/client",
     "radar/client-standalone",

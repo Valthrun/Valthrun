@@ -1,11 +1,8 @@
 use core::slice;
 use std::mem;
 
-use valthrun_driver_shared::{
-    requests::{
-        RequestMouseMove,
-        ResponseMouseMove,
-    },
+use valthrun_driver_protocol::command::{
+    DriverCommandInputMouse,
     MouseState,
 };
 use windows::Win32::UI::Input::KeyboardAndMouse::{
@@ -25,8 +22,8 @@ use windows::Win32::UI::Input::KeyboardAndMouse::{
     MOUSEEVENTF_XUP,
 };
 
-pub fn mouse_move(req: &RequestMouseMove, _res: &mut ResponseMouseMove) -> anyhow::Result<()> {
-    let states = unsafe { slice::from_raw_parts(req.buffer, req.state_count) };
+pub fn mouse_move(command: &mut DriverCommandInputMouse) -> anyhow::Result<()> {
+    let states = unsafe { slice::from_raw_parts(command.buffer, command.state_count) };
     let inputs = states.iter().map(mouse_state_to_input).collect::<Vec<_>>();
 
     unsafe { SendInput(&inputs, mem::size_of::<INPUT>() as i32) };

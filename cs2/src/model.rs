@@ -1,9 +1,18 @@
 use std::time::Duration;
 
-use anyhow::Context;
-use cs2_schema_cutl::CStringUtil;
+use anyhow::{
+    anyhow,
+    Context,
+};
+use cs2_schema_cutl::{
+    CStringUtil,
+    PtrCStr,
+};
 use obfstr::obfstr;
-use raw_struct::Reference;
+use raw_struct::{
+    FromMemoryView,
+    Reference,
+};
 use utils_state::{
     State,
     StateCacheType,
@@ -14,6 +23,7 @@ use crate::{
     schema::CModel,
     CS2Handle,
     StateCS2Handle,
+    StateCS2Memory,
 };
 
 pub enum BoneFlags {
@@ -64,10 +74,16 @@ impl State for CS2Model {
     type Parameter = u64;
 
     fn create(states: &StateRegistry, address: Self::Parameter) -> anyhow::Result<Self> {
+        let memory = states.resolve::<StateCS2Memory>(())?;
         let cs2 = states.resolve::<StateCS2Handle>(())?;
         let mut result: Self = Default::default();
 
-        result.name = cs2.read_string(&[address + 0x08, 0], Some(32))?;
+        let name = PtrCStr::read_object(memory.view(), address + 0x08)
+            .map_err(|e| anyhow!(e))?
+            .read_string(memory.view())?
+            .context("model name nullptr")?;
+
+        result.name = name;
         log::debug!(
             "{} {} at {:X}. Caching.",
             obfstr!("Reading player model"),
@@ -94,7 +110,7 @@ impl CS2Model {
             self.vhull_max,
             self.vview_min,
             self.vview_max,
-        ] = cs2.read_sized::<[nalgebra::Vector3<f32>; 4]>(&[address + 0x18])?;
+        ] = cs2.read_sized::<[nalgebra::Vector3<f32>; 4]>(address + 0x18)?;
 
         let model = Reference::<dyn CModel>::new(memory.clone(), address);
         let bone_count = model.bone_count()? as usize;
