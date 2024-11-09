@@ -3338,19 +3338,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "valthrun-driver-kernel"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "env_logger",
- "lazy_static",
- "log",
- "obfstr",
- "valthrun-driver-protocol",
- "windows 0.48.0",
-]
-
-[[package]]
 name = "valthrun-driver-protocol"
 version = "0.1.0"
 dependencies = [

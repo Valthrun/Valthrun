@@ -9,7 +9,6 @@ members = [
 
     "driver/protocol",
     "driver/interface",
-    "driver/driver-kernel",
     "driver/driver-um",
 
     "radar/client",
