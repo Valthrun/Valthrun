@@ -162,7 +162,7 @@ impl CSchemaType for dyn CSchemaTypeAtomicCollectionOfT {}
 impl CSchemaTypeAtomic for dyn CSchemaTypeAtomicCollectionOfT {}
 impl CSchemaTypeAtomicT for dyn CSchemaTypeAtomicCollectionOfT {}
 
-#[raw_struct(size = 0x40)]
+#[raw_struct(size = 0x10)]
 pub struct CSchemaMetadataEntry {
     #[field(offset = 0x00)]
     pub name: PtrCStr,

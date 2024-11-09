@@ -1,22 +1,35 @@
 import { LoadedMap } from "..";
-import kImageBuyZones from "./overlay_buyzones.png";
-import kImageRadar from "./radar.png";
+import SimpleRadarDefault from "./map_style_simple_radar.png";
+import OfficialDefault from "./map_style_cs2.png";
 
 export default {
     mapName: "de_anubis",
     displayName: "Anubis",
 
-    metaInfo: {
-        resolution: 5.25,
+    pos_x: -2796, // upper left world coordinate
+    pos_y: 3328,
+    scale: 5.22,
 
-        offset: {
-            x: 2830,
-            y: 2030,
+    verticalSections: [
+        {
+            name: "default",
+            altitudeMax: 10000,
+            altitudeMin: -10000,
+        }
+    ],
+
+    mapStyles: [
+        {
+            name: "SimpleRadar",
+            map: {
+                default: SimpleRadarDefault,
+            }
         },
-
-        floors: [],
-    },
-
-    overlayBuyzones: kImageBuyZones,
-    overlayRadar: kImageRadar,
+        {
+            name: "Official",
+            map: {
+                default: OfficialDefault,
+            }
+        }
+    ]
 } satisfies LoadedMap;

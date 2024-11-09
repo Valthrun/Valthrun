@@ -5,8 +5,10 @@ import { kReduxPersistLocalStorage } from "./storage";
 export type RadarSettingsState = {
     dialogOpen: boolean;
 
-    iconSize: number;
-    displayBombDetails: boolean;
+    iconSize: number,
+    displayBombDetails: boolean,
+    showAllLayers: boolean,
+    mapStyle: string,
 
     colorDotCT: string;
     colorDotT: string;
@@ -18,6 +20,8 @@ export const kDefaultRadarSettings: RadarSettingsState = {
     dialogOpen: false,
     iconSize: 3.0,
     displayBombDetails: true,
+    showAllLayers: true,
+    mapStyle: "Official",
 
     colorDotCT: "#0007ff",
     colorDotT: "#ffc933",

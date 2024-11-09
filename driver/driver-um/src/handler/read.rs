@@ -47,6 +47,8 @@ pub fn read(command: &mut DriverCommandProcessMemoryRead) -> anyhow::Result<()> 
     };
     if status.is_ok() {
         command.result = MemoryAccessResult::Success;
+    } else {
+        command.result = MemoryAccessResult::PartialSuccess { bytes_copied: 0 };
     }
     Ok(())
 }

@@ -1,21 +1,35 @@
 import { LoadedMap } from "..";
-import kImageRadar from "./radar.png";
+import SimpleRadarDefault from "./map_style_simple_radar.png";
+import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_office",
+    mapName: "cs_office",
     displayName: "Office",
 
-    metaInfo: {
-        resolution: 4.26,
+    pos_x: -1838, // upper left world coordinate
+    pos_y: 1858,
+    scale: 4.1,
 
-        offset: {
-            x: 1900,
-            y: 2425,
+    verticalSections: [
+        {
+            name: "default",
+            altitudeMax: 10000,
+            altitudeMin: -10000,
+        }
+    ],
+
+    mapStyles: [
+        {
+            name: "SimpleRadar",
+            map: {
+                default: SimpleRadarDefault,
+            }
         },
-
-        floors: [],
-    },
-
-    overlayBuyzones: "empty",
-    overlayRadar: kImageRadar,
+        {
+            name: "Official",
+            map: {
+                default: OfficialDefault,
+            }
+        }
+    ]
 } satisfies LoadedMap;

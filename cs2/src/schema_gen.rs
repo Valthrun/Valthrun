@@ -58,7 +58,8 @@ fn parse_metadata(
     let memory = states.resolve::<StateCS2Memory>(())?;
     let name = metadata
         .name()?
-        .read_string(memory.view())?
+        .read_string(memory.view())
+        .context("meta name")?
         .context("missing metadata name")?;
 
     let meta = match name.as_str() {
@@ -146,7 +147,17 @@ fn parse_type(
             let base_type =
                 parse_type(states, &base_type).context("failed to generate array base type")?;
 
-            base_type.map(|base_type| format!("[{};0x{:X}]", base_type, length))
+            base_type.map(|base_type| {
+                format!(
+                    "[{}; 0x{:X}]",
+                    if base_type.starts_with("dyn ") {
+                        format!("Copy<{}>", base_type)
+                    } else {
+                        base_type
+                    },
+                    length
+                )
+            })
         }
         TypeCategory::Ptr => {
             let schema_ptr = schema_type.cast::<dyn CSchemaTypePtr>();
@@ -170,9 +181,9 @@ fn parse_type(
                         match value.as_str() {
                             "CEntityIndex" => "CEntityIndex",
 
-                            "CUtlStringToken" => "CUtlStringToken",
+                            "CUtlStringToken" => "dyn CUtlStringToken",
                             "CUtlSymbolLarge" => "PtrCStr",
-                            "CUtlString" => "CUtlString",
+                            "CUtlString" => "dyn CUtlString",
                             "Vector" => "[f32; 0x03]",
                             "QAngle" => "[f32; 0x04]",
 
@@ -204,7 +215,16 @@ fn parse_type(
                         .context("missing inner type")?;
                     let inner_type = parse_type(states, &inner_type)?;
 
-                    inner_type.map(|inner_type| format!("dyn CUtlVector<{}>", inner_type))
+                    inner_type.map(|inner_type| {
+                        format!(
+                            "dyn CUtlVector<{}>",
+                            if inner_type.starts_with("dyn ") {
+                                format!("Copy<{}>", inner_type)
+                            } else {
+                                inner_type
+                            }
+                        )
+                    })
                 }
                 AtomicCategory::T => {
                     let value = schema_type
@@ -251,7 +271,7 @@ fn parse_type(
                 .replace(":", "_");
 
             Some(format!(
-                "{}::{}",
+                "dyn {}::{}",
                 mod_name_from_schema_name(&module_name),
                 class_name
             ))
@@ -306,7 +326,11 @@ fn read_enum_binding(
         .read_string(memory.view())?
         .context("missing enum binding name")?;
 
-    log::debug!("   {:X} {}", binding_ptr.address, definition.enum_name);
+    log::debug!(
+        "   {:X} {} (enum)",
+        binding_ptr.address,
+        definition.enum_name
+    );
     definition
         .memebers
         .reserve(binding.member_count()? as usize);
@@ -365,12 +389,15 @@ fn read_class_binding(
 ) -> anyhow::Result<(String, ClassDefinition)> {
     let memory = states.resolve::<StateCS2Memory>(())?;
     let binding = binding_ptr
-        .value_copy(memory.view())?
+        .value_copy(memory.view())
+        .context("class binding deref")?
         .context("class binding nullptr")?;
 
-    let (class_type_scope_name, class_name) = read_class_scope_and_name(states, binding.deref())?;
+    let (class_type_scope_name, class_name) =
+        read_class_scope_and_name(states, binding.deref()).context("class name and scope")?;
+
     log::debug!(
-        "   {:X} {} -> {}",
+        "   {:X} {} -> {} (class)",
         binding_ptr.address,
         class_name,
         class_type_scope_name
@@ -392,7 +419,8 @@ fn read_class_binding(
             .context("nullptr base class")?;
 
         let (class_type_scope_name, class_name) =
-            read_class_scope_and_name(states, base_class.deref())?;
+            read_class_scope_and_name(states, base_class.deref())
+                .context("base class scope and name")?;
 
         let base_class = format!(
             "{}::{}",
@@ -414,7 +442,7 @@ fn read_class_binding(
             .metadata()?
             .elements(memory.view(), 0..metadata_size)?
         {
-            metadata.push(parse_metadata(states, meta_entry.deref())?);
+            metadata.push(parse_metadata(states, meta_entry.deref()).context("field metadata")?);
         }
 
         /* needs a reference as we downcast the type later on and therefore increase the size */
@@ -425,15 +453,17 @@ fn read_class_binding(
 
         let c_type = field_type
             .var_type()?
-            .read_string(memory.view())?
+            .read_string(memory.view())
+            .context("field c-type")?
             .context("missing var c-type")?;
 
         let field_name = field
             .name()?
-            .read_string(memory.view())?
+            .read_string(memory.view())
+            .context("field name")?
             .context("missing field name")?;
 
-        let rust_type = parse_type(states, &field_type)?;
+        let rust_type = parse_type(states, &field_type).context("field type")?;
         if rust_type.is_none() {
             /* Use debug here as warn will spam the log */
             log::debug!(
@@ -466,7 +496,7 @@ fn read_class_binding(
         {
             definition
                 .metadata
-                .push(parse_metadata(states, meta_entry.deref())?);
+                .push(parse_metadata(states, meta_entry.deref()).context("metadata")?);
         }
     }
 
@@ -536,7 +566,7 @@ pub fn dump_schema(
                 }
             }
 
-            let schema_scope = match schema_scops.entry(scope_name.clone()) {
+            let schema_scope = match schema_scops.entry(class_scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
@@ -574,7 +604,7 @@ pub fn dump_schema(
                 }
             }
 
-            let schema_scope = match schema_scops.entry(scope_name.clone()) {
+            let schema_scope = match schema_scops.entry(enum_scope_name.clone()) {
                 Entry::Occupied(entry) => entry.into_mut(),
                 Entry::Vacant(entry) => {
                     let schema_name = entry.key().clone();
