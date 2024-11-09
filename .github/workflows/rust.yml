@@ -69,10 +69,10 @@ jobs:
             # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
             flags: ''
 
-          - build: windows
-            os: windows-latest
-            target: radar-server-standalone.exe
-            flags: -Ctarget-feature=+crt-static
+          # - build: windows
+          #   os: windows-latest
+          #   target: radar-server-standalone.exe
+          #   flags: -Ctarget-feature=+crt-static
 
     runs-on: ${{ matrix.os }}
     steps:
