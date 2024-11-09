@@ -222,3 +222,40 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         env:
           ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
+
+  build-kernel-driver-interface:
+    runs-on: windows-latest
+    needs: [rust-check]
+
+    steps:
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly
+          override: true
+
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path driver/driver-kernel/Cargo.toml | cut -d# -f2 | cut -d: -f2 | cut -d"@" -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+          cache-all-crates: true
+
+      - name: Build Valthrun Kernel Driver interface
+        run: cargo b -r -v --lib --manifest-path driver/driver-kernel/Cargo.toml
+
+      - name: Upload artifact to portal
+        shell: bash
+        run: .github/workflows/artifact_upload.sh driver-interface-kernel target/release/valthrun_driver_kernel.dll target/release/valthrun_driver_kernel.pdb
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
