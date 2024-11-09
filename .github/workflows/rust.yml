@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: ["master", "amd", "radar"]
+    branches: ['master', 'amd', 'radar']
   pull_request:
-    branches: ["master"]
+    branches: ['master']
 
 env:
   CARGO_TERM_COLOR: always
@@ -35,7 +35,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16.x
-          cache: "yarn"
+          cache: 'yarn'
           cache-dependency-path: |
             radar/web/yarn.lock
       - name: Run install
@@ -56,7 +56,6 @@ jobs:
           name: radar-www
           path: radar/web/dist
 
-  # TODO: Build as Matrix for Linux & Windows
   build-radar-server:
     name: Radar Server (${{ matrix.build }})
     needs: [rust-check]
@@ -68,7 +67,7 @@ jobs:
             os: ubuntu-20.04
             target: radar-server-standalone
             # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
-            flags: ""
+            flags: ''
 
           - build: windows
             os: windows-latest
@@ -108,6 +107,14 @@ jobs:
         with:
           toolchain: nightly
           override: true
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path radar/client-standalone/Cargo.toml | cut -d# -f2 | cut -d: -f2 | cut -d@ -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v3
         with:
           submodules: recursive
@@ -118,12 +125,12 @@ jobs:
         run: cargo build --verbose --release --bin radar-client-standalone
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
-      - name: Upload release build to Discord
-        run: .github/workflows/discord_upload.sh target/release/radar-client-standalone.exe radar_client
+      - name: Upload release build to portal
         shell: bash
+        run: .github/workflows/artifact_upload.sh cs2-radar-client target/release/radar-client-standalone.exe target/release/radar_client_standalone.pdb
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
 
   build-overlay:
     name: CS2 Overlay
@@ -136,6 +143,14 @@ jobs:
         with:
           toolchain: nightly
           override: true
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path controller/Cargo.toml | cut -d# -f2 | cut -d: -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v3
         with:
           submodules: recursive
@@ -149,9 +164,9 @@ jobs:
       # Right now there are no tests specified
       # - name: Run tests
       #   run: cargo test --verbose
-      - name: Upload release build to Discord
-        run: .github/workflows/discord_upload.sh target/release/controller.exe controller
+      - name: Upload release build to portal
         shell: bash
+        run: .github/workflows/artifact_upload.sh cs2-overlay target/release/controller.exe target/release/controller.pdb
         if: ${{ github.event_name != 'pull_request' }}
         env:
-          DISCORD_RELEASE_WEBHOOK: ${{ secrets.DISCORD_RELEASE_WEBHOOK }}
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
