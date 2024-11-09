@@ -1,59 +1,53 @@
+#[warn(unused_variables)]
+
+use core::f32;
+
+use cs2::{CEntityIdentityEx, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo};
+use overlay::UnicodeTextRenderer;
+use valthrun_kernel_interface::MouseState;
+
 use super::Enhancement;
-use crate::{
-    settings::AppSettings,
-    view::{
-        KeyToggle,
-        ViewController,
-    },
-    UnicodeTextRenderer,
-    UpdateContext,
-};
-use cs2::{
-    BoneFlags,
-    CEntityIdentityEx,
-    CS2Model,
-    ClassNameCache,
-    EntitySystem,
-    PlayerPawnState,
-};
-use cs2_schema_generated::{
-    cs2::client::C_CSPlayerPawn,
-    EntityHandle,
-};
+use crate::settings::AppSettings;
+use crate::view::{KeyToggle, ViewController};
+use cs2_schema_generated::cs2::client::C_BaseEntity;
 use nalgebra::Vector3;
 use obfstr::obfstr;
 use std::time::Instant;
-use valthrun_kernel_interface::MouseState;
+
 pub struct Aimbot {
-    toggle: KeyToggle,
-    fov: f32, // FOV fetched from settings
-    aim_speed: f32, // Aim speed fetched from settings
-    is_active: bool,
-    last_mouse_move: Instant, // Track the time for constant mouse down movement
-    current_target: Option<[f32; 2]>, // Store the current target
-    is_mouse_pressed: bool, // Track if the mouse is pressed
-    aim_bone: String,
-    aimbot_team_check: bool,
-    aimbot_view_fov: bool,
-    ignore_flash_alpha: f32,
-    ignore_flash: bool,
+    aimbot_toggle: KeyToggle,            // Key toggle for enabling/disabling the aimbot
+    aimbot_fov: f32,                     // Field of view for target acquisition
+    aimbot_smooth: f32,                  // Speed at which the aim moves
+    aimbot_is_active: bool,              // Indicates if the aimbot is currently active
+    aimbot_last_mouse_move: Instant,     // Timestamp of the last mouse movement
+    aimbot_current_target: Option<[f32; 3]>, // Current target coordinates (x, y, z)
+    aimbot_is_mouse_pressed: bool,       // Indicates if the mouse button is being pressed
+    aimbot_aim_bone: String,             // The specific bone being targeted (e.g., "head", "chest")
+
+    // Advanced properties
+    aimbot_team_check: bool,             // Checks if the target is on the same team
+    aimbot_view_fov: bool,               // Only targets within the aimbot's field of view
+    aimbot_flash_alpha: f32,             // Threshold to ignore targets affected by flashbangs
+    aimbot_ignore_flash: bool,           // Flag to enable/disable ignoring flash effects
+    aimbot_visibility_check: bool,       // Ensures the target is visible (not behind obstacles)
 }
 
 impl Aimbot {
     pub fn new() -> Self {
-        Self {
-            toggle: KeyToggle::new(),
-            fov: 3.0, // Default FOV, updated dynamically from settings
-            aim_speed: 2.5, // Default aim speed, updated dynamically from settings
-            is_active: false,
-            last_mouse_move: Instant::now(), // Initialize the timer
-            current_target: None,
-            is_mouse_pressed: false,
-            aim_bone: "head".to_string(),
+        Aimbot {
+            aimbot_toggle: KeyToggle::new(),
+            aimbot_fov: 100.0,
+            aimbot_smooth: 0.0,
+            aimbot_is_active: false,
+            aimbot_last_mouse_move: Instant::now(),
+            aimbot_current_target: None,
+            aimbot_is_mouse_pressed: false,
+            aimbot_aim_bone: "head".to_string(),
             aimbot_team_check: true,
             aimbot_view_fov: true,
-            ignore_flash_alpha: 180.0,
-            ignore_flash: true,
+            aimbot_flash_alpha: 0.5,
+            aimbot_ignore_flash: false,
+            aimbot_visibility_check: true,
         }
     }
 
@@ -61,130 +55,110 @@ impl Aimbot {
         view.world_to_screen(world_position, true).map(|vec| [vec.x, vec.y])
     }
 
-    fn find_best_target(&mut self, ctx: &UpdateContext) -> Option<[f32; 2]> {
-        if self.is_mouse_pressed && self.current_target.is_some() {
-            return self.current_target;
+    fn find_best_target(&mut self, ctx: &crate::UpdateContext) -> Option<[f32; 2]> {
+        if self.aimbot_is_mouse_pressed && self.aimbot_current_target.is_some() {
+            return self.aimbot_current_target.map(|pos| [pos[0], pos[1]]);
         }
 
-        let settings = ctx.states.resolve::<AppSettings>(()).ok()?;
+        let memory = ctx.states.resolve::<StateCS2Memory>(()).ok()?;
+        let entities = ctx.states.resolve::<StateEntityList>(()).ok()?;
+        let local_controller = ctx.states.resolve::<StateLocalPlayerController>(()).ok()?;
+        let local_pawn_handle = local_controller.instance.value_reference(memory.view_arc())?.m_hPlayerPawn().ok()?;
+        let local_pawn = entities.entity_from_handle(&local_pawn_handle)?.value_reference(memory.view_arc())?;
 
-        let entities = ctx.states.resolve::<EntitySystem>(()).ok()?;
         let view = ctx.states.resolve::<ViewController>(()).ok()?;
-        let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?; // Store the result here
-        let local_player_position = view.get_camera_world_position()?; // Get local player position
-
-        let local_pawn_index = entities.get_local_player_controller().ok()?.reference_schema().ok()?.m_hPlayerPawn().ok()?.value;
-        let local_pawn = match entities.get_by_handle::<C_CSPlayerPawn>(&EntityHandle::from_index(local_pawn_index)).ok()? {
-            Some(identity) => identity.entity().ok()?.read_schema().ok()?,
-            None => return None
-        };
-
-        let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0]; // Center of the screen
+        let local_player_position = view.get_camera_world_position().unwrap_or(Vector3::new(0.0, 0.0, 0.0));
+        let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let mut best_target: Option<[f32; 2]> = None;
-        let mut lowest_distance_from_crosshair = f32::MAX; // Track the closest target in FOV
+        let mut lowest_distance = f32::MAX;
+
         const UNITS_TO_METERS: f32 = 0.01905;
 
-        for entity_identity in entities.all_identities() {
-            let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info().ok()?).ok()?; // Use the stored value
-            if entity_class.map(|name| *name == "C_CSPlayerPawn").unwrap_or(false) {
-                let entry = ctx.states.resolve::<PlayerPawnState>(entity_identity.handle::<()>().ok()?.get_entity_index()).ok()?;
-                if let PlayerPawnState::Alive(player_info) = &*entry {
-                    let entry_model = ctx.states.resolve::<CS2Model>(player_info.model_address).ok()?;
+        for entity in entities.entities() {
+            let pawn_info = ctx
+                .states
+                .resolve::<StatePawnInfo>(entity.handle().ok()?).ok()?
+                .clone();
 
-                    if settings.ignore_flash && local_pawn.m_flFlashOverlayAlpha().unwrap() > settings.ignore_flash_alpha{
-                        continue;
-                    }
+            println!("{:?}", pawn_info);
 
-                    if settings.aimbot_team_check && local_pawn.m_iTeamNum().unwrap() == player_info.team_id {
-                        continue;
-                    } // Calculate distance between the local player and the target
-                    let distance = (player_info.position - local_player_position).norm() * UNITS_TO_METERS; // Skip self (local player) if distance is < 3.0
-                    if distance < 2.0 {
-                        continue;
-                    }
+            if self.aimbot_team_check && local_pawn.m_iTeamNum().unwrap_or(0) == pawn_info.team_id {
+                continue;
+            }
 
-                    for (bone, state) in entry_model.bones.iter().zip(player_info.bone_states.iter()) {
-                        if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
-                            continue;
-                        }
+            let distance = (pawn_info.position - local_player_position).norm() * UNITS_TO_METERS;
+            if distance < 2.0 {
+                continue;
+            }
 
-                        if bone.name.to_lowercase().contains(&self.aim_bone) { // Convert the selected bone position to screen space
-                            if let Some(screen_position) = self.world_to_screen(&view, &state.position) { // Calculate the distance from the crosshair (X and Y axes)
-                                let dx = screen_position[0] - crosshair_pos[0];
-                                let dy = screen_position[1] - crosshair_pos[1];
-                                let distance_from_crosshair = (dx * dx + dy * dy).sqrt(); // Calculate the angle between the crosshair and the target
-                                let angle_to_target = distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees(); // Check if the target is within the FOV
-                                if angle_to_target <= self.fov / 2.0 { // If the bone is closer than the previous best target, update the best target
-                                    if distance_from_crosshair < lowest_distance_from_crosshair {
-                                        lowest_distance_from_crosshair = distance_from_crosshair;
-                                        best_target = Some(screen_position); // Update the target to the selected bone
-                                    }
-                                }
-                            }
-                        }
-                    }
+            if let Some(screen_position) = self.world_to_screen(&view, &pawn_info.position) {
+                let dx = screen_position[0] - crosshair_pos[0];
+                let dy = screen_position[1] - crosshair_pos[1];
+                let dist_from_crosshair = (dx * dx + dy * dy).sqrt();
+                let angle = dist_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
+
+                if angle <= self.aimbot_fov / 2.0 && dist_from_crosshair < lowest_distance {
+                    lowest_distance = dist_from_crosshair;
+                    best_target = Some(screen_position);
                 }
             }
-        } // Update current target when the mouse is pressed and a new best target is found
-        if self.is_mouse_pressed {
-            self.current_target = best_target;
+        }
+
+        if self.aimbot_is_mouse_pressed {
+            self.aimbot_current_target = best_target.map(|screen| [screen[0], screen[1], 0.0]);
         }
 
         best_target
-    } // Function to simulate mouse press and release
-    pub fn on_mouse_pressed(&mut self) {
-        self.is_mouse_pressed = true;
     }
 
-    pub fn on_mouse_released(&mut self) {
-        self.is_mouse_pressed = false;
-        self.current_target = None; // Clear the current target when the mouse is released
-    }
-
-    fn aim_at_target(&self, ctx: &UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<bool> {
+    fn aim_at_target(&self, ctx: &crate::UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<bool> {
         let view = ctx.states.resolve::<ViewController>(())?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
-        let aim_adjustment = [
-            (target_screen_position[0] - crosshair_pos[0]) / self.aim_speed,
-            (target_screen_position[1] - crosshair_pos[1]) / self.aim_speed,
+        let adjustment = [
+            (target_screen_position[0] - crosshair_pos[0]) / self.aimbot_smooth,
+            (target_screen_position[1] - crosshair_pos[1]) / self.aimbot_smooth,
         ];
-
+        println!("{:?}", adjustment);
         ctx.cs2.send_mouse_state(&[MouseState {
-            last_x: aim_adjustment[0] as i32,
-            last_y: aim_adjustment[1] as i32,
+            last_x: adjustment[0] as i32,
+            last_y: adjustment[1] as i32,
             ..Default::default()
         }])?;
         Ok(true)
     }
+
+    pub fn on_mouse_pressed(&mut self) {
+        self.aimbot_is_mouse_pressed = true;
+    }
+
+    pub fn on_mouse_released(&mut self) {
+        self.aimbot_is_mouse_pressed = false;
+        self.aimbot_current_target = None;
+    }
 }
 
 impl Enhancement for Aimbot {
-    fn update(&mut self, ctx: &UpdateContext) -> anyhow::Result<()> {
-        let settings = ctx.states.resolve::<AppSettings>(())?; // Update the aimbot settings from the configuration
-        self.fov = settings.aimbot_fov; // Fetch FOV from the config
-        self.aim_speed = settings.aimbot_speed; // Fetch aim speed from the config
-        self.aim_bone = settings.aim_bone.to_lowercase();
-        self.aimbot_team_check = settings.aimbot_team_check; // Other aimbot logic
-        self.ignore_flash = settings.ignore_flash;
+    fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
+        let settings = ctx.states.resolve::<AppSettings>(())?;
+        self.aimbot_fov = settings.aimbot_fov;
+        self.aimbot_smooth = settings.aimbot_smooth;
+        self.aimbot_aim_bone = settings.aimbot_aim_bone.clone();
+        self.aimbot_team_check = settings.aimbot_team_check;
+        self.aimbot_ignore_flash = settings.aimbot_ignore_flash;
 
-        if self.toggle.update(&settings.aimbot_mode, ctx.input, &settings.key_aimbot) {
+        if self.aimbot_toggle.update(&settings.aimbot_mode, ctx.input, &settings.aimbot_key) {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-aimbot-toggle"),
-                &format!("enabled: {}, mode: {:?}", self.toggle.enabled, settings.aimbot_mode),
+                &format!("enabled: {}, mode: {:?}", self.aimbot_toggle.enabled, settings.aimbot_mode),
             );
-        } else if self.toggle.update_dual(
-            &settings.aimbot_mode,
-            ctx.input,
-            &settings.key_aimbot,
-            &settings.key_aimbot_secondary,
-        ) {
+        } else {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-aimbot-toggle"),
-                &format!("enabled: {}, mode: {:?}", self.toggle.enabled, settings.aimbot_mode),
+                &format!("enabled: {}, mode: {:?}", self.aimbot_toggle.enabled, settings.aimbot_mode),
             )
         }
 
-        if self.toggle.enabled {
+        if self.aimbot_toggle.enabled {
             if let Some(target_screen_position) = self.find_best_target(ctx) {
                 self.aim_at_target(ctx, target_screen_position)?;
             }
@@ -193,29 +167,35 @@ impl Enhancement for Aimbot {
         Ok(())
     }
 
-    fn render(&self, _states: &utils_state::StateRegistry, _ui: &imgui::Ui, _unicode_text: &UnicodeTextRenderer) -> anyhow::Result<()> {
-        let settings = _states.resolve::<AppSettings>(())?;
-        let view = _states.resolve::<ViewController>(())?;
-        let draw_list = _ui.get_window_draw_list();
+    fn render(
+        &self,
+        states: &utils_state::StateRegistry,
+        ui: &imgui::Ui,
+        unicode_text: &UnicodeTextRenderer,
+    ) -> anyhow::Result<()> {
+        // Drawing FOV circle
+        let settings = states.resolve::<AppSettings>(())?;
+        let view = states.resolve::<ViewController>(())?;
+        let draw_list = ui.get_window_draw_list();
         let cursor_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
+
         fn fov_to_radius(fov: f32, screen_width: f32) -> f32 {
-            // Calculate the radius of the FOV circle based on the FOV and screen width
-            let fov_in_radians = fov.to_radians(); // Convert to radians
-            let half_fov = fov_in_radians / 2.0; // Half FOV angle
-            let radius = (screen_width / 2.0) * (half_fov.tan()); // Calculate radius based on half FOV
-            radius
+            let fov_radians = fov.to_radians();
+            let half_fov = fov_radians / 2.0;
+            (screen_width / 2.0) * half_fov.tan()
         }
 
-        // assume that fov is enabled
         if settings.aimbot_view_fov {
             draw_list
                 .add_circle(
                     cursor_pos,
                     fov_to_radius(settings.aimbot_fov, view.screen_bounds.x),
-                    (1.0, 1.0, 1.0, 1.0))
+                    (1.0, 1.0, 1.0, 1.0),
+                )
                 .filled(false)
                 .build();
         }
+
         Ok(())
     }
 }
