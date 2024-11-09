@@ -96,6 +96,58 @@ jobs:
           name: radar-server-${{ matrix.build }}
           path: target/release/${{ matrix.target }}
 
+  docker-radar-server:
+    runs-on: ubuntu-latest
+    needs: [build-radar-server, build-radar-web]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/valthrun/cs2-radar-server
+          tags: |
+            type=ref,event=branch
+            type=sha
+        env:
+          DOCKER_METADATA_SHORT_SHA_LENGTH: 7
+
+      - name: Download radar binary
+        uses: actions/download-artifact@v4
+        with:
+          name: radar-server-linux
+          path: target/release/
+
+      - name: Download radar scripts
+        uses: actions/download-artifact@v4
+        with:
+          name: radar-www
+          path: radar/web/dist
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/cs2-radar-server.dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   build-radar-client:
     name: Radar Client
     runs-on: windows-latest
