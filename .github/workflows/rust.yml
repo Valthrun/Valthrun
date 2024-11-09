@@ -160,6 +160,10 @@ jobs:
           toolchain: nightly
           override: true
 
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Get package version
         shell: bash
         run: |
@@ -167,16 +171,15 @@ jobs:
           echo "Package version: $VERSION"
           echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+
       - name: Build
         run: cargo build --verbose --release --bin radar-client-standalone
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
+
       - name: Upload release build to portal
         shell: bash
         run: .github/workflows/artifact_upload.sh cs2-radar-client target/release/radar-client-standalone.exe target/release/radar_client_standalone.pdb
@@ -196,6 +199,10 @@ jobs:
           toolchain: nightly
           override: true
 
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
       - name: Get package version
         shell: bash
         run: |
@@ -203,19 +210,19 @@ jobs:
           echo "Package version: $VERSION"
           echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
 
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+
       - name: Build
         run: cargo build --verbose --release --bin controller
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
+
       # Right now there are no tests specified
       # - name: Run tests
       #   run: cargo test --verbose
+
       - name: Upload release build to portal
         shell: bash
         run: .github/workflows/artifact_upload.sh cs2-overlay target/release/controller.exe target/release/controller.pdb
