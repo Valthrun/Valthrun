@@ -61,7 +61,7 @@ jobs:
     needs: [rust-check]
     strategy:
       matrix:
-        build: [linux, windows]
+        build: [linux]
         include:
           - build: linux
             os: ubuntu-20.04
