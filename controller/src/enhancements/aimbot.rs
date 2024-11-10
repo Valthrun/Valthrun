@@ -2,7 +2,7 @@
 
 use core::f32;
 
-use cs2::{CEntityIdentityEx, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo};
+use cs2::{BoneFlags, CEntityIdentityEx, CS2Model, ClassNameCache, LocalCameraControllerTarget, PlayerPawnState, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo, StatePawnModelInfo};
 use overlay::UnicodeTextRenderer;
 use valthrun_kernel_interface::MouseState;
 
@@ -53,24 +53,20 @@ impl Aimbot {
     }
 
     fn world_to_screen(&self, view: &ViewController, world_position: &Vector3<f32>) -> Option<[f32; 2]> {
-        println!("Aimbot::world_to_screen called");
         view.world_to_screen(world_position, true).map(|vec| [vec.x, vec.y])
     }
 
     fn find_best_target(&mut self, ctx: &crate::UpdateContext) -> Option<[f32; 2]> {
-        println!("Aimbot::find_best_target called");
         if self.aimbot_is_mouse_pressed && self.aimbot_current_target.is_some() {
-            println!("Aimbot: Mouse is pressed and current target is set");
             return self.aimbot_current_target.map(|pos| [pos[0], pos[1]]);
         }
 
         let memory = ctx.states.resolve::<StateCS2Memory>(()).ok()?;
         let entities = ctx.states.resolve::<StateEntityList>(()).ok()?;
+        let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?;
         let local_controller = ctx.states.resolve::<StateLocalPlayerController>(()).ok()?;
         let local_pawn_handle = local_controller.instance.value_reference(memory.view_arc())?.m_hPlayerPawn().ok()?;
         let local_pawn = entities.entity_from_handle(&local_pawn_handle)?.value_reference(memory.view_arc())?;
-
-        println!("Aimbot: Retrieved local player data");
 
         let view = ctx.states.resolve::<ViewController>(()).ok()?;
         let local_player_position = view.get_camera_world_position().unwrap_or(Vector3::new(0.0, 0.0, 0.0));
@@ -78,14 +74,42 @@ impl Aimbot {
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance = f32::MAX;
 
+        let view_target = ctx.states.resolve::<LocalCameraControllerTarget>(()).ok()?;
+        let view_target_entity_id = match &view_target.target_entity_id {
+            Some(value) => *value,
+            None => return None,
+        };
+
         const UNITS_TO_METERS: f32 = 0.01905;
+
 
         // Adjust the entity class check logic:
         for entity_identity in entities.entities() {
-            // Pawn state check
+            if entity_identity.handle::<()>().ok()?.get_entity_index() == view_target_entity_id {
+                continue;
+            }
+
+            let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info().ok()?).ok()?;
+            if !entity_class
+                .map(|name| *name == "C_CSPlayerPawn")
+                .unwrap_or(false)
+            {
+                /* entity is not a player pawn */
+                continue;
+            }
+
             let pawn_info = ctx.states.resolve::<StatePawnInfo>(entity_identity.handle().ok()?).ok()?;
 
-            println!("Aimbot: Retrieved pawn info: {:?}", pawn_info);
+            let pawn_state = ctx
+                .states
+                .resolve::<PlayerPawnState>(entity_identity.handle().ok()?).ok()?;
+            if *pawn_state != PlayerPawnState::Alive {
+                continue;
+            }
+            let pawn_model = ctx
+                .states
+                .resolve::<StatePawnModelInfo>(entity_identity.handle().ok()?).ok()?;
+
             if self.aimbot_team_check && local_pawn.m_iTeamNum().unwrap_or(0) == pawn_info.team_id {
                 println!("Aimbot: Skipping target due to team check");
                 continue;
@@ -94,21 +118,30 @@ impl Aimbot {
             // Calculate distance and perform screen transformation
             let distance = (pawn_info.position - local_player_position).norm() * UNITS_TO_METERS;
             if distance < 2.0 {
-                println!("Aimbot: Skipping target due to close distance");
                 continue;
             }
 
-            if let Some(screen_position) = self.world_to_screen(&view, &pawn_info.position) {
-                println!("Aimbot: Screen position calculated: {:?}", screen_position);
-                let dx = screen_position[0] - crosshair_pos[0];
-                let dy = screen_position[1] - crosshair_pos[1];
-                let dist_from_crosshair = (dx * dx + dy * dy).sqrt();
-                let angle = dist_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
+            let entry_model = ctx.states.resolve::<CS2Model>(pawn_model.model_address).ok()?;
+            for (bone, state) in entry_model.bones.iter().zip(pawn_model.bone_states.iter()) {
+                if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
+                    continue;
+                }
 
-                if angle <= self.aimbot_fov / 2.0 && dist_from_crosshair < lowest_distance {
-                    println!("Aimbot: Found new best target");
-                    lowest_distance = dist_from_crosshair;
-                    best_target = Some(screen_position);
+                // Check if the bone matches the target bone for aiming
+                if bone.name.to_lowercase().contains(&self.aimbot_aim_bone) {
+                    // Convert the bone's world position to screen space
+                    if let Some(screen_position) = self.world_to_screen(&view, &state.position) {
+                        let dx = screen_position[0] - crosshair_pos[0];
+                        let dy = screen_position[1] - crosshair_pos[1];
+                        let distance_from_crosshair = (dx * dx + dy * dy).sqrt();
+                        let angle_to_target = distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees();
+
+                        // Check if the target is within the FOV and is the closest so far
+                        if angle_to_target <= self.aimbot_fov / 2.0 && distance_from_crosshair < lowest_distance {
+                            lowest_distance = distance_from_crosshair;
+                            best_target = Some(screen_position);
+                        }
+                    }
                 }
             }
         }
@@ -117,19 +150,16 @@ impl Aimbot {
             self.aimbot_current_target = best_target.map(|screen| [screen[0], screen[1], 0.0]);
         }
 
-        println!("Aimbot: Best target found: {:?}", best_target);
         best_target
     }
 
     fn aim_at_target(&self, ctx: &crate::UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<bool> {
-        println!("Aimbot::aim_at_target called with target: {:?}", target_screen_position);
         let view = ctx.states.resolve::<ViewController>(())?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let adjustment = [
             (target_screen_position[0] - crosshair_pos[0]) / self.aimbot_smooth,
             (target_screen_position[1] - crosshair_pos[1]) / self.aimbot_smooth,
         ];
-        println!("Aimbot: Adjustment calculated: {:?}", adjustment);
         ctx.cs2.send_mouse_state(&[MouseState {
             last_x: adjustment[0] as i32,
             last_y: adjustment[1] as i32,
@@ -139,12 +169,10 @@ impl Aimbot {
     }
 
     pub fn on_mouse_pressed(&mut self) {
-        println!("Aimbot::on_mouse_pressed called");
         self.aimbot_is_mouse_pressed = true;
     }
 
     pub fn on_mouse_released(&mut self) {
-        println!("Aimbot::on_mouse_released called");
         self.aimbot_is_mouse_pressed = false;
         self.aimbot_current_target = None;
     }
@@ -172,15 +200,10 @@ impl Enhancement for Aimbot {
         }
 
         if self.aimbot_toggle.enabled {
-
             if let Some(target_screen_position) = self.find_best_target(ctx) {
                 self.aim_at_target(ctx, target_screen_position)?;
-            } else {
-
-            }
-        } else {
-
-        }
+            } else {}
+        } else {}
 
         Ok(())
     }
