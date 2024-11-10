@@ -7,6 +7,8 @@ use core::{
 };
 use std::{
     env,
+    error::Error,
+    fs,
     path::PathBuf,
 };
 
@@ -59,9 +61,10 @@ pub struct DriverInterface {
 }
 
 impl DriverInterface {
-    fn populate_env_paths() -> Vec<PathBuf> {
+    fn populate_library_paths() -> Vec<PathBuf> {
         let mut result = Vec::with_capacity(64);
         if let Ok(path) = env::var(obfstr!("VT_DRIVER_PATH")) {
+            log::debug!("Adding env driver path: {}", path);
             result.push(PathBuf::from(path));
         }
 
@@ -74,15 +77,39 @@ impl DriverInterface {
         ] {
             let Some(directory) = directory else { continue };
 
-            for candidate in [
-                env::var(obfstr!("VT_DRIVER_NAME")).ok(),
-                Some(obfstr!("driver_zenith.dll").to_string()),
-                Some(obfstr!("driver_kernel.dll").to_string()),
-                Some(obfstr!("driver_um.dll").to_string()),
-                Some(obfstr!("driver.dll").to_string()),
-            ] {
-                let Some(candidate) = candidate else { continue };
-                result.push(directory.join(&candidate));
+            if let Ok(driver_name) = env::var(obfstr!("VT_DRIVER_NAME")) {
+                result.push(directory.join(driver_name));
+            }
+
+            match fs::read_dir(&directory) {
+                Ok(dir) => {
+                    log::debug!("Adding drivers from {}", directory.display());
+                    /*
+                     * Add all dlls which start with driver_/valthrun_driver_ to the candidate list.
+                     * Starting the driver which has been least recently modified.
+                     */
+                    let mut candidates = dir
+                        .filter_map(|entry| entry.ok())
+                        .map(|entry| entry.file_name().to_string_lossy().to_string())
+                        .filter(|file_name| {
+                            (file_name.starts_with("driver_")
+                                || file_name.starts_with(obfstr!("valthrun_driver_")))
+                                && file_name.ends_with(".dll")
+                        })
+                        .map(|file_name| directory.join(file_name))
+                        .filter_map(|file| Some((file.metadata().ok()?.modified().ok()?, file)))
+                        .collect::<Vec<_>>();
+
+                    candidates.sort_by_key(|(timestamp, _file)| *timestamp);
+                    result.extend(candidates.into_iter().rev().map(|(_, file)| file));
+                }
+                Err(err) => {
+                    log::debug!(
+                        "Skipping looking for driver in {}: {}",
+                        directory.display(),
+                        err
+                    );
+                }
             }
         }
 
@@ -90,7 +117,7 @@ impl DriverInterface {
     }
 
     pub fn create_from_env() -> IResult<Self> {
-        for path in Self::populate_env_paths() {
+        for path in Self::populate_library_paths() {
             log::debug!("Trying to load driver from {}", path.display());
             match unsafe { Library::new(&path) } {
                 Ok(lib) => {
@@ -99,7 +126,11 @@ impl DriverInterface {
                     return Self::create(lib);
                 }
                 Err(err) => {
-                    log::debug!("    error: {:#}", err);
+                    if let Some(err) = err.source() {
+                        log::debug!("    error: {:#}", err);
+                    } else {
+                        log::debug!("    error: {:#}", err);
+                    }
                 }
             }
         }
