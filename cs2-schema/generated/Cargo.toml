@@ -12,6 +12,6 @@ raw_struct = { workspace = true }
 
 [build-dependencies]
 anyhow = { workspace = true }
-cs2-schema-definition = { version = "0.1.0", path = "../definition" }
+cs2-schema-definition = { path = "../definition" }
 serde = { version = "1.0.178", features = ["derive"] }
 serde_json = "1.0.104"

@@ -474,23 +474,9 @@ fn main_overlay() -> anyhow::Result<()> {
         Ok(handle) => handle,
         Err(err) => {
             if let Some(err) = err.downcast_ref::<InterfaceError>() {
-                match err {
-                    &InterfaceError::InitializeDriverUnavailable => {
-                        show_critical_error(obfstr!("** PLEASE READ CAREFULLY **\nCould not find the kernel driver interface.\nEnsure you have successfully loaded/mapped the kernel driver (valthrun-driver.sys) before starting the CS2 controller.\n\nFor more help, checkout:\nhttps://wiki.valth.run/troubleshooting/overlay/driver_has_not_been_loaded."));
-                        return Ok(());
-                    }
-                    &InterfaceError::DriverProtocolMissMatch {
-                        interface_protocol,
-                        driver_protocol,
-                    } => {
-                        show_critical_error(&format!("{}\nDriver Version: {}\nApplication Version: {}", obfstr!("Valthrun memory driver is too old / new to be used with the current application."), driver_protocol, interface_protocol));
-                        return Ok(());
-                    }
-                    &InterfaceError::ProcessUnknown => {
-                        show_critical_error(obfstr!("Could not find CS2 process.\nPlease start CS2 prior to executing this application!"));
-                        return Ok(());
-                    }
-                    _ => {}
+                if let Some(detailed_message) = err.detailed_message() {
+                    show_critical_error(&detailed_message);
+                    return Ok(());
                 }
             }
 

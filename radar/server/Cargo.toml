@@ -10,7 +10,7 @@ env_logger = { workspace = true }
 futures = "0.3.29"
 futures-util = "0.3.29"
 log = { workspace = true }
-radar-shared = { version = "0.1.0", path = "../shared" }
+radar-shared = { path = "../shared" }
 rand = "0.8.5"
 serde_json = "1.0.108"
 tokio = { version = "1.34.0", features = [

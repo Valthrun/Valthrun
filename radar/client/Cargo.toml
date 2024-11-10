@@ -6,16 +6,16 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 bincode = "1.3.3"
-cs2 = { version = "0.1.0", path = "../../cs2" }
+cs2 = { path = "../../cs2" }
 log = { workspace = true }
 obfstr = { workspace = true }
-radar-shared = { version = "0.1.0", path = "../shared" }
+radar-shared = { path = "../shared" }
 tokio = { version = "1.34.0", features = ["rt", "time", "macros", "sync"] }
 tokio-bincode = "0.1.0"
 tokio-util = { version = "0.7.10", features = ["codec"] }
-cs2-schema-generated = { version = "0.1.0", path = "../../cs2-schema/generated" }
-cs2-schema-cutl = { version = "0.1.0", path = "../../cs2-schema/cutl" }
-utils-state = { version = "0.1.0", path = "../../utils/state" }
+cs2-schema-generated = { path = "../../cs2-schema/generated" }
+cs2-schema-cutl = { path = "../../cs2-schema/cutl" }
+utils-state = { path = "../../utils/state" }
 tokio-tungstenite = { version = "0.20.1", features = [
     "rustls-tls-native-roots",
     "handshake",

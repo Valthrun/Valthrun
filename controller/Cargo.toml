@@ -1,7 +1,7 @@
 [package]
 name = "controller"
-version = "0.5.0"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 
 [dependencies]
 anyhow = { workspace = true }
@@ -19,10 +19,10 @@ serde_with = "3.8.3"
 
 cs2 = { path = "../cs2" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
-cs2-schema-cutl = { version = "0.1.0", path = "../cs2-schema/cutl" }
+cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 overlay = { path = "../overlay" }
-utils-state = { version = "0.1.0", path = "../utils/state" }
-radar-client = { version = "0.1.0", path = "../radar/client" }
+utils-state = { path = "../utils/state" }
+radar-client = { path = "../radar/client" }
 
 imgui = { version = "0.11", features = ["tables-api"] }
 clap = { version = "4.3.19", features = ["derive"] }

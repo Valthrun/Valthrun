@@ -6,11 +6,11 @@ edition.workspace = true
 [dependencies]
 anyhow = { workspace = true }
 clap = { version = "4.4.8", features = ["derive"] }
-cs2 = { version = "0.1.0", path = "../../cs2" }
+cs2 = { path = "../../cs2" }
 env_logger = { workspace = true }
 log = { workspace = true }
-radar-client = { version = "0.1.0", path = "../client" }
-radar-shared = { version = "0.1.0", path = "../shared" }
+radar-client = { path = "../client" }
+radar-shared = { path = "../shared" }
 tokio = { version = "1.34.0", features = ["io-util", "rt-multi-thread", "net"] }
 url = "2.5.0"
-utils-state = { version = "0.1.0", path = "../../utils/state" }
+utils-state = { path = "../../utils/state" }
