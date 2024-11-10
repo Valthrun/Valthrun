@@ -213,7 +213,7 @@ impl DriverInterface {
 
         self.execute_command(&mut command)?;
         if command.client_protocol_version != command.driver_protocol_version {
-            return Err(InterfaceError::DriverProtocolMissMatch {
+            return Err(InterfaceError::DriverProtocolMismatch {
                 interface_protocol: command.client_protocol_version,
                 driver_protocol: command.driver_protocol_version,
             });
