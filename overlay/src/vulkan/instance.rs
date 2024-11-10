@@ -73,14 +73,15 @@ impl ExtensionBuilder {
 
         if !is_supported {
             if required {
-                return Err(OverlayError::VulkanRequiredExtensionUnsupported(name));
+                log::warn!("Required Vulkan extension {name} requested but Vulkan does not support this extension. This might causes errors");
+                //return Err(OverlayError::VulkanRequiredExtensionUnsupported(name));
+            } else {
+                log::debug!(
+                    "Skipping registering vulkan extension {} as it's not supported.",
+                    name
+                );
+                return Ok(());
             }
-
-            log::debug!(
-                "Skipping registering vulkan extension {} as it's not supported.",
-                name
-            );
-            return Ok(());
         }
 
         self.requested_extensions.push(cname);
@@ -95,14 +96,15 @@ impl ExtensionBuilder {
 
         if !is_supported {
             if required {
-                return Err(OverlayError::VulkanRequiredLayerUnsupported(name));
+                log::warn!("Required Vulkan layer extension {name} requested but Vulkan does not support this extension. This might causes errors");
+                //return Err(OverlayError::VulkanRequiredLayerUnsupported(name));
+            } else {
+                log::debug!(
+                    "Skipping registering vulkan layer {} as it's not supported.",
+                    name
+                );
+                return Ok(());
             }
-
-            log::debug!(
-                "Skipping registering vulkan layer {} as it's not supported.",
-                name
-            );
-            return Ok(());
         }
 
         self.requested_layers.push(cname);
