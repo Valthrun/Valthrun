@@ -2,7 +2,7 @@ name: Rust
 
 on:
   push:
-    branches: ['master', 'amd', 'radar']
+    branches: ['master', 'release']
   pull_request:
     branches: ['master']
 
