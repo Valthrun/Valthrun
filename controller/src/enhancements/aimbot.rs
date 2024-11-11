@@ -2,9 +2,8 @@
 
 use core::f32;
 
-use cs2::{BoneFlags, CEntityIdentityEx, CS2Model, ClassNameCache, LocalCameraControllerTarget, PlayerPawnState, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo, StatePawnModelInfo};
+use cs2::{BoneFlags, CEntityIdentityEx, CS2Model, ClassNameCache, LocalCameraControllerTarget, MouseState, PlayerPawnState, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo, StatePawnModelInfo};
 use overlay::UnicodeTextRenderer;
-use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 use crate::settings::AppSettings;
