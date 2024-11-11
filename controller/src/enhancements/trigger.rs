@@ -2,6 +2,7 @@ use std::time::Instant;
 
 use anyhow::Context;
 use cs2::{
+    MouseState,
     StateCS2Memory,
     StateEntityList,
     StateLocalPlayerController,
@@ -18,7 +19,6 @@ use rand::{
     prelude::Distribution,
 };
 use utils_state::StateRegistry;
-use valthrun_kernel_interface::MouseState;
 
 use super::Enhancement;
 use crate::{

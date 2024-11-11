@@ -25,16 +25,19 @@ use utils_state::{
     StateCacheType,
     StateRegistry,
 };
-use valthrun_kernel_interface::{
-    com_from_env,
-    KernelInterface,
+use valthrun_driver_interface::{
+    DriverFeature,
+    DriverInterface,
     KeyboardState,
-    ModuleInfo,
     MouseState,
+    ProcessFilter,
     ProcessId,
+    ProcessModuleInfo,
+    ProcessProtectionMode,
 };
 
 use crate::{
+    SearchPattern,
     Signature,
     SignatureType,
 };
@@ -53,7 +56,7 @@ impl MemoryView for CS2MemoryView {
             return Err(anyhow::anyhow!("CS2 handle gone").into());
         };
 
-        Ok(handle.read_slice(&[offset], buffer)?)
+        Ok(handle.read_slice(offset, buffer)?)
     }
 }
 
@@ -66,7 +69,7 @@ pub enum Module {
 }
 
 impl Module {
-    fn get_module_name<'a>(&self) -> &'static str {
+    fn get_module_name(&self) -> &'static str {
         match self {
             Module::Client => "client.dll",
             Module::Engine => "engine2.dll",
@@ -81,27 +84,34 @@ pub struct CS2Handle {
     weak_self: Weak<Self>,
     metrics: bool,
 
-    modules: Vec<ModuleInfo>,
+    modules: Vec<ProcessModuleInfo>,
     process_id: ProcessId,
 
-    pub ke_interface: KernelInterface,
+    pub ke_interface: DriverInterface,
 }
 
 impl CS2Handle {
     pub fn create(metrics: bool) -> anyhow::Result<Arc<Self>> {
-        let interface = KernelInterface::create(com_from_env()?)?;
+        let interface = DriverInterface::create_from_env()?;
 
-        /*
-         * Please no not analyze me:
-         * https://www.unknowncheats.me/wiki/Valve_Anti-Cheat:VAC_external_tool_detection_(and_more)
-         *
-         * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
-         */
-        if let Err(err) = interface.toggle_process_protection(true) {
-            log::warn!("Failed to enable process protection: {}", err)
-        };
+        if interface
+            .driver_features()
+            .contains(DriverFeature::ProcessProtectionKernel)
+        {
+            /*
+             * Please no not analyze me:
+             * https://www.unknowncheats.me/wiki/Valve_Anti-Cheat:VAC_external_tool_detection_(and_more)
+             *
+             * Even tough we don't have open handles to CS2 we don't want anybody to read our process.
+             */
+            if let Err(err) = interface.toggle_process_protection(ProcessProtectionMode::Kernel) {
+                log::warn!("Failed to enable process protection: {}", err)
+            };
+        }
 
-        let (process_id, modules) = interface.request_cs2_modules()?;
+        let (process_id, modules) = interface.request_modules(ProcessFilter::Name {
+            name: obfstr!("cs2.exe").to_string(),
+        })?;
         log::debug!(
             "{}. Process id {}",
             obfstr!("Successfully initialized CS2 handle"),
@@ -112,7 +122,7 @@ impl CS2Handle {
         for module in modules.iter() {
             log::trace!(
                 "  - {} ({:X} - {:X})",
-                module.base_dll_name(),
+                module.get_base_dll_name().unwrap_or("unknown"),
                 module.base_address,
                 module.base_address + module.module_size
             );
@@ -128,10 +138,10 @@ impl CS2Handle {
         }))
     }
 
-    fn get_module_info(&self, target: Module) -> Option<&ModuleInfo> {
+    fn get_module_info(&self, target: Module) -> Option<&ProcessModuleInfo> {
         self.modules
             .iter()
-            .find(|module| module.base_dll_name() == target.get_module_name())
+            .find(|module| module.get_base_dll_name() == Some(target.get_module_name()))
     }
 
     pub fn process_id(&self) -> ProcessId {
@@ -161,12 +171,10 @@ impl CS2Handle {
 
     pub fn module_address(&self, module: Module, address: u64) -> Option<u64> {
         let module = self.get_module_info(module)?;
-        if (address as usize) < module.base_address
-            || (address as usize) >= (module.base_address + module.module_size)
-        {
+        if address < module.base_address || address >= (module.base_address + module.module_size) {
             None
         } else {
-            Some(address - module.base_address as u64)
+            Some(address - module.base_address)
         }
     }
 
@@ -178,19 +186,19 @@ impl CS2Handle {
             + offset)
     }
 
-    pub fn read_sized<T: Copy>(&self, offsets: &[u64]) -> anyhow::Result<T> {
-        Ok(self.ke_interface.read(self.process_id, offsets)?)
+    pub fn read_sized<T: Copy>(&self, address: u64) -> anyhow::Result<T> {
+        Ok(self.ke_interface.read(self.process_id, address)?)
     }
 
-    pub fn read_slice<T: Copy>(&self, offsets: &[u64], buffer: &mut [T]) -> anyhow::Result<()> {
+    pub fn read_slice<T: Copy>(&self, address: u64, buffer: &mut [T]) -> anyhow::Result<()> {
         Ok(self
             .ke_interface
-            .read_slice(self.process_id, offsets, buffer)?)
+            .read_slice(self.process_id, address, buffer)?)
     }
 
     pub fn read_string(
         &self,
-        offsets: &[u64],
+        address: u64,
         expected_length: Option<usize>,
     ) -> anyhow::Result<String> {
         let mut expected_length = expected_length.unwrap_or(8); // Using 8 as we don't know how far we can read
@@ -199,7 +207,7 @@ impl CS2Handle {
         // FIXME: Do cstring reading within the kernel driver!
         loop {
             buffer.resize(expected_length, 0u8);
-            self.read_slice(offsets, buffer.as_mut_slice())
+            self.read_slice(address, buffer.as_mut_slice())
                 .context("read_string")?;
 
             if let Ok(str) = CStr::from_bytes_until_nul(&buffer) {
@@ -216,16 +224,41 @@ impl CS2Handle {
         })
     }
 
+    #[must_use]
+    pub fn find_pattern(
+        &self,
+        address: u64,
+        length: usize,
+        pattern: &dyn SearchPattern,
+    ) -> anyhow::Result<Option<u64>> {
+        if pattern.length() > length {
+            return Ok(None);
+        }
+
+        let mut buffer = Vec::<u8>::with_capacity(length);
+        buffer.resize(length, 0);
+        self.ke_interface
+            .read_slice(self.process_id, address, &mut buffer)?;
+
+        for (index, window) in buffer.windows(pattern.length()).enumerate() {
+            if !pattern.is_matching(window) {
+                continue;
+            }
+
+            return Ok(Some(address + index as u64));
+        }
+
+        Ok(None)
+    }
+
     pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
         log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
         let module_info = self.get_module_info(module).context("invalid module")?;
 
         let inst_offset = self
-            .ke_interface
             .find_pattern(
-                self.process_id,
-                module_info.base_address as u64,
-                module_info.module_size,
+                module_info.base_address,
+                module_info.module_size as usize,
                 &*signature.pattern,
             )?
             .with_context(|| {

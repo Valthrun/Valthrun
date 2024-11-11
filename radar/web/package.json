@@ -33,7 +33,7 @@
         "@babel/core": "^7.23.3",
         "@babel/preset-react": "^7.23.3",
         "@babel/preset-typescript": "^7.23.3",
-        "@ianvs/prettier-plugin-sort-imports": "^4.3.1",
+        "@ianvs/prettier-plugin-sort-imports": "^4.4.0",
         "@stylistic/eslint-plugin": "^1.5.3",
         "@stylistic/eslint-plugin-ts": "^1.5.3",
         "@svgr/webpack": "^8.1.0",

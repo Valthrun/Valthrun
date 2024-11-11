@@ -2,9 +2,9 @@ name: Rust
 
 on:
   push:
-    branches: ["master", "amd", "radar"]
+    branches: ['master', 'release']
   pull_request:
-    branches: ["master"]
+    branches: ['master']
 
 env:
   CARGO_TERM_COLOR: always
@@ -36,7 +36,7 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: 16.x
-          cache: "yarn"
+          cache: 'yarn'
           cache-dependency-path: |
             radar/web/yarn.lock
       - name: Run install
@@ -51,7 +51,7 @@ jobs:
           dir: radar/web
         env:
           NODE_ENV: production
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload Web Artifact
         with:
           name: radar-web
@@ -62,17 +62,18 @@ jobs:
     needs: [rust-check]
     strategy:
       matrix:
-        build: [linux, windows]
+        build: [linux]
         include:
           - build: linux
             os: ubuntu-20.04
             target: radar-server-standalone
-            flags: ""
+            # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
+            flags: ''
 
-          - build: windows
-            os: windows-latest
-            target: radar-server-standalone.exe
-            flags: -Ctarget-feature=+crt-static
+          # - build: windows
+          #   os: windows-latest
+          #   target: radar-server-standalone.exe
+          #   flags: -Ctarget-feature=+crt-static
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -90,11 +91,63 @@ jobs:
         run: cargo build --verbose --release --bin radar-server-standalone
         env:
           RUSTFLAGS: ${{ matrix.flags }}
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         name: Upload Radar Server
         with:
           name: radar-server-${{ matrix.build }}
           path: target/release/${{ matrix.target }}
+
+  docker-radar-server:
+    runs-on: ubuntu-latest
+    needs: [build-radar-server, build-radar-web]
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        if: github.event_name != 'pull_request'
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/valthrun/cs2-radar-server
+          tags: |
+            type=ref,event=branch
+            type=sha
+        env:
+          DOCKER_METADATA_SHORT_SHA_LENGTH: 7
+
+      - name: Download radar binary
+        uses: actions/download-artifact@v4
+        with:
+          name: radar-server-linux
+          path: target/release/
+
+      - name: Download radar scripts
+        uses: actions/download-artifact@v4
+        with:
+          name: radar-www
+          path: radar/web/dist
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./docker/cs2-radar-server.dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
   build-radar-client:
     name: Radar Client
@@ -107,21 +160,33 @@ jobs:
         with:
           toolchain: nightly
           override: true
+
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path radar/client-standalone/Cargo.toml | cut -d# -f2 | cut -d: -f2 | cut -d@ -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+
       - name: Build
         run: cargo build --verbose --release --bin radar-client-standalone
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
-      - uses: actions/upload-artifact@v3
-        name: Upload Radar Client
-        with:
-          name: radar-client
-          path: target/release/radar-client-standalone.exe
+
+      - name: Upload release build to portal
+        shell: bash
+        run: .github/workflows/artifact_upload.sh cs2-radar-client target/release/radar-client-standalone.exe target/release/radar_client_standalone.pdb
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
 
   build-overlay:
     name: CS2 Overlay
@@ -134,18 +199,34 @@ jobs:
         with:
           toolchain: nightly
           override: true
+
       - uses: actions/checkout@v3
         with:
           submodules: recursive
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path controller/Cargo.toml | cut -d# -f2 | cut -d: -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
       - uses: Swatinem/rust-cache@v2
         with:
           cache-on-failure: true
+
       - name: Build
         run: cargo build --verbose --release --bin controller
         env:
           RUSTFLAGS: -Ctarget-feature=+crt-static
-      - uses: actions/upload-artifact@v3
-        name: Upload CS2 Overlay
-        with:
-          name: cs2-overlay
-          path: target/release/controller.exe
+
+      # Right now there are no tests specified
+      # - name: Run tests
+      #   run: cargo test --verbose
+
+      - name: Upload release build to portal
+        shell: bash
+        run: .github/workflows/artifact_upload.sh cs2-overlay target/release/controller.exe target/release/controller.pdb
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}

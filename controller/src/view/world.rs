@@ -35,7 +35,7 @@ impl State for ViewController {
         let cs2 = states.resolve::<StateCS2Handle>(())?;
         let offset = states.resolve::<StateResolvedOffset>(CS2Offset::ViewMatrix)?;
 
-        self.view_matrix = cs2.read_sized(&[offset.address])?;
+        self.view_matrix = cs2.read_sized(offset.address)?;
         Ok(())
     }
 }

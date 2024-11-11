@@ -1,7 +1,17 @@
 use std::collections::BTreeMap;
 
-use anyhow::Context;
-use raw_struct::builtins::Ptr64;
+use anyhow::{
+    anyhow,
+    Context,
+};
+use cs2_schema_cutl::{
+    CStringUtil,
+    PtrCStr,
+};
+use raw_struct::{
+    builtins::Ptr64,
+    FromMemoryView,
+};
 use utils_state::{
     State,
     StateCacheType,
@@ -62,7 +72,16 @@ impl ClassNameCache {
             return Ok(());
         }
 
-        let class_name = cs2.read_string(&[address + 0x28, 0x08, 0x00], Some(32))?;
+        let memory = cs2.create_memory_view();
+
+        let class_name = PtrCStr::read_object(
+            &*memory,
+            u64::read_object(&*memory, address + 0x28).map_err(|e| anyhow!(e))? + 0x08,
+        )
+        .map_err(|e| anyhow!(e))?
+        .read_string(&*memory)?
+        .context("failed to read class name")?;
+
         self.lookup.insert(address, class_name.clone());
         self.reverse_lookup.insert(class_name, address);
         Ok(())

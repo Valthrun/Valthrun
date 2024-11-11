@@ -1,22 +1,35 @@
 import { LoadedMap } from "..";
-import kImageBuyZones from "./overlay_buyzones.png";
-import kImageRadar from "./radar.png";
+import SimpleRadarDefault from "./map_style_simple_radar.png";
+import OfficialDefault from "./map_style_cs2.png";
 
 export default {
     mapName: "de_overpass",
     displayName: "Overpass",
 
-    metaInfo: {
-        resolution: 5.18,
+    pos_x: -4831, // upper left world coordinate
+    pos_y: 1781,
+    scale: 5.2,
 
-        offset: {
-            x: 4830,
-            y: 3540,
+    verticalSections: [
+        {
+            name: "default",
+            altitudeMax: 10000,
+            altitudeMin: -10000,
+        }
+    ],
+
+    mapStyles: [
+        {
+            name: "SimpleRadar",
+            map: {
+                default: SimpleRadarDefault,
+            }
         },
-
-        floors: [],
-    },
-
-    overlayBuyzones: kImageBuyZones,
-    overlayRadar: kImageRadar,
+        {
+            name: "Official",
+            map: {
+                default: OfficialDefault,
+            }
+        }
+    ]
 } satisfies LoadedMap;

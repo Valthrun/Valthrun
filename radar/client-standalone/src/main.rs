@@ -3,6 +3,7 @@ use clap::Parser;
 use cs2::{
     offsets_runtime,
     CS2Handle,
+    InterfaceError,
     StateCS2Handle,
     StateCS2Memory,
 };
@@ -35,7 +36,21 @@ async fn main() -> anyhow::Result<()> {
     let url = Url::parse(&args.publish_url).context("invalid target server address")?;
 
     let radar_generator = {
-        let cs2 = CS2Handle::create(true)?;
+        let cs2 = match CS2Handle::create(true) {
+            Ok(cs2) => cs2,
+            Err(err) => {
+                if let Some(err) = err.downcast_ref::<InterfaceError>() {
+                    if let Some(detailed_message) = err.detailed_message() {
+                        for line in detailed_message.lines() {
+                            log::error!("{}", line);
+                        }
+                        return Ok(());
+                    }
+                }
+
+                return Err(err);
+            }
+        };
         let mut states = StateRegistry::new(1024 * 8);
         states.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
         states.set(StateCS2Handle::new(cs2), ())?;
