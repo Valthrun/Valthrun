@@ -352,7 +352,7 @@ impl DriverInterface {
         filter: &ProcessFilter,
     ) -> IResult<(ProcessId, Vec<ProcessModuleInfo>)> {
         let mut module_buffer = Vec::with_capacity(128);
-        module_buffer.resize_with(128, Default::default);
+        module_buffer.resize_with(512, Default::default);
 
         let mut command = DriverCommandProcessModules::default();
         command.target_process = match filter {
