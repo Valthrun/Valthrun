@@ -3332,6 +3332,7 @@ dependencies = [
  "libloading 0.8.5",
  "log",
  "obfstr",
+ "rand",
  "thiserror",
  "valthrun-driver-protocol",
  "windows 0.48.0",

@@ -21,3 +21,4 @@ obfstr.workspace = true
 [dev-dependencies]
 anyhow = { workspace = true }
 env_logger = { workspace = true }
+rand = "0.8.5"

@@ -109,7 +109,7 @@ impl CS2Handle {
             };
         }
 
-        let (process_id, modules) = interface.request_modules(ProcessFilter::Name {
+        let (process_id, modules) = interface.request_modules(&ProcessFilter::Name {
             name: obfstr!("cs2.exe").to_string(),
         })?;
         log::debug!(
