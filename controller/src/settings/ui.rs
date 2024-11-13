@@ -316,42 +316,79 @@ impl SettingsUI {
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aimbot")) {
+                        // Start a two-column layout
+                        ui.columns(2, obfstr!("Aimbot Settings Columns"), true);
+
+                        // Aimbot Mode Row
+                        ui.text(obfstr!("Aimbot Mode"));
+                        ui.next_column();
                         ui.set_next_item_width(150.0);
-                        ui.combo_enum(obfstr!("Aimbot Mode"), &[
+                        ui.combo_enum(obfstr!("##aimbot_mode"), &[
                             (KeyToggleMode::Off, "Always Off"),
                             (KeyToggleMode::Trigger, "Trigger"),
                             (KeyToggleMode::Toggle, "Toggle"),
                             (KeyToggleMode::AlwaysOn, "Always On"),
                         ], &mut settings.aimbot_mode);
+                        ui.next_column();
 
-                        ui.button_key_optional(obfstr!("Primary Aimbot Key"), &mut settings.aimbot_key, [150.0, 0.0]);
+                        // Primary Aimbot Key Row
+                        ui.text(obfstr!("Primary Aimbot Key"));
+                        ui.next_column();
+                        ui.button_key_optional(obfstr!("##aimbot_key"), &mut settings.aimbot_key, [150.0, 0.0]);
+                        ui.next_column();
 
+                        // FOV Slider Row
+                        ui.text(obfstr!("FOV"));
+                        ui.next_column();
                         ui.set_next_item_width(150.0);
-                        ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
+                        ui.slider_config("##aimbot_fov", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
+                        ui.next_column();
 
+                        // Aim Smoothing Slider Row
+                        ui.text(obfstr!("Aim Smoothing"));
+                        ui.next_column();
                         ui.set_next_item_width(150.0);
-                        ui.slider_config("Aim Smoothing", 1.0, 15.0).display_format("%.1f").build(&mut settings.aimbot_smooth);
+                        ui.slider_config("##aimbot_smooth", 1.0, 15.0).display_format("%.1f").build(&mut settings.aimbot_smooth);
+                        ui.next_column();
 
+                        // Target Bone Combo Row
+                        ui.text(obfstr!("Target Bone"));
+                        ui.next_column();
                         ui.set_next_item_width(150.0);
                         let bone_options = ["head", "neck", "spine", "pelvis"];
                         let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aimbot_aim_bone).unwrap_or(0);
-                        ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
+                        ui.combo_simple_string(obfstr!("##aimbot_aim_bone"), &mut current_bone_index, &bone_options);
                         settings.aimbot_aim_bone = bone_options[current_bone_index].to_string();
+                        ui.next_column();
 
+                        // Team Check Checkbox Row
+                        ui.text(obfstr!("Team Check"));
+                        ui.next_column();
+                        ui.checkbox(obfstr!("##aimbot_team_check"), &mut settings.aimbot_team_check);
+                        ui.next_column();
+
+                        // Ignore Flash Alpha Slider Row
+                        ui.text(obfstr!("Ignore Flash Alpha"));
+                        ui.next_column();
                         ui.set_next_item_width(150.0);
-                        ui.checkbox(obfstr!("Team Check"), &mut settings.aimbot_team_check);
+                        ui.slider_config("##aimbot_flash_alpha", 0.0, 255.0).display_format("%1.0f").build(&mut settings.aimbot_flash_alpha);
+                        ui.next_column();
 
+                        // Ignore Flash Checkbox Row
+                        ui.text(obfstr!("Ignore Flash"));
+                        ui.next_column();
+                        ui.checkbox(obfstr!("##aimbot_ignore_flash"), &mut settings.aimbot_ignore_flash);
+                        ui.next_column();
 
-                        ui.set_next_item_width(150.0);
-                        ui.slider_config("Ignore Flash Alpha", 0.0, 255.0).display_format("%1.0f").build(&mut settings.aimbot_flash_alpha);
+                        // View FOV Checkbox Row
+                        ui.text(obfstr!("View FOV"));
+                        ui.next_column();
+                        ui.checkbox(obfstr!("##aimbot_view_fov"), &mut settings.aimbot_view_fov);
+                        ui.next_column();
 
-                        ui.set_next_item_width(150.0);
-                        ui.checkbox(obfstr!("Ignore Flash"), &mut settings.aimbot_ignore_flash);
-
-                        ui.set_next_item_width(150.0);
-                        ui.checkbox(obfstr!("View FOV"), &mut settings.aimbot_view_fov);
+                        // End columns
+                        ui.columns(1, "", false);
                     }
-
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
                         ui.set_next_item_width(150.0);
@@ -1063,8 +1100,8 @@ impl SettingsUI {
                         0.1,
                         1.0,
                     )
-                    .display_format("%.2f")
-                    .build(alpha);
+                        .display_format("%.2f")
+                        .build(alpha);
                 }
                 EspColor::Static { value } => {
                     let mut color_value = value.as_f32();
@@ -1106,10 +1143,10 @@ impl SettingsUI {
                             &format!("##{}_health_mid", ui.table_row_index()),
                             &mut mid_value,
                         )
-                        .alpha_bar(true)
-                        .inputs(false)
-                        .label(false)
-                        .build()
+                            .alpha_bar(true)
+                            .inputs(false)
+                            .label(false)
+                            .build()
                     } {
                         *mid = Color::from_f32(mid_value);
                     }
