@@ -349,14 +349,14 @@ impl DriverInterface {
 
     pub fn request_modules(
         &self,
-        filter: ProcessFilter,
+        filter: &ProcessFilter,
     ) -> IResult<(ProcessId, Vec<ProcessModuleInfo>)> {
         let mut module_buffer = Vec::with_capacity(128);
         module_buffer.resize_with(128, Default::default);
 
         let mut command = DriverCommandProcessModules::default();
         command.target_process = match filter {
-            ProcessFilter::Id { id } => ProtocolProcessFilter::Id { id },
+            ProcessFilter::Id { id } => ProtocolProcessFilter::Id { id: *id },
             ProcessFilter::Name { name } => ProtocolProcessFilter::ImageBaseName {
                 name: name.as_ptr(),
                 name_length: name.as_bytes().len(),
