@@ -1,3 +1,6 @@
+use std::mem;
+
+use rand::Rng;
 use valthrun_driver_interface::DriverInterface;
 
 fn read_heap_buffer(interface: &DriverInterface) -> anyhow::Result<()> {
@@ -31,5 +34,32 @@ pub fn main() -> anyhow::Result<()> {
 
     println!("Read result: {:X?}", read_value);
     read_heap_buffer(&interface)?;
+
+    let own_process_id = std::process::id();
+    let mut rng = rand::thread_rng();
+    for _ in 0..10_000 {
+        let mut src_buffer = Vec::new();
+        src_buffer.resize_with(rng.gen_range(1..128_000) as usize, || rng.gen::<u8>());
+
+        let mut dst_buffer = Vec::<u8>::new();
+        dst_buffer.resize(src_buffer.len(), 0);
+        let result = interface.read_slice(
+            own_process_id,
+            src_buffer.as_ptr() as u64,
+            dst_buffer.as_mut_slice(),
+        );
+
+        if dst_buffer != src_buffer || result.is_err() {
+            println!("Result: {:#?}", result);
+            println!(
+                "Read failed :( Buffer size: {}, src = {:X}, dst = {:X}",
+                src_buffer.len(),
+                src_buffer.as_ptr() as u64,
+                dst_buffer.as_ptr() as u64
+            );
+        }
+        mem::forget(dst_buffer);
+    }
+    println!("Done :)");
     Ok(())
 }
