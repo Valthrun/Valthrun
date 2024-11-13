@@ -58,26 +58,37 @@ pub struct IdHashEntry {
     pub value: Ptr64<()>,
 }
 
-#[raw_struct(size = 0x56E0)]
+#[raw_struct(size = 0x5620)]
 pub struct CSchemaSystemTypeScope {
     #[field(offset = 0x08)]
     pub scope_name: FixedCStr<0x100>,
     // pub parent_scope: Ptr64<dyn CSchemaSystemTypeScope> = 0x108,
     // pub buildin_types_initialized: bool = 0x110,
     // pub type_buildin: CSchemaType[14] = 0x118,
+
+    // The UtlRBTree entries are all at offset 0x08. First is a bool (probably indicating if existing)
     // pub type_ptr: ??? = 0x348,
-    // pub type_atomic: ??? = 0x378,
-    // pub type_atomic_t: ??? = 0x3A8,
-    // pub type_atomic_collection_of_t: ??? = 0x3D8
-    // pub type_atomic_tf: ??? = 0x408
+    // pub type_atomic: ??? = 0x370,
+    // pub type_atomic_t: ??? = 0x398,
+    // pub type_atomic_collection_of_t: ??? = 0x3C0
+    // pub type_atomic_tf: ??? = 0x3E8
+    // pub type_atomic_tt: ??? = 0x410
     // pub type_atomic_tt: ??? = 0x438
-    // pub type_atomic ttf: ??? = 0x468
-    // pub type_atomic_i: ??? = 0x498
+    // pub type_atomic ttf: ??? = 0x460
+    // pub type_atomic_i: ??? = 0x488
+    // pub type_???: ??? = 0x4B0
+    // pub type_atomic_i: ??? = 0x4D8
+    // pub type_atomic_i: ??? = 0x488
     #[field(offset = 0x440)]
     pub type_declared_class: Copy<dyn UtlRBTree<IdHashEntry>>,
 
     #[field(offset = 0x468)]
     pub type_declared_enum: Copy<dyn UtlRBTree<IdHashEntry>>,
+    /* 0x500 contains A CUtlMemoryPoolBase */
+    /* 0x580 contains 0x100 elements of size 0x28 */
+
+    /* 0x2D90 contains A CUtlMemoryPoolBase */
+    /* 0x2E10 contains 0x100 elements of size 0x28 */
     // pub type_???: ??? = 0x528
     // pub type_fixed_array: ??? = 0x558
     // pub type_bit_fields: ??? = 0x588

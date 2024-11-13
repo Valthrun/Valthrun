@@ -288,7 +288,16 @@ impl DriverInterface {
         match command.result {
             MemoryAccessResult::Success => Ok(()),
             MemoryAccessResult::ProcessUnknown => Err(InterfaceError::ProcessUnknown),
-            MemoryAccessResult::PartialSuccess { .. } => Err(InterfaceError::MemoryAccessFailed),
+            MemoryAccessResult::PartialSuccess { bytes_copied } => {
+                log::trace!(
+                    "Mem access failed for src {:X} to dst {:X} (len {:X}, copied: {:X})",
+                    command.address,
+                    command.buffer as u64,
+                    command.count,
+                    bytes_copied
+                );
+                Err(InterfaceError::MemoryAccessFailed)
+            }
         }
     }
 
@@ -351,7 +360,7 @@ impl DriverInterface {
         &self,
         filter: &ProcessFilter,
     ) -> IResult<(ProcessId, Vec<ProcessModuleInfo>)> {
-        let mut module_buffer = Vec::with_capacity(128);
+        let mut module_buffer = Vec::with_capacity(512);
         module_buffer.resize_with(512, Default::default);
 
         let mut command = DriverCommandProcessModules::default();
@@ -367,6 +376,7 @@ impl DriverInterface {
         while retry <= 3 {
             command.module_buffer = module_buffer.as_mut_ptr();
             command.module_buffer_length = module_buffer.len();
+            command.module_count = 0;
 
             self.execute_command(&mut command)?;
 
