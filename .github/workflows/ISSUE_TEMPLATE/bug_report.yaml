@@ -1,0 +1,45 @@
+name: Bug report
+description: Report errors or unexpected behavior
+title: "[Bug]"
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: 🔍 Is there already an issue for your problem?
+      description: Please make sure you are not creating an already submitted <a href="https://github.com/Valthrun/Valthrun/issues">Issue</a>. Also check closed issue.
+      options:
+        - label: I have checked older issues, open and closed
+          required: true
+  - type: textarea
+    attributes:
+      label: ℹ Environment / Computer Info
+      description: |
+        Please provide the details of version installed.
+      value: |
+        - Controller version: (You can find this at the first log of controller.exe)
+        - Describe the driver used: (e.g Kernel, Zenith, Usermode)
+        - Grapic Card Used: (e.g AMD; Nvidia; Intel; Integrated Grapic Cards ~ Specific.)
+      placeholder: |
+        - Controller version: (You can find this at the first log of controller.exe)
+        - Describe the driver used: (e.g Kernel, Zenith, Usermode)
+        - Grapic Card Used: (e.g AMD; Nvidia; Intel; Integrated Grapic Cards ~ Specific.)
+      render: Markdown
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 📝 Description
+      description: |
+        List steps to reproduce the error and details on what happens and what you expected to happen.
+      placeholder: |
+        1. Please number your steps to helps the readability of your instructions.
+
+        Feel free to write down additional notes you may want us to know.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: 📸 Screenshots
+      description: Place any screenshots of the issue here if needed
+    validations:
+      required: false
