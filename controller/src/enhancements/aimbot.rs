@@ -86,7 +86,6 @@ impl Aimbot {
 
             let pawn_model = ctx.states.resolve::<StatePawnModelInfo>(entity_identity.handle().ok()?).ok()?;
 
-            println!("{}", self.aimbot_flash_alpha)
             if self.aimbot_ignore_flash && local_pawn.m_flFlashOverlayAlpha().unwrap() > self.aimbot_flash_alpha {
                 continue;
             }
@@ -161,6 +160,7 @@ impl Enhancement for Aimbot {
         self.aimbot_smooth = settings.aimbot_smooth;
         self.aimbot_aim_bone = settings.aimbot_aim_bone.clone();
         self.aimbot_team_check = settings.aimbot_team_check;
+        self.aimbot_flash_alpha = settings.aimbot_flash_alpha;
         self.aimbot_ignore_flash = settings.aimbot_ignore_flash;
 
         if self.aimbot_toggle.update(&settings.aimbot_mode, ctx.input, &settings.aimbot_key) {
