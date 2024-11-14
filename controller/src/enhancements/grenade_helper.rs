@@ -332,11 +332,22 @@ impl Enhancement for GrenadeHelper {
                         )
                         .position_pivot([0.0, 0.5])
                         .no_decoration()
-                        .draw_background(true)
+                        /* Prevent Bg to be drawn, Prevent Box to be clicked. ( Annoying ) */
+                        .draw_background(false)
+                        .always_auto_resize(true)
+                        .no_inputs()
                         .begin()
                     {
+                    let grenade_display_names = grenade
+                         .grenade_types
+                         .iter()
+                         .map(|value| value.display_name())
+                         .collect::<Vec<_>>();
+                        
                         ui.text_colored(color.as_f32(), &grenade.name);
                         ui.text_colored(color.as_f32(), &grenade.description);
+                        /* Displays wich Utility to use when poiting to throw line */
+                        ui.text_colored(color.as_f32(), grenade_display_names.join(", "));
                     }
                 }
             }
