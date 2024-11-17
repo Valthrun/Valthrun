@@ -6,6 +6,7 @@ members = [
     "cs2-schema/definition",
     "cs2-schema/cutl",
     "cs2-schema/generated",
+    "cs2-schema/dumper",
 
     "driver/protocol",
     "driver/interface",

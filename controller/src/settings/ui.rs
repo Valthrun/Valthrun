@@ -82,7 +82,6 @@ enum EspPlayerActiveHeader {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum GrenadeSettingsTarget {
-    None,
     General,
     MapType(String),
     Map {
@@ -92,18 +91,8 @@ enum GrenadeSettingsTarget {
 }
 
 impl GrenadeSettingsTarget {
-    pub fn display_name(&self) -> &str {
-        match self {
-            Self::None => &"None",
-            Self::General => &"Settings",
-            Self::MapType(value) => value,
-            Self::Map { display_name, .. } => display_name,
-        }
-    }
-
     pub fn ui_token(&self) -> Cow<'static, str> {
         match self {
-            Self::None => "_none".into(),
             Self::General => "_settings".into(),
             Self::MapType(value) => format!("map_type_{}", value).into(),
             Self::Map { map_name: name, .. } => format!("map_{}", name).into(),
@@ -112,7 +101,6 @@ impl GrenadeSettingsTarget {
 
     pub fn ident_level(&self) -> usize {
         match self {
-            Self::None => 0,
             Self::General => 0,
             Self::MapType(_) => 0,
             Self::Map { .. } => 1,
@@ -135,9 +123,7 @@ enum GrenadeHelperTransferState {
     },
     /// A transfer has been initiated.
     /// This might be ether an export or import.
-    Active {
-        direction: GrenadeHelperTransferDirection,
-    },
+    Active {},
     /// The current transfer failed.
     Failed {
         direction: GrenadeHelperTransferDirection,
@@ -150,7 +136,6 @@ enum GrenadeHelperTransferState {
     },
     ImportSuccess {
         count: usize,
-        replacing: bool,
     },
     ExportSuccess {
         target_path: PathBuf,
@@ -1264,7 +1249,6 @@ impl SettingsUI {
         }
 
         let item_text = match target {
-            GrenadeSettingsTarget::None => "None".to_string(),
             GrenadeSettingsTarget::General => "Settings".to_string(),
             GrenadeSettingsTarget::MapType(value) => value.clone(),
             GrenadeSettingsTarget::Map {
@@ -1444,9 +1428,7 @@ impl SettingsUI {
                 GrenadeSettingsTarget::General => {
                     self.render_grenade_helper_target_settings(states, settings, ui);
                 }
-                GrenadeSettingsTarget::None | GrenadeSettingsTarget::MapType(_) => {
-                    /* Nothing to render */
-                }
+                GrenadeSettingsTarget::MapType(_) => { /* Nothing to render */ }
                 GrenadeSettingsTarget::Map { map_name, .. } => {
                     self.render_grenade_helper_target_map(
                         states,
@@ -1927,11 +1909,9 @@ impl SettingsUI {
                         }
                     }
                 });
-                *transfer_state = GrenadeHelperTransferState::Active {
-                    direction: direction.clone(),
-                };
+                *transfer_state = GrenadeHelperTransferState::Active {};
             }
-            GrenadeHelperTransferState::Active { .. } => {
+            GrenadeHelperTransferState::Active {} => {
                 /* Just waiting for the file picker to finish. */
             }
 
@@ -1971,10 +1951,8 @@ impl SettingsUI {
                     ui.same_line();
                     if ui.button_with_size("Yes", [button_width, 0.0]) {
                         settings.map_spots = elements.clone();
-                        *transfer_state = GrenadeHelperTransferState::ImportSuccess {
-                            count: total_count,
-                            replacing: false,
-                        };
+                        *transfer_state =
+                            GrenadeHelperTransferState::ImportSuccess { count: total_count };
                     }
                 } else {
                     ui.open_popup("Data Import");

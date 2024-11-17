@@ -1,5 +1,3 @@
-use std::time::Instant;
-
 use anyhow::Context;
 use cs2::{
     CEntityIdentityEx,
@@ -23,7 +21,6 @@ use utils_state::{
 pub struct CrosshairTarget {
     pub entity_id: u32,
     pub entity_type: Option<String>,
-    pub timestamp: Instant,
 }
 
 pub struct StateLocalCrosshair {
@@ -72,7 +69,6 @@ impl State for StateLocalCrosshair {
             self.current_target = Some(CrosshairTarget {
                 entity_id: crosshair_entity_handle.get_entity_index(),
                 entity_type: target_type.cloned(),
-                timestamp: Instant::now(),
             });
         }
 
