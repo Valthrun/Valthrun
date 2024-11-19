@@ -1,5 +1,3 @@
-use core::f32;
-
 use anyhow::Context;
 use cs2::{
     schema::ConVar,
@@ -19,8 +17,6 @@ pub struct AntiAimPunsh {
 
     mouse_adjustment_x: i32,
     mouse_adjustment_y: i32,
-
-    punch_vec: Option<mint::Vector2<f32>>,
 }
 
 impl AntiAimPunsh {
@@ -30,8 +26,6 @@ impl AntiAimPunsh {
 
             mouse_adjustment_x: 0,
             mouse_adjustment_y: 0,
-
-            punch_vec: None,
         }
     }
 }

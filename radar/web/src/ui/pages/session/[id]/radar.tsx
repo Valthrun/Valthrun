@@ -11,38 +11,27 @@ import IconPlayer from "./icon_player.svg";
 import { F32, RadarPlayerPawn, RadarState } from "../../../../backend/definitions";
 import SizedContainer from "../../../components/container/sized-container";
 import SqareContainer, { useSqareSize } from "../../../components/container/sqare-container";
+import { useQuery } from "react-query";
 
 export const ContextRadarState = React.createContext<RadarState>(kDefaultRadarState);
 const ContextMap = React.createContext<LoadedMap>(null);
 
 export const RadarRenderer = React.memo(() => {
     const { worldName, plantedC4 } = React.useContext(ContextRadarState);
-    const [mapInfo, setMapInfo] = React.useState<LoadedMap>(null);
+    const isInMatch = !worldName.includes("empty");
+
+    const queryMap = useQuery({
+        queryKey: ["map-info", worldName],
+        queryFn: async () => {
+            return await loadMap(worldName);
+        },
+        enabled: isInMatch
+    });
+
     const displayBombDetails = useAppSelector(state => state.radarSettings.displayBombDetails);
 
-    React.useEffect(() => {
-        let obsolete = false;
-        loadMap(worldName)
-            .then((info) => {
-                if (obsolete) {
-                    /* no need to update this info anymore */
-                    return;
-                }
-
-                setMapInfo(info);
-            })
-            .catch((error) => {
-                console.error(`Failed to load ${worldName}`);
-                console.error(error);
-            });
-
-        return () => {
-            obsolete = true;
-        };
-    }, [worldName]);
-
     return (
-        <ContextMap.Provider value={mapInfo}>
+        <ContextMap.Provider value={queryMap.data ?? null}>
             <Box
                 sx={{
                     height: "100%",
@@ -54,7 +43,7 @@ export const RadarRenderer = React.memo(() => {
                     p: 3,
                 }}
             >
-                <Typography variant={"h5"}>{mapInfo?.displayName ?? worldName}</Typography>
+                <Typography variant={"h5"}>{queryMap.data?.displayName ?? worldName}</Typography>
                 <Box
                     sx={{
                         height: "100%",
@@ -84,10 +73,38 @@ export const RadarRenderer = React.memo(() => {
                         {displayBombDetails && plantedC4 && <BombIndicator state={plantedC4.state} />}
                     </Box>
 
-                    <MapContainer />
-                    {!mapInfo && (
+                    {isInMatch && queryMap.isSuccess && (
+                        queryMap.data ? (
+                            <MapContainer />
+                        ) : (
+                            <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "error.dark" }}>
+                                    Map Unknown
+                                </Typography>
+                            </Box>
+                        )
+                    )}
+                    {isInMatch && (queryMap.isLoading || queryMap.isError) && (
                         <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-                            <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>loading map info</Typography>
+                            {queryMap.isLoading ? (
+                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>
+                                    loading map info
+                                </Typography>
+                            ) : (
+                                <Typography variant={"h5"} sx={{ alignSelf: "center", color: "palette.error.dark" }}>
+                                    <React.Fragment>
+                                        Failed to load map.<br />
+                                        Lookup the console for more details.
+                                    </React.Fragment>
+                                </Typography>
+                            )}
+                        </Box>
+                    )}
+                    {!isInMatch && (
+                        <Box sx={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+                            <Typography variant={"h5"} sx={{ alignSelf: "center", color: "grey.500" }}>
+                                waiting for match
+                            </Typography>
                         </Box>
                     )}
                 </Box>
@@ -104,7 +121,7 @@ const MapContainer = React.memo(() => {
         return null;
     }
 
-    const localPlayerPosition = playerPawns.find(pawn => pawn.controllerEntityId === localControllerEntityId).position ?? [0, 0, 0];
+    const localPlayerPosition = playerPawns.find(pawn => pawn.controllerEntityId === localControllerEntityId)?.position ?? [0, 0, 0];
     const localMapLevel = getMapLevel(map, localPlayerPosition);
 
     return (

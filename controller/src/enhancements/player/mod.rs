@@ -88,8 +88,6 @@ impl PlayerESP {
     }
 }
 
-const HEALTH_BAR_MAX_HEALTH: f32 = 100.0;
-const HEALTH_BAR_BORDER_WIDTH: f32 = 1.0;
 impl Enhancement for PlayerESP {
     fn update(&mut self, ctx: &crate::UpdateContext) -> anyhow::Result<()> {
         let entities = ctx.states.resolve::<StateEntityList>(())?;

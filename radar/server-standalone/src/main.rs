@@ -24,7 +24,7 @@ struct Args {
     static_dir: Option<PathBuf>,
 }
 
-// $env:RUST_LOG="trace,tungstenite=info,tokio_tungstenite=info,tokio_util=info"
+// $env:RUST_LOG="trace,tungstenite=info,tokio_tungstenite=info,tokio_util=info,rustls=info"
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     env_logger::builder()

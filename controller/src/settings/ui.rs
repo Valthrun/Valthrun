@@ -82,7 +82,6 @@ enum EspPlayerActiveHeader {
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 enum GrenadeSettingsTarget {
-    None,
     General,
     MapType(String),
     Map {
@@ -92,18 +91,8 @@ enum GrenadeSettingsTarget {
 }
 
 impl GrenadeSettingsTarget {
-    pub fn display_name(&self) -> &str {
-        match self {
-            Self::None => &"None",
-            Self::General => &"Settings",
-            Self::MapType(value) => value,
-            Self::Map { display_name, .. } => display_name,
-        }
-    }
-
     pub fn ui_token(&self) -> Cow<'static, str> {
         match self {
-            Self::None => "_none".into(),
             Self::General => "_settings".into(),
             Self::MapType(value) => format!("map_type_{}", value).into(),
             Self::Map { map_name: name, .. } => format!("map_{}", name).into(),
@@ -112,7 +101,6 @@ impl GrenadeSettingsTarget {
 
     pub fn ident_level(&self) -> usize {
         match self {
-            Self::None => 0,
             Self::General => 0,
             Self::MapType(_) => 0,
             Self::Map { .. } => 1,
@@ -134,10 +122,8 @@ enum GrenadeHelperTransferState {
         direction: GrenadeHelperTransferDirection,
     },
     /// A transfer has been initiated.
-    /// This might be either an export or import.
-    Active {
-        direction: GrenadeHelperTransferDirection,
-    },
+    /// This might be ether an export or import.
+    Active {},
     /// The current transfer failed.
     Failed {
         direction: GrenadeHelperTransferDirection,
@@ -150,7 +136,6 @@ enum GrenadeHelperTransferState {
     },
     ImportSuccess {
         count: usize,
-        replacing: bool,
     },
     ExportSuccess {
         target_path: PathBuf,
@@ -230,7 +215,7 @@ impl SettingsUI {
                     }
 
                     ui.new_line();
-                    ui.dummy([0.0, 5.0]);
+                    ui.dummy([ 0.0, 5.0 ]);
                 }
 
                 let _content_font = ui.push_font(content_font);
@@ -245,11 +230,11 @@ impl SettingsUI {
                         ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), build_info.as_ref().map_or("error", |info| &info.revision), build_info.as_ref().map_or("error", |info| &info.build_datetime)));
 
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.0 - 12.0;
-                        ui.dummy([0.0, ydummy]);
+                        ui.dummy([ 0.0, ydummy ]);
                         ui.separator();
 
                         ui.text(obfstr!("Join our discord:"));
-                        ui.text_colored([0.18, 0.51, 0.97, 1.0], obfstr!("https://discord.gg/ecKbpAPW5T"));
+                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], obfstr!("https://discord.gg/ecKbpAPW5T"));
                         if ui.is_item_hovered() {
                             ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                         }
@@ -274,7 +259,7 @@ impl SettingsUI {
 
                         {
                             let _enabled = ui.begin_enabled(matches!(settings.esp_mode, KeyToggleMode::Toggle | KeyToggleMode::Trigger));
-                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [150.0, 0.0]);
+                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
                         }
                     }
 
@@ -295,7 +280,7 @@ impl SettingsUI {
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {
                         if settings.esp_mode == KeyToggleMode::Off {
-                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
+                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text(obfstr!("ESP has been disabled."));
                             ui.text(obfstr!("Please enable ESP under \"Visuals\" > \"ESP\""));
                         } else {
@@ -307,87 +292,12 @@ impl SettingsUI {
                         if settings.grenade_helper.active {
                             self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui, unicode_text);
                         } else {
-                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
+                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
                             ui.text(obfstr!("Grenade Helper has been disabled."));
                             ui.text(obfstr!("Please enable the grenade helper under \"Visuals\" > \"Grenade Helper\""));
                         }
 
                         self.render_grenade_helper_transfer(&mut settings.grenade_helper, ui);
-                    }
-
-                    if let Some(_) = ui.tab_item(obfstr!("Aimbot")) {
-                        // Start a two-column layout
-                        ui.columns(2, obfstr!("Aimbot Settings Columns"), true);
-
-                        // Aimbot Mode Row
-                        ui.text(obfstr!("Aimbot Mode"));
-                        ui.next_column();
-                        ui.set_next_item_width(150.0);
-                        ui.combo_enum(obfstr!("##aimbot_mode"), &[
-                            (KeyToggleMode::Off, "Always Off"),
-                            (KeyToggleMode::Trigger, "Trigger"),
-                            (KeyToggleMode::Toggle, "Toggle"),
-                            (KeyToggleMode::AlwaysOn, "Always On"),
-                        ], &mut settings.aimbot_mode);
-                        ui.next_column();
-
-                        // Primary Aimbot Key Row
-                        ui.text(obfstr!("Primary Aimbot Key"));
-                        ui.next_column();
-                        ui.button_key_optional(obfstr!("##aimbot_key"), &mut settings.aimbot_key, [150.0, 0.0]);
-                        ui.next_column();
-
-                        // FOV Slider Row
-                        ui.text(obfstr!("FOV"));
-                        ui.next_column();
-                        ui.set_next_item_width(150.0);
-                        ui.slider_config("##aimbot_fov", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
-                        ui.next_column();
-
-                        // Aim Smoothing Slider Row
-                        ui.text(obfstr!("Aim Smoothing"));
-                        ui.next_column();
-                        ui.set_next_item_width(150.0);
-                        ui.slider_config("##aimbot_smooth", 1.0, 15.0).display_format("%.1f").build(&mut settings.aimbot_smooth);
-                        ui.next_column();
-
-                        // Target Bone Combo Row
-                        ui.text(obfstr!("Target Bone"));
-                        ui.next_column();
-                        ui.set_next_item_width(150.0);
-                        let bone_options = ["head", "neck", "spine", "pelvis"];
-                        let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aimbot_aim_bone).unwrap_or(0);
-                        ui.combo_simple_string(obfstr!("##aimbot_aim_bone"), &mut current_bone_index, &bone_options);
-                        settings.aimbot_aim_bone = bone_options[current_bone_index].to_string();
-                        ui.next_column();
-
-                        // Team Check Checkbox Row
-                        ui.text(obfstr!("Team Check"));
-                        ui.next_column();
-                        ui.checkbox(obfstr!("##aimbot_team_check"), &mut settings.aimbot_team_check);
-                        ui.next_column();
-
-                        // Ignore Flash Alpha Slider Row
-                        ui.text(obfstr!("Ignore Flash Alpha"));
-                        ui.next_column();
-                        ui.set_next_item_width(150.0);
-                        ui.slider_config("##aimbot_flash_alpha", 0.0, 255.0).display_format("%1.0f").build(&mut settings.aimbot_flash_alpha);
-                        ui.next_column();
-
-                        // Ignore Flash Checkbox Row
-                        ui.text(obfstr!("Ignore Flash"));
-                        ui.next_column();
-                        ui.checkbox(obfstr!("##aimbot_ignore_flash"), &mut settings.aimbot_ignore_flash);
-                        ui.next_column();
-
-                        // View FOV Checkbox Row
-                        ui.text(obfstr!("View FOV"));
-                        ui.next_column();
-                        ui.checkbox(obfstr!("##aimbot_view_fov"), &mut settings.aimbot_view_fov);
-                        ui.next_column();
-
-                        // End columns
-                        ui.columns(1, "", false);
                     }
 
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
@@ -408,21 +318,17 @@ impl SettingsUI {
                             let slider_width = (ui.current_column_width() / 2.0 - 80.0).min(300.0).max(50.0);
                             let slider_width_1 = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
 
-                            ui.text(obfstr!("Trigger delay min: "));
-                            ui.same_line();
+                            ui.text(obfstr!("Trigger delay min: ")); ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min);
-                            ui.same_line();
+                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
 
-                            ui.text(" max: ");
-                            ui.same_line();
+                            ui.text(" max: "); ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max);
+                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
 
-                            ui.text(obfstr!("Shoot duration: "));
-                            ui.same_line();
+                            ui.text(obfstr!("Shoot duration: ")); ui.same_line();
                             ui.set_next_item_width(slider_width_1);
-                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration);
+                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration); 
 
                             if values_updated {
                                 /* fixup min/max */
@@ -1100,8 +1006,8 @@ impl SettingsUI {
                         0.1,
                         1.0,
                     )
-                        .display_format("%.2f")
-                        .build(alpha);
+                    .display_format("%.2f")
+                    .build(alpha);
                 }
                 EspColor::Static { value } => {
                     let mut color_value = value.as_f32();
@@ -1111,10 +1017,10 @@ impl SettingsUI {
                             &format!("##{}_static_value", ui.table_row_index()),
                             &mut color_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *value = Color::from_f32(color_value);
                     }
@@ -1126,10 +1032,10 @@ impl SettingsUI {
                             &format!("##{}_health_max", ui.table_row_index()),
                             &mut max_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *max = Color::from_f32(max_value);
                     }
@@ -1143,10 +1049,10 @@ impl SettingsUI {
                             &format!("##{}_health_mid", ui.table_row_index()),
                             &mut mid_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *mid = Color::from_f32(mid_value);
                     }
@@ -1160,10 +1066,10 @@ impl SettingsUI {
                             &format!("##{}_health_min", ui.table_row_index()),
                             &mut min_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *min = Color::from_f32(min_value);
                     }
@@ -1297,8 +1203,8 @@ impl SettingsUI {
         } {
             ui.indent_by(
                 original_style.window_padding[0] +
-                    /* for the indicator */
-                    ui.current_font_size() * 0.5 + 4.0,
+                /* for the indicator */
+                ui.current_font_size() * 0.5 + 4.0,
             );
 
             self.render_esp_target(settings, ui, &EspSelector::Player);
@@ -1343,7 +1249,6 @@ impl SettingsUI {
         }
 
         let item_text = match target {
-            GrenadeSettingsTarget::None => "None".to_string(),
             GrenadeSettingsTarget::General => "Settings".to_string(),
             GrenadeSettingsTarget::MapType(value) => value.clone(),
             GrenadeSettingsTarget::Map {
@@ -1523,9 +1428,7 @@ impl SettingsUI {
                 GrenadeSettingsTarget::General => {
                     self.render_grenade_helper_target_settings(states, settings, ui);
                 }
-                GrenadeSettingsTarget::None | GrenadeSettingsTarget::MapType(_) => {
-                    /* Nothing to render */
-                }
+                GrenadeSettingsTarget::MapType(_) => { /* Nothing to render */ }
                 GrenadeSettingsTarget::Map { map_name, .. } => {
                     self.render_grenade_helper_target_map(
                         states,
@@ -1579,11 +1482,7 @@ impl SettingsUI {
                 ui.indent_by(original_style.window_padding[0]);
 
                 if let Some(grenades) = settings.map_spots.get(map_name) {
-                    // Sort grenades alphabetically by name
-                    let mut sorted_grenades = grenades.clone();
-                    sorted_grenades.sort_by(|a, b| a.name.cmp(&b.name));
-
-                    for grenade in sorted_grenades.iter() {
+                    for grenade in grenades {
                         let grenade_types = grenade
                             .grenade_types
                             .iter()
@@ -1720,7 +1619,7 @@ impl SettingsUI {
                     &mut current_grenade.description,
                     [0.0, 100.0],
                 )
-                    .build();
+                .build();
                 unicode_text.register_unicode_text(&current_grenade.description);
 
                 ui.text("Eye position");
@@ -1728,16 +1627,16 @@ impl SettingsUI {
                     "##grenade_helper_spot_eye_position",
                     &mut current_grenade.eye_position,
                 )
-                    .display_format("%.3f")
-                    .build();
+                .display_format("%.3f")
+                .build();
 
                 ui.text("Pitch/Yaw");
                 ui.input_float2(
                     "##grenade_helper_spot_ptch_yaw",
                     &mut current_grenade.eye_direction,
                 )
-                    .display_format("%.3f")
-                    .build();
+                .display_format("%.3f")
+                .build();
 
                 let current_map = states
                     .get::<StateCurrentMap>(())
@@ -2010,11 +1909,9 @@ impl SettingsUI {
                         }
                     }
                 });
-                *transfer_state = GrenadeHelperTransferState::Active {
-                    direction: direction.clone(),
-                };
+                *transfer_state = GrenadeHelperTransferState::Active {};
             }
-            GrenadeHelperTransferState::Active { .. } => {
+            GrenadeHelperTransferState::Active {} => {
                 /* Just waiting for the file picker to finish. */
             }
 
@@ -2054,10 +1951,8 @@ impl SettingsUI {
                     ui.same_line();
                     if ui.button_with_size("Yes", [button_width, 0.0]) {
                         settings.map_spots = elements.clone();
-                        *transfer_state = GrenadeHelperTransferState::ImportSuccess {
-                            count: total_count,
-                            replacing: false,
-                        };
+                        *transfer_state =
+                            GrenadeHelperTransferState::ImportSuccess { count: total_count };
                     }
                 } else {
                     ui.open_popup("Data Import");

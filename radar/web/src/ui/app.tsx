@@ -12,12 +12,15 @@ import { RecoilRoot } from "recoil";
 import { appStore } from "../state";
 import PageMain from "./pages/main";
 import PageSession from "./pages/session/[id]";
+import { QueryClient, QueryClientProvider } from "react-query";
 
 const theme = createTheme({
     palette: {
         mode: "dark",
     },
 });
+
+export const queryClient = new QueryClient();
 
 export const App = React.memo(() => {
     return (
@@ -26,20 +29,22 @@ export const App = React.memo(() => {
                 <RecoilRoot>
                     <ThemeProvider theme={theme}>
                         <CssBaseline />
-                        <BrowserRouter>
-                            <Box
-                                sx={{
-                                    height: "100%",
-                                    width: "100%",
-                                }}
-                            >
-                                <Routes>
-                                    <Route path="/" element={<PageMain />} />
-                                    <Route path="/session/:sessionId" element={<PageSession />} />
-                                    <Route path={"*"} element={<Navigate to={"/"} />} />
-                                </Routes>
-                            </Box>
-                        </BrowserRouter>
+                        <QueryClientProvider client={queryClient}>
+                            <BrowserRouter>
+                                <Box
+                                    sx={{
+                                        height: "100%",
+                                        width: "100%",
+                                    }}
+                                >
+                                    <Routes>
+                                        <Route path="/" element={<PageMain />} />
+                                        <Route path="/session/:sessionId" element={<PageSession />} />
+                                        <Route path={"*"} element={<Navigate to={"/"} />} />
+                                    </Routes>
+                                </Box>
+                            </BrowserRouter>
+                        </QueryClientProvider>
                     </ThemeProvider>
                 </RecoilRoot>
             </StateProvider>

@@ -1,7 +1,4 @@
-use anyhow::{
-    anyhow,
-    Context,
-};
+use anyhow::anyhow;
 use cs2_schema_cutl::CStringUtil;
 use raw_struct::{
     builtins::Ptr64,
@@ -37,8 +34,12 @@ impl State for StateCurrentMap {
             offset_network_game_client_instance.address,
         )
         .map_err(|e| anyhow!(e))?
-        .value_reference(memory_view.view_arc())
-        .context("network game client nullptr")?;
+        .value_reference(memory_view.view_arc());
+
+        let Some(instance) = instance else {
+            /* client is currently connecting to somewhere */
+            return Ok(Self { current_map: None });
+        };
 
         Ok(Self {
             current_map: instance

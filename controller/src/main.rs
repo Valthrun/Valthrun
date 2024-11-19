@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use std::{
     cell::{
         Ref,
@@ -8,9 +6,6 @@ use std::{
     },
     error::Error,
     fmt::Debug,
-    fs::File,
-    io::BufWriter,
-    path::PathBuf,
     rc::Rc,
     sync::{
         atomic::{
@@ -27,11 +22,7 @@ use std::{
 };
 
 use anyhow::Context;
-use clap::{
-    Args,
-    Parser,
-    Subcommand,
-};
+use clap::Parser;
 use cs2::{
     offsets_runtime,
     CS2Handle,
@@ -68,12 +59,10 @@ use settings::{
     SettingsUI,
 };
 use tokio::runtime;
+use utils::show_critical_error;
 use utils_state::StateRegistry;
 use view::ViewController;
-use windows::Win32::{
-    System::Console::GetConsoleProcessList,
-    UI::Shell::IsUserAnAdmin,
-};
+use windows::Win32::UI::Shell::IsUserAnAdmin;
 
 use crate::{
     enhancements::{
@@ -339,16 +328,6 @@ impl Application {
     }
 }
 
-fn show_critical_error(message: &str) {
-    for line in message.lines() {
-        log::error!("{}", line);
-    }
-
-    if !is_console_invoked() {
-        overlay::show_error_message(obfstr!("Valthrun Controller"), message);
-    }
-}
-
 fn main() {
     let args = match AppArgs::try_parse() {
         Ok(args) => args,
@@ -374,14 +353,7 @@ fn main() {
         .expect("to be able to build a runtime");
 
     let _runtime_guard = runtime.enter();
-
-    let command = args.command.as_ref().unwrap_or(&AppCommand::Overlay);
-    let result = match command {
-        AppCommand::DumpSchema(args) => main_schema_dump(args),
-        AppCommand::Overlay => main_overlay(),
-    };
-
-    if let Err(error) = result {
+    if let Err(error) = real_main() {
         show_critical_error(&format!("{:#}", error));
     }
 }
@@ -392,65 +364,9 @@ struct AppArgs {
     /// Enable verbose logging ($env:RUST_LOG="trace")
     #[clap(short, long)]
     verbose: bool,
-
-    #[clap(subcommand)]
-    command: Option<AppCommand>,
 }
 
-#[derive(Debug, Subcommand)]
-enum AppCommand {
-    /// Start the overlay
-    Overlay,
-
-    /// Create a schema dump
-    DumpSchema(SchemaDumpArgs),
-}
-
-#[derive(Debug, Args)]
-struct SchemaDumpArgs {
-    pub target_file: PathBuf,
-
-    #[clap(long, short, default_value_t = false)]
-    pub all_classes: bool,
-}
-
-fn is_console_invoked() -> bool {
-    let console_count = unsafe {
-        let mut result = [0u32; 128];
-        GetConsoleProcessList(&mut result)
-    };
-    console_count > 1
-}
-
-fn main_schema_dump(args: &SchemaDumpArgs) -> anyhow::Result<()> {
-    log::info!("Dumping schema. Please wait...");
-
-    let cs2 = CS2Handle::create(true)?;
-    let mut state = StateRegistry::new(64);
-    state.set(StateCS2Handle::new(cs2.clone()), ())?;
-    state.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
-    let schema = cs2::dump_schema(
-        &state,
-        if args.all_classes {
-            None
-        } else {
-            Some(&["client.dll", "!GlobalTypes"])
-        },
-    )?;
-
-    let output = File::options()
-        .create(true)
-        .truncate(true)
-        .write(true)
-        .open(&args.target_file)?;
-
-    let mut output = BufWriter::new(output);
-    serde_json::to_writer_pretty(&mut output, &schema)?;
-    log::info!("Schema dumped to {}", args.target_file.to_string_lossy());
-    Ok(())
-}
-
-fn main_overlay() -> anyhow::Result<()> {
+fn real_main() -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
         "{} v{} ({}). Windows build {}.",
