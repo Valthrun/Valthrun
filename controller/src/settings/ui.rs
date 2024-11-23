@@ -198,7 +198,7 @@ impl SettingsUI {
             grenade_helper_pending_target: None,
             grenade_helper_pending_selected_id: None,
 
-            grenade_sortby:  0,
+            grenade_sortby: 0,
             grenade_background: true,
         }
     }
@@ -1031,8 +1031,8 @@ impl SettingsUI {
                         0.1,
                         1.0,
                     )
-                        .display_format("%.2f")
-                        .build(alpha);
+                    .display_format("%.2f")
+                    .build(alpha);
                 }
                 EspColor::Static { value } => {
                     let mut color_value = value.as_f32();
@@ -1042,10 +1042,10 @@ impl SettingsUI {
                             &format!("##{}_static_value", ui.table_row_index()),
                             &mut color_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *value = Color::from_f32(color_value);
                     }
@@ -1057,10 +1057,10 @@ impl SettingsUI {
                             &format!("##{}_health_max", ui.table_row_index()),
                             &mut max_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *max = Color::from_f32(max_value);
                     }
@@ -1074,10 +1074,10 @@ impl SettingsUI {
                             &format!("##{}_health_mid", ui.table_row_index()),
                             &mut mid_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *mid = Color::from_f32(mid_value);
                     }
@@ -1091,10 +1091,10 @@ impl SettingsUI {
                             &format!("##{}_health_min", ui.table_row_index()),
                             &mut min_value,
                         )
-                            .alpha_bar(true)
-                            .inputs(false)
-                            .label(false)
-                            .build()
+                        .alpha_bar(true)
+                        .inputs(false)
+                        .label(false)
+                        .build()
                     } {
                         *min = Color::from_f32(min_value);
                     }
@@ -1490,17 +1490,18 @@ impl SettingsUI {
 
             let label_height = ui.text_line_height_with_spacing().max(20.0);
             let available_width = ui.content_region_avail()[0];
-            let button_width = available_width
-                .min(tree_width - ui.calc_text_size("Available spots")[0] - 7.0);
+            let button_width =
+                available_width.min(tree_width - ui.calc_text_size("Available spots")[0] - 7.0);
 
-            let button_size = [
-                button_width,
-                label_height,
-            ];
+            let button_size = [button_width, label_height];
 
             ui.same_line();
 
-            let button_label = if self.grenade_sortby == 0 { "A-z" } else { "Z-a" };
+            let button_label = if self.grenade_sortby == 0 {
+                "A-z"
+            } else {
+                "Z-a"
+            };
 
             if ui.button_with_size(button_label, button_size) {
                 self.grenade_sortby = if self.grenade_sortby == 0 { 1 } else { 0 };
@@ -1676,7 +1677,7 @@ impl SettingsUI {
                     &mut current_grenade.description,
                     [0.0, 100.0],
                 )
-                    .build();
+                .build();
                 unicode_text.register_unicode_text(&current_grenade.description);
 
                 ui.text("Eye position");
@@ -1684,16 +1685,16 @@ impl SettingsUI {
                     "##grenade_helper_spot_eye_position",
                     &mut current_grenade.eye_position,
                 )
-                    .display_format("%.3f")
-                    .build();
+                .display_format("%.3f")
+                .build();
 
                 ui.text("Pitch/Yaw");
                 ui.input_float2(
                     "##grenade_helper_spot_ptch_yaw",
                     &mut current_grenade.eye_direction,
                 )
-                    .display_format("%.3f")
-                    .build();
+                .display_format("%.3f")
+                .build();
 
                 let current_map = states
                     .get::<StateCurrentMap>(())
@@ -1891,8 +1892,10 @@ impl SettingsUI {
             &mut settings.color_angle_active,
         );
 
-        ui.checkbox(obfstr!("ViewBox Background"), &mut settings.grenade_background);
-
+        ui.checkbox(
+            obfstr!("ViewBox Background"),
+            &mut settings.grenade_background,
+        );
     }
 
     fn render_grenade_helper_transfer(&mut self, settings: &mut GrenadeSettings, ui: &imgui::Ui) {
