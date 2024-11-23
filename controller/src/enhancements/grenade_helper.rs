@@ -247,10 +247,10 @@ impl Enhancement for GrenadeHelper {
 
                         let point_3d = grenade.eye_position()
                             + Vector3::new(
-                                settings.circle_radius * offset.sin(),
-                                settings.circle_radius * offset.cos(),
-                                0.0,
-                            )
+                            settings.circle_radius * offset.sin(),
+                            settings.circle_radius * offset.cos(),
+                            0.0,
+                        )
                             - self.eye_height;
 
                         let Some(point) = view.world_to_screen(&point_3d, true) else {
@@ -332,7 +332,8 @@ impl Enhancement for GrenadeHelper {
                         )
                         .position_pivot([0.0, 0.5])
                         .no_decoration()
-                        .draw_background(true)
+                        .draw_background(settings.grenade_background)
+                        .always_auto_resize(true)
                         .begin()
                     {
                         ui.text_colored(color.as_f32(), &grenade.name);
