@@ -4,6 +4,8 @@ use crate::settings::HotKey;
 
 pub trait ImguiUiEx {
     fn set_cursor_pos_x(&self, pos: f32);
+
+    #[allow(unused)]
     fn set_cursor_pos_y(&self, pos: f32);
 }
 

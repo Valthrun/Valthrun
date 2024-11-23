@@ -1,7 +1,6 @@
 use std::sync::{
     Arc,
     Mutex,
-    Weak,
 };
 
 use cs2::{
@@ -28,8 +27,6 @@ pub enum WebRadarState {
 }
 
 pub struct WebRadar {
-    ref_self: Weak<Mutex<WebRadar>>,
-
     endpoint: Url,
     connection_state: WebRadarState,
 
@@ -68,10 +65,8 @@ impl WebRadar {
 
 pub fn create_web_radar(endpoint: Url, cs2: Arc<CS2Handle>) -> Arc<Mutex<WebRadar>> {
     let (disconnect_tx, disconnect_rx) = oneshot::channel();
-    let instance = Arc::new_cyclic(|ref_self| {
+    let instance = Arc::new_cyclic(|_ref_self| {
         Mutex::new(WebRadar {
-            ref_self: ref_self.clone(),
-
             connection_state: WebRadarState::Connecting,
             endpoint: endpoint.clone(),
 

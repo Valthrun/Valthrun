@@ -1,4 +1,3 @@
-mod imgui;
 use std::ffi::CString;
 
 use windows::{
@@ -12,7 +11,11 @@ use windows::{
     },
 };
 
+mod imgui;
 pub use self::imgui::*;
+
+mod console_io;
+pub use console_io::*;
 
 pub fn open_url(url: &str) {
     unsafe {
