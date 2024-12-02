@@ -71,6 +71,7 @@ use crate::{
         PlayerESP,
         SpectatorsListIndicator,
         TriggerBot,
+        Aimbot,
     },
     settings::save_app_settings,
     winver::version_info,
@@ -503,6 +504,7 @@ fn real_main() -> anyhow::Result<()> {
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
             Rc::new(RefCell::new(GrenadeHelper::new())),
+            Rc::new(RefCell::new(Aimbot::new())),
         ],
 
         last_total_read_calls: 0,

@@ -36,6 +36,9 @@ pub use player::*;
 mod trigger;
 pub use trigger::*;
 
+mod aimbot;
+pub use aimbot::*;
+
 mod spectators_list;
 pub use spectators_list::*;
 
@@ -43,6 +46,7 @@ mod aim;
 pub use aim::*;
 
 mod grenade_helper;
+
 pub use grenade_helper::*;
 use utils_state::StateRegistry;
 
