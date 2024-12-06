@@ -35,6 +35,9 @@ pub enum InterfaceError {
     #[error("failed to access memory")]
     MemoryAccessFailed,
 
+    #[error("failed to access memory because the target memory has been paged out")]
+    MemoryAccessPagedOut,
+
     #[error("metrics report type too long")]
     ReportTypeTooLong,
 }

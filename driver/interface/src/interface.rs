@@ -298,6 +298,9 @@ impl DriverInterface {
                 );
                 Err(InterfaceError::MemoryAccessFailed)
             }
+            MemoryAccessResult::DestinationPagedOut | MemoryAccessResult::SourcePagedOut => {
+                Err(InterfaceError::MemoryAccessPagedOut)
+            }
         }
     }
 
@@ -332,6 +335,9 @@ impl DriverInterface {
             MemoryAccessResult::Success => Ok(()),
             MemoryAccessResult::ProcessUnknown => Err(InterfaceError::ProcessUnknown),
             MemoryAccessResult::PartialSuccess { .. } => Err(InterfaceError::MemoryAccessFailed),
+            MemoryAccessResult::SourcePagedOut | MemoryAccessResult::DestinationPagedOut => {
+                Err(InterfaceError::MemoryAccessPagedOut)
+            }
         }
     }
 
