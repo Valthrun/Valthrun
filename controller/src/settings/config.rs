@@ -134,13 +134,11 @@ pub struct GrenadeSpotInfo {
     pub eye_position: [f32; 3],
     pub eye_direction: [f32; 2],
 }
-
 impl GrenadeSpotInfo {
     pub fn new_id() -> usize {
         GRENADE_SPOT_ID_INDEX.fetch_add(1, Ordering::Relaxed)
     }
 }
-
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GrenadeSettings {
     #[serde(default = "bool_true")]
@@ -175,7 +173,11 @@ pub struct GrenadeSettings {
 
     #[serde(default)]
     pub map_spots: HashMap<String, Vec<GrenadeSpotInfo>>,
+
+    #[serde(default = "bool_true")]
+    pub grenade_background: bool,
 }
+
 with_prefix!(serde_prefix_grenade_helper "grenade_helper");
 
 #[derive(Clone, Deserialize, Serialize)]
