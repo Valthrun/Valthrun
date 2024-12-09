@@ -22,3 +22,4 @@ obfstr.workspace = true
 anyhow = { workspace = true }
 env_logger = { workspace = true }
 rand = "0.8.5"
+clap = { version = "4.5.23", features = ["derive"] }

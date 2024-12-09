@@ -20,6 +20,7 @@ fn init_request_handler() -> HandlerRegistry {
     let mut handler = HandlerRegistry::new();
 
     handler.register(&handler::init);
+    handler.register(&handler::get_processes);
     handler.register(&handler::get_modules);
     handler.register(&handler::read);
     handler.register(&handler::mouse_move);

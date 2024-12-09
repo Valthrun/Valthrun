@@ -1,8 +1,11 @@
 use std::ptr;
 
 use valthrun_driver_protocol::{
-    command::DriverCommandProcessMemoryRead,
-    types::MemoryAccessResult,
+    command::DriverCommandMemoryRead,
+    types::{
+        DirectoryTableType,
+        MemoryAccessResult,
+    },
 };
 use windows::Win32::{
     Foundation::{
@@ -24,9 +27,12 @@ extern "C" {
     ) -> NTSTATUS;
 }
 
-pub fn read(command: &mut DriverCommandProcessMemoryRead) -> anyhow::Result<()> {
-    let read_buffer = unsafe { core::slice::from_raw_parts_mut(command.buffer, command.count) };
+pub fn read(command: &mut DriverCommandMemoryRead) -> anyhow::Result<()> {
+    if !matches!(command.directory_table_type, DirectoryTableType::Default) {
+        anyhow::bail!("unsupported memory read type");
+    }
 
+    let read_buffer = unsafe { core::slice::from_raw_parts_mut(command.buffer, command.count) };
     let process = match util::open_process_by_id(command.process_id as u32, PROCESS_VM_READ) {
         Ok(handle) => handle,
         Err(err) => {

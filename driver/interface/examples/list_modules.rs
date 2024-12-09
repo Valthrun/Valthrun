@@ -1,16 +1,51 @@
+use clap::Parser;
 use valthrun_driver_interface::{
     DriverInterface,
-    ProcessFilter,
+    ProcessId,
 };
+use valthrun_driver_protocol::types::DirectoryTableType;
+
+#[derive(Debug, Parser)]
+struct Args {
+    /// Process id of the process the modules should be listed of.
+    /// By default the own process.
+    #[arg(short, long)]
+    pub process_id: Option<ProcessId>,
+
+    #[command(subcommand)]
+    pub directory_table_type: Option<CommandDTT>,
+}
+
+#[derive(Parser, Clone, Debug)]
+enum CommandDTT {
+    /// Use the process directory table base specified by the system
+    Default,
+
+    /// Manually specify the directory table base for the target process
+    Explicit { directory_table_base: u64 },
+
+    /// Try to mitigate CR3 shenanigans and do not use the directory table base known to the system
+    Cr3Shenanigans,
+}
 
 pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
-    let interface = DriverInterface::create_from_env()?;
+    let args = Args::parse();
 
-    let (process_id, modules) = interface.request_modules(&ProcessFilter::Id {
-        id: std::process::id(),
-    })?;
-    println!("Process 0x{:X} has {} modules:", process_id, modules.len());
+    let process_id = args.process_id.unwrap_or(std::process::id());
+    let directory_table_type = match args.directory_table_type.unwrap_or(CommandDTT::Default) {
+        CommandDTT::Default => DirectoryTableType::Default,
+        CommandDTT::Explicit {
+            directory_table_base,
+        } => DirectoryTableType::Explicit {
+            directory_table_base,
+        },
+        CommandDTT::Cr3Shenanigans => DirectoryTableType::Cr3Shenanigans,
+    };
+
+    let interface = DriverInterface::create_from_env()?;
+    let modules = interface.list_modules(process_id, directory_table_type)?;
+    println!("Process has {} modules:", modules.len());
     for module in modules {
         println!(
             " - {:X} {} ({} bytes)",
