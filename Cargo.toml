@@ -18,6 +18,8 @@ members = [
     "radar/server-standalone",
     "radar/shared",
 
+    "controller",
+    
     "cs2",
     "overlay",
     "controller",
