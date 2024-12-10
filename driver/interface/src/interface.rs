@@ -17,6 +17,8 @@ use obfstr::obfstr;
 use valthrun_driver_protocol::{
     command::{
         DriverCommand,
+        DriverCommandCr3ShenanigansDisable,
+        DriverCommandCr3ShenanigansEnable,
         DriverCommandInitialize,
         DriverCommandInputKeyboard,
         DriverCommandInputMouse,
@@ -458,6 +460,21 @@ impl DriverInterface {
         command.buffer = states.as_ptr();
         command.state_count = states.len();
 
+        self.execute_command(&mut command)?;
+        Ok(())
+    }
+
+    pub fn enable_cr3_shenanigan_mitigation(&self, strategy: u32, flags: u32) -> IResult<bool> {
+        let mut command = DriverCommandCr3ShenanigansEnable::default();
+        command.mitigation_strategy = strategy;
+        command.mitigation_flags = flags;
+
+        self.execute_command(&mut command)?;
+        Ok(command.success)
+    }
+
+    pub fn disable_cr3_shenanigan_mitigation(&self) -> IResult<()> {
+        let mut command = DriverCommandCr3ShenanigansDisable::default();
         self.execute_command(&mut command)?;
         Ok(())
     }

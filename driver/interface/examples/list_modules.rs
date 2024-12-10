@@ -1,3 +1,9 @@
+use std::{
+    thread,
+    time::Duration,
+};
+
+use anyhow::Context;
 use clap::Parser;
 use valthrun_driver_interface::{
     DriverInterface,
@@ -32,6 +38,8 @@ pub fn main() -> anyhow::Result<()> {
     env_logger::builder().parse_default_env().init();
     let args = Args::parse();
 
+    let interface = DriverInterface::create_from_env()?;
+
     let process_id = args.process_id.unwrap_or(std::process::id());
     let directory_table_type = match args.directory_table_type.unwrap_or(CommandDTT::Default) {
         CommandDTT::Default => DirectoryTableType::Default,
@@ -40,10 +48,20 @@ pub fn main() -> anyhow::Result<()> {
         } => DirectoryTableType::Explicit {
             directory_table_base,
         },
-        CommandDTT::Cr3Shenanigans => DirectoryTableType::Cr3Shenanigans,
+        CommandDTT::Cr3Shenanigans => {
+            log::debug!("Enable CR3 shenanigans in driver.");
+            {
+                interface
+                    .enable_cr3_shenanigan_mitigation(0, 0)
+                    .context("enable CR3 shenanigan mitigation")?;
+
+                /* sleep a little so the CR3 shenanigan mitigation can have some effect */
+                thread::sleep(Duration::from_millis(250));
+            }
+            DirectoryTableType::Cr3Shenanigans
+        }
     };
 
-    let interface = DriverInterface::create_from_env()?;
     let modules = interface.list_modules(process_id, directory_table_type)?;
     println!("Process has {} modules:", modules.len());
     for module in modules {
@@ -53,6 +71,13 @@ pub fn main() -> anyhow::Result<()> {
             module.get_base_dll_name().unwrap_or("unknown"),
             module.module_size
         );
+    }
+
+    if matches!(directory_table_type, DirectoryTableType::Cr3Shenanigans) {
+        match interface.disable_cr3_shenanigan_mitigation() {
+            Ok(_) => log::debug!("CR3 shenanigan mitigations disabled again."),
+            Err(err) => log::warn!("Failed to disable CR3 shenanigan mitigations: {}", err),
+        }
     }
 
     Ok(())
