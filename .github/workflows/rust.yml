@@ -17,7 +17,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-10-21
           override: true
       - uses: actions/checkout@v3
         with:
@@ -157,7 +157,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-10-21
           override: true
 
       - uses: actions/checkout@v3
@@ -196,7 +196,7 @@ jobs:
       - name: Install toolchain
         uses: actions-rs/toolchain@v1
         with:
-          toolchain: nightly
+          toolchain: nightly-2024-10-21
           override: true
 
       - uses: actions/checkout@v3
@@ -226,6 +226,45 @@ jobs:
       - name: Upload release build to portal
         shell: bash
         run: .github/workflows/artifact_upload.sh cs2-overlay target/release/controller.exe target/release/controller.pdb
+        if: ${{ github.event_name != 'pull_request' }}
+        env:
+          ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
+
+  build-schema-dump:
+    name: CS2 Schema Dumper
+    runs-on: windows-latest
+    needs: [rust-check]
+
+    steps:
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: nightly-2024-10-21
+          override: true
+
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Get package version
+        shell: bash
+        run: |
+          VERSION=$(cargo pkgid --manifest-path cs2-schema/dumper/Cargo.toml | cut -d# -f2 | cut -d: -f2)
+          echo "Package version: $VERSION"
+          echo "ARTIFACT_VERSION=$VERSION" >> "$GITHUB_ENV"
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          cache-on-failure: true
+
+      - name: Build
+        run: cargo build --verbose --release --bin cs2-schema-dumper
+        env:
+          RUSTFLAGS: -Ctarget-feature=+crt-static
+
+      - name: Upload release build to portal
+        shell: bash
+        run: .github/workflows/artifact_upload.sh cs2-schema-dumper target/release/cs2-schema-dumper.exe target/release/cs2_schema_dumper.pdb
         if: ${{ github.event_name != 'pull_request' }}
         env:
           ARTIFACT_API_KEY: ${{ secrets.ARTIFACT_API_KEY }}
