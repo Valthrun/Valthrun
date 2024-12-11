@@ -413,8 +413,7 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
             .get_application_name()
             .unwrap_or("<invalid>");
 
-        //zenith
-        if driver_name == obfstr!("um-driver") {
+        if driver_name == obfstr!("zenith-driver") {
             let message = [
                 obfstr!("You are using Zenith with the CS2 overlay."),
                 obfstr!("Topmost overlays may be flagged regardless of using the Zenith driver."),

@@ -195,7 +195,7 @@ impl CS2Handle {
     pub fn memory_address(&self, module: Module, offset: u64) -> anyhow::Result<u64> {
         Ok(self
             .get_module_info(module)
-            .context("invalid module")?
+            .with_context(|| format!("{} {}", obfstr!("missing module"), module.get_module_name()))?
             .base_address as u64
             + offset)
     }
@@ -276,7 +276,9 @@ impl CS2Handle {
 
     pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
         log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
-        let module_info = self.get_module_info(module).context("invalid module")?;
+        let module_info = self.get_module_info(module).with_context(|| {
+            format!("{} {}", obfstr!("missing module"), module.get_module_name())
+        })?;
 
         let inst_offset = self
             .find_pattern(
