@@ -7,8 +7,10 @@ edition.workspace = true
 anyhow = { workspace = true }
 clap = { version = "4.4.8", features = ["derive"] }
 cs2 = { path = "../../cs2" }
+cs2-schema-provider-impl = { path = "../../cs2-schema/provider-impl" }
 env_logger = { workspace = true }
 log = { workspace = true }
+obfstr.workspace = true
 radar-client = { path = "../client" }
 radar-shared = { path = "../shared" }
 tokio = { version = "1.34.0", features = ["io-util", "rt-multi-thread", "net"] }

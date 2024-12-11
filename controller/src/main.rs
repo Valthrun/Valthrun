@@ -6,6 +6,7 @@ use std::{
     },
     error::Error,
     fmt::Debug,
+    path::PathBuf,
     rc::Rc,
     sync::{
         atomic::{
@@ -24,7 +25,6 @@ use std::{
 use anyhow::Context;
 use clap::Parser;
 use cs2::{
-    offsets_runtime,
     CS2Handle,
     ConVars,
     InterfaceError,
@@ -352,7 +352,7 @@ fn main() {
         .expect("to be able to build a runtime");
 
     let _runtime_guard = runtime.enter();
-    if let Err(error) = real_main() {
+    if let Err(error) = real_main(&args) {
         show_critical_error(&format!("{:#}", error));
     }
 }
@@ -363,9 +363,14 @@ struct AppArgs {
     /// Enable verbose logging ($env:RUST_LOG="trace")
     #[clap(short, long)]
     verbose: bool,
+
+    /// Load the CS2 schema (offsets) from a file
+    /// instead of resolving them at runtime by the CS2 schema system.
+    #[arg(short, long)]
+    schema_file: Option<PathBuf>,
 }
 
-fn real_main() -> anyhow::Result<()> {
+fn real_main(args: &AppArgs) -> anyhow::Result<()> {
     let build_info = version_info()?;
     log::info!(
         "{} v{} ({}). Windows build {}.",
@@ -427,13 +432,35 @@ fn real_main() -> anyhow::Result<()> {
         );
     }
 
-    offsets_runtime::setup_provider(&app_state)?;
+    {
+        if let Some(file) = &args.schema_file {
+            log::info!(
+                "{} {}",
+                obfstr!("Loading CS2 schema (offsets) from file"),
+                file.display()
+            );
+            cs2_schema_provider_impl::setup_provider(Box::new(
+                cs2_schema_provider_impl::FileSchemaProvider::load_from(&file)
+                    .context("load file schema")?,
+            ));
+        } else {
+            log::info!(
+                "{}",
+                obfstr!("Loading CS2 schema (offsets) from CS2 schema system")
+            );
+            cs2_schema_provider_impl::setup_provider(Box::new(
+                cs2_schema_provider_impl::RuntimeSchemaProvider::new(&app_state)
+                    .context("load runtime schema")?,
+            ));
+        }
+        log::info!("CS2 schema (offsets) loaded.");
+    }
 
     let cvars = ConVars::new(&app_state).context("cvars")?;
     let cvar_sensitivity = cvars
         .find_cvar("sensitivity")
         .context("cvar ensitivity")?
-        .context("missing cvar ensitivity")?;
+        .context("missing cvar sensitivity")?;
 
     log::debug!("Initialize overlay");
     let app_fonts: AppFonts = Default::default();

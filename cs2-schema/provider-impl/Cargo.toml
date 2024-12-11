@@ -1,0 +1,18 @@
+[package]
+name = "cs2-schema-provider-impl"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+log.workspace = true
+raw_struct.workspace = true
+
+anyhow = { workspace = true }
+serde = { version = "1.0.178", features = ["derive"] }
+serde_json = "1.0.128"
+
+cs2 = { path = "../../cs2" }
+utils-state = { path = "../../utils/state" }
+cs2-schema-provider = { path = "../provider" }
+cs2-schema-definition = { path = "../definition" }
+cs2-schema-cutl = { version = "0.5.0", path = "../cutl" }

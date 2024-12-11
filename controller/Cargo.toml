@@ -18,6 +18,7 @@ serde_yaml = "0.9.25"
 serde_with = "3.8.3"
 
 cs2 = { path = "../cs2" }
+cs2-schema-provider-impl = { path = "../cs2-schema/provider-impl" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
 cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 overlay = { path = "../overlay" }

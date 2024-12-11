@@ -104,7 +104,7 @@ impl ClassField {
 
             output.emit_line(&format!("/// Offset: 0x{:X}  ", self.offset))?;
             output.emit_line(&format!(
-                "#[field(offset = r#\"cs2_schema_cutl::runtime_offset!({}, \"{}\", \"{}\", \"{}\")\"#)]",
+                "#[field(offset = r#\"crate::runtime_offset!({}, \"{}\", \"{}\", \"{}\")\"#)]",
                 self.offset, mod_name, class_name, self.field_name
             ))?;
             output.emit_line(&format!(
