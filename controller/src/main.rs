@@ -76,6 +76,7 @@ use crate::{
     winver::version_info,
 };
 
+mod dialog;
 mod enhancements;
 mod radar;
 mod settings;
@@ -404,6 +405,31 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
             return Err(err);
         }
     };
+
+    {
+        let driver_name = cs2
+            .ke_interface
+            .driver_version()
+            .get_application_name()
+            .unwrap_or("<invalid>");
+
+        //zenith
+        if driver_name == obfstr!("um-driver") {
+            let message = [
+                obfstr!("You are using Zenith with the CS2 overlay."),
+                obfstr!("Topmost overlays may be flagged regardless of using the Zenith driver."),
+                obfstr!(""),
+                obfstr!("Do you want to continue?"),
+            ]
+            .join("\n");
+
+            let result = dialog::show_yes_no(obfstr!("Valthrun"), &message, false);
+            if !result {
+                log::info!("{}", obfstr!("Aborting launch due to user input."));
+                return Ok(());
+            }
+        }
+    }
 
     cs2.add_metrics_record(obfstr!("controller-status"), "initializing");
 
