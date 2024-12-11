@@ -161,6 +161,29 @@ impl GrenadeType {
     }
 }
 
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub enum GrenadeSortOrder {
+    Alphabetical,
+    AlphabeticalReverse,
+}
+
+impl GrenadeSortOrder {
+    pub fn default() -> Self {
+        Self::Alphabetical
+    }
+
+    pub fn sort(&self, values: &mut Vec<&GrenadeSpotInfo>) {
+        match self {
+            Self::Alphabetical => {
+                values.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+            }
+            Self::AlphabeticalReverse => {
+                values.sort_unstable_by(|a, b| b.name.cmp(&a.name));
+            }
+        }
+    }
+}
+
 static GRENADE_SPOT_ID_INDEX: AtomicUsize = AtomicUsize::new(1);
 #[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct GrenadeSpotInfo {
@@ -175,17 +198,18 @@ pub struct GrenadeSpotInfo {
     pub eye_position: [f32; 3],
     pub eye_direction: [f32; 2],
 }
-
 impl GrenadeSpotInfo {
     pub fn new_id() -> usize {
         GRENADE_SPOT_ID_INDEX.fetch_add(1, Ordering::Relaxed)
     }
 }
-
 #[derive(Clone, Deserialize, Serialize)]
 pub struct GrenadeSettings {
     #[serde(default = "bool_true")]
     pub active: bool,
+
+    #[serde(default = "GrenadeSortOrder::default")]
+    pub ui_sort_order: GrenadeSortOrder,
 
     #[serde(default = "default_f32::<150, 1>")]
     pub circle_distance: f32,
@@ -216,7 +240,11 @@ pub struct GrenadeSettings {
 
     #[serde(default)]
     pub map_spots: HashMap<String, Vec<GrenadeSpotInfo>>,
+
+    #[serde(default = "bool_true")]
+    pub grenade_background: bool,
 }
+
 with_prefix!(serde_prefix_grenade_helper "grenade_helper");
 
 #[derive(Clone, Deserialize, Serialize)]

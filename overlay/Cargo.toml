@@ -8,8 +8,8 @@ edition = "2021"
 [dependencies]
 log = { workspace = true }
 thiserror = "1.0.44"
-imgui = "0.11"
-imgui-winit-support = "0.11.0"
+imgui = "0.12"
+imgui-winit-support = "0.13"
 copypasta = "0.8.2"
 windows = { version = "0.48.0", features = [
     "Win32_UI_WindowsAndMessaging",
@@ -20,17 +20,22 @@ windows = { version = "0.48.0", features = [
     "Win32_UI_WindowsAndMessaging",
 ] }
 obfstr = { workspace = true }
-imgui-rs-vulkan-renderer = "1.10.0"
+imgui-rs-vulkan-renderer = "1.16.0"
 raw-window-handle = "0.5.2"
-ash = { version = "0.37", default-features = false, features = [
+ash = { version = "0.38", default-features = false, features = [
     "debug",
     "loaded",
 ] }
-ash-window = "0.12.0"
+ash-window = "0.13.0"
 nalgebra = { workspace = true }
 libloading = "0.8.3"
 ttf-parser = "0.25.0"
 mint = { workspace = true }
+glow = "0.16.0"
+glutin = "0.32.1"
+imgui-glow-renderer = "0.13.0"
+winit = { version = "0.30.5", features = ["rwh_06"] }
+glutin-winit = "0.5.0"
 
 [dev-dependencies]
 anyhow = { workspace = true }

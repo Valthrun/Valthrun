@@ -15,8 +15,6 @@ pub use state::*;
 mod entity;
 pub use entity::*;
 
-pub mod offsets_runtime;
-
 mod schema_gen;
 pub use schema_gen::*;
 

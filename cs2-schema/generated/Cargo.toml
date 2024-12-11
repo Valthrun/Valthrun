@@ -4,11 +4,10 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-anyhow = { workspace = true }
 nalgebra = { workspace = true }
-serde = { version = "1.0.178", features = ["derive"] }
-cs2-schema-cutl = { path = "../cutl" }
 raw_struct = { workspace = true }
+cs2-schema-cutl = { path = "../cutl" }
+cs2-schema-provider = { path = "../provider" }
 
 [build-dependencies]
 anyhow = { workspace = true }

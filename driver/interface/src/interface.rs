@@ -17,26 +17,29 @@ use obfstr::obfstr;
 use valthrun_driver_protocol::{
     command::{
         DriverCommand,
+        DriverCommandCr3ShenanigansDisable,
+        DriverCommandCr3ShenanigansEnable,
         DriverCommandInitialize,
         DriverCommandInputKeyboard,
         DriverCommandInputMouse,
+        DriverCommandMemoryRead,
+        DriverCommandMemoryWrite,
         DriverCommandMetricsReportSend,
-        DriverCommandProcessMemoryRead,
-        DriverCommandProcessMemoryWrite,
+        DriverCommandProcessList,
         DriverCommandProcessModules,
         DriverCommandProcessProtection,
         InitializeResult,
         KeyboardState,
         MouseState,
-        ProcessModulesResult,
         ProcessProtectionMode,
         VersionInfo,
     },
     types::{
+        DirectoryTableType,
         DriverFeature,
         MemoryAccessResult,
-        ProcessFilter as ProtocolProcessFilter,
         ProcessId,
+        ProcessInfo,
         ProcessModuleInfo,
     },
     CommandResult,
@@ -189,6 +192,7 @@ impl DriverInterface {
             CommandResult::CommandInvalid => InterfaceError::CommandGenericError {
                 message: format!("command invalid"),
             },
+            CommandResult::CommandFeatureUnsupported => InterfaceError::FeatureUnsupported,
 
             _ => InterfaceError::CommandGenericError {
                 message: format!("invalid command result"),
@@ -255,7 +259,12 @@ impl DriverInterface {
     }
 
     #[must_use]
-    pub fn read<T: Copy>(&self, process_id: ProcessId, address: u64) -> IResult<T> {
+    pub fn read<T: Copy>(
+        &self,
+        process_id: ProcessId,
+        directory_table_type: DirectoryTableType,
+        address: u64,
+    ) -> IResult<T> {
         let mut result = unsafe { std::mem::zeroed::<T>() };
         let result_buff = unsafe {
             std::slice::from_raw_parts_mut(
@@ -264,7 +273,7 @@ impl DriverInterface {
             )
         };
 
-        self.read_slice(process_id, address, result_buff)?;
+        self.read_slice(process_id, directory_table_type, address, result_buff)?;
         Ok(result)
     }
 
@@ -272,13 +281,16 @@ impl DriverInterface {
     pub fn read_slice<T: Copy>(
         &self,
         process_id: ProcessId,
+        directory_table_type: DirectoryTableType,
+
         address: u64,
         buffer: &mut [T],
     ) -> IResult<()> {
         self.read_calls.fetch_add(1, Ordering::Relaxed);
 
-        let mut command = DriverCommandProcessMemoryRead::default();
+        let mut command = DriverCommandMemoryRead::default();
         command.process_id = process_id;
+        command.directory_table_type = directory_table_type;
         command.address = address;
 
         command.buffer = buffer.as_mut_ptr() as *mut u8;
@@ -298,11 +310,20 @@ impl DriverInterface {
                 );
                 Err(InterfaceError::MemoryAccessFailed)
             }
+            MemoryAccessResult::DestinationPagedOut | MemoryAccessResult::SourcePagedOut => {
+                Err(InterfaceError::MemoryAccessPagedOut)
+            }
         }
     }
 
     #[must_use]
-    pub fn write<T: Copy>(&self, process_id: ProcessId, address: u64, value: &T) -> IResult<()> {
+    pub fn write<T: Copy>(
+        &self,
+        process_id: ProcessId,
+        directory_table_type: DirectoryTableType,
+        address: u64,
+        value: &T,
+    ) -> IResult<()> {
         let buffer = unsafe {
             std::slice::from_raw_parts(
                 std::mem::transmute::<_, *mut u8>(value),
@@ -310,18 +331,21 @@ impl DriverInterface {
             )
         };
 
-        self.write_slice(process_id, address, buffer)
+        self.write_slice(process_id, directory_table_type, address, buffer)
     }
 
     #[must_use]
     pub fn write_slice<T: Copy>(
         &self,
         process_id: ProcessId,
+        directory_table_type: DirectoryTableType,
+
         address: u64,
         buffer: &[T],
     ) -> IResult<()> {
-        let mut command = DriverCommandProcessMemoryWrite::default();
+        let mut command = DriverCommandMemoryWrite::default();
         command.process_id = process_id;
+        command.directory_table_type = directory_table_type;
         command.address = address;
 
         command.buffer = buffer.as_ptr() as *const u8;
@@ -332,6 +356,9 @@ impl DriverInterface {
             MemoryAccessResult::Success => Ok(()),
             MemoryAccessResult::ProcessUnknown => Err(InterfaceError::ProcessUnknown),
             MemoryAccessResult::PartialSuccess { .. } => Err(InterfaceError::MemoryAccessFailed),
+            MemoryAccessResult::SourcePagedOut | MemoryAccessResult::DestinationPagedOut => {
+                Err(InterfaceError::MemoryAccessPagedOut)
+            }
         }
     }
 
@@ -356,52 +383,67 @@ impl DriverInterface {
         Ok(())
     }
 
-    pub fn request_modules(
+    pub fn list_processes(&self) -> IResult<Vec<ProcessInfo>> {
+        let mut buffer = Vec::with_capacity(4096);
+        buffer.resize_with(4096, Default::default);
+
+        let mut command = DriverCommandProcessList::default();
+        let mut retry = 0;
+        while retry <= 3 {
+            command.buffer = buffer.as_mut_ptr();
+            command.buffer_capacity = buffer.len();
+            command.process_count = 0;
+
+            self.execute_command(&mut command)?;
+
+            if command.process_count > buffer.len() {
+                buffer.resize_with(command.process_count + 0x10, Default::default);
+                retry += 1;
+                continue;
+            }
+
+            buffer.truncate(command.process_count);
+            return Ok(buffer);
+        }
+
+        Err(InterfaceError::BufferAllocationFailed)
+    }
+
+    pub fn list_modules(
         &self,
-        filter: &ProcessFilter,
-    ) -> IResult<(ProcessId, Vec<ProcessModuleInfo>)> {
+        process_id: ProcessId,
+        directory_table_type: DirectoryTableType,
+    ) -> IResult<Vec<ProcessModuleInfo>> {
         let mut module_buffer = Vec::with_capacity(512);
         module_buffer.resize_with(512, Default::default);
 
         let mut command = DriverCommandProcessModules::default();
-        command.target_process = match filter {
-            ProcessFilter::Id { id } => ProtocolProcessFilter::Id { id: *id },
-            ProcessFilter::Name { name } => ProtocolProcessFilter::ImageBaseName {
-                name: name.as_ptr(),
-                name_length: name.as_bytes().len(),
-            },
-        };
+        command.process_id = process_id;
+        command.directory_table_type = directory_table_type;
 
         let mut retry = 0;
         while retry <= 3 {
-            command.module_buffer = module_buffer.as_mut_ptr();
-            command.module_buffer_length = module_buffer.len();
+            command.buffer = module_buffer.as_mut_ptr();
+            command.buffer_capacity = module_buffer.len();
             command.module_count = 0;
 
             self.execute_command(&mut command)?;
 
-            match command.result {
-                ProcessModulesResult::Success => {
-                    module_buffer.truncate(command.module_count);
-                    return Ok((command.process_id, module_buffer));
-                }
-                ProcessModulesResult::BufferTooSmall => {
-                    module_buffer.resize_with(command.module_count, Default::default);
-                    retry += 1;
-                    continue;
-                }
-                ProcessModulesResult::ProcessUnknown => {
-                    return Err(InterfaceError::ProcessUnknown);
-                }
-                ProcessModulesResult::ProcessUbiquitous => {
-                    return Err(InterfaceError::ProcessUbiquitous);
-                }
+            if command.process_unknown {
+                return Err(InterfaceError::ProcessUnknown);
             }
+
+            if command.module_count > module_buffer.len() {
+                module_buffer.resize_with(command.module_count, Default::default);
+                retry += 1;
+                continue;
+            }
+
+            module_buffer.truncate(command.module_count);
+            return Ok(module_buffer);
         }
 
-        Err(InterfaceError::CommandGenericError {
-            message: format!("failed to allocate module buffer tree times"),
-        })
+        Err(InterfaceError::BufferAllocationFailed)
     }
 
     pub fn send_keyboard_state(&self, states: &[KeyboardState]) -> IResult<()> {
@@ -418,6 +460,21 @@ impl DriverInterface {
         command.buffer = states.as_ptr();
         command.state_count = states.len();
 
+        self.execute_command(&mut command)?;
+        Ok(())
+    }
+
+    pub fn enable_cr3_shenanigan_mitigation(&self, strategy: u32, flags: u32) -> IResult<bool> {
+        let mut command = DriverCommandCr3ShenanigansEnable::default();
+        command.mitigation_strategy = strategy;
+        command.mitigation_flags = flags;
+
+        self.execute_command(&mut command)?;
+        Ok(command.success)
+    }
+
+    pub fn disable_cr3_shenanigan_mitigation(&self) -> IResult<()> {
+        let mut command = DriverCommandCr3ShenanigansDisable::default();
         self.execute_command(&mut command)?;
         Ok(())
     }

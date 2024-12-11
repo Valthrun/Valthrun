@@ -48,6 +48,7 @@ use super::{
     EspConfig,
     EspSelector,
     GrenadeSettings,
+    GrenadeSortOrder,
     GrenadeSpotInfo,
     GrenadeType,
     KeyToggleMode,
@@ -122,8 +123,10 @@ enum GrenadeHelperTransferState {
         direction: GrenadeHelperTransferDirection,
     },
     /// A transfer has been initiated.
-    /// This might be ether an export or import.
-    Active {},
+    /// This might be either an export or import.
+    Active {
+        direction: GrenadeHelperTransferDirection,
+    },
     /// The current transfer failed.
     Failed {
         direction: GrenadeHelperTransferDirection,
@@ -136,6 +139,7 @@ enum GrenadeHelperTransferState {
     },
     ImportSuccess {
         count: usize,
+        replacing: bool,
     },
     ExportSuccess {
         target_path: PathBuf,
@@ -197,6 +201,7 @@ impl SettingsUI {
 
         ui.window(obfstr!("Valthrun"))
             .size([650.0, 300.0], Condition::FirstUseEver)
+            .size_constraints([650.0, 300.0], [2000.0, 2000.0])
             .title_bar(false)
             .build(|| {
                 {
@@ -215,7 +220,7 @@ impl SettingsUI {
                     }
 
                     ui.new_line();
-                    ui.dummy([ 0.0, 5.0 ]);
+                    ui.dummy([0.0, 5.0]);
                 }
 
                 let _content_font = ui.push_font(content_font);
@@ -230,11 +235,11 @@ impl SettingsUI {
                         ui.text(&format!("{} Version {} ({})", obfstr!("CS2"), build_info.as_ref().map_or("error", |info| &info.revision), build_info.as_ref().map_or("error", |info| &info.build_datetime)));
 
                         let ydummy = ui.window_size()[1] - ui.cursor_pos()[1] - ui.text_line_height_with_spacing() * 2.0 - 12.0;
-                        ui.dummy([ 0.0, ydummy ]);
+                        ui.dummy([0.0, ydummy]);
                         ui.separator();
 
                         ui.text(obfstr!("Join our discord:"));
-                        ui.text_colored([ 0.18, 0.51, 0.97, 1.0 ], obfstr!("https://discord.gg/ecKbpAPW5T"));
+                        ui.text_colored([0.18, 0.51, 0.97, 1.0], obfstr!("https://discord.gg/ecKbpAPW5T"));
                         if ui.is_item_hovered() {
                             ui.set_mouse_cursor(Some(imgui::MouseCursor::Hand));
                         }
@@ -259,7 +264,7 @@ impl SettingsUI {
 
                         {
                             let _enabled = ui.begin_enabled(matches!(settings.esp_mode, KeyToggleMode::Toggle | KeyToggleMode::Trigger));
-                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [ 150.0, 0.0 ]);
+                            ui.button_key_optional(obfstr!("ESP toggle/trigger"), &mut settings.esp_toogle, [150.0, 0.0]);
                         }
                     }
 
@@ -280,7 +285,7 @@ impl SettingsUI {
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {
                         if settings.esp_mode == KeyToggleMode::Off {
-                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
                             ui.text(obfstr!("ESP has been disabled."));
                             ui.text(obfstr!("Please enable ESP under \"Visuals\" > \"ESP\""));
                         } else {
@@ -292,7 +297,7 @@ impl SettingsUI {
                         if settings.grenade_helper.active {
                             self.render_grenade_helper(&app.app_state, &mut settings.grenade_helper, ui, unicode_text);
                         } else {
-                            let _style = ui.push_style_color(StyleColor::Text, [ 1.0, 0.76, 0.03, 1.0 ]);
+                            let _style = ui.push_style_color(StyleColor::Text, [1.0, 0.76, 0.03, 1.0]);
                             ui.text(obfstr!("Grenade Helper has been disabled."));
                             ui.text(obfstr!("Please enable the grenade helper under \"Visuals\" > \"Grenade Helper\""));
                         }
@@ -318,17 +323,21 @@ impl SettingsUI {
                             let slider_width = (ui.current_column_width() / 2.0 - 80.0).min(300.0).max(50.0);
                             let slider_width_1 = (ui.current_column_width() / 2.0 - 20.0).min(300.0).max(50.0);
 
-                            ui.text(obfstr!("Trigger delay min: ")); ui.same_line();
+                            ui.text(obfstr!("Trigger delay min: "));
+                            ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min); ui.same_line();
+                            values_updated |= ui.slider_config("##delay_min", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_min);
+                            ui.same_line();
 
-                            ui.text(" max: "); ui.same_line();
+                            ui.text(" max: ");
+                            ui.same_line();
                             ui.set_next_item_width(slider_width);
-                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max); 
+                            values_updated |= ui.slider_config("##delay_max", 0, 300).display_format("%dms").build(&mut settings.trigger_bot_delay_max);
 
-                            ui.text(obfstr!("Shoot duration: ")); ui.same_line();
+                            ui.text(obfstr!("Shoot duration: "));
+                            ui.same_line();
                             ui.set_next_item_width(slider_width_1);
-                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration); 
+                            values_updated |= ui.slider_config("##shoot_duration", 0, 1000).display_format("%dms").build(&mut settings.trigger_bot_shot_duration);
 
                             if values_updated {
                                 /* fixup min/max */
@@ -344,7 +353,7 @@ impl SettingsUI {
                             ui.separator();
                         }
 
-                        ui.checkbox("Simle Recoil Helper", &mut settings.aim_assist_recoil);
+                        ui.checkbox("Simple Recoil Helper", &mut settings.aim_assist_recoil);
                     }
 
                     if let Some(_) = ui.tab_item("Web Radar") {
@@ -1203,8 +1212,8 @@ impl SettingsUI {
         } {
             ui.indent_by(
                 original_style.window_padding[0] +
-                /* for the indicator */
-                ui.current_font_size() * 0.5 + 4.0,
+                    /* for the indicator */
+                    ui.current_font_size() * 0.5 + 4.0,
             );
 
             self.render_esp_target(settings, ui, &EspSelector::Player);
@@ -1459,6 +1468,21 @@ impl SettingsUI {
         /* The list itself */
         {
             ui.text("Available spots");
+            let text_width = ui.calc_text_size("Available spots")[0];
+            let button_width = tree_width - text_width - original_style.item_spacing[0];
+
+            ui.same_line();
+
+            ui.set_next_item_width(button_width);
+            ui.combo_enum(
+                "##sort_type",
+                &[
+                    (GrenadeSortOrder::Alphabetical, "A-z"),
+                    (GrenadeSortOrder::AlphabeticalReverse, "Z-a"),
+                ],
+                &mut settings.ui_sort_order,
+            );
+
             if let (Some(_token), _padding) = {
                 let padding = ui.push_style_var(StyleVar::WindowPadding([
                     0.0,
@@ -1470,7 +1494,7 @@ impl SettingsUI {
                         tree_width,
                         content_region[1]
                             - ui.text_line_height_with_spacing() * 2.0
-                            - original_style.frame_padding[1] * 2.0,
+                            - original_style.frame_padding[1] * 4.0,
                     ])
                     .border(true)
                     .draw_background(true)
@@ -1482,7 +1506,10 @@ impl SettingsUI {
                 ui.indent_by(original_style.window_padding[0]);
 
                 if let Some(grenades) = settings.map_spots.get(map_name) {
-                    for grenade in grenades {
+                    let mut sorted_grenades = grenades.iter().collect::<Vec<_>>();
+                    settings.ui_sort_order.sort(&mut sorted_grenades);
+
+                    for grenade in sorted_grenades.iter() {
                         let grenade_types = grenade
                             .grenade_types
                             .iter()
@@ -1833,6 +1860,11 @@ impl SettingsUI {
             "Color angle  (active)",
             &mut settings.color_angle_active,
         );
+
+        ui.checkbox(
+            obfstr!("ViewBox Background"),
+            &mut settings.grenade_background,
+        );
     }
 
     fn render_grenade_helper_transfer(&mut self, settings: &mut GrenadeSettings, ui: &imgui::Ui) {
@@ -1909,9 +1941,11 @@ impl SettingsUI {
                         }
                     }
                 });
-                *transfer_state = GrenadeHelperTransferState::Active {};
+                *transfer_state = GrenadeHelperTransferState::Active {
+                    direction: direction.clone(),
+                };
             }
-            GrenadeHelperTransferState::Active {} => {
+            GrenadeHelperTransferState::Active { .. } => {
                 /* Just waiting for the file picker to finish. */
             }
 
@@ -1951,8 +1985,10 @@ impl SettingsUI {
                     ui.same_line();
                     if ui.button_with_size("Yes", [button_width, 0.0]) {
                         settings.map_spots = elements.clone();
-                        *transfer_state =
-                            GrenadeHelperTransferState::ImportSuccess { count: total_count };
+                        *transfer_state = GrenadeHelperTransferState::ImportSuccess {
+                            count: total_count,
+                            replacing: false,
+                        };
                     }
                 } else {
                     ui.open_popup("Data Import");
@@ -2021,7 +2057,7 @@ impl SettingsUI {
             GrenadeHelperTransferState::ImportSuccess { count, .. } => {
                 let mut popup_open = true;
                 if let Some(_popup) = ui
-                    .modal_popup_config("Import successfull")
+                    .modal_popup_config("Import successful")
                     .opened(&mut popup_open)
                     .always_auto_resize(true)
                     .begin_popup()

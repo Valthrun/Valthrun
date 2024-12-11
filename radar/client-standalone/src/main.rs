@@ -1,12 +1,14 @@
+use std::path::PathBuf;
+
 use anyhow::Context;
 use clap::Parser;
 use cs2::{
-    offsets_runtime,
     CS2Handle,
     InterfaceError,
     StateCS2Handle,
     StateCS2Memory,
 };
+use obfstr::obfstr;
 use radar_client::{
     CS2RadarGenerator,
     WebRadarPublisher,
@@ -22,6 +24,11 @@ struct Args {
     /// Use ws://127.0.0.1:7229/publish for local development.
     #[arg(short, long, default_value = "wss://radar.valth.run/publish")]
     publish_url: String,
+
+    /// Load the CS2 schema (offsets) from a file
+    /// instead of resolving them at runtime by the CS2 schema system.
+    #[arg(short, long)]
+    schema_file: Option<PathBuf>,
 }
 
 #[tokio::main]
@@ -55,7 +62,28 @@ async fn main() -> anyhow::Result<()> {
         states.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
         states.set(StateCS2Handle::new(cs2), ())?;
 
-        offsets_runtime::setup_provider(&states)?;
+        if let Some(file) = args.schema_file {
+            log::info!(
+                "{} {}",
+                obfstr!("Loading CS2 schema (offsets) from file"),
+                file.display()
+            );
+            cs2_schema_provider_impl::setup_provider(Box::new(
+                cs2_schema_provider_impl::FileSchemaProvider::load_from(&file)
+                    .context("load file schema")?,
+            ));
+        } else {
+            log::info!(
+                "{}",
+                obfstr!("Loading CS2 schema (offsets) from CS2 schema system")
+            );
+            cs2_schema_provider_impl::setup_provider(Box::new(
+                cs2_schema_provider_impl::RuntimeSchemaProvider::new(&states)
+                    .context("load runtime schema")?,
+            ));
+        }
+        log::info!("CS2 schema (offsets) loaded.");
+
         Box::new(CS2RadarGenerator::new(states)?)
     };
     let radar_client = WebRadarPublisher::connect(radar_generator, &url).await?;

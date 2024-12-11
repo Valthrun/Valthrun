@@ -26,11 +26,12 @@ use utils_state::{
     StateRegistry,
 };
 use valthrun_driver_interface::{
+    DirectoryTableType,
     DriverFeature,
     DriverInterface,
+    InterfaceError,
     KeyboardState,
     MouseState,
-    ProcessFilter,
     ProcessId,
     ProcessModuleInfo,
     ProcessProtectionMode,
@@ -109,13 +110,26 @@ impl CS2Handle {
             };
         }
 
-        let (process_id, modules) = interface.request_modules(&ProcessFilter::Name {
-            name: obfstr!("cs2.exe").to_string(),
-        })?;
+        let process = interface
+            .list_processes()?
+            .into_iter()
+            .filter(|process| {
+                process.get_image_base_name().unwrap_or_default() == obfstr!("cs2.exe")
+            })
+            .collect::<Vec<_>>();
+        let process = if process.is_empty() {
+            return Err(InterfaceError::ProcessUnknown.into());
+        } else if process.len() > 1 {
+            return Err(InterfaceError::ProcessUbiquitous.into());
+        } else {
+            process.first().unwrap()
+        };
+
+        let modules = interface.list_modules(process.process_id, DirectoryTableType::Default)?;
         log::debug!(
             "{}. Process id {}",
             obfstr!("Successfully initialized CS2 handle"),
-            process_id
+            process.process_id
         );
 
         log::trace!("{} ({})", obfstr!("CS2 modules"), modules.len());
@@ -132,7 +146,7 @@ impl CS2Handle {
             weak_self: weak_self.clone(),
             metrics,
             modules,
-            process_id,
+            process_id: process.process_id,
 
             ke_interface: interface,
         }))
@@ -181,19 +195,24 @@ impl CS2Handle {
     pub fn memory_address(&self, module: Module, offset: u64) -> anyhow::Result<u64> {
         Ok(self
             .get_module_info(module)
-            .context("invalid module")?
+            .with_context(|| format!("{} {}", obfstr!("missing module"), module.get_module_name()))?
             .base_address as u64
             + offset)
     }
 
     pub fn read_sized<T: Copy>(&self, address: u64) -> anyhow::Result<T> {
-        Ok(self.ke_interface.read(self.process_id, address)?)
+        Ok(self
+            .ke_interface
+            .read(self.process_id, DirectoryTableType::Default, address)?)
     }
 
     pub fn read_slice<T: Copy>(&self, address: u64, buffer: &mut [T]) -> anyhow::Result<()> {
-        Ok(self
-            .ke_interface
-            .read_slice(self.process_id, address, buffer)?)
+        Ok(self.ke_interface.read_slice(
+            self.process_id,
+            DirectoryTableType::Default,
+            address,
+            buffer,
+        )?)
     }
 
     pub fn read_string(
@@ -237,8 +256,12 @@ impl CS2Handle {
 
         let mut buffer = Vec::<u8>::with_capacity(length);
         buffer.resize(length, 0);
-        self.ke_interface
-            .read_slice(self.process_id, address, &mut buffer)?;
+        self.ke_interface.read_slice(
+            self.process_id,
+            DirectoryTableType::Default,
+            address,
+            &mut buffer,
+        )?;
 
         for (index, window) in buffer.windows(pattern.length()).enumerate() {
             if !pattern.is_matching(window) {
@@ -253,7 +276,9 @@ impl CS2Handle {
 
     pub fn resolve_signature(&self, module: Module, signature: &Signature) -> anyhow::Result<u64> {
         log::trace!("Resolving '{}' in {:?}", signature.debug_name, module);
-        let module_info = self.get_module_info(module).context("invalid module")?;
+        let module_info = self.get_module_info(module).with_context(|| {
+            format!("{} {}", obfstr!("missing module"), module.get_module_name())
+        })?;
 
         let inst_offset = self
             .find_pattern(

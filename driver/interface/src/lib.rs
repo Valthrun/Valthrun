@@ -12,6 +12,7 @@ pub use valthrun_driver_protocol::{
         VersionInfo,
     },
     types::{
+        DirectoryTableType,
         DriverFeature,
         ProcessId,
         ProcessModuleInfo,

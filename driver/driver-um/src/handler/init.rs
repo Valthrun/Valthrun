@@ -28,7 +28,8 @@ pub fn init(command: &mut DriverCommandInitialize) -> anyhow::Result<()> {
 
     /* We do not need to initialize any libraries */
     command.driver_version = driver_version();
-    command.driver_features = DriverFeature::ProcessModules
+    command.driver_features = DriverFeature::ProcessList
+        | DriverFeature::ProcessModules
         | DriverFeature::MemoryRead
         | DriverFeature::InputMouse
         | DriverFeature::InputKeyboard;

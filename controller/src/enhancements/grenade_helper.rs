@@ -333,8 +333,7 @@ impl Enhancement for GrenadeHelper {
                         )
                         .position_pivot([0.0, 0.5])
                         .no_decoration()
-                        .draw_background(false)
-                        .no_inputs()
+                        .draw_background(settings.grenade_background)
                         .always_auto_resize(true)
                         .begin()
                     {

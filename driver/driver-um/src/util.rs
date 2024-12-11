@@ -1,5 +1,6 @@
 use std::mem;
 
+use valthrun_driver_protocol::types::ProcessId;
 use windows::{
     core::Error,
     Win32::{
@@ -27,8 +28,6 @@ pub fn open_process_by_id(id: u32, access: PROCESS_ACCESS_RIGHTS) -> Result<Owne
         }
     }
 }
-
-pub type ProcessId = u32;
 
 pub fn list_process_modules(
     process: &OwnedHandle,

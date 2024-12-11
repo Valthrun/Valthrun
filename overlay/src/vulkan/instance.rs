@@ -12,12 +12,11 @@ use ash::{
     Entry,
 };
 use imgui_winit_support::winit::window::Window;
-use raw_window_handle::HasRawDisplayHandle;
+use winit::raw_window_handle::HasDisplayHandle;
 
 use crate::{
     vulkan::debug,
-    OverlayError,
-    Result,
+    VulkanError,
 };
 
 struct ExtensionBuilder {
@@ -29,9 +28,8 @@ struct ExtensionBuilder {
 }
 
 impl ExtensionBuilder {
-    pub fn new(entry: &Entry) -> crate::Result<Self> {
-        let supported_extensions = entry
-            .enumerate_instance_extension_properties(None)?
+    pub fn new(entry: &Entry) -> Result<Self, VulkanError> {
+        let supported_extensions = unsafe { entry.enumerate_instance_extension_properties(None)? }
             .into_iter()
             .map(|ext| {
                 (
@@ -43,8 +41,7 @@ impl ExtensionBuilder {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let supported_layers = entry
-            .enumerate_instance_layer_properties()?
+        let supported_layers = unsafe { entry.enumerate_instance_layer_properties()? }
             .into_iter()
             .map(|layer| {
                 (
@@ -65,7 +62,11 @@ impl ExtensionBuilder {
         })
     }
 
-    pub fn add_extension(&mut self, name: impl Into<CString>, required: bool) -> crate::Result<()> {
+    pub fn add_extension(
+        &mut self,
+        name: impl Into<CString>,
+        required: bool,
+    ) -> Result<(), VulkanError> {
         let cname: CString = name.into();
 
         let name = cname.to_string_lossy().to_string();
@@ -88,7 +89,11 @@ impl ExtensionBuilder {
         Ok(())
     }
 
-    pub fn add_layer(&mut self, name: impl Into<CString>, required: bool) -> crate::Result<()> {
+    pub fn add_layer(
+        &mut self,
+        name: impl Into<CString>,
+        required: bool,
+    ) -> Result<(), VulkanError> {
         let cname: CString = name.into();
 
         let name = cname.to_string_lossy().to_string();
@@ -126,9 +131,12 @@ impl ExtensionBuilder {
     }
 }
 
-pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Instance> {
+pub fn create_vulkan_instance(
+    entry: &Entry,
+    window: &Window,
+) -> Result<ash::Instance, VulkanError> {
     {
-        let instance_version = match entry.try_enumerate_instance_version()? {
+        let instance_version = match unsafe { entry.try_enumerate_instance_version()? } {
             Some(version) => version,
             None => vk::make_api_version(0, 1, 0, 0),
         };
@@ -166,7 +174,9 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
         }
 
         ext_builder.add_extension(debug::extension_name(), true)?;
-        for extension in ash_window::enumerate_required_extensions(window.raw_display_handle())? {
+        for extension in
+            ash_window::enumerate_required_extensions(window.display_handle().unwrap().as_raw())?
+        {
             ext_builder.add_extension(unsafe { CStr::from_ptr(*extension) }, true)?;
         }
 
@@ -177,7 +187,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
         ext_builder
     };
 
-    let app_info = vk::ApplicationInfo::builder()
+    let app_info = vk::ApplicationInfo::default()
         .application_name(c"No Title")
         .application_version(vk::make_api_version(0, 1, 0, 0))
         .engine_name(c"No Engine")
@@ -187,7 +197,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
     let mut debug_messanger_ext = debug::create_extension_info();
     let enabled_extension_names = ext_builder.enabled_extension_names();
     let enabled_layer_names = ext_builder.enabled_layer_names();
-    let instance_create_info = vk::InstanceCreateInfo::builder()
+    let instance_create_info = vk::InstanceCreateInfo::default()
         .application_info(&app_info)
         .enabled_extension_names(&enabled_extension_names)
         .enabled_layer_names(&enabled_layer_names)
@@ -208,7 +218,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
     let instance = unsafe {
         entry
             .create_instance(&instance_create_info, None)
-            .map_err(OverlayError::VulkanInstanceCreationFailed)?
+            .map_err(VulkanError::InstanceCreationFailed)?
     };
 
     Ok(instance)

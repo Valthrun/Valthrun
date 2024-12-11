@@ -74,7 +74,7 @@ impl Texture {
                 depth: 1,
             };
 
-            let image_info = vk::ImageCreateInfo::builder()
+            let image_info = vk::ImageCreateInfo::default()
                 .image_type(vk::ImageType::TYPE_2D)
                 .extent(extent)
                 .mip_levels(1)
@@ -95,7 +95,7 @@ impl Texture {
                 vk::MemoryPropertyFlags::DEVICE_LOCAL,
             );
 
-            let alloc_info = vk::MemoryAllocateInfo::builder()
+            let alloc_info = vk::MemoryAllocateInfo::default()
                 .allocation_size(mem_requirements.size)
                 .memory_type_index(mem_type_index);
             let memory = unsafe {
@@ -110,7 +110,7 @@ impl Texture {
         // Transition the image layout and copy the buffer into the image
         // and transition the layout again to be readable from fragment shader.
         {
-            let mut barrier = vk::ImageMemoryBarrier::builder()
+            let mut barrier = vk::ImageMemoryBarrier::default()
                 .old_layout(vk::ImageLayout::UNDEFINED)
                 .new_layout(vk::ImageLayout::TRANSFER_DST_OPTIMAL)
                 .src_queue_family_index(vk::QUEUE_FAMILY_IGNORED)
@@ -124,8 +124,7 @@ impl Texture {
                     layer_count: 1,
                 })
                 .src_access_mask(vk::AccessFlags::empty())
-                .dst_access_mask(vk::AccessFlags::TRANSFER_WRITE)
-                .build();
+                .dst_access_mask(vk::AccessFlags::TRANSFER_WRITE);
 
             unsafe {
                 device.cmd_pipeline_barrier(
@@ -139,7 +138,7 @@ impl Texture {
                 )
             };
 
-            let region = vk::BufferImageCopy::builder()
+            let region = vk::BufferImageCopy::default()
                 .buffer_offset(0)
                 .buffer_row_length(0)
                 .buffer_image_height(0)
@@ -154,8 +153,7 @@ impl Texture {
                     width,
                     height,
                     depth: 1,
-                })
-                .build();
+                });
             unsafe {
                 device.cmd_copy_buffer_to_image(
                     command_buffer,
@@ -185,7 +183,7 @@ impl Texture {
         }
 
         let image_view = {
-            let create_info = vk::ImageViewCreateInfo::builder()
+            let create_info = vk::ImageViewCreateInfo::default()
                 .image(image)
                 .view_type(vk::ImageViewType::TYPE_2D)
                 .format(vk::Format::R8G8B8A8_UNORM)
@@ -201,7 +199,7 @@ impl Texture {
         };
 
         let sampler = {
-            let sampler_info = vk::SamplerCreateInfo::builder()
+            let sampler_info = vk::SamplerCreateInfo::default()
                 .mag_filter(vk::Filter::LINEAR)
                 .min_filter(vk::Filter::LINEAR)
                 .address_mode_u(vk::SamplerAddressMode::REPEAT)
@@ -249,7 +247,7 @@ fn execute_one_time_commands<R, F: FnOnce(vk::CommandBuffer) -> R>(
     executor: F,
 ) -> RendererResult<R> {
     let command_buffer = {
-        let alloc_info = vk::CommandBufferAllocateInfo::builder()
+        let alloc_info = vk::CommandBufferAllocateInfo::default()
             .level(vk::CommandBufferLevel::PRIMARY)
             .command_pool(pool)
             .command_buffer_count(1);
@@ -260,7 +258,7 @@ fn execute_one_time_commands<R, F: FnOnce(vk::CommandBuffer) -> R>(
 
     // Begin recording
     {
-        let begin_info = vk::CommandBufferBeginInfo::builder()
+        let begin_info = vk::CommandBufferBeginInfo::default()
             .flags(vk::CommandBufferUsageFlags::ONE_TIME_SUBMIT);
         unsafe { device.begin_command_buffer(command_buffer, &begin_info)? };
     }
@@ -273,9 +271,7 @@ fn execute_one_time_commands<R, F: FnOnce(vk::CommandBuffer) -> R>(
 
     // Submit and wait
     {
-        let submit_info = vk::SubmitInfo::builder()
-            .command_buffers(&command_buffers)
-            .build();
+        let submit_info = vk::SubmitInfo::default().command_buffers(&command_buffers);
         let submit_infos = [submit_info];
         unsafe {
             device.queue_submit(queue, &submit_infos, vk::Fence::null())?;
