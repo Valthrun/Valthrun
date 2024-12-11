@@ -217,7 +217,7 @@ impl RenderBackend for VulkanRenderBackend {
             Err(error) => panic!("Failed to present queue. Cause: {}", error),
             _ => {}
         }
-        perf.finish("present");
+        perf.mark("present");
     }
 }
 

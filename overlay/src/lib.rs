@@ -25,6 +25,7 @@ use input::{
     MouseInputSystem,
 };
 use obfstr::obfstr;
+use opengl::OpenGLRenderBackend;
 use vulkan::VulkanRenderBackend;
 use window_tracker::{
     ActiveTracker,
@@ -80,6 +81,7 @@ mod input;
 mod window_tracker;
 pub use window_tracker::OverlayTarget;
 
+mod opengl;
 mod vulkan;
 
 mod perf;
@@ -216,7 +218,12 @@ pub fn init(options: OverlayOptions) -> Result<System> {
     imgui_fonts.register_font(include_bytes!("../resources/unifont-15.1.05.otf"))?;
     imgui_fonts.register_codepoints(1..255);
 
-    let renderer = Box::new(VulkanRenderBackend::new(&overlay_window, &mut imgui)?);
+    let renderer: Box<dyn RenderBackend> =
+        if std::env::var("OVERLAY_VULKAN").map_or(false, |v| v == "1") {
+            Box::new(VulkanRenderBackend::new(&overlay_window, &mut imgui)?)
+        } else {
+            Box::new(OpenGLRenderBackend::new(&event_loop, &overlay_window)?)
+        };
     Ok(System {
         event_loop,
         overlay_window,
@@ -291,10 +298,14 @@ impl System {
                     last_frame = now;
                 }
 
-                // End of event processing
                 Event::AboutToWait => {
-                    perf.mark("events cleared");
+                    window.request_redraw();
+                }
 
+                Event::WindowEvent {
+                    event: WindowEvent::RedrawRequested,
+                    ..
+                } => {
                     /* Update */
                     {
                         if !runtime_controller.update_state(&window) {
@@ -371,7 +382,7 @@ impl System {
                                     perf.render(ui, ui.content_region_avail());
                                 });
                         }
-                        perf.mark("render frame");
+                        perf.mark("generate frame");
 
                         platform.prepare_render(ui, &window);
                         runtime_controller.imgui.render()
@@ -381,7 +392,7 @@ impl System {
                     renderer.render_frame(&mut perf, &window, draw_data);
 
                     runtime_controller.frame_rendered();
-                    window.request_redraw();
+                    perf.finish("render");
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
