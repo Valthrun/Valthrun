@@ -128,7 +128,6 @@ pub fn get_modules(command: &mut DriverCommandProcessModules) -> anyhow::Result<
 
     let modules = util::list_process_modules(&process, None)?;
 
-    command.module_count = modules.len();
     let module_buffer =
         unsafe { slice::from_raw_parts_mut(command.buffer, command.buffer_capacity) };
 
