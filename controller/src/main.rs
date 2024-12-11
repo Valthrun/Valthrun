@@ -67,12 +67,12 @@ use windows::Win32::UI::Shell::IsUserAnAdmin;
 
 use crate::{
     enhancements::{
+        Aimbot,
         AntiAimPunsh,
         BombInfoIndicator,
         PlayerESP,
         SpectatorsListIndicator,
         TriggerBot,
-        Aimbot,
     },
     settings::save_app_settings,
     winver::version_info,

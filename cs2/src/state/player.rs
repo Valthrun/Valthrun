@@ -85,7 +85,6 @@ impl State for StatePawnInfo {
             None
         };
 
-
         let player_has_defuser = player_pawn
             .m_pItemServices()?
             .value_reference(memory.view_arc())

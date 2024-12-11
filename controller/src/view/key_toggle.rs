@@ -28,8 +28,12 @@ impl KeyToggle {
         primary_key: &Option<HotKey>,
         secondary_key: &Option<HotKey>,
     ) -> bool {
-        let key_down = |key: &Option<HotKey>| key.as_ref().map_or(false, |k| input.is_key_down(k.0));
-        let key_pressed = |key: &Option<HotKey>| key.as_ref().map_or(false, |k| input.is_key_pressed(k.0, false));
+        let key_down =
+            |key: &Option<HotKey>| key.as_ref().map_or(false, |k| input.is_key_down(k.0));
+        let key_pressed = |key: &Option<HotKey>| {
+            key.as_ref()
+                .map_or(false, |k| input.is_key_pressed(k.0, false))
+        };
         let new_state = match mode {
             KeyToggleMode::AlwaysOn => true,
             KeyToggleMode::Trigger | KeyToggleMode::TriggerInverted => {
@@ -51,7 +55,7 @@ impl KeyToggle {
             KeyToggleMode::Off => false,
         };
         if self.enabled == new_state {
-            return false;  // No state change
+            return false; // No state change
         }
         self.enabled = new_state;
         true

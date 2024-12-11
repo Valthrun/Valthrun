@@ -247,10 +247,10 @@ impl Enhancement for GrenadeHelper {
 
                         let point_3d = grenade.eye_position()
                             + Vector3::new(
-                            settings.circle_radius * offset.sin(),
-                            settings.circle_radius * offset.cos(),
-                            0.0,
-                        )
+                                settings.circle_radius * offset.sin(),
+                                settings.circle_radius * offset.cos(),
+                                0.0,
+                            )
                             - self.eye_height;
 
                         let Some(point) = view.world_to_screen(&point_3d, true) else {
@@ -323,7 +323,6 @@ impl Enhancement for GrenadeHelper {
                             )
                             .build();
                     }
-
 
                     if let Some(_window) = ui
                         .window(format!("##grenade_info_{}", grenade.id))

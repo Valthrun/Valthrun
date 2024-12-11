@@ -1,14 +1,35 @@
 use core::f32;
+use std::time::Instant;
 
-use super::Enhancement;
-use crate::settings::AppSettings;
-use crate::view::{KeyToggle, ViewController};
-use cs2::{BoneFlags, CEntityIdentityEx, CS2Model, ClassNameCache, MouseState, PlayerPawnState, StateCS2Memory, StateEntityList, StateLocalPlayerController, StatePawnInfo, StatePawnModelInfo};
-use cs2_schema_generated::cs2::client::{C_BaseEntity, C_CSPlayerPawnBase};
+use cs2::{
+    BoneFlags,
+    CEntityIdentityEx,
+    CS2Model,
+    ClassNameCache,
+    MouseState,
+    PlayerPawnState,
+    StateCS2Memory,
+    StateEntityList,
+    StateLocalPlayerController,
+    StatePawnInfo,
+    StatePawnModelInfo,
+};
+use cs2_schema_generated::cs2::client::{
+    C_BaseEntity,
+    C_CSPlayerPawnBase,
+};
 use nalgebra::Vector3;
 use obfstr::obfstr;
 use overlay::UnicodeTextRenderer;
-use std::time::Instant;
+
+use super::Enhancement;
+use crate::{
+    settings::AppSettings,
+    view::{
+        KeyToggle,
+        ViewController,
+    },
+};
 
 pub struct Aimbot {
     aimbot_toggle: KeyToggle,
@@ -45,8 +66,13 @@ impl Aimbot {
         }
     }
 
-    fn world_to_screen(&self, view: &ViewController, world_position: &Vector3<f32>) -> Option<[f32; 2]> {
-        view.world_to_screen(world_position, true).map(|vec| [vec.x, vec.y])
+    fn world_to_screen(
+        &self,
+        view: &ViewController,
+        world_position: &Vector3<f32>,
+    ) -> Option<[f32; 2]> {
+        view.world_to_screen(world_position, true)
+            .map(|vec| [vec.x, vec.y])
     }
 
     fn find_best_target(&mut self, ctx: &crate::UpdateContext) -> Option<[f32; 2]> {
@@ -58,11 +84,19 @@ impl Aimbot {
         let entities = ctx.states.resolve::<StateEntityList>(()).ok()?;
         let class_name_cache = ctx.states.resolve::<ClassNameCache>(()).ok()?;
         let local_controller = ctx.states.resolve::<StateLocalPlayerController>(()).ok()?;
-        let local_pawn_handle = local_controller.instance.value_reference(memory.view_arc())?.m_hPlayerPawn().ok()?;
-        let local_pawn = entities.entity_from_handle(&local_pawn_handle)?.value_reference(memory.view_arc())?;
+        let local_pawn_handle = local_controller
+            .instance
+            .value_reference(memory.view_arc())?
+            .m_hPlayerPawn()
+            .ok()?;
+        let local_pawn = entities
+            .entity_from_handle(&local_pawn_handle)?
+            .value_reference(memory.view_arc())?;
 
         let view = ctx.states.resolve::<ViewController>(()).ok()?;
-        let local_player_position = view.get_camera_world_position().unwrap_or(Vector3::new(0.0, 0.0, 0.0));
+        let local_player_position = view
+            .get_camera_world_position()
+            .unwrap_or(Vector3::new(0.0, 0.0, 0.0));
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let mut best_target: Option<[f32; 2]> = None;
         let mut lowest_distance = f32::MAX;
@@ -71,22 +105,37 @@ impl Aimbot {
 
         for entity_identity in entities.entities().iter() {
             let entity_index = entity_identity.handle::<()>().ok()?.get_entity_index();
-            let entity_class = class_name_cache.lookup(&entity_identity.entity_class_info().ok()?).ok()?;
+            let entity_class = class_name_cache
+                .lookup(&entity_identity.entity_class_info().ok()?)
+                .ok()?;
 
-            if entity_class != Some(&"C_CSPlayerPawn".to_string()) || entity_index == local_pawn_handle.get_entity_index() {
+            if entity_class != Some(&"C_CSPlayerPawn".to_string())
+                || entity_index == local_pawn_handle.get_entity_index()
+            {
                 continue;
             }
 
-            let pawn_info = ctx.states.resolve::<StatePawnInfo>(entity_identity.handle().ok()?).ok()?;
-            let pawn_state = ctx.states.resolve::<PlayerPawnState>(entity_identity.handle().ok()?).ok()?;
+            let pawn_info = ctx
+                .states
+                .resolve::<StatePawnInfo>(entity_identity.handle().ok()?)
+                .ok()?;
+            let pawn_state = ctx
+                .states
+                .resolve::<PlayerPawnState>(entity_identity.handle().ok()?)
+                .ok()?;
 
             if *pawn_state != PlayerPawnState::Alive {
                 continue;
             }
 
-            let pawn_model = ctx.states.resolve::<StatePawnModelInfo>(entity_identity.handle().ok()?).ok()?;
+            let pawn_model = ctx
+                .states
+                .resolve::<StatePawnModelInfo>(entity_identity.handle().ok()?)
+                .ok()?;
 
-            if self.aimbot_ignore_flash && local_pawn.m_flFlashOverlayAlpha().unwrap() > self.aimbot_flash_alpha {
+            if self.aimbot_ignore_flash
+                && local_pawn.m_flFlashOverlayAlpha().unwrap() > self.aimbot_flash_alpha
+            {
                 continue;
             }
 
@@ -99,7 +148,10 @@ impl Aimbot {
                 continue;
             }
 
-            let entry_model = ctx.states.resolve::<CS2Model>(pawn_model.model_address).ok()?;
+            let entry_model = ctx
+                .states
+                .resolve::<CS2Model>(pawn_model.model_address)
+                .ok()?;
             for (bone, state) in entry_model.bones.iter().zip(pawn_model.bone_states.iter()) {
                 if (bone.flags & BoneFlags::FlagHitbox as u32) == 0 {
                     continue;
@@ -111,8 +163,12 @@ impl Aimbot {
                         let dy = screen_position[1] - crosshair_pos[1];
                         let distance_from_crosshair = (dx * dx + dy * dy).sqrt();
 
-                        if distance_from_crosshair < lowest_distance &&
-                            distance_from_crosshair.atan2(view.screen_bounds.x / 2.0).to_degrees() <= self.aimbot_fov / 2.0 {
+                        if distance_from_crosshair < lowest_distance
+                            && distance_from_crosshair
+                                .atan2(view.screen_bounds.x / 2.0)
+                                .to_degrees()
+                                <= self.aimbot_fov / 2.0
+                        {
                             lowest_distance = distance_from_crosshair;
                             best_target = Some(screen_position);
                         }
@@ -128,7 +184,11 @@ impl Aimbot {
         best_target
     }
 
-    fn aim_at_target(&self, ctx: &crate::UpdateContext, target_screen_position: [f32; 2]) -> anyhow::Result<bool> {
+    fn aim_at_target(
+        &self,
+        ctx: &crate::UpdateContext,
+        target_screen_position: [f32; 2],
+    ) -> anyhow::Result<bool> {
         let view = ctx.states.resolve::<ViewController>(())?;
         let crosshair_pos = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
         let adjustment = [
@@ -163,15 +223,24 @@ impl Enhancement for Aimbot {
         self.aimbot_flash_alpha = settings.aimbot_flash_alpha;
         self.aimbot_ignore_flash = settings.aimbot_ignore_flash;
 
-        if self.aimbot_toggle.update(&settings.aimbot_mode, ctx.input, &settings.aimbot_key) {
+        if self
+            .aimbot_toggle
+            .update(&settings.aimbot_mode, ctx.input, &settings.aimbot_key)
+        {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-aimbot-toggle"),
-                &format!("enabled: {}, mode: {:?}", self.aimbot_toggle.enabled, settings.aimbot_mode),
+                &format!(
+                    "enabled: {}, mode: {:?}",
+                    self.aimbot_toggle.enabled, settings.aimbot_mode
+                ),
             );
         } else {
             ctx.cs2.add_metrics_record(
                 obfstr!("feature-aimbot-toggle"),
-                &format!("enabled: {}, mode: {:?}", self.aimbot_toggle.enabled, settings.aimbot_mode),
+                &format!(
+                    "enabled: {}, mode: {:?}",
+                    self.aimbot_toggle.enabled, settings.aimbot_mode
+                ),
             );
         }
 
@@ -198,11 +267,7 @@ impl Enhancement for Aimbot {
         let fov_radius = (view.screen_bounds.x / 2.0) * (self.aimbot_fov.to_radians() / 2.0).tan();
         if settings.aimbot_view_fov {
             draw_list
-                .add_circle(
-                    cursor_pos,
-                    fov_radius,
-                    (1.0, 1.0, 1.0, 1.0),
-                )
+                .add_circle(cursor_pos, fov_radius, (1.0, 1.0, 1.0, 1.0))
                 .filled(false)
                 .build();
         }
