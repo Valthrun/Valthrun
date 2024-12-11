@@ -25,11 +25,11 @@ pub fn create_buffer(
     usage: vk::BufferUsageFlags,
     mem_properties: vk::PhysicalDeviceMemoryProperties,
 ) -> RendererResult<(vk::Buffer, vk::DeviceMemory)> {
-    let buffer_info = vk::BufferCreateInfo::builder()
+    let buffer_info = vk::BufferCreateInfo::default()
         .size(size as _)
         .usage(usage)
-        .sharing_mode(vk::SharingMode::EXCLUSIVE)
-        .build();
+        .sharing_mode(vk::SharingMode::EXCLUSIVE);
+
     let buffer = unsafe { device.create_buffer(&buffer_info, None)? };
 
     let mem_requirements = unsafe { device.get_buffer_memory_requirements(buffer) };
@@ -39,7 +39,7 @@ pub fn create_buffer(
         vk::MemoryPropertyFlags::HOST_VISIBLE | vk::MemoryPropertyFlags::HOST_COHERENT,
     );
 
-    let alloc_info = vk::MemoryAllocateInfo::builder()
+    let alloc_info = vk::MemoryAllocateInfo::default()
         .allocation_size(mem_requirements.size)
         .memory_type_index(mem_type);
     let memory = unsafe { device.allocate_memory(&alloc_info, None)? };

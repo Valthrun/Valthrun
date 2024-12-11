@@ -4,14 +4,14 @@ use std::ffi::{
 };
 
 use ash::{
-    extensions::ext::DebugUtils,
+    ext,
     vk::{
         self,
     },
 };
 
-pub fn create_extension_info() -> vk::DebugUtilsMessengerCreateInfoEXTBuilder<'static> {
-    vk::DebugUtilsMessengerCreateInfoEXT::builder()
+pub fn create_extension_info() -> vk::DebugUtilsMessengerCreateInfoEXT<'static> {
+    vk::DebugUtilsMessengerCreateInfoEXT::default()
         .flags(vk::DebugUtilsMessengerCreateFlagsEXT::empty())
         .message_severity(
             vk::DebugUtilsMessageSeverityFlagsEXT::VERBOSE
@@ -29,7 +29,7 @@ pub fn create_extension_info() -> vk::DebugUtilsMessengerCreateInfoEXTBuilder<'s
 
 #[inline]
 pub const fn extension_name() -> &'static CStr {
-    DebugUtils::name()
+    ext::debug_utils::NAME
 }
 
 unsafe extern "system" fn message_callback(

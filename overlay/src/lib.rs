@@ -14,18 +14,8 @@ use imgui_winit_support::{
             Event,
             WindowEvent,
         },
-        event_loop::{
-            ControlFlow,
-            EventLoop,
-        },
-        platform::{
-            run_return::EventLoopExtRunReturn,
-            windows::WindowExtWindows,
-        },
-        window::{
-            Window,
-            WindowBuilder,
-        },
+        event_loop::EventLoop,
+        window::Window,
     },
     HiDpiMode,
     WinitPlatform,
@@ -100,15 +90,28 @@ mod util;
 
 pub use font::UnicodeTextRenderer;
 pub use util::show_error_message;
+use winit::{
+    raw_window_handle::{
+        HasWindowHandle,
+        RawWindowHandle,
+    },
+    window::WindowAttributes,
+};
 
-fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
-    let window = WindowBuilder::new()
-        .with_title(title.to_owned())
-        .with_visible(false)
-        .build(&event_loop)?;
+fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<(HWND, Window)> {
+    #[allow(deprecated)]
+    let window = event_loop.create_window(
+        WindowAttributes::default()
+            .with_title(title.to_owned())
+            .with_visible(false),
+    )?;
+
+    let RawWindowHandle::Win32(handle) = window.window_handle().unwrap().as_raw() else {
+        panic!()
+    };
+    let hwnd = HWND(handle.hwnd.get());
 
     {
-        let hwnd = HWND(window.hwnd());
         unsafe {
             // Make it transparent
             SetWindowLongA(
@@ -147,14 +150,14 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<Window> {
         }
     }
 
-    Ok(window)
+    Ok((hwnd, window))
 }
 
 fn create_imgui_context(_options: &OverlayOptions) -> Result<(WinitPlatform, imgui::Context)> {
     let mut imgui = Context::create();
     imgui.set_ini_filename(None);
 
-    let platform = WinitPlatform::init(&mut imgui);
+    let platform = WinitPlatform::new(&mut imgui);
 
     match ClipboardContext::new() {
         Ok(backend) => imgui.set_clipboard_backend(ClipboardSupport(backend)),
@@ -183,7 +186,9 @@ pub trait RenderBackend {
 pub struct System {
     pub event_loop: EventLoop<()>,
 
-    pub window: Window,
+    pub overlay_window: Window,
+    pub overlay_hwnd: HWND,
+
     pub platform: WinitPlatform,
 
     pub imgui: Context,
@@ -196,13 +201,13 @@ pub struct System {
 }
 
 pub fn init(options: OverlayOptions) -> Result<System> {
-    let window_tracker = WindowTracker::new(&options.target)?;
+    let event_loop = EventLoop::new().unwrap();
+    let (overlay_hwnd, overlay_window) = create_window(&event_loop, &options.title)?;
 
-    let event_loop = EventLoop::new();
-    let window = create_window(&event_loop, &options.title)?;
+    let window_tracker = WindowTracker::new(overlay_hwnd, &options.target)?;
 
     let (mut platform, mut imgui) = create_imgui_context(&options)?;
-    platform.attach_window(imgui.io_mut(), &window, HiDpiMode::Default);
+    platform.attach_window(imgui.io_mut(), &overlay_window, HiDpiMode::Default);
 
     let mut imgui_fonts = FontAtlasBuilder::new();
     imgui_fonts.register_font(include_bytes!("../resources/Roboto-Regular.ttf"))?;
@@ -211,10 +216,11 @@ pub fn init(options: OverlayOptions) -> Result<System> {
     imgui_fonts.register_font(include_bytes!("../resources/unifont-15.1.05.otf"))?;
     imgui_fonts.register_codepoints(1..255);
 
-    let renderer = Box::new(VulkanRenderBackend::new(&window, &mut imgui)?);
+    let renderer = Box::new(VulkanRenderBackend::new(&overlay_window, &mut imgui)?);
     Ok(System {
         event_loop,
-        window,
+        overlay_window,
+        overlay_hwnd,
 
         imgui,
         imgui_fonts,
@@ -236,8 +242,9 @@ impl System {
         R: FnMut(&imgui::Ui, &UnicodeTextRenderer) -> bool + 'static,
     {
         let System {
-            mut event_loop,
-            window,
+            event_loop,
+            overlay_window: window,
+            overlay_hwnd,
 
             imgui,
             imgui_fonts,
@@ -253,14 +260,14 @@ impl System {
         let mut last_frame = Instant::now();
 
         let mut runtime_controller = SystemRuntimeController {
-            hwnd: HWND(window.hwnd() as isize),
+            hwnd: overlay_hwnd,
 
             imgui,
             imgui_fonts,
 
-            active_tracker: ActiveTracker::new(),
+            active_tracker: ActiveTracker::new(overlay_hwnd),
             key_input_system: KeyboardInputSystem::new(),
-            mouse_input_system: MouseInputSystem::new(),
+            mouse_input_system: MouseInputSystem::new(overlay_hwnd),
             window_tracker,
 
             frame_count: 0,
@@ -268,8 +275,8 @@ impl System {
         };
 
         let mut perf = PerfTracker::new(PERF_RECORDS);
-        let result = event_loop.run_return(move |event, _, control_flow| {
-            *control_flow = ControlFlow::Poll;
+        #[allow(deprecated)]
+        let _ = event_loop.run(move |event, event_loop| {
             platform.handle_event(runtime_controller.imgui.io_mut(), &window, &event);
 
             match event {
@@ -285,18 +292,18 @@ impl System {
                 }
 
                 // End of event processing
-                Event::MainEventsCleared => {
+                Event::AboutToWait => {
                     perf.mark("events cleared");
 
                     /* Update */
                     {
                         if !runtime_controller.update_state(&window) {
-                            *control_flow = ControlFlow::Exit;
+                            event_loop.exit();
                             return;
                         }
 
                         if !update(&mut runtime_controller) {
-                            *control_flow = ControlFlow::Exit;
+                            event_loop.exit();
                             return;
                         }
 
@@ -323,7 +330,7 @@ impl System {
                         if let Err(error) =
                             platform.prepare_frame(runtime_controller.imgui.io_mut(), &window)
                         {
-                            *control_flow = ControlFlow::ExitWithCode(1);
+                            event_loop.exit();
                             log::error!("Platform implementation prepare_frame failed: {}", error);
                             return;
                         }
@@ -334,7 +341,7 @@ impl System {
 
                         let run = render(ui, &unicode_text);
                         if !run {
-                            *control_flow = ControlFlow::ExitWithCode(0);
+                            event_loop.exit();
                             return;
                         }
                         if runtime_controller.debug_overlay_shown {
@@ -374,16 +381,18 @@ impl System {
                     renderer.render_frame(&mut perf, &window, draw_data);
 
                     runtime_controller.frame_rendered();
+                    window.request_redraw();
                 }
                 Event::WindowEvent {
                     event: WindowEvent::CloseRequested,
                     ..
-                } => *control_flow = ControlFlow::Exit,
+                } => {
+                    event_loop.exit();
+                }
                 _ => {}
             }
         });
-
-        result
+        0
     }
 }
 
@@ -408,8 +417,8 @@ impl SystemRuntimeController {
     fn update_state(&mut self, window: &Window) -> bool {
         self.mouse_input_system.update(window, self.imgui.io_mut());
         self.key_input_system.update(window, self.imgui.io_mut());
-        self.active_tracker.update(window, self.imgui.io());
-        if !self.window_tracker.update(window) {
+        self.active_tracker.update(self.imgui.io());
+        if !self.window_tracker.update() {
             log::info!("Target window has been closed. Exiting overlay.");
             return false;
         }

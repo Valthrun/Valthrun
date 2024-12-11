@@ -20,14 +20,14 @@ impl FrameData {
         let device = instance.device.clone();
 
         let command_pool = {
-            let command_pool_info = vk::CommandPoolCreateInfo::builder()
+            let command_pool_info = vk::CommandPoolCreateInfo::default()
                 .queue_family_index(instance.graphics_q_index)
                 .flags(vk::CommandPoolCreateFlags::RESET_COMMAND_BUFFER);
             unsafe { device.create_command_pool(&command_pool_info, None)? }
         };
 
         let command_buffer = {
-            let allocate_info = vk::CommandBufferAllocateInfo::builder()
+            let allocate_info = vk::CommandBufferAllocateInfo::default()
                 .command_pool(command_pool)
                 .level(vk::CommandBufferLevel::PRIMARY)
                 .command_buffer_count(1);
@@ -36,17 +36,17 @@ impl FrameData {
         };
 
         let semaphore_image_available = {
-            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            let semaphore_info = vk::SemaphoreCreateInfo::default();
             unsafe { device.create_semaphore(&semaphore_info, None)? }
         };
 
         let semaphore_render_finished = {
-            let semaphore_info = vk::SemaphoreCreateInfo::builder();
+            let semaphore_info = vk::SemaphoreCreateInfo::default();
             unsafe { device.create_semaphore(&semaphore_info, None)? }
         };
 
         let render_fence = {
-            let fence_info = vk::FenceCreateInfo::builder().flags(vk::FenceCreateFlags::SIGNALED);
+            let fence_info = vk::FenceCreateInfo::default().flags(vk::FenceCreateFlags::SIGNALED);
             unsafe { device.create_fence(&fence_info, None)? }
         };
 

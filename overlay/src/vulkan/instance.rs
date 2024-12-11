@@ -12,7 +12,7 @@ use ash::{
     Entry,
 };
 use imgui_winit_support::winit::window::Window;
-use raw_window_handle::HasRawDisplayHandle;
+use winit::raw_window_handle::HasDisplayHandle;
 
 use crate::{
     vulkan::debug,
@@ -30,8 +30,7 @@ struct ExtensionBuilder {
 
 impl ExtensionBuilder {
     pub fn new(entry: &Entry) -> crate::Result<Self> {
-        let supported_extensions = entry
-            .enumerate_instance_extension_properties(None)?
+        let supported_extensions = unsafe { entry.enumerate_instance_extension_properties(None)? }
             .into_iter()
             .map(|ext| {
                 (
@@ -43,8 +42,7 @@ impl ExtensionBuilder {
             })
             .collect::<BTreeMap<_, _>>();
 
-        let supported_layers = entry
-            .enumerate_instance_layer_properties()?
+        let supported_layers = unsafe { entry.enumerate_instance_layer_properties()? }
             .into_iter()
             .map(|layer| {
                 (
@@ -128,7 +126,7 @@ impl ExtensionBuilder {
 
 pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Instance> {
     {
-        let instance_version = match entry.try_enumerate_instance_version()? {
+        let instance_version = match unsafe { entry.try_enumerate_instance_version()? } {
             Some(version) => version,
             None => vk::make_api_version(0, 1, 0, 0),
         };
@@ -166,7 +164,9 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
         }
 
         ext_builder.add_extension(debug::extension_name(), true)?;
-        for extension in ash_window::enumerate_required_extensions(window.raw_display_handle())? {
+        for extension in
+            ash_window::enumerate_required_extensions(window.display_handle().unwrap().as_raw())?
+        {
             ext_builder.add_extension(unsafe { CStr::from_ptr(*extension) }, true)?;
         }
 
@@ -177,7 +177,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
         ext_builder
     };
 
-    let app_info = vk::ApplicationInfo::builder()
+    let app_info = vk::ApplicationInfo::default()
         .application_name(c"No Title")
         .application_version(vk::make_api_version(0, 1, 0, 0))
         .engine_name(c"No Engine")
@@ -187,7 +187,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
     let mut debug_messanger_ext = debug::create_extension_info();
     let enabled_extension_names = ext_builder.enabled_extension_names();
     let enabled_layer_names = ext_builder.enabled_layer_names();
-    let instance_create_info = vk::InstanceCreateInfo::builder()
+    let instance_create_info = vk::InstanceCreateInfo::default()
         .application_info(&app_info)
         .enabled_extension_names(&enabled_extension_names)
         .enabled_layer_names(&enabled_layer_names)

@@ -176,12 +176,11 @@ impl RenderBackend for VulkanRenderBackend {
         .expect("Failed to record command buffer");
 
         let command_buffers = [frame_data.command_buffer];
-        let submit_info = [vk::SubmitInfo::builder()
+        let submit_info = [vk::SubmitInfo::default()
             .wait_semaphores(&wait_semaphores)
             .wait_dst_stage_mask(&wait_stages)
             .command_buffers(&command_buffers)
-            .signal_semaphores(&signal_semaphores)
-            .build()];
+            .signal_semaphores(&signal_semaphores)];
 
         perf.mark("before submit");
         unsafe {
@@ -198,7 +197,7 @@ impl RenderBackend for VulkanRenderBackend {
 
         let swapchains = [self.swapchain.khr];
         let images_indices = [image_index];
-        let present_info = vk::PresentInfoKHR::builder()
+        let present_info = vk::PresentInfoKHR::default()
             .wait_semaphores(&signal_semaphores)
             .swapchains(&swapchains)
             .image_indices(&images_indices);
