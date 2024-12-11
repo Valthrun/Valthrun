@@ -16,16 +16,24 @@ use windows::{
         },
         Graphics::Gdi::ClientToScreen,
         UI::{
-            Input::KeyboardAndMouse::GetFocus,
+            Input::KeyboardAndMouse::{
+                GetFocus,
+                SetActiveWindow,
+            },
             WindowsAndMessaging::{
                 FindWindowExA,
                 FindWindowW,
                 GetClientRect,
+                GetWindowLongPtrA,
                 GetWindowRect,
                 GetWindowThreadProcessId,
                 MoveWindow,
                 SendMessageA,
+                SetWindowLongPtrA,
+                GWL_EXSTYLE,
                 WM_PAINT,
+                WS_EX_NOACTIVATE,
+                WS_EX_TRANSPARENT,
             },
         },
     },
@@ -181,5 +189,43 @@ impl WindowTracker {
         }
 
         true
+    }
+}
+
+/// Toggles the overlay noactive and transparent state
+/// according to whenever ImGui wants mouse/cursor grab.
+pub struct ActiveTracker {
+    currently_active: bool,
+}
+
+impl ActiveTracker {
+    pub fn new() -> Self {
+        Self {
+            currently_active: true,
+        }
+    }
+
+    pub fn update(&mut self, window: &Window, io: &imgui::Io) {
+        let window_active = io.want_capture_mouse | io.want_capture_keyboard;
+        if window_active == self.currently_active {
+            return;
+        }
+
+        self.currently_active = window_active;
+        unsafe {
+            let hwnd = HWND(window.hwnd());
+            let mut style = GetWindowLongPtrA(hwnd, GWL_EXSTYLE);
+            if window_active {
+                style &= !((WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize);
+            } else {
+                style |= (WS_EX_NOACTIVATE | WS_EX_TRANSPARENT).0 as isize;
+            }
+
+            log::trace!("Set UI active: {window_active}");
+            SetWindowLongPtrA(hwnd, GWL_EXSTYLE, style);
+            if window_active {
+                SetActiveWindow(hwnd);
+            }
+        }
     }
 }
