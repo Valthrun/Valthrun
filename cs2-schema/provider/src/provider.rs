@@ -1,6 +1,4 @@
-use std::sync::{
-    RwLock,
-};
+use std::sync::RwLock;
 
 #[derive(Debug, Clone, Copy)]
 pub struct OffsetInfo {
