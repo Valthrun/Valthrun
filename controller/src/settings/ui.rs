@@ -201,6 +201,7 @@ impl SettingsUI {
 
         ui.window(obfstr!("Valthrun"))
             .size([650.0, 300.0], Condition::FirstUseEver)
+            .size_constraints([650.0, 300.0], [2000.0, 2000.0])
             .title_bar(false)
             .build(|| {
                 {
