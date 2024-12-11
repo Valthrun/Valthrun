@@ -17,7 +17,7 @@ use render::{
 use crate::{
     PerfTracker,
     RenderBackend,
-    Result,
+    VulkanError,
 };
 
 mod buffer;
@@ -40,7 +40,7 @@ pub struct VulkanRenderBackend {
 }
 
 impl VulkanRenderBackend {
-    pub fn new(window: &Window, imgui: &mut imgui::Context) -> Result<Self> {
+    pub fn new(window: &Window, imgui: &mut imgui::Context) -> Result<Self, VulkanError> {
         let vulkan_context = VulkanContext::new(&window)?;
         let frame_data = vec![
             FrameData::new(&vulkan_context)?,

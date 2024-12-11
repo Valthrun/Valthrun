@@ -51,6 +51,7 @@ use overlay::{
     OverlayTarget,
     SystemRuntimeController,
     UnicodeTextRenderer,
+    VulkanError,
 };
 use radar::WebRadar;
 use settings::{
@@ -514,7 +515,9 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
     };
 
     let mut overlay = match overlay::init(overlay_options) {
-        Err(OverlayError::VulkanDllNotFound(LoadingError::LibraryLoadFailure(source))) => {
+        Err(OverlayError::Vulkan(VulkanError::DllNotFound(LoadingError::LibraryLoadFailure(
+            source,
+        )))) => {
             match &source {
                 libloading::Error::LoadLibraryExW { .. } => {
                     let error = source.source().context("LoadLibraryExW to have a source")?;

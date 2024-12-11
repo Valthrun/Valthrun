@@ -1,7 +1,7 @@
 use ash::vk;
 
 use super::render::VulkanContext;
-use crate::Result;
+use crate::VulkanError;
 
 pub struct FrameData {
     device: ash::Device,
@@ -16,7 +16,7 @@ pub struct FrameData {
 }
 
 impl FrameData {
-    pub fn new(instance: &VulkanContext) -> Result<Self> {
+    pub fn new(instance: &VulkanContext) -> Result<Self, VulkanError> {
         let device = instance.device.clone();
 
         let command_pool = {

@@ -16,8 +16,7 @@ use winit::raw_window_handle::HasDisplayHandle;
 
 use crate::{
     vulkan::debug,
-    OverlayError,
-    Result,
+    VulkanError,
 };
 
 struct ExtensionBuilder {
@@ -29,7 +28,7 @@ struct ExtensionBuilder {
 }
 
 impl ExtensionBuilder {
-    pub fn new(entry: &Entry) -> crate::Result<Self> {
+    pub fn new(entry: &Entry) -> Result<Self, VulkanError> {
         let supported_extensions = unsafe { entry.enumerate_instance_extension_properties(None)? }
             .into_iter()
             .map(|ext| {
@@ -63,7 +62,11 @@ impl ExtensionBuilder {
         })
     }
 
-    pub fn add_extension(&mut self, name: impl Into<CString>, required: bool) -> crate::Result<()> {
+    pub fn add_extension(
+        &mut self,
+        name: impl Into<CString>,
+        required: bool,
+    ) -> Result<(), VulkanError> {
         let cname: CString = name.into();
 
         let name = cname.to_string_lossy().to_string();
@@ -86,7 +89,11 @@ impl ExtensionBuilder {
         Ok(())
     }
 
-    pub fn add_layer(&mut self, name: impl Into<CString>, required: bool) -> crate::Result<()> {
+    pub fn add_layer(
+        &mut self,
+        name: impl Into<CString>,
+        required: bool,
+    ) -> Result<(), VulkanError> {
         let cname: CString = name.into();
 
         let name = cname.to_string_lossy().to_string();
@@ -124,7 +131,10 @@ impl ExtensionBuilder {
     }
 }
 
-pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Instance> {
+pub fn create_vulkan_instance(
+    entry: &Entry,
+    window: &Window,
+) -> Result<ash::Instance, VulkanError> {
     {
         let instance_version = match unsafe { entry.try_enumerate_instance_version()? } {
             Some(version) => version,
@@ -208,7 +218,7 @@ pub fn create_vulkan_instance(entry: &Entry, window: &Window) -> Result<ash::Ins
     let instance = unsafe {
         entry
             .create_instance(&instance_create_info, None)
-            .map_err(OverlayError::VulkanInstanceCreationFailed)?
+            .map_err(VulkanError::InstanceCreationFailed)?
     };
 
     Ok(instance)

@@ -26,10 +26,7 @@ use super::{
     driver::get_vulkan_entry,
     instance::create_vulkan_instance,
 };
-use crate::{
-    error::Result,
-    OverlayError,
-};
+use crate::VulkanError;
 
 const WIDTH: u32 = 1024;
 const HEIGHT: u32 = 768;
@@ -51,7 +48,7 @@ pub struct VulkanContext {
 }
 
 impl VulkanContext {
-    pub fn new(window: &Window) -> crate::error::Result<Self> {
+    pub fn new(window: &Window) -> Result<Self, VulkanError> {
         // Vulkan instance
         let entry = get_vulkan_entry()?;
         let instance = create_vulkan_instance(&entry, window)?;
@@ -66,7 +63,7 @@ impl VulkanContext {
                 window.window_handle().unwrap().as_raw(),
                 None,
             )
-            .map_err(OverlayError::VulkanSurfaceCreationFailed)?
+            .map_err(VulkanError::SurfaceCreationFailed)?
         };
 
         // Vulkan physical device and queue families indices (graphics and present)
@@ -124,7 +121,7 @@ pub struct Swapchain {
 }
 
 impl Swapchain {
-    pub fn new(vulkan_context: &VulkanContext) -> Result<Self> {
+    pub fn new(vulkan_context: &VulkanContext) -> Result<Self, VulkanError> {
         // Swapchain
         let (loader, khr, extent, format, images, image_views) =
             create_vulkan_swapchain(&vulkan_context)?;
@@ -149,7 +146,7 @@ impl Swapchain {
         })
     }
 
-    pub fn recreate(&mut self, vulkan_context: &VulkanContext) -> Result<()> {
+    pub fn recreate(&mut self, vulkan_context: &VulkanContext) -> Result<(), VulkanError> {
         log::debug!("Recreating the swapchain");
 
         unsafe { vulkan_context.device.device_wait_idle()? };
@@ -206,7 +203,7 @@ fn create_vulkan_physical_device_and_get_graphics_and_present_qs_indices(
     instance: &Instance,
     surface: &Surface,
     surface_khr: vk::SurfaceKHR,
-) -> crate::Result<(vk::PhysicalDevice, u32, u32)> {
+) -> Result<(vk::PhysicalDevice, u32, u32), VulkanError> {
     log::debug!("Creating vulkan physical device");
     let devices = unsafe { instance.enumerate_physical_devices()? };
     let mut graphics = None;
@@ -305,7 +302,7 @@ fn create_vulkan_device_and_graphics_and_present_qs(
     physical_device: vk::PhysicalDevice,
     graphics_q_index: u32,
     present_q_index: u32,
-) -> crate::Result<(Device, vk::Queue, vk::Queue)> {
+) -> Result<(Device, vk::Queue, vk::Queue), VulkanError> {
     log::debug!("Creating vulkan device and graphics and present queues");
     let queue_priorities = [1.0f32];
     let queue_create_infos = {
@@ -337,14 +334,17 @@ fn create_vulkan_device_and_graphics_and_present_qs(
 
 fn create_vulkan_swapchain(
     vulkan_context: &VulkanContext,
-) -> Result<(
-    SwapchainDevice,
-    vk::SwapchainKHR,
-    vk::Extent2D,
-    vk::Format,
-    Vec<vk::Image>,
-    Vec<vk::ImageView>,
-)> {
+) -> Result<
+    (
+        SwapchainDevice,
+        vk::SwapchainKHR,
+        vk::Extent2D,
+        vk::Format,
+        Vec<vk::Image>,
+        Vec<vk::ImageView>,
+    ),
+    VulkanError,
+> {
     log::debug!("Creating vulkan swapchain");
     // Swapchain format
     let format = {
@@ -500,7 +500,10 @@ fn create_vulkan_swapchain(
     ))
 }
 
-fn create_vulkan_render_pass(device: &Device, format: vk::Format) -> Result<vk::RenderPass> {
+fn create_vulkan_render_pass(
+    device: &Device,
+    format: vk::Format,
+) -> Result<vk::RenderPass, VulkanError> {
     log::debug!("Creating vulkan render pass");
     let attachment_descs = [vk::AttachmentDescription::default()
         .format(format)
@@ -541,7 +544,7 @@ fn create_vulkan_framebuffers(
     render_pass: vk::RenderPass,
     extent: vk::Extent2D,
     image_views: &[vk::ImageView],
-) -> Result<Vec<vk::Framebuffer>> {
+) -> Result<Vec<vk::Framebuffer>, VulkanError> {
     log::debug!("Creating {} vulkan framebuffers", image_views.len());
     Ok(image_views
         .iter()
@@ -567,7 +570,7 @@ pub fn record_command_buffers(
     extent: vk::Extent2D,
     renderer: &mut Renderer,
     draw_data: &DrawData,
-) -> Result<()> {
+) -> Result<(), VulkanError> {
     unsafe { device.reset_command_buffer(command_buffer, vk::CommandBufferResetFlags::empty())? };
 
     let command_buffer_begin_info =
