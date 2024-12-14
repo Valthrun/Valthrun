@@ -77,10 +77,9 @@ async fn real_main(args: &Args) -> anyhow::Result<()> {
                 obfstr!("Loading CS2 schema (offsets) from file"),
                 file.display()
             );
-            cs2_schema_provider_impl::setup_provider(Box::new(
-                cs2_schema_provider_impl::FileSchemaProvider::load_from(&file)
-                    .context("load file schema")?,
-            ));
+
+            cs2_schema_provider_impl::setup_schema_from_file(&mut states, file)
+                .context("file schema setup")?;
         } else {
             log::info!(
                 "{}",

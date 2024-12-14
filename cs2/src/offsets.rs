@@ -28,6 +28,32 @@ pub enum CS2Offset {
 }
 
 impl CS2Offset {
+    pub fn available_offsets() -> &'static [Self] {
+        &[
+            CS2Offset::Globals,
+            CS2Offset::BuildInfo,
+            CS2Offset::LocalController,
+            CS2Offset::GlobalEntityList,
+            CS2Offset::ViewMatrix,
+            CS2Offset::NetworkGameClientInstance,
+            CS2Offset::CCVars,
+            CS2Offset::SchemaSystem,
+        ]
+    }
+
+    pub fn cache_name(&self) -> &'static str {
+        match self {
+            Self::Globals => "globals",
+            Self::BuildInfo => "build-info",
+            Self::LocalController => "local-controller",
+            Self::GlobalEntityList => "global-entity-list",
+            Self::ViewMatrix => "view-matrix",
+            Self::NetworkGameClientInstance => "network-game-client-instance",
+            Self::CCVars => "ccvars",
+            Self::SchemaSystem => "schema-system",
+        }
+    }
+
     pub fn signature(&self) -> (Module, Signature) {
         match *self {
             Self::Globals => (
@@ -106,7 +132,37 @@ impl CS2Offset {
     }
 }
 
+pub struct StatePredefinedOffset {
+    pub module: Module,
+    pub offset: u64,
+    pub resolved: u64,
+}
+
+impl StatePredefinedOffset {
+    pub fn new(states: &StateRegistry, offset: CS2Offset, value: u64) -> anyhow::Result<Self> {
+        let cs2 = states.resolve::<StateCS2Handle>(())?;
+
+        let (module, _) = offset.signature();
+        let resolved = cs2.memory_address(module, value)?;
+
+        Ok(Self {
+            module,
+            offset: value,
+            resolved,
+        })
+    }
+}
+
+impl State for StatePredefinedOffset {
+    type Parameter = CS2Offset;
+
+    fn cache_type() -> StateCacheType {
+        StateCacheType::Persistent
+    }
+}
+
 pub struct StateResolvedOffset {
+    pub offset: u64,
     pub address: u64,
 }
 
@@ -117,10 +173,24 @@ impl State for StateResolvedOffset {
         let cs2 = states.resolve::<StateCS2Handle>(())?;
         let (module, signature) = offset.signature();
 
-        let address = cs2
-            .resolve_signature(module, &signature)
-            .with_context(|| format!("offset {:?}", offset))?;
-        Ok(Self { address })
+        if let Some(offset) = states.get::<StatePredefinedOffset>(offset) {
+            /* use predefined value */
+            Ok(Self {
+                offset: offset.offset,
+                address: offset.resolved,
+            })
+        } else {
+            /* resolve at runtime */
+            let address = cs2
+                .resolve_signature(module, &signature)
+                .with_context(|| format!("offset {:?}", offset))?;
+
+            let offset = cs2
+                .module_address(module, address)
+                .context("resolved signature is not contained in module")?;
+
+            Ok(Self { offset, address })
+        }
     }
 
     fn cache_type() -> StateCacheType {

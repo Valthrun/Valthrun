@@ -7,6 +7,7 @@ edition.workspace = true
 anyhow = { workspace = true }
 clap = { version = "4.5.21", features = ["derive"] }
 cs2 = { version = "0.5.0", path = "../../cs2" }
+cs2-schema-definition = { version = "0.5.1", path = "../definition" }
 env_logger.workspace = true
 log.workspace = true
 serde = { version = "1.0.178", features = ["derive"] }
