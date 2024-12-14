@@ -2,6 +2,7 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::Parser;
+use console_io::show_critical_error;
 use cs2::{
     CS2Handle,
     InterfaceError,
@@ -15,6 +16,8 @@ use radar_client::{
 };
 use url::Url;
 use utils_state::StateRegistry;
+
+mod console_io;
 
 /// Standalone Valthrun CS2 radar
 #[derive(Parser, Debug)]
@@ -40,6 +43,14 @@ async fn main() -> anyhow::Result<()> {
         .parse_default_env()
         .init();
 
+    if let Err(error) = real_main(&args).await {
+        show_critical_error(&format!("{:#}", error));
+    }
+
+    Ok(())
+}
+
+async fn real_main(args: &Args) -> anyhow::Result<()> {
     let url = Url::parse(&args.publish_url).context("invalid target server address")?;
 
     let radar_generator = {
@@ -48,9 +59,7 @@ async fn main() -> anyhow::Result<()> {
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<InterfaceError>() {
                     if let Some(detailed_message) = err.detailed_message() {
-                        for line in detailed_message.lines() {
-                            log::error!("{}", line);
-                        }
+                        show_critical_error(&detailed_message);
                         return Ok(());
                     }
                 }
@@ -62,7 +71,7 @@ async fn main() -> anyhow::Result<()> {
         states.set(StateCS2Memory::new(cs2.create_memory_view()), ())?;
         states.set(StateCS2Handle::new(cs2), ())?;
 
-        if let Some(file) = args.schema_file {
+        if let Some(file) = &args.schema_file {
             log::info!(
                 "{} {}",
                 obfstr!("Loading CS2 schema (offsets) from file"),
@@ -99,8 +108,6 @@ async fn main() -> anyhow::Result<()> {
     log::info!("Radar session {}", radar_client.session_id);
     log::info!("Available at {}", radar_url);
 
-    if let Some(err) = radar_client.await {
-        log::error!("Radar error: {:#}", err);
-    }
+    radar_client.await.context("radar error")?;
     Ok(())
 }
