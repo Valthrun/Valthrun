@@ -1,13 +1,13 @@
-import {LoadedMap} from "..";
+import { LoadedMap } from "..";
 import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_train",
-    displayName: "Train",
+    mapName: "de_edin",
+    displayName: "Edin",
 
-    pos_x: -2308, // upper left world coordinate
-    pos_y: 2078,
-    scale: 4.082077,
+    pos_x: -383.30038, // upper left world coordinate
+    pos_y: 4420.2134,
+    scale: 4.803717,
 
     verticalSections: [
         {
@@ -26,5 +26,3 @@ export default {
         }
     ]
 } satisfies LoadedMap;
-
-
