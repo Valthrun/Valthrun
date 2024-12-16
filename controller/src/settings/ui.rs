@@ -305,6 +305,44 @@ impl SettingsUI {
                         self.render_grenade_helper_transfer(&mut settings.grenade_helper, ui);
                     }
 
+
+                    if let Some(_) = ui.tab_item(obfstr!("Aimbot")) {
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum(obfstr!("Aimbot Mode"), &[
+                            (KeyToggleMode::Off, "Always Off"),
+                            (KeyToggleMode::Trigger, "Trigger"),
+                            (KeyToggleMode::Toggle, "Toggle"),
+                            (KeyToggleMode::AlwaysOn, "Always On"),
+                        ], &mut settings.aimbot_mode);
+
+                        ui.button_key_optional(obfstr!("Primary Aimbot Key"), &mut settings.aimbot_key, [150.0, 0.0]);
+
+                        ui.set_next_item_width(150.0);
+                        ui.slider_config("FOV", 1.0, 30.0).display_format("%.1f").build(&mut settings.aimbot_fov);
+
+                        ui.set_next_item_width(150.0);
+                        ui.slider_config("Aim Smoothing", 1.0, 15.0).display_format("%.1f").build(&mut settings.aimbot_smooth);
+
+                        ui.set_next_item_width(150.0);
+                        let bone_options = ["head", "neck", "spine", "pelvis"];
+                        let mut current_bone_index = bone_options.iter().position(|&r| r == settings.aimbot_aim_bone).unwrap_or(0);
+                        ui.combo_simple_string(obfstr!("Target Bone"), &mut current_bone_index, &bone_options);
+                        settings.aimbot_aim_bone = bone_options[current_bone_index].to_string();
+
+                        ui.set_next_item_width(150.0);
+                        ui.checkbox(obfstr!("Team Check"), &mut settings.aimbot_team_check);
+
+
+                        ui.set_next_item_width(150.0);
+                        ui.slider_config("Ignore Flash Alpha", 0.0, 255.0).display_format("%1.0f").build(&mut settings.aimbot_flash_alpha);
+
+                        ui.set_next_item_width(150.0);
+                        ui.checkbox(obfstr!("Ignore Flash"), &mut settings.aimbot_ignore_flash);
+
+                        ui.set_next_item_width(150.0);
+                        ui.checkbox(obfstr!("View FOV"), &mut settings.aimbot_view_fov);
+                    }
+
                     if let Some(_) = ui.tab_item(obfstr!("Aim Assist")) {
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("Trigger Bot"), &[
