@@ -1,14 +1,13 @@
 import { LoadedMap } from "..";
-import SimpleRadarDefault from "./map_style_simple_radar.png";
 import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_mills",
-    displayName: "Mills",
+    mapName: "ar_pool_day",
+    displayName: "Pool Day",
 
-    pos_x: -4810, // upper left world coordinate
-    pos_y: -320,
-    scale: 5.148,
+    pos_x: -1088, // upper left world coordinate
+    pos_y: 1600,
+    scale: 2.125000,
 
     verticalSections: [
         {
@@ -20,15 +19,9 @@ export default {
 
     mapStyles: [
         {
-            name: "SimpleRadar",
-            map: {
-                default: SimpleRadarDefault,
-            }
-        },
-        {
             name: "Official",
             map: {
-                default: OfficialDefault,
+                default: OfficialDefault
             }
         }
     ]

@@ -1,34 +1,34 @@
 import { LoadedMap } from "..";
 import OfficialDefault from "./map_style_cs2.png";
-import SimpleRadarDefault from "../de_ancient/map_style_simple_radar.png";
+import OfficialLower from "./map_style_cs2_lower.png";
 
 export default {
-    mapName: "cs_office",
-    displayName: "Office",
+    mapName: "ar_baggage",
+    displayName: "Baggage",
 
-    pos_x: -1838, // upper left world coordinate
-    pos_y: 1858,
-    scale: 4.1,
+    pos_x: -1316, // upper left world coordinate
+    pos_y: 1288,
+    scale: 2.539062,
 
     verticalSections: [
         {
             name: "default",
             altitudeMax: 10000,
+            altitudeMin: -5,
+        },
+        {
+            name: "lower",
+            altitudeMax: -5,
             altitudeMin: -10000,
         }
     ],
 
     mapStyles: [
         {
-            name: "SimpleRadar",
-            map: {
-                default: SimpleRadarDefault,
-            }
-        },
-        {
             name: "Official",
             map: {
                 default: OfficialDefault,
+                lower: OfficialLower
             }
         }
     ]

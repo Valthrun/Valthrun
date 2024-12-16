@@ -2,12 +2,12 @@ import { LoadedMap } from "..";
 import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_thera",
-    displayName: "Thera",
+    mapName: "ar_shoots",
+    displayName: "Shoots",
 
-    pos_x: -85.609764, // upper left world coordinate
-    pos_y: 2261.8025,
-    scale: 4.85,
+    pos_x: -1368, // upper left world coordinate
+    pos_y: 1952,
+    scale: 2.687500,
 
     verticalSections: [
         {
@@ -21,7 +21,7 @@ export default {
         {
             name: "Official",
             map: {
-                default: OfficialDefault,
+                default: OfficialDefault
             }
         }
     ]
