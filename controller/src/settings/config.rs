@@ -71,6 +71,47 @@ fn default_esp_mode() -> KeyToggleMode {
     KeyToggleMode::AlwaysOn
 }
 
+// Default configuration functions for Aimbot struct fields
+fn default_aimbot_mode() -> KeyToggleMode {
+    KeyToggleMode::Trigger
+}
+
+fn default_aimbot_key() -> Option<HotKey> {
+    Some(Key::MouseLeft.into())
+}
+
+fn default_aim_bone() -> String {
+    "head".to_string() // Default aim bone is "head"
+}
+
+fn default_aimbot_fov() -> f32 {
+    5.0 // Default FOV value
+}
+
+fn default_aimbot_speed() -> f32 {
+    150.0 // Default aimbot speed
+}
+
+fn default_aimbot_delay_activation() -> u32 {
+    500 // Default delay in milliseconds before activation
+}
+
+fn default_aimbot_random_aim_path() -> bool {
+    true // Default is to enable random aim path
+}
+
+fn default_aimbot_adaptive_aim_correction() -> bool {
+    true // Default is to enable adaptive aim correction
+}
+
+fn default_aimbot_multiple_target_prioritization() -> bool {
+    true // Default is to enable multiple target prioritization
+}
+
+fn default_aimbot_visibility_check() -> bool {
+    true // Default is to enable visibility check
+}
+
 fn default_trigger_bot_mode() -> KeyToggleMode {
     KeyToggleMode::Trigger
 }
@@ -240,6 +281,46 @@ pub struct AppSettings {
 
     #[serde(default = "default_key_trigger_bot")]
     pub key_trigger_bot: Option<HotKey>,
+
+    #[serde(default = "default_aimbot_mode")]
+    pub aimbot_mode: KeyToggleMode, // Key toggle for enabling/disabling the aimbot
+
+    #[serde(default = "default_aimbot_key")]
+    pub aimbot_key: Option<HotKey>,
+
+    #[serde(default = "default_f32::<5, 1>")]
+    pub aimbot_fov: f32, // Field of view for target acquisition
+
+    #[serde(default = "default_f32::<5, 1>")]
+    pub aimbot_smooth: f32, // Speed at which the aim moves
+
+    #[serde(default = "bool_false")]
+    pub aimbot_is_active: bool, // Indicates if the aimbot is currently active
+
+    #[serde(default)]
+    pub aimbot_current_target: Option<[f32; 3]>, // Current target coordinates (x, y, z)
+
+    #[serde(default = "bool_false")]
+    pub aimbot_is_mouse_pressed: bool, // Indicates if the mouse button is being pressed
+
+    #[serde(default = "default_aim_bone")]
+    pub aimbot_aim_bone: String, // The specific bone being targeted (e.g., "head", "chest")
+
+    // Advanced properties
+    #[serde(default = "bool_true")]
+    pub aimbot_team_check: bool, // Checks if the target is on the same team
+
+    #[serde(default = "bool_true")]
+    pub aimbot_view_fov: bool, // Only targets within the aimbot's field of view
+
+    #[serde(default = "default_f32::<5, 1>")]
+    pub aimbot_flash_alpha: f32, // Threshold to ignore targets affected by flashbangs
+
+    #[serde(default = "bool_false")]
+    pub aimbot_ignore_flash: bool, // Flag to enable/disable ignoring flash effects
+
+    #[serde(default = "bool_true")]
+    pub aimbot_visibility_check: bool, // Ensures the target is visible (not behind obstacles)
 
     #[serde(default = "bool_true")]
     pub trigger_bot_team_check: bool,

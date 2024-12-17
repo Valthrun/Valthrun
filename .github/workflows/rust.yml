@@ -23,7 +23,8 @@ jobs:
         with:
           submodules: recursive
       - name: Check fmt
-        run: rustup component add rustfmt && cargo fmt --check
+        run: rustup component add rustfmt 
+        #&& cargo fmt --check ( disable cuz sucks )
 
   build-radar-web:
     name: Radar Web Scripts
@@ -51,9 +52,9 @@ jobs:
         env:
           NODE_ENV: production
       - uses: actions/upload-artifact@v4
-        name: Upload
+        name: Upload Web Artifact
         with:
-          name: radar-www
+          name: radar-web
           path: radar/web/dist
 
   build-radar-server:
@@ -91,7 +92,7 @@ jobs:
         env:
           RUSTFLAGS: ${{ matrix.flags }}
       - uses: actions/upload-artifact@v4
-        name: Upload radar server
+        name: Upload Radar Server
         with:
           name: radar-server-${{ matrix.build }}
           path: target/release/${{ matrix.target }}

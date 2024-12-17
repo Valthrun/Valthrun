@@ -70,6 +70,7 @@ impl State for StatePawnInfo {
         let current_controller = entities.entity_from_handle(&controller_handle);
 
         let player_team = player_pawn.m_iTeamNum()?;
+
         let player_name = if let Some(identity) = &current_controller {
             let player_controller = identity
                 .value_reference(memory.view_arc())

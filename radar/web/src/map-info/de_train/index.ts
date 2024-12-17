@@ -1,13 +1,13 @@
-import { LoadedMap } from "..";
-import SimpleRadarDefault from "./map_style_simple_radar.png";
+import {LoadedMap} from "..";
+import OfficialDefault from "./map_style_cs2.png";
 
 export default {
     mapName: "de_train",
     displayName: "Train",
 
-    pos_x: -2510, // upper left world coordinate
-    pos_y: 2440,
-    scale: 4.74,
+    pos_x: -2308, // upper left world coordinate
+    pos_y: 2078,
+    scale: 4.082077,
 
     verticalSections: [
         {
@@ -19,10 +19,12 @@ export default {
 
     mapStyles: [
         {
-            name: "SimpleRadar",
+            name: "Official",
             map: {
-                default: SimpleRadarDefault,
+                default: OfficialDefault,
             }
-        },
+        }
     ]
 } satisfies LoadedMap;
+
+
