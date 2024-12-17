@@ -2,12 +2,12 @@ import {LoadedMap} from "..";
 import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_train",
-    displayName: "Train",
+    mapName: "de_whistle",
+    displayName: "Whistle",
 
-    pos_x: -2308, // upper left world coordinate
-    pos_y: 2078,
-    scale: 4.082077,
+    pos_x: -1825.6, // upper left world coordinate
+    pos_y: 1104.82,
+    scale: 2.8,
 
     verticalSections: [
         {

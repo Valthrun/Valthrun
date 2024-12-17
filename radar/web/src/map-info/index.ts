@@ -13,20 +13,25 @@ export type MapStyle = {
 }
 
 export const kRegisteredMaps: Record<string, () => Promise<LoadedMap>> = {
+    ar_baggage: () => import("./ar_baggage").then((value) => value.default),
+    ar_pool_day: () => import("./ar_pool_day").then((value) => value.default),
+    ar_shoots: () => import("./ar_shoots").then((value) => value.default),
     cs_italy: () => import("./cs_italy").then((value) => value.default),
     cs_office: () => import("./cs_office").then((value) => value.default),
     de_ancient: () => import("./de_ancient").then((value) => value.default),
     de_anubis: () => import("./de_anubis").then((value) => value.default),
+    de_basalt: () => import("./de_basalt").then((value) => value.default),
     de_cache: () => import("./de_cache").then((value) => value.default),
     de_dust2: () => import("./de_dust2").then((value) => value.default),
+    de_edin: () => import("./de_edin").then((value) => value.default),
     de_inferno: () => import("./de_inferno").then((value) => value.default),
-    de_mills: () => import("./de_mills").then((value) => value.default),
     de_mirage: () => import("./de_mirage").then((value) => value.default),
     de_nuke: () => import("./de_nuke").then((value) => value.default),
     de_overpass: () => import("./de_overpass").then((value) => value.default),
-    de_thera: () => import("./de_thera").then((value) => value.default),
+    // palais
     de_train: () => import("./de_train").then((value) => value.default),
     de_vertigo: () => import("./de_vertigo").then((value) => value.default),
+    de_whistle: () => import("./de_whistle").then((value) => value.default),
 };
 
 export type LoadedMap = {
