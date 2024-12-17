@@ -154,15 +154,15 @@ jobs:
     needs: [rust-check]
 
     steps:
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2024-10-21
-          override: true
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install Valthrun Rust
+        run: .github\workflows\vt-rustc-setup.ps1
+        env:
+          VT_RUSTC: ${{ vars.VT_RUSTC }}
+          VT_RUSTC_AUTHORIZATION: ${{ secrets.VT_RUSTC_AUTHORIZATION }}
 
       - name: Get package version
         shell: bash
@@ -193,15 +193,15 @@ jobs:
     needs: [rust-check]
 
     steps:
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2024-10-21
-          override: true
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install Valthrun Rust
+        run: .github\workflows\vt-rustc-setup.ps1
+        env:
+          VT_RUSTC: ${{ vars.VT_RUSTC }}
+          VT_RUSTC_AUTHORIZATION: ${{ secrets.VT_RUSTC_AUTHORIZATION }}
 
       - name: Get package version
         shell: bash
@@ -236,15 +236,15 @@ jobs:
     needs: [rust-check]
 
     steps:
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly-2024-10-21
-          override: true
-
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: Install Valthrun Rust
+        run: .github\workflows\vt-rustc-setup.ps1
+        env:
+          VT_RUSTC: ${{ vars.VT_RUSTC }}
+          VT_RUSTC_AUTHORIZATION: ${{ secrets.VT_RUSTC_AUTHORIZATION }}
 
       - name: Get package version
         shell: bash
