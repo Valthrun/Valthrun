@@ -192,7 +192,12 @@ impl SettingsUI {
         ui: &imgui::Ui,
         unicode_text: &UnicodeTextRenderer,
     ) {
-        let content_font = ui.current_font().id();
+        let content_font = if let Some(font_id) = app.fonts.roboto.font_id() {
+            font_id
+        } else {
+            ui.current_font().id()
+        };
+
         let _title_font = if let Some(font_id) = app.fonts.valthrun.font_id() {
             ui.push_font(font_id)
         } else {

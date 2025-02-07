@@ -212,6 +212,7 @@ pub fn init(options: OverlayOptions) -> Result<System> {
     platform.attach_window(imgui.io_mut(), &overlay_window, HiDpiMode::Default);
 
     let mut imgui_fonts = FontAtlasBuilder::new();
+    imgui_fonts.register_font(include_bytes!("../resources/Verdana-Bold.ttf"))?;
     imgui_fonts.register_font(include_bytes!("../resources/Roboto-Regular.ttf"))?;
     imgui_fonts.register_font(include_bytes!("../resources/NotoSansTC-Regular.ttf"))?;
     /* fallback if we do not have the roboto version of the glyph */

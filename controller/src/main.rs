@@ -139,6 +139,7 @@ impl FontReference {
 #[derive(Clone, Default)]
 pub struct AppFonts {
     valthrun: FontReference,
+    roboto: FontReference,
 }
 
 pub struct Application {
@@ -508,7 +509,19 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
                     }),
                 }]);
 
+                let roboto_font = atlas.add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../../overlay/resources/Roboto-Regular.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+
                 app_fonts.valthrun.set_id(valthrun_font);
+                app_fonts.roboto.set_id(roboto_font);
             }
         })),
     };
