@@ -59,9 +59,7 @@ impl State for SpectatorList {
 
                 match observer_services {
                     Some(observer) => observer.m_hObserverTarget()?,
-                    None => {
-                        continue;
-                    }
+                    None => continue,
                 }
             };
 
@@ -70,18 +68,21 @@ impl State for SpectatorList {
             }
 
             let observer_controller_handle = observer_pawn.m_hController()?;
-            let current_player_controller = entities
+            let current_player_controller = match entities
                 .entity_from_handle(&observer_controller_handle)
-                .context("missing observer controller")?
-                .value_reference(memory.view_arc())
-                .context("nullptr")?;
+                .and_then(|e| e.value_reference(memory.view_arc()))
+            {
+                Some(controller) => controller,
+                None => continue,
+            };
 
-            let spectator_name =
-                CStr::from_bytes_until_nul(&current_player_controller.m_iszPlayerName()?)
-                    .context("player name missing nul terminator")?
-                    .to_str()
-                    .context("invalid player name")?
-                    .to_string();
+            let spectator_name = match CStr::from_bytes_until_nul(&current_player_controller.m_iszPlayerName()?) {
+                Ok(name) => match name.to_str() {
+                    Ok(s) => s.to_string(),
+                    Err(_) => continue,
+                },
+                Err(_) => continue,
+            };
 
             spectators.push(SpectatorInfo { spectator_name });
         }
