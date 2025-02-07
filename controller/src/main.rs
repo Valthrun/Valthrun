@@ -72,6 +72,7 @@ use crate::{
         PlayerESP,
         SpectatorsListIndicator,
         TriggerBot,
+        sniper_crosshair::SniperCrosshair,
     },
     settings::save_app_settings,
     utils::TextWithShadowUi,
@@ -558,6 +559,7 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
             Rc::new(RefCell::new(GrenadeHelper::new())),
+            Rc::new(RefCell::new(SniperCrosshair::new())),
         ],
 
         last_total_read_calls: 0,
