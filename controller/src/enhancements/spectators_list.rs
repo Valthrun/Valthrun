@@ -6,6 +6,7 @@ use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
 use crate::settings::AppSettings;
+use crate::constants::TEXT_SHADOW_OFFSET;
 
 pub struct SpectatorsListIndicator;
 impl SpectatorsListIndicator {
@@ -47,8 +48,14 @@ impl Enhancement for SpectatorsListIndicator {
         let mut offset_y = offset_y;
 
         for spectator in &spectators.spectators {
+            // Draw shadow text first
+            ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, offset_y + TEXT_SHADOW_OFFSET]);
+            unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], &spectator.spectator_name);
+
+            // Draw main text
             ui.set_cursor_pos([offset_x, offset_y]);
             unicode_text.text(&spectator.spectator_name);
+            
             offset_y += ui.text_line_height_with_spacing();
         }
 
