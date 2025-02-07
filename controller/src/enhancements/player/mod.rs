@@ -155,6 +155,10 @@ impl Enhancement for PlayerESP {
                 .states
                 .resolve::<StatePawnInfo>(entity_identity.handle()?)?;
 
+            if pawn_info.player_health <= 0 || pawn_info.player_name.is_none() {
+                continue;
+            }
+
             let pawn_model = ctx
                 .states
                 .resolve::<StatePawnModelInfo>(entity_identity.handle()?)?;
@@ -191,6 +195,10 @@ impl Enhancement for PlayerESP {
                 pawn_info,
                 pawn_model,
             } = entry;
+
+            if pawn_info.player_health <= 0 || pawn_info.player_name.is_none() {
+                continue;
+            }
 
             let distance = (pawn_info.position - view_world_position).norm() * UNITS_TO_METERS;
             let esp_settings = match self.resolve_esp_player_config(&settings, pawn_info) {
