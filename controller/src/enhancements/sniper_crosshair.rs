@@ -1,5 +1,17 @@
-use cs2::{StateCS2Memory, StateEntityList, StateLocalPlayerController};
-use cs2_schema_generated::cs2::client::{C_CSPlayerPawnBase, C_EconEntity};
+use anyhow::Context;
+use cs2::{
+    CEntityIdentityEx,
+    ClassNameCache,
+    LocalCameraControllerTarget,
+    StateCS2Memory,
+    StateEntityList,
+};
+use cs2_schema_generated::cs2::client::{
+    C_CSObserverPawn,
+    C_CSPlayerPawnBase,
+    C_EconEntity,
+    CBasePlayerController,
+};
 use overlay::UnicodeTextRenderer;
 use utils_state::StateRegistry;
 
@@ -16,6 +28,78 @@ impl SniperCrosshair {
     fn is_sniper_weapon(&self, weapon_id: u16) -> bool {
         // AWP = 9, SSG08 = 40, SCAR-20 = 38, G3SG1 = 11
         matches!(weapon_id, 9 | 40 | 38 | 11)
+    }
+
+    fn get_active_weapon(
+        &self,
+        entities: &StateEntityList,
+        memory: &StateCS2Memory,
+        class_name_cache: &ClassNameCache,
+        target_entity_id: u32,
+    ) -> anyhow::Result<Option<u16>> {
+        let entity_identity = entities
+            .identity_from_index(target_entity_id)
+            .context("missing entity identity")?;
+
+        let entity_class = class_name_cache
+            .lookup(&entity_identity.entity_class_info()?)?
+            .context("failed to resolve entity class")?;
+
+        match entity_class.as_str() {
+            "C_CSPlayerPawn" => {
+                // Handle normal player pawn
+                let player_pawn = entity_identity
+                    .entity_ptr::<dyn C_CSPlayerPawnBase>()?
+                    .value_reference(memory.view_arc())
+                    .context("player pawn nullptr")?;
+
+                let weapon = player_pawn
+                    .m_pClippingWeapon()?
+                    .value_reference(memory.view_arc())
+                    .ok_or_else(|| anyhow::anyhow!("weapon nullptr"))?
+                    .cast::<dyn C_EconEntity>();
+
+                Ok(Some(
+                    weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?,
+                ))
+            }
+            "C_CSObserverPawn" => {
+                // Handle observer pawn
+                let observer_pawn = entity_identity
+                    .entity_ptr::<dyn C_CSObserverPawn>()?
+                    .value_reference(memory.view_arc())
+                    .context("observer pawn nullptr")?;
+
+                let observer_controller_handle = observer_pawn.m_hOriginalController()?;
+                let current_player_controller = entities
+                    .entity_from_handle(&observer_controller_handle)
+                    .context("missing observer controller")?
+                    .value_reference(memory.view_arc())
+                    .context("nullptr")?
+                    .cast::<dyn CBasePlayerController>();
+
+                // Get the player pawn from the controller
+                let player_pawn_handle = current_player_controller.m_hPawn()?;
+                let player_pawn = entities
+                    .entity_from_handle(&player_pawn_handle)
+                    .context("missing player pawn")?
+                    .value_reference(memory.view_arc())
+                    .context("player pawn nullptr")?
+                    .cast::<dyn C_CSPlayerPawnBase>();
+
+                // Get active weapon from the player pawn
+                let weapon = player_pawn
+                    .m_pClippingWeapon()?
+                    .value_reference(memory.view_arc())
+                    .ok_or_else(|| anyhow::anyhow!("weapon nullptr"))?
+                    .cast::<dyn C_EconEntity>();
+
+                Ok(Some(
+                    weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?,
+                ))
+            }
+            _ => Ok(None),
+        }
     }
 }
 
@@ -36,33 +120,22 @@ impl Enhancement for SniperCrosshair {
         }
 
         let memory = states.resolve::<StateCS2Memory>(())?;
-        let local_controller = states.resolve::<StateLocalPlayerController>(())?;
+        let entities = states.resolve::<StateEntityList>(())?;
         let view = states.resolve::<crate::view::ViewController>(())?;
-        
-        // Get local player pawn
-        let local_pawn = match local_controller.instance.value_reference(memory.view_arc()) {
-            Some(controller) => {
-                let entities = states.resolve::<StateEntityList>(())?;
-                match entities.entity_from_handle(&controller.m_hPlayerPawn()?) {
-                    Some(pawn) => pawn.value_reference(memory.view_arc())
-                        .ok_or_else(|| anyhow::anyhow!("pawn nullptr"))?,
-                    None => return Ok(()),
-                }
-            }
+        let class_name_cache = states.resolve::<ClassNameCache>(())?;
+        let view_target = states.resolve::<LocalCameraControllerTarget>(())?;
+
+        // Get the current target entity ID (whether local player or being spectated)
+        let target_entity_id = match view_target.target_entity_id {
+            Some(id) => id,
             None => return Ok(()),
         };
 
-        // Get active weapon
-        let weapon = local_pawn.m_pClippingWeapon()?
-            .value_reference(memory.view_arc())
-            .ok_or_else(|| anyhow::anyhow!("weapon nullptr"))?
-            .cast::<dyn C_EconEntity>();
-
-        // Get weapon info through attribute manager
-        let weapon_id = weapon
-            .m_AttributeManager()?
-            .m_Item()?
-            .m_iItemDefinitionIndex()?;
+        // Get weapon ID from either player pawn or observer pawn
+        let weapon_id = match self.get_active_weapon(&entities, &memory, &class_name_cache, target_entity_id)? {
+            Some(id) => id,
+            None => return Ok(()),
+        };
 
         // Check if it's a sniper rifle
         if !self.is_sniper_weapon(weapon_id) {
@@ -96,4 +169,4 @@ impl Enhancement for SniperCrosshair {
     ) -> anyhow::Result<()> {
         Ok(())
     }
-} 
+}
