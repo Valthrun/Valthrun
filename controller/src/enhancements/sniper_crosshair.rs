@@ -53,15 +53,13 @@ impl SniperCrosshair {
                     .value_reference(memory.view_arc())
                     .context("player pawn nullptr")?;
 
-                let weapon = player_pawn
-                    .m_pClippingWeapon()?
-                    .value_reference(memory.view_arc())
-                    .ok_or_else(|| anyhow::anyhow!("weapon nullptr"))?
-                    .cast::<dyn C_EconEntity>();
+                let weapon_ref = match player_pawn.m_pClippingWeapon()?.value_reference(memory.view_arc()) {
+                    Some(weapon) => weapon,
+                    None => return Ok(None),
+                };
 
-                Ok(Some(
-                    weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?,
-                ))
+                let weapon = weapon_ref.cast::<dyn C_EconEntity>();
+                Ok(Some(weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?))
             }
             "C_CSObserverPawn" => {
                 // Handle observer pawn
@@ -87,16 +85,13 @@ impl SniperCrosshair {
                     .context("player pawn nullptr")?
                     .cast::<dyn C_CSPlayerPawnBase>();
 
-                // Get active weapon from the player pawn
-                let weapon = player_pawn
-                    .m_pClippingWeapon()?
-                    .value_reference(memory.view_arc())
-                    .ok_or_else(|| anyhow::anyhow!("weapon nullptr"))?
-                    .cast::<dyn C_EconEntity>();
+                let weapon_ref = match player_pawn.m_pClippingWeapon()?.value_reference(memory.view_arc()) {
+                    Some(weapon) => weapon,
+                    None => return Ok(None),
+                };
 
-                Ok(Some(
-                    weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?,
-                ))
+                let weapon = weapon_ref.cast::<dyn C_EconEntity>();
+                Ok(Some(weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?))
             }
             _ => Ok(None),
         }
