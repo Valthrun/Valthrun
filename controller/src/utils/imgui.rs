@@ -1,7 +1,14 @@
 use std::borrow::Cow;
-use imgui::{ImColor32, DrawListMut};
-use crate::settings::HotKey;
-use crate::UnicodeTextRenderer;
+
+use imgui::{
+    DrawListMut,
+    ImColor32,
+};
+
+use crate::{
+    settings::HotKey,
+    UnicodeTextRenderer,
+};
 
 const TEXT_SHADOW_OFFSET: f32 = 1.0;
 const TEXT_SHADOW_COLOR: [f32; 4] = [0.0, 0.0, 0.0, 0.7];
@@ -38,7 +45,7 @@ impl TextWithShadowUi for imgui::Ui {
         self.text(text);
     }
 
-    fn text_colored_with_shadow(&self, color: impl Into<ImColor32>, text: &str, ) {
+    fn text_colored_with_shadow(&self, color: impl Into<ImColor32>, text: &str) {
         let pos = self.cursor_pos();
         let color = color.into();
         let color_vec = [
@@ -57,26 +64,18 @@ impl TextWithShadowUi for imgui::Ui {
 }
 
 pub trait UnicodeTextWithShadowUi {
-    fn unicode_text_with_shadow(
-        &self,
-        unicode_text: &UnicodeTextRenderer,
-        text: &str,
-    );
+    fn unicode_text_with_shadow(&self, unicode_text: &UnicodeTextRenderer, text: &str);
 
     fn unicode_text_colored_with_shadow(
         &self,
         unicode_text: &UnicodeTextRenderer,
         color: impl Into<ImColor32>,
         text: &str,
-    );    
+    );
 }
 
 impl UnicodeTextWithShadowUi for imgui::Ui {
-    fn unicode_text_with_shadow(
-        &self,
-        unicode_text: &UnicodeTextRenderer,
-        text: &str,
-    ) {
+    fn unicode_text_with_shadow(&self, unicode_text: &UnicodeTextRenderer, text: &str) {
         let pos = self.cursor_pos();
 
         self.set_cursor_pos([pos[0] + TEXT_SHADOW_OFFSET, pos[1] + TEXT_SHADOW_OFFSET]);

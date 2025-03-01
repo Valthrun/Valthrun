@@ -3,10 +3,12 @@ use cs2::{
     SpectatorList,
 };
 use overlay::UnicodeTextRenderer;
-use crate::utils::UnicodeTextWithShadowUi;
 
 use super::Enhancement;
-use crate::settings::AppSettings;
+use crate::{
+    settings::AppSettings,
+    utils::UnicodeTextWithShadowUi,
+};
 
 pub struct SpectatorsListIndicator;
 impl SpectatorsListIndicator {

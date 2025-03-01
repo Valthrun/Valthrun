@@ -1,4 +1,8 @@
-use imgui::{ImColor32, DrawListMut};
+use imgui::{
+    DrawListMut,
+    ImColor32,
+};
+
 use crate::utils::TextWithShadowDrawList;
 
 pub struct PlayerInfoLayout<'a> {
