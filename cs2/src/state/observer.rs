@@ -76,13 +76,14 @@ impl State for SpectatorList {
                 None => continue,
             };
 
-            let spectator_name = match CStr::from_bytes_until_nul(&current_player_controller.m_iszPlayerName()?) {
-                Ok(name) => match name.to_str() {
-                    Ok(s) => s.to_string(),
+            let spectator_name =
+                match CStr::from_bytes_until_nul(&current_player_controller.m_iszPlayerName()?) {
+                    Ok(name) => match name.to_str() {
+                        Ok(s) => s.to_string(),
+                        Err(_) => continue,
+                    },
                     Err(_) => continue,
-                },
-                Err(_) => continue,
-            };
+                };
 
             spectators.push(SpectatorInfo { spectator_name });
         }
