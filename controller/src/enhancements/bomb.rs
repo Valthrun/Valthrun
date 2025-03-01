@@ -4,10 +4,15 @@ use cs2::{
 };
 use imgui::ImColor32;
 use overlay::UnicodeTextRenderer;
-use crate::utils::{TextWithShadowUi, UnicodeTextWithShadowUi};
 
 use super::Enhancement;
-use crate::settings::AppSettings;
+use crate::{
+    settings::AppSettings,
+    utils::{
+        TextWithShadowUi,
+        UnicodeTextWithShadowUi,
+    },
+};
 pub struct BombInfoIndicator {}
 
 impl BombInfoIndicator {

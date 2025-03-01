@@ -74,8 +74,8 @@ use crate::{
         TriggerBot,
     },
     settings::save_app_settings,
-    winver::version_info,
     utils::TextWithShadowUi,
+    winver::version_info,
 };
 
 mod dialog;
