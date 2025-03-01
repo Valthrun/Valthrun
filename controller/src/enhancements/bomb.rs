@@ -2,13 +2,12 @@ use cs2::{
     PlantedC4,
     PlantedC4State,
 };
+use imgui::ImColor32;
 use overlay::UnicodeTextRenderer;
+use crate::utils::{TextWithShadowUi, UnicodeTextWithShadowUi};
 
 use super::Enhancement;
-use crate::{
-    settings::AppSettings,
-    constants::TEXT_SHADOW_OFFSET,
-};
+use crate::settings::AppSettings;
 pub struct BombInfoIndicator {}
 
 impl BombInfoIndicator {
@@ -60,64 +59,48 @@ impl Enhancement for BombInfoIndicator {
             + 0_f32.max((ui.io().display_size[1] * PLAYER_AVATAR_SIZE - text_height) / 2.0);
 
         // Bomb site text
-        let text = format!(
+        ui.set_cursor_pos([offset_x, offset_y]);
+        ui.text_with_shadow(&format!(
             "Bomb planted {}",
             if bomb_state.bomb_site == 0 { "A" } else { "B" }
-        );
-        ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, offset_y + TEXT_SHADOW_OFFSET]);
-        unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], &text);
-        ui.set_cursor_pos([offset_x, offset_y]);
-        unicode_text.text(&text);
+        ));
 
-        let mut current_y = offset_y + ui.text_line_height_with_spacing();
+        let mut offset_y = offset_y + ui.text_line_height_with_spacing();
 
         match &bomb_state.state {
             PlantedC4State::Active { time_detonation } => {
                 // Time text
-                let time_text = format!("Time: {:.3}", time_detonation);
-                ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, current_y + TEXT_SHADOW_OFFSET]);
-                unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], &time_text);
-                ui.set_cursor_pos([offset_x, current_y]);
-                unicode_text.text(&time_text);
-                
-                current_y += ui.text_line_height_with_spacing();
+                ui.set_cursor_pos([offset_x, offset_y]);
+                ui.text_with_shadow(&format!("Time: {:.3}", time_detonation));
+
+                offset_y += ui.text_line_height_with_spacing();
 
                 if let Some(defuser) = &bomb_state.defuser {
                     let color = if defuser.time_remaining > *time_detonation {
-                        [0.79, 0.11, 0.11, 1.0]
+                        ImColor32::from_rgba(201, 28, 28, 255) // Red
                     } else {
-                        [0.11, 0.79, 0.26, 1.0]
+                        ImColor32::from_rgba(28, 201, 66, 255) // Green
                     };
 
                     let defuse_text = format!(
                         "Defused in {:.3} by {}",
                         defuser.time_remaining, defuser.player_name
                     );
-                    ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, current_y + TEXT_SHADOW_OFFSET]);
-                    unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], &defuse_text);
-                    ui.set_cursor_pos([offset_x, current_y]);
-                    unicode_text.text_colored(color, &defuse_text);
+
+                    ui.set_cursor_pos([offset_x, offset_y]);
+                    ui.unicode_text_colored_with_shadow(unicode_text, color, &defuse_text);
                 } else {
-                    let not_defusing_text = "Not defusing";
-                    ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, current_y + TEXT_SHADOW_OFFSET]);
-                    unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], not_defusing_text);
-                    ui.set_cursor_pos([offset_x, current_y]);
-                    unicode_text.text(not_defusing_text);
+                    ui.set_cursor_pos([offset_x, offset_y]);
+                    ui.text_with_shadow("Not defusing");
                 }
             }
             PlantedC4State::Defused => {
-                let text = "Bomb has been defused";
-                ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, current_y + TEXT_SHADOW_OFFSET]);
-                unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], text);
-                ui.set_cursor_pos([offset_x, current_y]);
-                unicode_text.text(text);
+                ui.set_cursor_pos([offset_x, offset_y]);
+                ui.text_with_shadow("Bomb has been defused");
             }
             PlantedC4State::Detonated => {
-                let text = "Bomb has been detonated";
-                ui.set_cursor_pos([offset_x + TEXT_SHADOW_OFFSET, current_y + TEXT_SHADOW_OFFSET]);
-                unicode_text.text_colored([0.0, 0.0, 0.0, 0.5], text);
-                ui.set_cursor_pos([offset_x, current_y]);
-                unicode_text.text(text);
+                ui.set_cursor_pos([offset_x, offset_y]);
+                ui.text_with_shadow("Bomb has been detonated");
             }
             PlantedC4State::NotPlanted => unreachable!(),
         }
