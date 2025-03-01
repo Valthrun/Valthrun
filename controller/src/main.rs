@@ -75,6 +75,7 @@ use crate::{
     },
     settings::save_app_settings,
     winver::version_info,
+    utils::TextWithShadowUi,
 };
 
 mod dialog;
@@ -300,7 +301,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
                     10.0,
                 ]);
-                ui.text(text);
+                ui.text_with_shadow(text);
             }
             {
                 let text = format!("{:.2} FPS", ui.io().framerate);
@@ -308,7 +309,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
                     24.0,
                 ]);
-                ui.text(text)
+                ui.text_with_shadow(&text)
             }
             {
                 let text = format!("{} Reads", self.frame_read_calls);
@@ -316,7 +317,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
                     38.0,
                 ]);
-                ui.text(text)
+                ui.text_with_shadow(&text)
             }
         }
 
