@@ -84,7 +84,6 @@ mod settings;
 mod utils;
 mod view;
 mod winver;
-mod constants;
 
 pub trait MetricsClient {
     fn add_metrics_record(&self, record_type: &str, record_payload: &str);

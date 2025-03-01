@@ -1,9 +1,9 @@
-use imgui::ImColor32;
-use crate::constants::TEXT_SHADOW_OFFSET;
+use imgui::{ImColor32, DrawListMut};
+use crate::utils::TextWithShadowDrawList;
 
 pub struct PlayerInfoLayout<'a> {
     ui: &'a imgui::Ui,
-    draw: &'a imgui::DrawListMut<'a>,
+    draw: &'a DrawListMut<'a>,
 
     vmin: nalgebra::Vector2<f32>,
     vmax: nalgebra::Vector2<f32>,
@@ -17,7 +17,7 @@ pub struct PlayerInfoLayout<'a> {
 impl<'a> PlayerInfoLayout<'a> {
     pub fn new(
         ui: &'a imgui::Ui,
-        draw: &'a imgui::DrawListMut<'a>,
+        draw: &'a DrawListMut<'a>,
         screen_bounds: mint::Vector2<f32>,
         vmin: nalgebra::Vector2<f32>,
         vmax: nalgebra::Vector2<f32>,
@@ -54,19 +54,11 @@ impl<'a> PlayerInfoLayout<'a> {
             pos.x -= text_width / 2.0;
             pos
         };
+
         pos.y += self.line_count as f32 * self.font_scale * (self.ui.text_line_height())
             + 4.0 * self.line_count as f32;
 
-        // Draw shadow first
-        let shadow_color = ImColor32::from_rgba(0, 0, 0, 180);
-        self.draw.add_text(
-            [pos.x + TEXT_SHADOW_OFFSET, pos.y + TEXT_SHADOW_OFFSET],
-            shadow_color,
-            text
-        );
-
-        // Draw main text
-        self.draw.add_text([pos.x, pos.y], color, text);
+        self.draw.add_text_with_shadow([pos.x, pos.y], color, text);
         self.line_count += 1;
     }
 }
