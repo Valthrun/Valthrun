@@ -5,6 +5,7 @@ use cs2::{
     LocalCameraControllerTarget,
     StateCS2Memory,
     StateEntityList,
+    WeaponId,
 };
 use cs2_schema_generated::cs2::client::{
     C_CSObserverPawn,
@@ -26,8 +27,10 @@ impl SniperCrosshair {
     }
 
     fn is_sniper_weapon(&self, weapon_id: u16) -> bool {
-        // AWP = 9, SSG08 = 40, SCAR-20 = 38, G3SG1 = 11
-        matches!(weapon_id, 9 | 40 | 38 | 11)
+        matches!(
+            WeaponId::from_id(weapon_id).unwrap_or(WeaponId::Unknown),
+            WeaponId::AWP | WeaponId::Ssg08 | WeaponId::Scar20 | WeaponId::G3SG1
+        )
     }
 
     fn get_active_weapon(
