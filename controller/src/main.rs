@@ -302,7 +302,7 @@ impl Application {
             FontType::Verdana => self.fonts.verdana.font_id(),
             FontType::VerdanaBold => self.fonts.verdana_bold.font_id(),
         };
-        
+
         let _font_token = font.map(|font_id| ui.push_font(font_id));
 
         if settings.valthrun_watermark {
@@ -543,7 +543,6 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
                         ..FontConfig::default()
                     }),
                 }]);
-                
 
                 let verdana_font = atlas.add_font(&[FontSource::TtfData {
                     data: include_bytes!("../../overlay/resources/Verdana-Regular.ttf"),
