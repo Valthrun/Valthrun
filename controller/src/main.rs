@@ -57,6 +57,7 @@ use radar::WebRadar;
 use settings::{
     load_app_settings,
     AppSettings,
+    FontType,
     SettingsUI,
 };
 use tokio::runtime;
@@ -140,6 +141,9 @@ impl FontReference {
 pub struct AppFonts {
     valthrun: FontReference,
     roboto: FontReference,
+    roboto_bold: FontReference,
+    verdana: FontReference,
+    verdana_bold: FontReference,
 }
 
 pub struct Application {
@@ -291,6 +295,15 @@ impl Application {
 
     fn render_overlay(&self, ui: &imgui::Ui, unicode_text: &UnicodeTextRenderer) {
         let settings = self.settings();
+
+        let font = match settings.font_selection {
+            FontType::Roboto => self.fonts.roboto.font_id(),
+            FontType::RobotoBold => self.fonts.roboto_bold.font_id(),
+            FontType::Verdana => self.fonts.verdana.font_id(),
+            FontType::VerdanaBold => self.fonts.verdana_bold.font_id(),
+        };
+        
+        let _font_token = font.map(|font_id| ui.push_font(font_id));
 
         if settings.valthrun_watermark {
             {
@@ -520,8 +533,45 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
                     }),
                 }]);
 
+                let roboto_bold_font = atlas.add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../../overlay/resources/Roboto-Bold.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+                
+
+                let verdana_font = atlas.add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../../overlay/resources/Verdana-Regular.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+
+                let verdana_bold_font = atlas.add_font(&[FontSource::TtfData {
+                    data: include_bytes!("../../overlay/resources/Verdana-Bold.ttf"),
+                    size_pixels: font_size,
+                    config: Some(FontConfig {
+                        rasterizer_multiply: 1.5,
+                        oversample_h: 4,
+                        oversample_v: 4,
+                        ..FontConfig::default()
+                    }),
+                }]);
+
                 app_fonts.valthrun.set_id(valthrun_font);
                 app_fonts.roboto.set_id(roboto_font);
+                app_fonts.roboto_bold.set_id(roboto_bold_font);
+                app_fonts.verdana.set_id(verdana_font);
+                app_fonts.verdana_bold.set_id(verdana_bold_font);
             }
         })),
     };
