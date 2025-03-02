@@ -8,10 +8,10 @@ use cs2::{
     WeaponId,
 };
 use cs2_schema_generated::cs2::client::{
+    CBasePlayerController,
     C_CSObserverPawn,
     C_CSPlayerPawnBase,
     C_EconEntity,
-    CBasePlayerController,
 };
 use overlay::UnicodeTextRenderer;
 use utils_state::StateRegistry;
@@ -56,13 +56,21 @@ impl SniperCrosshair {
                     .value_reference(memory.view_arc())
                     .context("player pawn nullptr")?;
 
-                let weapon_ref = match player_pawn.m_pClippingWeapon()?.value_reference(memory.view_arc()) {
+                let weapon_ref = match player_pawn
+                    .m_pClippingWeapon()?
+                    .value_reference(memory.view_arc())
+                {
                     Some(weapon) => weapon,
                     None => return Ok(None),
                 };
 
                 let weapon = weapon_ref.cast::<dyn C_EconEntity>();
-                Ok(Some(weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?))
+                Ok(Some(
+                    weapon
+                        .m_AttributeManager()?
+                        .m_Item()?
+                        .m_iItemDefinitionIndex()?,
+                ))
             }
             "C_CSObserverPawn" => {
                 // Handle observer pawn
@@ -88,13 +96,21 @@ impl SniperCrosshair {
                     .context("player pawn nullptr")?
                     .cast::<dyn C_CSPlayerPawnBase>();
 
-                let weapon_ref = match player_pawn.m_pClippingWeapon()?.value_reference(memory.view_arc()) {
+                let weapon_ref = match player_pawn
+                    .m_pClippingWeapon()?
+                    .value_reference(memory.view_arc())
+                {
                     Some(weapon) => weapon,
                     None => return Ok(None),
                 };
 
                 let weapon = weapon_ref.cast::<dyn C_EconEntity>();
-                Ok(Some(weapon.m_AttributeManager()?.m_Item()?.m_iItemDefinitionIndex()?))
+                Ok(Some(
+                    weapon
+                        .m_AttributeManager()?
+                        .m_Item()?
+                        .m_iItemDefinitionIndex()?,
+                ))
             }
             _ => Ok(None),
         }
@@ -130,7 +146,12 @@ impl Enhancement for SniperCrosshair {
         };
 
         // Get weapon ID from either player pawn or observer pawn
-        let weapon_id = match self.get_active_weapon(&entities, &memory, &class_name_cache, target_entity_id)? {
+        let weapon_id = match self.get_active_weapon(
+            &entities,
+            &memory,
+            &class_name_cache,
+            target_entity_id,
+        )? {
             Some(id) => id,
             None => return Ok(()),
         };
@@ -141,10 +162,7 @@ impl Enhancement for SniperCrosshair {
         }
 
         let draw = ui.get_window_draw_list();
-        let screen_center = [
-            view.screen_bounds.x / 2.0,
-            view.screen_bounds.y / 2.0,
-        ];
+        let screen_center = [view.screen_bounds.x / 2.0, view.screen_bounds.y / 2.0];
 
         // Draw shadow (black outline)
         draw.add_circle(screen_center, 3.5, [0.0, 0.0, 0.0, 0.8])
