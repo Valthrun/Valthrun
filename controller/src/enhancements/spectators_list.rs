@@ -5,7 +5,10 @@ use cs2::{
 use overlay::UnicodeTextRenderer;
 
 use super::Enhancement;
-use crate::settings::AppSettings;
+use crate::{
+    settings::AppSettings,
+    utils::UnicodeTextWithShadowUi,
+};
 
 pub struct SpectatorsListIndicator;
 impl SpectatorsListIndicator {
@@ -48,7 +51,7 @@ impl Enhancement for SpectatorsListIndicator {
 
         for spectator in &spectators.spectators {
             ui.set_cursor_pos([offset_x, offset_y]);
-            unicode_text.text(&spectator.spectator_name);
+            ui.unicode_text_with_shadow(unicode_text, &spectator.spectator_name);
             offset_y += ui.text_line_height_with_spacing();
         }
 
