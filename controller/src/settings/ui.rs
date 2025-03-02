@@ -47,6 +47,7 @@ use super::{
     EspColorType,
     EspConfig,
     EspSelector,
+    FontType,
     GrenadeSettings,
     GrenadeSortOrder,
     GrenadeSpotInfo,
@@ -192,7 +193,17 @@ impl SettingsUI {
         ui: &imgui::Ui,
         unicode_text: &UnicodeTextRenderer,
     ) {
-        let content_font = ui.current_font().id();
+        let content_font = if let Some(font_id) = match app.settings().font_selection {
+            FontType::Roboto => app.fonts.roboto.font_id(),
+            FontType::RobotoBold => app.fonts.roboto_bold.font_id(),
+            FontType::Verdana => app.fonts.verdana.font_id(),
+            FontType::VerdanaBold => app.fonts.verdana_bold.font_id(),
+        } {
+            font_id
+        } else {
+            ui.current_font().id()
+        };
+
         let _title_font = if let Some(font_id) = app.fonts.valthrun.font_id() {
             ui.push_font(font_id)
         } else {
@@ -269,6 +280,14 @@ impl SettingsUI {
                     }
 
                     if let Some(_tab) = ui.tab_item(obfstr!("Visuals")) {
+                        ui.set_next_item_width(150.0);
+                        ui.combo_enum("Font", &[
+                            (FontType::Roboto, "Roboto"),
+                            (FontType::RobotoBold, "Roboto Bold"),
+                            (FontType::Verdana, "Verdana"),
+                            (FontType::VerdanaBold, "Verdana Bold"),
+                        ], &mut settings.font_selection);
+
                         ui.set_next_item_width(150.0);
                         ui.combo_enum(obfstr!("ESP"), &[
                             (KeyToggleMode::Off, "Always Off"),

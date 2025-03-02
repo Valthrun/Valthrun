@@ -206,6 +206,24 @@ pub struct GrenadeSettings {
 
 with_prefix!(serde_prefix_grenade_helper "grenade_helper");
 
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, PartialOrd)]
+pub enum FontType {
+    Roboto,
+    RobotoBold,
+    Verdana,
+    VerdanaBold,
+}
+
+impl FontType {
+    pub fn default() -> Self {
+        Self::Roboto
+    }
+}
+
+fn default_font_type() -> FontType {
+    FontType::default()
+}
+
 #[derive(Clone, Deserialize, Serialize)]
 pub struct AppSettings {
     #[serde(default = "default_key_settings")]
@@ -231,6 +249,9 @@ pub struct AppSettings {
 
     #[serde(default = "bool_true")]
     pub valthrun_watermark: bool,
+
+    #[serde(default = "default_font_type")]
+    pub font_selection: FontType,
 
     #[serde(default = "default_i32::<16364>")]
     pub mouse_x_360: i32,
