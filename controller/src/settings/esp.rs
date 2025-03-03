@@ -234,6 +234,9 @@ pub struct EspPlayerSettings {
     pub info_weapon: bool,
     pub info_weapon_color: EspColor,
 
+    pub info_ammo: bool,
+    pub info_ammo_color: EspColor,
+
     pub info_hp_text: bool,
     pub info_hp_text_color: EspColor,
 
@@ -300,6 +303,9 @@ impl EspPlayerSettings {
 
             info_weapon: false,
             info_weapon_color: color.clone(),
+
+            info_ammo: false,
+            info_ammo_color: color.clone(),
 
             info_flag_kit: false,
             info_flag_flashed: false,
