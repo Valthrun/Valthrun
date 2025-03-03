@@ -117,13 +117,11 @@ impl State for StatePawnInfo {
             WeaponId::Knife.id()
         };
 
-        let (weapon_current_ammo, weapon_reserve_ammo) = if weapon_type == WeaponId::Knife.id() {
-            (0, 0)
-        } else if let Some(weapon) = weapon_ref.as_ref() {
+        let (weapon_current_ammo, weapon_reserve_ammo) = if let Some(weapon) = weapon_ref.as_ref() {
             let weapon = weapon.cast::<dyn C_BasePlayerWeapon>();
             (weapon.m_iClip1()?, weapon.m_pReserveAmmo()?[0])
         } else {
-            (0, 0)
+            (-1, 0)
         };
 
         let player_flashtime = player_pawn.m_flFlashBangTime()?;

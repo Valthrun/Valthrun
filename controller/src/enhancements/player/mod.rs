@@ -10,7 +10,6 @@ use cs2::{
     StateLocalPlayerController,
     StatePawnInfo,
     StatePawnModelInfo,
-    WeaponId,
 };
 use info_layout::PlayerInfoLayout;
 use obfstr::obfstr;
@@ -475,7 +474,7 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
-                if esp_settings.info_ammo && pawn_info.weapon != WeaponId::Knife {
+                if esp_settings.info_ammo && pawn_info.weapon_current_ammo != -1 {
                     let text = format!(
                         "{}/{}",
                         pawn_info.weapon_current_ammo, pawn_info.weapon_reserve_ammo
