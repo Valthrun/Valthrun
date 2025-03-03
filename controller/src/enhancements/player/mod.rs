@@ -474,6 +474,19 @@ impl Enhancement for PlayerESP {
                     );
                 }
 
+                if esp_settings.info_ammo {
+                    let text = format!(
+                        "{}/{}",
+                        pawn_info.weapon_current_ammo, pawn_info.weapon_reserve_ammo
+                    );
+                    player_info.add_line(
+                        esp_settings
+                            .info_ammo_color
+                            .calculate_color(player_rel_health, distance),
+                        &text,
+                    );
+                }
+
                 if esp_settings.info_hp_text {
                     let text = format!("{} HP", pawn_info.player_health);
                     player_info.add_line(
