@@ -277,7 +277,7 @@ pub struct AppSettings {
     #[serde(default = "bool_false")]
     pub web_radar_advanced_settings: bool,
 
-    #[serde(default = "bool_false")]
+    #[serde(default = "bool_true")]
     pub sniper_crosshair: bool,
 
     #[serde(flatten, with = "serde_prefix_grenade_helper")]
