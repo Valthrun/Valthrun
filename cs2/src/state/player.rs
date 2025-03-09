@@ -14,6 +14,7 @@ use cs2_schema_generated::cs2::client::{
     CSkeletonInstance,
     C_BaseEntity,
     C_BasePlayerPawn,
+    C_BasePlayerWeapon,
     C_CSPlayerPawn,
     C_CSPlayerPawnBase,
     C_EconEntity,
@@ -45,6 +46,8 @@ pub struct StatePawnInfo {
     pub player_has_defuser: bool,
     pub player_name: Option<String>,
     pub weapon: WeaponId,
+    pub weapon_current_ammo: i32,
+    pub weapon_reserve_ammo: i32,
     pub player_flashtime: f32,
 
     pub position: nalgebra::Vector3<f32>,
@@ -102,16 +105,23 @@ impl State for StatePawnInfo {
         let position =
             nalgebra::Vector3::<f32>::from_column_slice(&game_screen_node.m_vecAbsOrigin()?);
 
-        let weapon = player_pawn
+        let weapon_ref = player_pawn
             .m_pClippingWeapon()?
             .value_reference(memory.view_arc());
-        let weapon_type = if let Some(weapon) = weapon {
+        let weapon_type = if let Some(weapon) = &weapon_ref {
             weapon
                 .m_AttributeManager()?
                 .m_Item()?
                 .m_iItemDefinitionIndex()?
         } else {
             WeaponId::Knife.id()
+        };
+
+        let (weapon_current_ammo, weapon_reserve_ammo) = if let Some(weapon) = weapon_ref.as_ref() {
+            let weapon = weapon.cast::<dyn C_BasePlayerWeapon>();
+            (weapon.m_iClip1()?, weapon.m_pReserveAmmo()?[0])
+        } else {
+            (-1, 0)
         };
 
         let player_flashtime = player_pawn.m_flFlashBangTime()?;
@@ -130,6 +140,8 @@ impl State for StatePawnInfo {
             player_has_defuser,
             player_health,
             weapon: WeaponId::from_id(weapon_type).unwrap_or(WeaponId::Unknown),
+            weapon_current_ammo,
+            weapon_reserve_ammo,
             player_flashtime,
 
             position,

@@ -761,6 +761,7 @@ impl SettingsUI {
                 ui.text("Player Info");
                 ui.checkbox(obfstr!("Name"), &mut config.info_name);
                 ui.checkbox(obfstr!("Weapon"), &mut config.info_weapon);
+                ui.checkbox(obfstr!("Ammo"), &mut config.info_ammo);
                 ui.checkbox(obfstr!("Distance"), &mut config.info_distance);
                 ui.checkbox(obfstr!("Health"), &mut config.info_hp_text);
                 ui.checkbox(obfstr!("Kit"), &mut config.info_flag_kit);
@@ -918,6 +919,13 @@ impl SettingsUI {
                         ui,
                         obfstr!("Color info weapon"),
                         &mut config.info_weapon_color,
+                    );
+
+                    ui.table_next_row();
+                    Self::render_esp_settings_player_style_color(
+                        ui,
+                        obfstr!("Color info ammo"),
+                        &mut config.info_ammo_color,
                     );
 
                     ui.table_next_row();
