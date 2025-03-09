@@ -281,6 +281,7 @@ impl SettingsUI {
                         ui.checkbox(obfstr!("Bomb Timer"), &mut settings.bomb_timer);
                         ui.checkbox(obfstr!("Spectators List"), &mut settings.spectators_list);
                         ui.checkbox(obfstr!("Grenade Helper"), &mut settings.grenade_helper.active);
+                        ui.checkbox(obfstr!("Sniper Crosshair"), &mut settings.sniper_crosshair);
                     }
 
                     if let Some(_tab) = ui.tab_item(obfstr!("ESP")) {

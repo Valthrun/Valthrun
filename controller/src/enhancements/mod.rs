@@ -44,6 +44,9 @@ pub use aim::*;
 
 mod grenade_helper;
 pub use grenade_helper::*;
+
+pub mod sniper_crosshair;
+
 use utils_state::StateRegistry;
 
 use crate::UpdateContext;

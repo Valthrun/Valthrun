@@ -67,6 +67,7 @@ use windows::Win32::UI::Shell::IsUserAnAdmin;
 
 use crate::{
     enhancements::{
+        sniper_crosshair::SniperCrosshair,
         AntiAimPunsh,
         BombInfoIndicator,
         PlayerESP,
@@ -74,6 +75,7 @@ use crate::{
         TriggerBot,
     },
     settings::save_app_settings,
+    utils::TextWithShadowUi,
     winver::version_info,
 };
 
@@ -300,7 +302,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(text)[0] - 10.0,
                     10.0,
                 ]);
-                ui.text(text);
+                ui.text_with_shadow(text);
             }
             {
                 let text = format!("{:.2} FPS", ui.io().framerate);
@@ -308,7 +310,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
                     24.0,
                 ]);
-                ui.text(text)
+                ui.text_with_shadow(&text)
             }
             {
                 let text = format!("{} Reads", self.frame_read_calls);
@@ -316,7 +318,7 @@ impl Application {
                     ui.window_size()[0] - ui.calc_text_size(&text)[0] - 10.0,
                     38.0,
                 ]);
-                ui.text(text)
+                ui.text_with_shadow(&text)
             }
         }
 
@@ -557,6 +559,7 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
             Rc::new(RefCell::new(BombInfoIndicator::new())),
             Rc::new(RefCell::new(TriggerBot::new())),
             Rc::new(RefCell::new(GrenadeHelper::new())),
+            Rc::new(RefCell::new(SniperCrosshair::new())),
         ],
 
         last_total_read_calls: 0,
