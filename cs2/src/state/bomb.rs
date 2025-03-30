@@ -22,10 +22,10 @@ use crate::{
 
 #[derive(Debug)]
 pub struct BombDefuser {
-    /// Totoal time remaining for a successfull bomb defuse
+    /// Total time remaining for a successful bomb defuse
     pub time_remaining: f32,
 
-    /// The defusers player name
+    /// The defuser's player name
     pub player_name: String,
 }
 
@@ -71,15 +71,14 @@ impl State for PlantedC4 {
         let class_name_cache = states.resolve::<ClassNameCache>(())?;
 
         for entity_identity in entities.entities().iter() {
-            let class_name = class_name_cache
+            // Optimized class name check
+            let is_c4 = class_name_cache
                 .lookup(&entity_identity.entity_class_info()?)
-                .context("class name")?;
-
-            if !class_name
+                .context("class name")?
                 .map(|name| name == "C_PlantedC4")
-                .unwrap_or(false)
-            {
-                /* Entity isn't the planted bomb. */
+                .unwrap_or(false);
+
+            if !is_c4 {
                 continue;
             }
 
@@ -89,7 +88,6 @@ impl State for PlantedC4 {
                 .context("bomb entity nullptr")?;
 
             if !bomb.m_bC4Activated()? {
-                /* This bomb hasn't been activated (yet) */
                 continue;
             }
 
@@ -103,7 +101,6 @@ impl State for PlantedC4 {
             }
 
             let time_blow = bomb.m_flC4Blow()?.m_Value()?;
-
             if time_blow <= globals.time_2()? {
                 return Ok(Self {
                     bomb_site,
@@ -112,30 +109,27 @@ impl State for PlantedC4 {
                 });
             }
 
-            let is_defusing = bomb.m_bBeingDefused()?;
-            let defusing = if is_defusing {
+            let defusing = if bomb.m_bBeingDefused()? {
                 let time_defuse = bomb.m_flDefuseCountDown()?.m_Value()?;
-
                 let handle_defuser = bomb.m_hBombDefuser()?;
+
                 let defuser = entities
                     .entity_from_handle(&handle_defuser)
                     .context("missing bomb defuser pawn")?
                     .value_reference(memory.view_arc())
                     .context("defuser pawn nullptr")?;
 
-                let defuser_controller = defuser.m_hController()?;
                 let defuser_controller = entities
-                    .entity_from_handle(&defuser_controller)
+                    .entity_from_handle(&defuser.m_hController()?)
                     .with_context(|| obfstr!("missing bomb defuser controller").to_string())?
                     .value_reference(memory.view_arc())
-                    .context("defuser constroller nullptr")?;
+                    .context("defuser controller nullptr")?;
 
                 let defuser_name =
                     CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
                         .ok()
-                        .map(CStr::to_string_lossy)
-                        .unwrap_or("Name Error".into())
-                        .to_string();
+                        .map(|cstr| cstr.to_string_lossy().into_owned())
+                        .unwrap_or_else(|| "Name Error".to_string());
 
                 Some(BombDefuser {
                     time_remaining: time_defuse - globals.time_2()?,
@@ -154,11 +148,11 @@ impl State for PlantedC4 {
             });
         }
 
-        return Ok(Self {
+        Ok(Self {
             bomb_site: 0,
             defuser: None,
             state: PlantedC4State::NotPlanted,
-        });
+        })
     }
 
     fn cache_type() -> StateCacheType {
