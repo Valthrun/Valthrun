@@ -1,12 +1,24 @@
 use std::ffi::CStr;
 
 use anyhow::Context;
-use cs2_schema_generated::cs2::client::{C_BasePlayerPawn, C_PlantedC4};
+use cs2_schema_generated::cs2::client::{
+    C_BasePlayerPawn,
+    C_PlantedC4,
+};
 use obfstr::obfstr;
-use utils_state::{State, StateCacheType, StateRegistry};
+use utils_state::{
+    State,
+    StateCacheType,
+    StateRegistry,
+};
 
 use super::StateGlobals;
-use crate::{CEntityIdentityEx, ClassNameCache, StateCS2Memory, StateEntityList};
+use crate::{
+    CEntityIdentityEx,
+    ClassNameCache,
+    StateCS2Memory,
+    StateEntityList,
+};
 
 #[derive(Debug)]
 pub struct BombDefuser {
@@ -113,10 +125,11 @@ impl State for PlantedC4 {
                     .value_reference(memory.view_arc())
                     .context("defuser controller nullptr")?;
 
-                let defuser_name = CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
-                    .ok()
-                    .map(|cstr| cstr.to_string_lossy().into_owned())
-                    .unwrap_or_else(|| "Name Error".to_string());
+                let defuser_name =
+                    CStr::from_bytes_until_nul(&defuser_controller.m_iszPlayerName()?)
+                        .ok()
+                        .map(|cstr| cstr.to_string_lossy().into_owned())
+                        .unwrap_or_else(|| "Name Error".to_string());
 
                 Some(BombDefuser {
                     time_remaining: time_defuse - globals.time_2()?,
