@@ -57,7 +57,10 @@ impl InterfaceError {
                 [
                     obfstr!("** PLEASE READ CAREFULLY **"),
                     obfstr!("No driver interface for the driver communication found."),
+                    #[cfg(windows)]
                     obfstr!("Ensure that the according \"driver_[...].dll\" file is present."),
+                    #[cfg(unix)]
+                    obfstr!("Ensure that the according \"libdriver_[...].so\" file is present."),
                     obfstr!(""),
                     obfstr!("For more information please refer to"),
                     obfstr!("https://wiki.valth.run/troubleshooting/overlay/driver_interface_missing"),

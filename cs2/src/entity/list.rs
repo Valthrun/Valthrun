@@ -54,7 +54,7 @@ impl State for StateEntityList {
 
         let outer_list =
             Ptr64::<OuterEntityList>::read_object(memory.view(), offset_global_entity_list.address)
-                .map_err(|e| anyhow!(e))?;
+                .map_err(|e| anyhow!("outer entity list: {}", e))?;
 
         let outer_list = outer_list.elements(memory.view(), 0..outer_list.len().unwrap())?;
         for (bulk_index, bulk) in outer_list.into_iter().enumerate() {
@@ -62,7 +62,20 @@ impl State for StateEntityList {
                 continue;
             }
 
-            let list = bulk.elements(memory.view(), 0..bulk.len().unwrap())?;
+            let list = match bulk.elements(memory.view(), 0..bulk.len().unwrap()) {
+                Ok(list) => list,
+                Err(error) => {
+                    if bulk_index > 0 {
+                        /*
+                         * Silently continue as memory might be paged out.
+                         * As only the first bulk is from major importance.
+                         */
+                        continue;
+                    }
+
+                    return Err(anyhow!("first inner entity list: {}", error));
+                }
+            };
             for (entry_index, entry) in list.into_iter().enumerate() {
                 let entity_index = ((bulk_index << 9) | entry_index) as u32;
                 let handle = entry.handle::<()>()?;

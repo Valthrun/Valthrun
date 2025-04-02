@@ -95,9 +95,15 @@ impl DriverInterface {
                         .filter_map(|entry| entry.ok())
                         .map(|entry| entry.file_name().to_string_lossy().to_string())
                         .filter(|file_name| {
+                            let file_name = if file_name.starts_with("lib") {
+                                &file_name[3..]
+                            } else {
+                                file_name
+                            };
+
                             (file_name.starts_with("driver_")
                                 || file_name.starts_with(obfstr!("valthrun_driver_")))
-                                && file_name.ends_with(".dll")
+                                && (file_name.ends_with(".dll") || file_name.ends_with(".so"))
                         })
                         .map(|file_name| directory.join(file_name))
                         .filter_map(|file| Some((file.metadata().ok()?.modified().ok()?, file)))

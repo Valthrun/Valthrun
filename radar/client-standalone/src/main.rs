@@ -2,7 +2,6 @@ use std::path::PathBuf;
 
 use anyhow::Context;
 use clap::Parser;
-use console_io::show_critical_error;
 use cs2::{
     CS2Handle,
     InterfaceError,
@@ -17,7 +16,7 @@ use radar_client::{
 use url::Url;
 use utils_state::StateRegistry;
 
-mod console_io;
+mod arch;
 
 /// Standalone Valthrun CS2 radar
 #[derive(Parser, Debug)]
@@ -44,7 +43,7 @@ async fn main() -> anyhow::Result<()> {
         .init();
 
     if let Err(error) = real_main(&args).await {
-        show_critical_error(&format!("{:#}", error));
+        arch::show_critical_error(&format!("{:#}", error));
     }
 
     Ok(())
@@ -59,7 +58,7 @@ async fn real_main(args: &Args) -> anyhow::Result<()> {
             Err(err) => {
                 if let Some(err) = err.downcast_ref::<InterfaceError>() {
                     if let Some(detailed_message) = err.detailed_message() {
-                        show_critical_error(&detailed_message);
+                        arch::show_critical_error(&detailed_message);
                         return Ok(());
                     }
                 }
