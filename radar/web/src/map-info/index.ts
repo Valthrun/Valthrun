@@ -1,5 +1,5 @@
 export type VerticalSection = {
-    name: "default" | "lower",
+    name: "default" | "higher" | "lower",
     altitudeMax: number,
     altitudeMin: number,
 }
@@ -8,7 +8,8 @@ export type MapStyle = {
     name: string,
     map: {
         default: string,
-        lower?: string
+        lower?: string,
+        higher?: string
     }
 }
 
@@ -17,16 +18,20 @@ export const kRegisteredMaps: Record<string, () => Promise<LoadedMap>> = {
     cs_office: () => import("./cs_office").then((value) => value.default),
     de_ancient: () => import("./de_ancient").then((value) => value.default),
     de_anubis: () => import("./de_anubis").then((value) => value.default),
+    de_basalt: () => import("./de_basalt").then((value) => value.default),
     de_cache: () => import("./de_cache").then((value) => value.default),
     de_dust2: () => import("./de_dust2").then((value) => value.default),
+    de_edin: () => import("./de_edin").then((value) => value.default),
     de_inferno: () => import("./de_inferno").then((value) => value.default),
     de_mills: () => import("./de_mills").then((value) => value.default),
     de_mirage: () => import("./de_mirage").then((value) => value.default),
     de_nuke: () => import("./de_nuke").then((value) => value.default),
     de_overpass: () => import("./de_overpass").then((value) => value.default),
+    de_palais: () => import("./de_palais").then((value) => value.default),
     de_thera: () => import("./de_thera").then((value) => value.default),
     de_train: () => import("./de_train").then((value) => value.default),
     de_vertigo: () => import("./de_vertigo").then((value) => value.default),
+    de_whistle: () => import("./de_whistle").then((value) => value.default),
 };
 
 export type LoadedMap = {

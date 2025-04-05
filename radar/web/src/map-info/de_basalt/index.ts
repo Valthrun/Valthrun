@@ -2,12 +2,12 @@ import { LoadedMap } from "..";
 import OfficialDefault from "./map_style_cs2.png";
 
 export default {
-    mapName: "de_anubis",
-    displayName: "Anubis",
+    mapName: "de_basalt",
+    displayName: "Basalt",
 
-    pos_x: -2796, // upper left world coordinate
-    pos_y: 3328,
-    scale: 5.22,
+    pos_x: -2345.6, // upper left world coordinate
+    pos_y: 2391.8,
+    scale: 4.37,
 
     verticalSections: [
         {
@@ -21,7 +21,7 @@ export default {
         {
             name: "Official",
             map: {
-                default: OfficialDefault,
+                default: OfficialDefault
             }
         }
     ]
