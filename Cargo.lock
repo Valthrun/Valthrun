@@ -711,7 +711,6 @@ dependencies = [
  "nalgebra",
  "obfstr",
  "overlay",
- "radar-client",
  "rand",
  "raw_struct",
  "rfd",

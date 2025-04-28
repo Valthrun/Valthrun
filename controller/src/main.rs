@@ -14,7 +14,6 @@ use std::{
             Ordering,
         },
         Arc,
-        Mutex,
     },
     time::{
         Duration,
@@ -53,7 +52,6 @@ use overlay::{
     UnicodeTextRenderer,
     VulkanError,
 };
-use radar::WebRadar;
 use settings::{
     load_app_settings,
     AppSettings,
@@ -81,7 +79,6 @@ use crate::{
 
 mod dialog;
 mod enhancements;
-mod radar;
 mod settings;
 mod utils;
 mod view;
@@ -158,8 +155,6 @@ pub struct Application {
     pub settings_ui: RefCell<SettingsUI>,
     pub settings_screen_capture_changed: AtomicBool,
     pub settings_render_debug_window_changed: AtomicBool,
-
-    pub web_radar: RefCell<Option<Arc<Mutex<WebRadar>>>>,
 }
 
 impl Application {
@@ -550,7 +545,6 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
         app_state,
 
         cs2: cs2.clone(),
-        web_radar: Default::default(),
 
         enhancements: vec![
             Rc::new(RefCell::new(AntiAimPunsh::new(cvar_sensitivity))),

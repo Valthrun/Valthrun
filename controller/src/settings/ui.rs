@@ -21,7 +21,6 @@ use std::{
 
 use anyhow::Context;
 use cs2::{
-    CS2Handle,
     StateBuildInfo,
     StateCurrentMap,
 };
@@ -38,7 +37,6 @@ use imgui::{
 };
 use obfstr::obfstr;
 use overlay::UnicodeTextRenderer;
-use url::Url;
 use utils_state::StateRegistry;
 
 use super::{
@@ -55,11 +53,6 @@ use super::{
 };
 use crate::{
     enhancements::StateGrenadeHelperPlayerLocation,
-    radar::{
-        self,
-        WebRadar,
-        WebRadarState,
-    },
     settings::{
         AppSettings,
         EspBoxType,
@@ -69,7 +62,6 @@ use crate::{
         EspTracePosition,
     },
     utils::{
-        self,
         ImGuiKey,
         ImguiComboEnum,
     },
@@ -148,7 +140,6 @@ enum GrenadeHelperTransferState {
 
 pub struct SettingsUI {
     discord_link_copied: Option<Instant>,
-    radar_session_copied: Option<Instant>,
 
     esp_selected_target: EspSelector,
     esp_pending_target: Option<EspSelector>,
@@ -169,7 +160,6 @@ impl SettingsUI {
     pub fn new() -> Self {
         Self {
             discord_link_copied: None,
-            radar_session_copied: None,
 
             esp_selected_target: EspSelector::None,
             esp_pending_target: None,
@@ -358,8 +348,8 @@ impl SettingsUI {
                     }
 
                     if let Some(_) = ui.tab_item("Web Radar") {
-                        let mut web_radar = app.web_radar.borrow_mut();
-                        self.render_web_radar(&mut settings, &mut web_radar, &app.cs2, ui);
+                        ui.text(obfstr!("Operating the Valthrun Web Radar within the Valthrun Overlay is no longer supported."));
+                        ui.text(obfstr!("Please use the standalone radar client."));
                     }
 
                     if let Some(_) = ui.tab_item("Misc") {
@@ -375,154 +365,6 @@ impl SettingsUI {
                     }
                 }
             });
-    }
-
-    fn render_web_radar(
-        &mut self,
-        settings: &mut AppSettings,
-        web_radar: &mut Option<Arc<Mutex<WebRadar>>>,
-        cs2: &Arc<CS2Handle>,
-        ui: &imgui::Ui,
-    ) {
-        match web_radar {
-            Some(radar) => {
-                let mut radar = radar.lock().unwrap();
-                match radar.connection_state() {
-                    WebRadarState::Connecting => {
-                        ui.text(format!("Connecting to {}", radar.endpoint()));
-                        ui.text("Please wait...");
-                    }
-                    WebRadarState::Connected { session_id } => {
-                        let mut radar_url = radar.endpoint().clone();
-                        radar_url.set_path(&format!("/session/{}", session_id));
-                        if radar_url.scheme() == "wss" {
-                            let _ = radar_url.set_scheme("https");
-                        } else {
-                            let _ = radar_url.set_scheme("http");
-                        }
-
-                        ui.text(format!("You're sharing this game."));
-                        {
-                            let mut session_id = session_id.clone();
-                            ui.text("Session ID");
-
-                            ui.same_line_with_pos(100.0);
-                            ui.set_next_item_width(300.0);
-                            ui.input_text("##session_id", &mut session_id)
-                                .read_only(true)
-                                .build();
-
-                            let show_copied = self
-                                .radar_session_copied
-                                .as_ref()
-                                .map(|time| time.elapsed().as_millis() < 3_000)
-                                .unwrap_or(false);
-
-                            let copy_session_text = if show_copied {
-                                "Session id copied"
-                            } else {
-                                "Copy session id"
-                            };
-
-                            ui.same_line();
-                            if ui.button(copy_session_text) {
-                                ui.set_clipboard_text(format!("{}", session_id));
-                                self.radar_session_copied = Some(Instant::now());
-                            }
-                        }
-                        {
-                            let mut radar_url = format!("{}", radar_url);
-                            ui.set_next_item_width(100.0);
-                            ui.text("URL");
-
-                            ui.same_line_with_pos(100.0);
-                            ui.set_next_item_width(300.0);
-                            ui.input_text("##url", &mut radar_url)
-                                .read_only(true)
-                                .build();
-
-                            ui.same_line();
-                            if ui.button("Open URL") {
-                                ui.set_clipboard_text(&radar_url);
-                                utils::open_url(&radar_url);
-                            }
-                        }
-
-                        ui.new_line();
-                        if ui.button("Stop sharing") {
-                            radar.close_connection();
-                            drop(radar);
-                            *web_radar = None;
-                        }
-                    }
-                    WebRadarState::Disconnected { message } => {
-                        ui.text_colored(
-                            [1.0, 0.0, 0.0, 1.0],
-                            "An error occurred sharing your game:",
-                        );
-                        ui.text(message);
-
-                        ui.new_line();
-                        if ui.button("Close") {
-                            radar.close_connection();
-                            drop(radar);
-                            *web_radar = None;
-                        }
-                    }
-                }
-            }
-            None => {
-                let mut current_url = if let Some(value) = settings.web_radar_url.as_ref() {
-                    value.to_string()
-                } else {
-                    "wss://radar.valth.run/publish".to_string()
-                };
-
-                let url = Url::parse(&current_url);
-                ui.disabled(url.is_err(), || {
-                    if ui.button("Enable WebRadar") {
-                        let url = url.as_ref().unwrap();
-                        *web_radar = Some(radar::create_web_radar(url.clone(), cs2.clone()));
-                    }
-                });
-
-                ui.same_line();
-                ui.text(obfstr!("Start sharing your game"));
-                {
-                    let button_text = if settings.web_radar_advanced_settings {
-                        "Basic Settings"
-                    } else {
-                        "Advanced Settings"
-                    };
-                    let button_text_width = ui.calc_text_size(button_text)[0];
-
-                    let total_width = ui.content_region_avail()[0] + 2.0;
-                    ui.same_line_with_pos(total_width - button_text_width);
-                    if ui.button(button_text) {
-                        settings.web_radar_advanced_settings =
-                            !settings.web_radar_advanced_settings;
-                    }
-                }
-
-                ui.text(
-                    "The web radar is a fully detailed radar which can be visited from everywhere.",
-                );
-                ui.text("This means you can also show the radar with all the enemy info with your team mates.");
-
-                if settings.web_radar_advanced_settings {
-                    ui.new_line();
-                    ui.text("Advanced Settings");
-                    ui.text("URL:");
-                    ui.same_line();
-                    let _style_red_boarder =
-                        ui.push_style_color(StyleColor::Border, [1.0, 0.0, 0.0, 1.0]);
-                    ui.set_next_item_width(ui.content_region_avail()[0]);
-                    if ui.input_text("##url", &mut current_url).build() {
-                        settings.web_radar_url = Some(current_url);
-                    }
-                }
-            }
-        }
     }
 
     fn render_esp_target(

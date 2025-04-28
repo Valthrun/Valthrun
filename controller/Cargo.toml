@@ -23,7 +23,6 @@ cs2-schema-generated = { path = "../cs2-schema/generated" }
 cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 overlay = { path = "../overlay" }
 utils-state = { path = "../utils/state" }
-radar-client = { path = "../radar/client" }
 
 imgui = { version = "0.12", features = ["tables-api"] }
 clap = { version = "4.3.19", features = ["derive"] }

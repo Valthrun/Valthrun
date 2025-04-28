@@ -17,6 +17,7 @@ pub use self::imgui::*;
 mod console_io;
 pub use console_io::*;
 
+#[allow(unused)]
 pub fn open_url(url: &str) {
     unsafe {
         let url = match CString::new(url) {
