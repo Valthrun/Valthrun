@@ -20,27 +20,45 @@ pub enum SubscribeResult {
 pub enum S2CMessage {
     // Generic responses
     ResponseSuccess {},
-    ResponseError { error: String },
+    ResponseError {
+        error: String,
+    },
 
     ResponseInvalidClientState {},
-    ResponseInitializePublish { session_id: String },
+    ResponseInitializePublish {
+        session_id: String,
+        session_auth_token: String,
+    },
     ResponseSubscribeSuccess {},
     ResponseSessionInvalidId {},
 
-    NotifyRadarState { state: RadarState },
-    NotifyViewCount { viewers: usize },
+    NotifyRadarState {
+        state: RadarState,
+    },
+    NotifyViewCount {
+        viewers: usize,
+    },
     NotifySessionClosed {},
 }
 
 #[derive(Serialize, Deserialize, TypeDef)]
 #[serde(rename_all = "kebab-case", tag = "type", content = "payload")]
 pub enum C2SMessage {
-    InitializePublish {},
-    InitializeSubscribe { session_id: String },
+    InitializePublish {
+        #[serde(default)]
+        session_auth_token: Option<String>,
+    },
+    InitializeSubscribe {
+        session_id: String,
+    },
 
-    NotifyRadarState { state: RadarState },
+    NotifyRadarState {
+        state: RadarState,
+    },
 
-    Disconnect { reason: String },
+    Disconnect {
+        reason: String,
+    },
 }
 
 pub enum ClientEvent<T> {

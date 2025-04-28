@@ -13,7 +13,7 @@ log = { workspace = true }
 obfstr.workspace = true
 radar-client = { path = "../client" }
 radar-shared = { path = "../shared" }
-tokio = { version = "1.34.0", features = ["io-util", "rt-multi-thread", "net"] }
+tokio = { version = "1.34.0", features = ["io-util", "rt-multi-thread", "net", "signal"] }
 url = "2.5.0"
 utils-state = { path = "../../utils/state" }
 

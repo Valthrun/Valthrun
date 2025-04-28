@@ -6,6 +6,10 @@ use std::{
         Arc,
         Weak,
     },
+    time::{
+        Duration,
+        Instant,
+    },
 };
 
 use futures_util::Future;
@@ -27,6 +31,9 @@ use tokio::{
         RwLock,
     },
     task::JoinHandle,
+    time::{
+        self,
+    },
 };
 use warp::{
     self,
@@ -36,12 +43,21 @@ use warp::{
 use crate::{
     client::PubClient,
     handler::ServerCommandHandler,
+    ClientId,
     ClientState,
 };
 
+pub enum PubSessionOwner {
+    Owned { client_id: u32 },
+    Unbound { timestamp: Instant },
+}
+
 pub struct PubSession {
-    pub owner_id: u32,
+    pub owner: PubSessionOwner,
+
     pub session_id: String,
+    pub session_auth_token: String,
+
     subscriber: BTreeMap<u32, mpsc::Sender<S2CMessage>>,
 }
 
@@ -94,8 +110,43 @@ impl RadarServer {
 
         Arc::new_cyclic(|weak| {
             result.ref_self = weak.clone();
+            tokio::spawn(Self::tick_task(weak.clone()));
+
             RwLock::new(result)
         })
+    }
+
+    async fn tick_task(this: Weak<RwLock<Self>>) {
+        let mut interval = time::interval(Duration::from_secs(1));
+        loop {
+            interval.tick().await;
+            let Some(this) = this.upgrade() else {
+                return;
+            };
+
+            let mut this = this.write().await;
+            this.tick().await;
+        }
+    }
+
+    async fn tick(&mut self) {
+        let expired_sessions = self
+            .pub_sessions
+            .values()
+            .filter(|session| {
+                if let PubSessionOwner::Unbound { timestamp } = &session.owner {
+                    timestamp.elapsed() > Duration::from_secs(120)
+                } else {
+                    false
+                }
+            })
+            .map(|session| session.session_id.clone())
+            .collect::<Vec<_>>();
+
+        for session_id in expired_sessions {
+            log::info!("Session {} expired. Closing session.", &session_id);
+            self.pub_session_close(&session_id).await;
+        }
     }
 
     pub async fn listen_http(
@@ -143,7 +194,7 @@ impl RadarServer {
         Ok(())
     }
 
-    pub async fn unregister_client(&mut self, client_id: u32) {
+    pub async fn unregister_client(&mut self, client_id: u32, clean_disconnect: bool) {
         let client = match self.clients.remove(&client_id) {
             Some(client) => client,
             None => return,
@@ -155,7 +206,11 @@ impl RadarServer {
         };
         match client_state {
             ClientState::Publisher { session_id } => {
-                self.pub_session_close(&session_id).await;
+                if clean_disconnect {
+                    self.pub_session_close(&session_id).await;
+                } else {
+                    self.pub_session_unbound(&session_id).await;
+                }
             }
             ClientState::Subscriber { session_id } => {
                 self.pub_session_unsubscribe(&session_id, client_id).await;
@@ -191,13 +246,17 @@ impl RadarServer {
         };
 
         async move {
-            while let Some(event) = rx.recv().await {
+            let clean_disconnect = loop {
+                let Some(event) = rx.recv().await else {
+                    break false;
+                };
+
                 match event {
                     ClientEvent::RecvMessage(command) => {
                         if let C2SMessage::Disconnect { reason: message } = &command {
                             /* client requested a disconnect */
                             log::debug!("Client send disconnect with reason: {}", message);
-                            break;
+                            break true;
                         }
 
                         let result = command_handler.handle_command(command).await;
@@ -205,25 +264,25 @@ impl RadarServer {
                     }
                     ClientEvent::RecvError(err) => {
                         log::debug!("Client {} recv error: {}", command_handler.client_id, err);
-                        break;
+                        break false;
                     }
                     ClientEvent::SendError(err) => {
-                        log::debug!("Client {} recv error: {}", command_handler.client_id, err);
-                        break;
+                        log::debug!("Client {} send error: {}", command_handler.client_id, err);
+                        break false;
                     }
                 }
-            }
+            };
 
             command_handler
                 .server
                 .write()
                 .await
-                .unregister_client(command_handler.client_id)
+                .unregister_client(command_handler.client_id, clean_disconnect)
                 .await;
         }
     }
 
-    pub async fn pub_session_create(&mut self, owner_id: u32) -> Option<&PubSession> {
+    pub async fn pub_session_create(&mut self, owner_id: ClientId) -> Option<&PubSession> {
         let owner = match self.clients.get(&owner_id) {
             Some(client) => client,
             None => return None,
@@ -240,11 +299,22 @@ impl RadarServer {
             .take(6)
             .collect::<String>();
 
+        let session_auth_token = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .map(char::from)
+            .take(12)
+            .collect::<String>();
+
         self.pub_sessions.insert(
             session_id.clone(),
             PubSession {
-                owner_id,
+                owner: PubSessionOwner::Owned {
+                    client_id: owner_id,
+                },
+
                 session_id: session_id.clone(),
+                session_auth_token: session_auth_token.clone(),
+
                 subscriber: Default::default(),
             },
         );
@@ -254,6 +324,56 @@ impl RadarServer {
             session_id: session_id.clone(),
         };
         self.pub_sessions.get(&session_id)
+    }
+
+    pub async fn pub_session_reclaim(
+        &mut self,
+        client_id: ClientId,
+        session_auth_token: &str,
+    ) -> Option<&PubSession> {
+        let owner = match self.clients.get(&client_id) {
+            Some(client) => client,
+            None => return None,
+        };
+
+        let mut owner = owner.write().await;
+        if !matches!(owner.state, ClientState::Uninitialized) {
+            return None;
+        }
+
+        let session = self
+            .pub_sessions
+            .values_mut()
+            .find(|entry| entry.session_auth_token == session_auth_token)?;
+
+        if !matches!(&session.owner, PubSessionOwner::Unbound { .. }) {
+            /* session is owned by a client */
+            return None;
+        }
+
+        session.owner = PubSessionOwner::Owned { client_id };
+
+        log::info!("Reclaimed session {} by {}", session.session_id, client_id);
+        owner.state = ClientState::Publisher {
+            session_id: session.session_id.clone(),
+        };
+        Some(session)
+    }
+
+    pub async fn pub_session_unbound(&mut self, session_id: &str) {
+        let session = match self.pub_sessions.get_mut(session_id) {
+            Some(session) => session,
+            None => return,
+        };
+
+        if !matches!(&session.owner, PubSessionOwner::Owned { .. }) {
+            return;
+        }
+
+        log::info!("Unbound session {}", session_id);
+        session.owner = PubSessionOwner::Unbound {
+            timestamp: Instant::now(),
+        };
     }
 
     pub async fn pub_session_close(&mut self, session_id: &str) {

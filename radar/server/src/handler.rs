@@ -9,6 +9,7 @@ use tokio::sync::RwLock;
 use crate::{
     ClientState,
     PubClient,
+    PubSessionOwner,
     PubSessionSubscribeResult,
     RadarServer,
 };
@@ -22,14 +23,29 @@ pub struct ServerCommandHandler {
 impl ServerCommandHandler {
     pub async fn handle_command(&self, command: C2SMessage) -> S2CMessage {
         match command {
-            C2SMessage::InitializePublish { .. } => {
+            C2SMessage::InitializePublish { session_auth_token } => {
                 let mut server = self.server.write().await;
-                let Some(session) = server.pub_session_create(self.client_id).await else {
-                    return S2CMessage::ResponseInvalidClientState {};
+
+                let session = if let Some(auth_token) = session_auth_token {
+                    let Some(session) = server
+                        .pub_session_reclaim(self.client_id, &auth_token)
+                        .await
+                    else {
+                        return S2CMessage::ResponseSessionInvalidId {};
+                    };
+
+                    session
+                } else {
+                    let Some(session) = server.pub_session_create(self.client_id).await else {
+                        return S2CMessage::ResponseInvalidClientState {};
+                    };
+
+                    session
                 };
 
                 S2CMessage::ResponseInitializePublish {
                     session_id: session.session_id.clone(),
+                    session_auth_token: session.session_auth_token.clone(),
                 }
             }
             C2SMessage::InitializeSubscribe { session_id, .. } => {
@@ -64,7 +80,14 @@ impl ServerCommandHandler {
                     None => return S2CMessage::ResponseSessionInvalidId {},
                 };
 
-                if session.owner_id != client.client_id {
+                let PubSessionOwner::Owned {
+                    client_id: owner_client_id,
+                } = &session.owner
+                else {
+                    return S2CMessage::ResponseSessionInvalidId {};
+                };
+
+                if *owner_client_id != client.client_id {
                     return S2CMessage::ResponseError {
                         error: "you're not allowed to send updates".to_string(),
                     };

@@ -30,6 +30,8 @@ use warp::filters::ws::{
 
 use crate::RadarServer;
 
+pub type ClientId = u32;
+
 #[derive(Clone)]
 pub enum ClientState {
     Uninitialized,
@@ -38,7 +40,7 @@ pub enum ClientState {
 }
 
 pub struct PubClient {
-    pub client_id: u32,
+    pub client_id: ClientId,
     pub address: SocketAddr,
 
     pub state: ClientState,
