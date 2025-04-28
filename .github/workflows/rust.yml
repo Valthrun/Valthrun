@@ -64,7 +64,7 @@ jobs:
         build: [linux]
         include:
           - build: linux
-            os: ubuntu-20.04
+            os: ubuntu-22.04
             target: radar-server-standalone
             # https://github.com/clap-rs/clap/issues/1938#issuecomment-632186396
             flags: ''
