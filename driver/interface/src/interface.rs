@@ -64,6 +64,46 @@ pub struct DriverInterface {
 }
 
 impl DriverInterface {
+    fn is_library_candidate(filename: &String) -> bool {
+        #[cfg(unix)]
+        {
+            if !filename.ends_with(".so") {
+                /* all files must end with .so */
+                return false;
+            }
+
+            let filename = if filename.starts_with("lib") {
+                &filename[3..]
+            } else {
+                filename
+            };
+
+            if filename == "driver.so"
+                || filename.starts_with("driver_")
+                || filename.starts_with(obfstr!("valthrun_driver_"))
+            {
+                return true;
+            }
+        }
+
+        #[cfg(windows)]
+        {
+            if !filename.ends_with(".dll") {
+                /* all files must end with .dll */
+                return false;
+            }
+
+            if filename == "driver.dll"
+                || filename.starts_with("driver_")
+                || filename.starts_with(obfstr!("valthrun_driver_"))
+            {
+                return true;
+            }
+        }
+
+        false
+    }
+
     fn populate_library_paths() -> Vec<PathBuf> {
         let mut result = Vec::with_capacity(64);
         if let Ok(path) = env::var(obfstr!("VT_DRIVER_PATH")) {
@@ -94,17 +134,7 @@ impl DriverInterface {
                     let mut candidates = dir
                         .filter_map(|entry| entry.ok())
                         .map(|entry| entry.file_name().to_string_lossy().to_string())
-                        .filter(|file_name| {
-                            let file_name = if file_name.starts_with("lib") {
-                                &file_name[3..]
-                            } else {
-                                file_name
-                            };
-
-                            (file_name.starts_with("driver_")
-                                || file_name.starts_with(obfstr!("valthrun_driver_")))
-                                && (file_name.ends_with(".dll") || file_name.ends_with(".so"))
-                        })
+                        .filter(Self::is_library_candidate)
                         .map(|file_name| directory.join(file_name))
                         .filter_map(|file| Some((file.metadata().ok()?.modified().ok()?, file)))
                         .collect::<Vec<_>>();
@@ -125,10 +155,30 @@ impl DriverInterface {
         result
     }
 
+    fn load_library(target: &PathBuf) -> IResult<Library> {
+        let library = unsafe { Library::new(&target) }?;
+
+        #[cfg(unix)]
+        unsafe {
+            use obfstr::obfcstr;
+
+            type FnStartup = unsafe extern "C" fn() -> ();
+
+            let startup = library
+                .get::<FnStartup>(obfcstr!(c"startup").to_bytes())
+                .ok()
+                .ok_or(InterfaceError::DriverMissingStartupExport)?;
+
+            startup();
+        }
+
+        Ok(library)
+    }
+
     pub fn create_from_env() -> IResult<Self> {
         for path in Self::populate_library_paths() {
             log::debug!("Trying to load driver from {}", path.display());
-            match unsafe { Library::new(&path) } {
+            match Self::load_library(&path) {
                 Ok(lib) => {
                     log::debug!("    -> success.");
                     log::debug!("Initialize driver interface.",);

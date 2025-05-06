@@ -12,6 +12,9 @@ pub enum InterfaceError {
     #[error("missing command handler execute export")]
     DriverMissingExecuterExport,
 
+    #[error("missing startup export")]
+    DriverMissingStartupExport,
+
     #[error(
         "protocol miss match (expected {interface_protocol} but driver supports {driver_protocol})"
     )]
