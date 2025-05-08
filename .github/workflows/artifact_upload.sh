@@ -3,9 +3,10 @@ file_path="$2"
 pdb_path="$3"
 
 file_name=$(basename -- "$file_path")
-file_ext="${file_name##*.}"
-if [[ "$file_ext" -ne "" ]]; then
-    file_ext=".$file_ext"
+if [[ "$file_name" =~ "." ]]; then
+    file_ext=".${file_name##*.}"
+else
+    file_ext=""
 fi
 
 git_commit_shash=$(git rev-parse --short "$GITHUB_SHA")
