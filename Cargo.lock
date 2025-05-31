@@ -3864,7 +3864,7 @@ checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
 [[package]]
 name = "vtd-libum"
 version = "0.1.0"
-source = "git+https://github.com/Valthrun/valthrun-driver?rev=3931af3#3931af331f88fe96df94e49f1427125d67a0f440"
+source = "git+https://github.com/Valthrun/valthrun-driver?rev=3d521e3#3d521e3439f6bc01a5f7bea8d9b298b239f912bf"
 dependencies = [
  "libloading",
  "log",
@@ -3877,7 +3877,7 @@ dependencies = [
 [[package]]
 name = "vtd-protocol"
 version = "0.1.0"
-source = "git+https://github.com/Valthrun/valthrun-driver?rev=3931af3#3931af331f88fe96df94e49f1427125d67a0f440"
+source = "git+https://github.com/Valthrun/valthrun-driver?rev=3d521e3#3d521e3439f6bc01a5f7bea8d9b298b239f912bf"
 dependencies = [
  "bitflags 2.6.0",
 ]
