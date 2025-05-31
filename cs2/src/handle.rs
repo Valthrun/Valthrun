@@ -25,16 +25,22 @@ use utils_state::{
     StateCacheType,
     StateRegistry,
 };
-use valthrun_driver_interface::{
-    DirectoryTableType,
-    DriverFeature,
+use vtd_libum::{
+    protocol::{
+        command::{
+            KeyboardState,
+            MouseState,
+            ProcessProtectionMode,
+        },
+        types::{
+            DirectoryTableType,
+            DriverFeature,
+            ProcessId,
+            ProcessModuleInfo,
+        },
+    },
     DriverInterface,
     InterfaceError,
-    KeyboardState,
-    MouseState,
-    ProcessId,
-    ProcessModuleInfo,
-    ProcessProtectionMode,
 };
 
 use crate::{

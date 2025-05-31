@@ -32,8 +32,10 @@ pub use class_name_cache::*;
 
 mod pattern;
 pub use pattern::*;
-pub use valthrun_driver_interface::{
+pub use vtd_libum::{
+    protocol::command::{
+        KeyboardState,
+        MouseState,
+    },
     InterfaceError,
-    KeyboardState,
-    MouseState,
 };
