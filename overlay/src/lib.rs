@@ -39,38 +39,38 @@ use windows::Win32::{
     Graphics::{
         Dwm::{
             DwmEnableBlurBehindWindow,
+            DwmExtendFrameIntoClientArea,
             DwmIsCompositionEnabled,
-            DWM_BB_BLURREGION,
             DWM_BB_ENABLE,
             DWM_BLURBEHIND,
         },
-        Gdi::{
-            CreateRectRgn,
-            DeleteObject,
-        },
+        Gdi::HRGN,
     },
-    UI::WindowsAndMessaging::{
-        SetWindowDisplayAffinity,
-        SetWindowLongA,
-        SetWindowLongPtrA,
-        SetWindowPos,
-        ShowWindow,
-        GWL_EXSTYLE,
-        GWL_STYLE,
-        HWND_TOPMOST,
-        SWP_NOACTIVATE,
-        SWP_NOMOVE,
-        SWP_NOSIZE,
-        SW_SHOWNOACTIVATE,
-        WDA_EXCLUDEFROMCAPTURE,
-        WDA_NONE,
-        WS_CLIPSIBLINGS,
-        WS_EX_LAYERED,
-        WS_EX_NOACTIVATE,
-        WS_EX_TOOLWINDOW,
-        WS_EX_TRANSPARENT,
-        WS_POPUP,
-        WS_VISIBLE,
+    UI::{
+        Controls::MARGINS,
+        WindowsAndMessaging::{
+            SetWindowDisplayAffinity,
+            SetWindowLongA,
+            SetWindowLongPtrA,
+            SetWindowPos,
+            ShowWindow,
+            GWL_EXSTYLE,
+            GWL_STYLE,
+            HWND_TOPMOST,
+            SWP_NOACTIVATE,
+            SWP_NOMOVE,
+            SWP_NOSIZE,
+            SW_SHOWNOACTIVATE,
+            WDA_EXCLUDEFROMCAPTURE,
+            WDA_NONE,
+            WS_CLIPSIBLINGS,
+            WS_EX_LAYERED,
+            WS_EX_NOACTIVATE,
+            WS_EX_TOOLWINDOW,
+            WS_EX_TRANSPARENT,
+            WS_POPUP,
+            WS_VISIBLE,
+        },
     },
 };
 
@@ -133,11 +133,20 @@ fn create_window(event_loop: &EventLoop<()>, title: &str) -> Result<(HWND, Windo
             }
 
             let mut bb: DWM_BLURBEHIND = Default::default();
-            bb.dwFlags = DWM_BB_ENABLE | DWM_BB_BLURREGION;
+            bb.dwFlags = DWM_BB_ENABLE;
             bb.fEnable = BOOL::from(true);
-            bb.hRgnBlur = CreateRectRgn(0, 0, 1, 1);
+            bb.hRgnBlur = HRGN::default();
             DwmEnableBlurBehindWindow(hwnd, &bb)?;
-            DeleteObject(bb.hRgnBlur);
+
+            DwmExtendFrameIntoClientArea(
+                hwnd,
+                &MARGINS {
+                    cxLeftWidth: -1,
+                    cxRightWidth: -1,
+                    cyBottomHeight: -1,
+                    cyTopHeight: -1,
+                },
+            )?;
 
             // Move the window to the top
             SetWindowPos(
