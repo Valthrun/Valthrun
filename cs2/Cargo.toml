@@ -11,7 +11,7 @@ cs2-schema-definition = { path = "../cs2-schema/definition" }
 cs2-schema-cutl = { path = "../cs2-schema/cutl" }
 cs2-schema-generated = { path = "../cs2-schema/generated" }
 
-vtd-libum = { git = "https://github.com/Valthrun/valthrun-driver", rev = "3d521e3" }
+vtd-libum = { git = "https://github.com/Valthrun/valthrun-driver", rev = "bc88b65" }
 
 anyhow = { workspace = true }
 obfstr = { workspace = true }
