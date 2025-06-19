@@ -6,15 +6,17 @@ edition.workspace = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+utils-state = { path = "../utils/state" }
+cs2-schema-definition = { path = "../cs2-schema/definition" }
+cs2-schema-cutl = { path = "../cs2-schema/cutl" }
+cs2-schema-generated = { path = "../cs2-schema/generated" }
+
+vtd-libum = { git = "https://github.com/Valthrun/valthrun-driver", rev = "bc88b65" }
+
 anyhow = { workspace = true }
 obfstr = { workspace = true }
 log = { workspace = true }
 serde_json = "1.0.104"
 nalgebra = { workspace = true }
-cs2-schema-cutl = { path = "../cs2-schema/cutl" }
-cs2-schema-generated = { path = "../cs2-schema/generated" }
-utils-state = { path = "../utils/state" }
 raw_struct = { workspace = true }
 env_logger = { workspace = true }
-cs2-schema-definition = { path = "../cs2-schema/definition" }
-valthrun-driver-interface = { path = "../driver/interface" }
