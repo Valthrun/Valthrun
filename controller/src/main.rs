@@ -66,7 +66,8 @@ use windows::Win32::UI::Shell::IsUserAnAdmin;
 use crate::{
     enhancements::{
         sniper_crosshair::SniperCrosshair,
-        AntiAimPunsh,
+        /*AntiAimPunsh,*/
+        Aimbot,
         BombInfoIndicator,
         PlayerESP,
         SpectatorsListIndicator,
@@ -547,7 +548,8 @@ fn real_main(args: &AppArgs) -> anyhow::Result<()> {
         cs2: cs2.clone(),
 
         enhancements: vec![
-            Rc::new(RefCell::new(AntiAimPunsh::new(cvar_sensitivity))),
+            /*Rc::new(RefCell::new(AntiAimPunsh::new(cvar_sensitivity))),*/
+            Rc::new(RefCell::new(Aimbot::new())),
             Rc::new(RefCell::new(PlayerESP::new())),
             Rc::new(RefCell::new(SpectatorsListIndicator::new())),
             Rc::new(RefCell::new(BombInfoIndicator::new())),
